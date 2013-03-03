@@ -8,7 +8,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class BackendKeyDataMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 
 		int processId = in.readInt();
 		int secretKey = in.readInt();

@@ -2,8 +2,11 @@ package com.impossibl.postgres;
 
 import java.util.List;
 
+import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Field;
+import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.types.Tuple;
 import com.impossibl.postgres.types.Type;
 
 public interface Context {
@@ -13,21 +16,18 @@ public interface Context {
 	Class<?> lookupInstanceType(Type type);
 	Object createInstance(Class<?> type);
 
-	void authenticatePlain();
-	void authenticateMD5(byte[] salt);
-	
 	void setKeyData(int processId, int secretKey);
 
 	void refreshType(int typeId);
-	Type createTupleType(List<Field> fields);
+	Tuple createTupleType(List<Field> fields);
 
 	void restart(TransactionStatus txStatus);
 
 	void setParameterDescriptions(List<Type> asList);
 	Type getParameterDataType();
 
-	void setResultType(Type type);
-	Type getResultType();
+	void setResultType(Tuple type);
+	Tuple getResultType();
 	
 
 	void setResultData(Object value);
@@ -45,5 +45,7 @@ public interface Context {
 	void authenticated();
 
 	Object getSetting(String string);
+
+	Protocol getProtocol();
 
 }

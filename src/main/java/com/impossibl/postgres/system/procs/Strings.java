@@ -11,12 +11,12 @@ import com.impossibl.postgres.utils.DataOutputStream;
 public class Strings extends SimpleProcProvider {
 
 	public Strings() {
-		super(null, null, new Receive(), new Send(), "text", "varchar", "bpchar", "enum_", "json_", "xml_");
+		super(null, null, new Encoder(), new Decoder(), "text", "varchar", "bpchar", "enum_", "json_", "xml_");
 	}
 	
-	static class Send implements Type.BinaryIO.SendHandler {
+	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public String handle(Type type, DataInputStream stream, Context context) throws IOException {
+		public String decode(Type type, DataInputStream stream, Context context) throws IOException {
 			
 			int len = stream.readInt();
 			byte[] bytes = new byte[len];
@@ -27,9 +27,9 @@ public class Strings extends SimpleProcProvider {
 
 	}
 
-	static class Receive implements Type.BinaryIO.ReceiveHandler {
+	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void handle(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
 			
 			byte[] bytes = context.getStringCodec().encode(val.toString());
 			

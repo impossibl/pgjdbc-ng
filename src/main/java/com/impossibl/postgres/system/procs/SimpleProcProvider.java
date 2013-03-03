@@ -1,50 +1,46 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.types.Type.BinaryIO;
-import com.impossibl.postgres.types.Type.BinaryIO.ReceiveHandler;
-import com.impossibl.postgres.types.Type.BinaryIO.SendHandler;
 import com.impossibl.postgres.types.Type.TextIO;
-import com.impossibl.postgres.types.Type.TextIO.InputHandler;
-import com.impossibl.postgres.types.Type.TextIO.OutputHandler;
 
 public class SimpleProcProvider implements ProcProvider {
 
 	String[] baseNames;
-	TextIO.InputHandler input;
-	TextIO.OutputHandler output;
-	BinaryIO.ReceiveHandler recv;
-	BinaryIO.SendHandler send;
+	TextIO.Encoder txtEncoder;
+	TextIO.Decoder txtDecoder;
+	BinaryIO.Encoder binEncoder;
+	BinaryIO.Decoder binDecoder;
 	
-	public SimpleProcProvider(InputHandler input, OutputHandler output, ReceiveHandler recv, SendHandler send, String... baseNames) {
+	public SimpleProcProvider(TextIO.Encoder txtEncoder, TextIO.Decoder txtDecoder, BinaryIO.Encoder binEncoder, BinaryIO.Decoder binDecoder, String... baseNames) {
 		super();
 		this.baseNames = baseNames;
-		this.input = input;
-		this.output = output;
-		this.recv = recv;
-		this.send = send;
+		this.txtEncoder = txtEncoder;
+		this.txtDecoder = txtDecoder;
+		this.binEncoder = binEncoder;
+		this.binDecoder = binDecoder;
 	}
 
-	public ReceiveHandler findBinaryReceiveHandler(String name) {
+	public BinaryIO.Encoder findBinaryEncoder(String name) {
 		if(hasName(name, "recv"))
-			return recv;
+			return binEncoder;
 		return null;
 	}
 
-	public SendHandler findBinarySendHandler(String name) {
+	public BinaryIO.Decoder findBinaryDecoder(String name) {
 		if(hasName(name, "send"))
-			return send;
+			return binDecoder;
 		return null;
 	}
 
-	public InputHandler findTextInputHandler(String name) {
+	public TextIO.Encoder findTextEncoder(String name) {
 		if(hasName(name, "in"))
-			return input;
+			return txtEncoder;
 		return null;
 	}
 
-	public OutputHandler findTextOutputHandler(String name) {
+	public TextIO.Decoder findTextDecoder(String name) {
 		if(hasName(name, "out"))
-			return output;
+			return txtDecoder;
 		return null;
 	}
 	

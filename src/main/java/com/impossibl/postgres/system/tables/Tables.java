@@ -42,7 +42,7 @@ public class Tables {
 		return rows;
 	}
 
-	static String getSQL(Object[] sqlData, Version currentVersion) {
+	public static String getSQL(Object[] sqlData, Version currentVersion) {
 
 		try {
 

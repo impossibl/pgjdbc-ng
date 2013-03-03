@@ -8,7 +8,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class ParameterStatusMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 		
 		String name = in.readCString();
 		String value = in.readCString();

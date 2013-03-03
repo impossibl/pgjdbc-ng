@@ -7,6 +7,6 @@ import com.impossibl.postgres.utils.DataInputStream;
 
 public interface MessageProcessor {
 	
-	void process(Protocol protocol, DataInputStream in, Context context) throws IOException;
+	void process(DataInputStream in, Context context) throws IOException;
 
 }

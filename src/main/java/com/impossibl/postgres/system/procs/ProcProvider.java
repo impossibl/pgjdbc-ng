@@ -5,9 +5,9 @@ import com.impossibl.postgres.types.Type.TextIO;
 
 public interface ProcProvider {
 	
-	public BinaryIO.ReceiveHandler findBinaryReceiveHandler(String name);
-	public BinaryIO.SendHandler findBinarySendHandler(String name);
-	public TextIO.InputHandler findTextInputHandler(String name);
-	public TextIO.OutputHandler findTextOutputHandler(String name);
+	public BinaryIO.Encoder findBinaryEncoder(String name);
+	public BinaryIO.Decoder findBinaryDecoder(String name);
+	public TextIO.Encoder findTextEncoder(String name);
+	public TextIO.Decoder findTextDecoder(String name);
 
 }

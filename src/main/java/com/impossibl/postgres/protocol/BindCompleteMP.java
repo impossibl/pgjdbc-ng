@@ -8,7 +8,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class BindCompleteMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 
 		context.bindComplete();
 	}

@@ -14,12 +14,12 @@ import com.impossibl.postgres.utils.DataOutputStream;
 public class Arrays extends SimpleProcProvider {
 
 	public Arrays() {
-		super(null, null, new Receive(), new Send(), "array_");
+		super(null, null, new Encoder(), new Decoder(), "array_");
 	}
 	
-	static class Send implements Type.BinaryIO.SendHandler {
+	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Object handle(Type type, DataInputStream stream, Context context) throws IOException {
+		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
 			
 			Array atype = (Array)type;
 			Type elementType = atype.getElementType();
@@ -32,7 +32,7 @@ public class Arrays extends SimpleProcProvider {
 			
 			for(int c=0; c < len; ++c) {
 
-				Object elementVal = elementType.getBinaryIO().send.handle(elementType, stream, context);
+				Object elementVal = elementType.getBinaryIO().decoder.decode(elementType, stream, context);
 				
 				Arrays.set(instance, c, elementVal);
 			}
@@ -42,9 +42,9 @@ public class Arrays extends SimpleProcProvider {
 
 	}
 
-	static class Receive implements Type.BinaryIO.ReceiveHandler {
+	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void handle(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
 			stream.writeBoolean((Boolean)val);
 		}
 

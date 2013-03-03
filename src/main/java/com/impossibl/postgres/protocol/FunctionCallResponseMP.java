@@ -9,7 +9,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class FunctionCallResponseMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 		
 		Object value = null;
 		
@@ -21,7 +21,7 @@ public class FunctionCallResponseMP implements MessageProcessor {
 			
 			Type resultType = context.getResultType();
 			
-			value = resultType.getBinaryIO().send.handle(resultType, in, context);
+			value = resultType.getBinaryIO().decoder.decode(resultType, in, context);
 		}
 		
 		if(length == (in.getCount() - start)) {

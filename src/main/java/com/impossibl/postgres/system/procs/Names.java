@@ -1,5 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 
 import com.impossibl.postgres.Context;
@@ -8,16 +10,19 @@ import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
 
-public class Int4s extends SimpleProcProvider {
+public class Names extends SimpleProcProvider {
 
-	public Int4s() {
-		super(null, null, new Encoder(), new Decoder(), "int4", "oid", "tid", "xid", "cid", "regproc");
+	public Names() {
+		super(null, null, new Encoder(), new Decoder(), "name");
 	}
 	
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Integer decode(Type type, DataInputStream stream, Context context) throws IOException {			
-			return stream.readInt();
+		public String decode(Type type, DataInputStream stream, Context context) throws IOException {
+			
+			byte[] buf = new byte[type.getLength()];
+			stream.read(buf);
+			return new String(buf, UTF_8);
 		}
 
 	}
@@ -25,7 +30,9 @@ public class Int4s extends SimpleProcProvider {
 	static class Encoder implements Type.BinaryIO.Encoder {
 
 		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
-			stream.writeInt((Integer)val);
+
+			byte[] buf = val.toString().getBytes(UTF_8);
+			stream.writeCString(val.toString());
 		}
 
 	}

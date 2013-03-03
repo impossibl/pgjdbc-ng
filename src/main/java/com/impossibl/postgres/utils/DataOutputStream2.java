@@ -25,20 +25,16 @@
 
 package com.impossibl.postgres.utils;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.DataOutput;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 
-public class DataOutputStream extends FilterOutputStream implements DataOutput {
+public class DataOutputStream2 extends FilterOutputStream implements DataOutput {
 
 	protected long count;
 
-	public DataOutputStream(OutputStream out) {
+	public DataOutputStream2(OutputStream out) {
 		super(out);
 	}
 
@@ -140,7 +136,8 @@ public class DataOutputStream extends FilterOutputStream implements DataOutput {
 	}
 
 	public void writeCString(String str) throws IOException {
-		write(str.getBytes(UTF_8));
+		for (int c = 0; c < str.length(); ++c)
+			writeByte(str.charAt(c) & 0xFF);
 		writeByte(0);
 	}
 

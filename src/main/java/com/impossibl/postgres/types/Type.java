@@ -55,30 +55,30 @@ public abstract class Type {
 	
 	public static class BinaryIO {
 
-		public interface SendHandler {
-			Object handle(Type type, DataInputStream stream, Context context) throws IOException;
+		public interface Decoder {
+			Object decode(Type type, DataInputStream stream, Context context) throws IOException;
 		}
 		
-		public interface ReceiveHandler {
-			void handle(Type tyoe, DataOutputStream stream, Object value, Context context) throws IOException;
+		public interface Encoder {
+			void encode(Type tyoe, DataOutputStream stream, Object value, Context context) throws IOException;
 		}
 
-		public SendHandler send;
-		public ReceiveHandler recv;
+		public Decoder decoder;
+		public Encoder encoder;
 	}
 
 	public static class TextIO {
 
-		public interface OutputHandler {
+		public interface Decoder {
 			Object handle(Type type, Reader reader, Context context);
 		}
 		
-		public interface InputHandler {
+		public interface Encoder {
 			void handle(Type tyoe, Writer writer, Object value, Context context) throws IOException;
 		}
 
-		public OutputHandler output;
-		public InputHandler input;
+		public Decoder decoder;
+		public Encoder encoder;
 	}
 
 	private int id;
@@ -93,6 +93,23 @@ public abstract class Type {
 	private int sqlType;
 	
 	
+	public Type() {
+	}
+
+	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, BinaryIO binaryIO, TextIO textIO, int sqlType) {
+		super();
+		this.id = id;
+		this.name = name;
+		this.length = length;
+		this.alignment = alignment;
+		this.category = category;
+		this.delimeter = delimeter;
+		this.arrayType = arrayType;
+		this.binaryIO = binaryIO;
+		this.textIO = textIO;
+		this.sqlType = sqlType;
+	}
+
 	public int getId() {
 		return id;
 	}
@@ -177,8 +194,8 @@ public abstract class Type {
 		
 		id = source.oid;
 		name = source.name;
-		length = source.length;
-		alignment = source.alignment; 
+		length = source.length != -1 ? source.length : null;
+		alignment = getAlignment(source.alignment); 
 		category = Category.valueOf(source.category);
 		delimeter = (char)source.deliminator;
 		arrayType = Registry.loadType(source.arrayTypeId);
@@ -186,6 +203,24 @@ public abstract class Type {
 		binaryIO = Registry.loadBinaryIO(source.receiveId, source.sendId);
 	}
 	
+	public static Byte getAlignment(Byte align) {
+		if(align == null)
+			return null;
+		
+		switch(align) {
+		case 'c':
+			return 1;
+		case 's':
+			return 2;
+		case 'i':
+			return 4;
+		case 'd':
+			return 8;
+		}
+
+		throw new IllegalStateException("invalid alignment character");
+	}
+
 	@Override
 	public String toString() {
 		return name + '(' + id + ')';

@@ -12,7 +12,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class ParameterDescriptionMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 
 		short paramCount = in.readShort();
 

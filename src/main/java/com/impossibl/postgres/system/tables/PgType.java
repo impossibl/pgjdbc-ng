@@ -87,11 +87,10 @@ public class PgType implements Table<PgType.Row> {
 
 	public static Object[] SQL = {
 		Version.get(9,0,0),
-		" select " +
+		" select" +
 		"		oid, typname as name, typlen as length, typtype as discriminator, typcategory as category, typdelim as deliminator, typrelid as relationId," +
 		"		typelem as elementTypeId, typarray as arrayTypeId, typinput::oid as inputId, typoutput::oid as outputId, typreceive::oid as receiveId, typsend::oid as sendId," +
-		"		typmodin::oid as modInId, typmodout::oid as modOutId, typanalyze::oid as analyzeId, typalign as alignment, typbasetype as baseTypeId, typtypmod as modId," +
-		"		typndims as numberOfDimension" +
+		"		typalign as alignment, typbasetype as baseTypeId, typndims as numberOfDimension" +
 		" from" +
 		"		pg_catalog.pg_type"
 	};

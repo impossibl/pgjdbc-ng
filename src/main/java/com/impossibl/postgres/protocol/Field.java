@@ -10,4 +10,9 @@ public class Field {
 	public int typeModId;
 	public short formatCode;
 	
+	@Override
+	public String toString() {
+		return name + " (" + attributeIndex + ") : " + typeId;
+	}
+	
 }

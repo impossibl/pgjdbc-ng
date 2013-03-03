@@ -15,84 +15,86 @@ import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
 
+
 public class Records extends SimpleProcProvider {
 
 	public Records() {
-		super(null, null, new Receive(), new Send(), "record_");
+		super(null, null, new Encoder(), new Decoder(), "record_");
 	}
-	
-	static class Send implements Type.BinaryIO.SendHandler {
 
-		public Object handle(Type type, DataInputStream stream, Context context) throws IOException {
-			
+	static class Decoder implements Type.BinaryIO.Decoder {
+
+		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
+
 			Composite ctype = (Composite) type;
-			
+
 			Object instance = context.createInstance(context.lookupInstanceType(type));
-			
+
 			Map<Object, Object> target = makeMap(instance);
-			
+
 			int lengthGiven = stream.readInt();
-			
+
 			long writeStart = stream.getCount();
 			
 			int itemCount = stream.readInt();
-			for(int c=0; c < itemCount; ++c) {
-				
+			
+			for (int c = 0; c < itemCount; ++c) {
+
 				Attribute attribute = ctype.getAttribute(c);
-				
+
 				Type attributeType = Registry.loadType(stream.readInt());
-				
-				if(attributeType.getId() != attribute.type.getId()) {
+
+				if (attributeType.getId() != attribute.type.getId()) {
 
 					context.refreshType(attributeType.getId());
 				}
-				
+
 				Object attributeVal = null;
-				
+
 				stream.mark(4);
-				if(stream.readInt() != -1) {
-				
+				if (stream.readInt() != -1) {
+
 					stream.reset();
 
-					attributeVal = attributeType.getBinaryIO().send.handle(attributeType, stream, context);
+					attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, stream, context);
 				}
-				
+
 				target.put(attribute.name, attributeVal);
 			}
-			
+
 			long lengthFound = stream.getCount() - writeStart;
-			if(lengthFound != lengthGiven) {
+			if (lengthFound != lengthGiven) {
 				throw new IllegalStateException();
 			}
-			
+
 			return instance;
 		}
 
 	}
 
-	static class Receive implements Type.BinaryIO.ReceiveHandler {
+	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void handle(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
-			
+		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+
 			Composite ctype = (Composite) type;
-			
+
 			Map<Object, Object> source = makeMap(val);
-			
+
 			Collection<Attribute> attributes = ctype.getAttributes();
-			
+
 			stream.writeInt(attributes.size());
-			
-			for(Attribute attribute : attributes) {
-				
+
+			for (Attribute attribute : attributes) {
+
 				Type attributeType = attribute.type;
-				
+
 				stream.writeInt(attributeType.getId());
-				
+
 				Object attributeVal = source.get(attribute.name);
-				
-				attributeType.getBinaryIO().recv.handle(attributeType, stream, attributeVal, context);
+
+				attributeType.getBinaryIO().encoder.encode(attributeType, stream, attributeVal, context);
 			}
-			
+
 		}
 
 	}
@@ -100,10 +102,10 @@ public class Records extends SimpleProcProvider {
 	@SuppressWarnings("unchecked")
 	public static Map<Object, Object> makeMap(Object instance) {
 
-		if(instance instanceof Map) {
+		if (instance instanceof Map) {
 			return (Map<Object, Object>) instance;
 		}
-		
+
 		return new BeanMap(instance);
 	}
 

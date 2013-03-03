@@ -11,20 +11,20 @@ import com.impossibl.postgres.utils.DataOutputStream;
 public class Int8s extends SimpleProcProvider {
 
 	public Int8s() {
-		super(null, null, new Receive(), new Send(), "int8");
+		super(null, null, new Encoder(), new Decoder(), "int8");
 	}
 	
-	static class Send implements Type.BinaryIO.SendHandler {
+	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Long handle(Type type, DataInputStream stream, Context context) throws IOException {			
+		public Long decode(Type type, DataInputStream stream, Context context) throws IOException {			
 			return stream.readLong();
 		}
 
 	}
 
-	static class Receive implements Type.BinaryIO.ReceiveHandler {
+	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void handle(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
 			stream.writeLong((Long)val);
 		}
 

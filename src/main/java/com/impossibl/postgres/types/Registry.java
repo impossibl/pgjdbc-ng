@@ -6,23 +6,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import com.impossibl.postgres.system.procs.ProcProvider;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Type.BinaryIO;
-import com.impossibl.postgres.types.Type.BinaryIO.ReceiveHandler;
-import com.impossibl.postgres.types.Type.BinaryIO.SendHandler;
+import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.types.Type.TextIO;
-import com.impossibl.postgres.types.Type.TextIO.InputHandler;
-import com.impossibl.postgres.types.Type.TextIO.OutputHandler;
 
 public class Registry {
 	
 	private static Logger logger = Logger.getLogger(Registry.class.getName());
 	
 	private static Map<Character, Class<? extends Type>> kindMap;
+	static
 	{
 		kindMap = new HashMap<Character, Class<? extends Type>>();
 		kindMap.put('c', Composite.class);
@@ -33,6 +30,18 @@ public class Registry {
 	}
 
 	private static Map<Integer, Type> oidMap = new HashMap<Integer, Type>();
+	static
+	{
+		//Required hardwired type for bootstrapping
+		oidMap.put(16, new Base(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
+		oidMap.put(18, new Base(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
+		oidMap.put(19, new Base(19, "name", 		(short)64,	(byte)0, Category.String,		',', null, "name", 		0));
+		oidMap.put(21, new Base(21, "int2", 		(short)2, 	(byte)0, Category.Numeric,	',', null, "int2", 		0));
+		oidMap.put(23, new Base(23, "int4", 		(short)4, 	(byte)0, Category.Numeric,	',', null, "int4", 		0));
+		oidMap.put(24, new Base(24, "regproc", 	(short)4, 	(byte)0, Category.Numeric,	',', null, "regproc", 0));
+		oidMap.put(26, new Base(26, "oid", 			(short)4,		(byte)0, Category.Numeric,	',', null, "oid",			0));
+	}
+	
 	private static Map<Integer, PgType.Row> pgTypeData = new HashMap<Integer, PgType.Row>();
 	private static Map<Integer, Collection<PgAttribute.Row>> pgAttrData = new HashMap<Integer, Collection<PgAttribute.Row>>();
 	private static Map<Integer, PgProc.Row> pgProcData = new HashMap<Integer, PgProc.Row>();
@@ -130,92 +139,64 @@ public class Registry {
 
 	public static BinaryIO loadBinaryIO(int receiveId, int sendId) {
 		BinaryIO io = new BinaryIO();
-		io.send = loadSendProc(sendId);
-		io.recv = loadReceiveProc(receiveId);
+		io.decoder = loadSendProc(sendId);
+		io.encoder = loadReceiveProc(receiveId);
 		return io;
 	}
 
 	public static TextIO loadTextIO(int inputId, int outputId) {
 		TextIO io = new TextIO();
-		io.input = loadInputProc(inputId);
-		io.output = loadOutputProc(outputId);
+		io.encoder = loadInputProc(inputId);
+		io.decoder = loadOutputProc(outputId);
 		return io;
 	}
-
-	private static InputHandler loadInputProc(int inputId) {
+	
+	private static TextIO.Encoder loadInputProc(int inputId) {
 		
 		String name = findProcName(inputId);
-		if(name != null) {
-
-			InputHandler h;
-			
-			for(ProcProvider pp : Procs.PROVIDERS) {
-				if((h = pp.findTextInputHandler(name)) != null)
-					return h;
-			}
-
+		if(name == null) {
+			return null;
 		}
 		
-		//logger.warning("unable to find handler for input proc: " + name);
+		//logger.warning("unable to find encoder for input proc: " + name);
 		
-		return null;
+		return Procs.loadInputProc(name);
 	}
 
-	private static OutputHandler loadOutputProc(int outputId) {
+	private static TextIO.Decoder loadOutputProc(int outputId) {
 		
 		String name = findProcName(outputId);
-		if(name != null) {
-
-			OutputHandler h;
-			
-			for(ProcProvider pp : Procs.PROVIDERS) {
-				if((h = pp.findTextOutputHandler(name)) != null)
-					return h;
-			}
-
+		if(name == null) {
+			return null;
 		}
 		
 		//logger.warning("unable to find handler for output proc: " + name);
 		
-		return null;
+		return Procs.loadOutputProc(name);
 	}
-
-	private static ReceiveHandler loadReceiveProc(int receiveId) {
+	
+	private static BinaryIO.Encoder loadReceiveProc(int receiveId) {
 		
 		String name = findProcName(receiveId);
-		if(name != null) {
-
-			ReceiveHandler h;
-			
-			for(ProcProvider pp : Procs.PROVIDERS) {
-				if((h = pp.findBinaryReceiveHandler(name)) != null)
-					return h;
-			}
-
+		if(name == null) {
+			return null;
 		}
 		
 		logger.warning("unable to find handler for receive proc: " + name);
 		
-		return null;
+		return Procs.loadReceiveProc(name);
 	}
-
-	private static SendHandler loadSendProc(int sendId) {
+	
+	private static BinaryIO.Decoder loadSendProc(int sendId) {
 		
 		String name = findProcName(sendId);
-		if(name != null) {
-
-			SendHandler h;
-			
-			for(ProcProvider pp : Procs.PROVIDERS) {
-				if((h = pp.findBinarySendHandler(name)) != null)
-					return h;
-			}
-
+		if(name == null) {
+			return null;
 		}
 		
 		logger.warning("unable to find handler for send proc: " + name);
 		
-		return null;
+		return Procs.loadSendProc(name);
 	}
 
 	private static String findProcName(int procId) {
@@ -226,5 +207,5 @@ public class Registry {
 		
 		return pgProc.name;
 	}
-	
+
 }

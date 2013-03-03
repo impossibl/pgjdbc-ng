@@ -5,13 +5,13 @@ import static java.util.Arrays.asList;
 import java.io.IOException;
 
 import com.impossibl.postgres.Context;
-import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.Tuple;
 import com.impossibl.postgres.utils.DataInputStream;
 
 public class RowDescriptionMP implements MessageProcessor {
 
 	@Override
-	public void process(Protocol proto, DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, Context context) throws IOException {
 		
 		short fieldCount = in.readShort();
 
@@ -31,7 +31,7 @@ public class RowDescriptionMP implements MessageProcessor {
 			fields[c] = field;
 		}
 		
-		Type tupleType = context.createTupleType(asList(fields));
+		Tuple tupleType = context.createTupleType(asList(fields));
 		
 		context.setResultType(tupleType);
 	}

@@ -1,5 +1,8 @@
 package com.impossibl.postgres.types;
 
+import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryIO;
+import static com.impossibl.postgres.system.procs.Procs.loadNamerTextIO;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -22,6 +25,17 @@ public class Composite extends Type {
 	}
 	
 	private List<Attribute> attributes;
+	
+	public Composite(int id, String name, Type arrayType, String procName, int sqlType) {
+		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryIO(procName), loadNamerTextIO(procName), 0);
+	}
+	
+	public Composite(int id, String name, Type arrayType, int sqlType) {
+		this(id, name, arrayType, "record_", sqlType);
+	}
+	
+	public Composite() {
+	}
 
 	public Attribute getAttribute(int idx) {
 		return attributes.get(idx);
