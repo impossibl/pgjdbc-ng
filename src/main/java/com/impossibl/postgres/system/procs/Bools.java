@@ -16,7 +16,8 @@ public class Bools extends SimpleProcProvider {
 	
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Boolean decode(Type type, DataInputStream stream, Context context) throws IOException {			
+		public Boolean decode(Type type, DataInputStream stream, Context context) throws IOException {
+			if(stream.readInt() != 1) throw new IOException("invalid length");
 			return stream.readByte() != 0;
 		}
 

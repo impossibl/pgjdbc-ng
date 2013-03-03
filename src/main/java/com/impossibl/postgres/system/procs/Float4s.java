@@ -17,6 +17,7 @@ public class Float4s extends SimpleProcProvider {
 	static class Decoder implements Type.BinaryIO.Decoder {
 
 		public Float decode(Type type, DataInputStream stream, Context context) throws IOException {			
+			if(stream.readInt() != 4) throw new IOException("invalid length");
 			return stream.readFloat();
 		}
 

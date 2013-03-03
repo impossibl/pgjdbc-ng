@@ -1,18 +1,13 @@
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.channels.SocketChannel;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.postgresql.Driver;
-
 import com.impossibl.postgres.BasicContext;
-import com.impossibl.postgres.Postgres;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.tables.PgType;
 
@@ -61,17 +56,20 @@ public class Test {
 
 	public static void main(String[] args) throws SQLException, IOException {
 		
-		Socket socket = new Socket(InetAddress.getByName("db"), 5432);
+		try (Socket socket = new Socket(InetAddress.getByName("10.0.10.26"), 5432)) {
 				
-		Map<String, Object> settings = new HashMap<String, Object>();
-		settings.put("database", "impossibl");
-		settings.put("username", "postgres");
-		settings.put("password", "test");
-		
-		BasicContext context = new BasicContext(socket.getInputStream(), socket.getOutputStream(), settings);
-		context.start();
-		
-		context.query(PgType.INSTANCE.getSQL(Version.get(9, 0, 0)));
+			Map<String, Object> settings = new HashMap<String, Object>();
+			settings.put("database", "impossibl");
+			settings.put("username", "postgres");
+			settings.put("password", "test");
+			
+			BasicContext context = new BasicContext(socket.getInputStream(), socket.getOutputStream(), settings);
+			context.start();
+			
+//			context.query("select ('12345',(537597c0-8403-11e2-9e96-0800200c9a66,'Tester'))::helper2");
+			List<Object> results = context.query(PgType.INSTANCE.getSQL(Version.get(9, 0, 0)));
+			System.out.print(results);
+		}
 		
 	}
 	

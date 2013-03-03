@@ -6,13 +6,12 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 
 import java.io.IOException;
 
-import com.impossibl.postgres.Context;
 import com.impossibl.postgres.utils.DataInputStream;
 
 public class ReadyForQueryMP implements MessageProcessor {
 
 	@Override
-	public void process(DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
 
 		TransactionStatus txStatus;
 		
@@ -30,7 +29,7 @@ public class ReadyForQueryMP implements MessageProcessor {
 			throw new IllegalStateException("invalid transaction status");
 		}
 		
-		context.restart(txStatus);
+		handler.ready(txStatus);
 	}
 
 }

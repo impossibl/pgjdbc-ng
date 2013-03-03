@@ -2,14 +2,13 @@ package com.impossibl.postgres.protocol;
 
 import java.io.IOException;
 
-import com.impossibl.postgres.Context;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 
 public class FunctionCallResponseMP implements MessageProcessor {
 
 	@Override
-	public void process(DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
 		
 		Object value = null;
 		
@@ -19,16 +18,16 @@ public class FunctionCallResponseMP implements MessageProcessor {
 		
 		if(length != -1) {
 			
-			Type resultType = context.getResultType();
+			Type resultType = handler.getResultsType();
 			
-			value = resultType.getBinaryIO().decoder.decode(resultType, in, context);
+			value = resultType.getBinaryIO().decoder.decode(resultType, in, handler.getContext());
 		}
 		
 		if(length == (in.getCount() - start)) {
 			throw new IOException("invalid result length");
 		}
 		
-		context.setResultData(value);
+		handler.addResult(value);
 	}
 
 }

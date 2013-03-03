@@ -1,9 +1,7 @@
 package com.impossibl.postgres;
 
-import static com.impossibl.postgres.BasicContext.State.Error;
-import static com.impossibl.postgres.BasicContext.State.Ready;
-import static com.impossibl.postgres.BasicContext.State.Start;
 import static com.impossibl.postgres.types.Registry.loadType;
+import static java.util.logging.Level.SEVERE;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -25,7 +23,11 @@ import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Field;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.Protocol30;
+import com.impossibl.postgres.protocol.Query;
+import com.impossibl.postgres.protocol.ResponseHandler;
+import com.impossibl.postgres.protocol.Startup;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Composite.Attribute;
 import com.impossibl.postgres.types.Tuple;
 import com.impossibl.postgres.types.Type;
@@ -37,41 +39,35 @@ public class BasicContext implements Context {
 	private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 	
 	
-	public enum State {
-		Start,
-		Ready,
-		Error, Query
-	}
-	
 	public static class KeyData {
 		int processId;
 		int secretKey;
 	}
 	
 	
-	private State state;
 	private Map<String, Class<?>>  targetTypeMap;
 	private StringCodec stringCodec;
 	private DateTimeCodec dateTimeCodec;
 	private Protocol protocol;
 	private Map<String, Object> settings;
 	private KeyData keyData;
-	private Tuple resultType;
+	private ResponseHandler handler;
 	
 	
 	public BasicContext(InputStream in, OutputStream out, Map<String, Object> settings) {
 		this.targetTypeMap = new HashMap<String, Class<?>>();
 		this.settings = new HashMap<String, Object>(settings);
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
-		this.dateTimeCodec = new DateTimeCodec(
-				DateFormat.getDateInstance(),
-				TimeZone.getDefault());
+		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
 		this.protocol = new Protocol30(this, new DataInputStream(new BufferedInputStream(in)), new DataOutputStream(out));
-		this.state = Start;
 	}
 
 	public Protocol getProtocol() {
 		return protocol;
+	}
+	
+	public ResponseHandler getResponseHandler() {
+		return handler;
 	}
 
 	@Override
@@ -117,18 +113,18 @@ public class BasicContext implements Context {
 		
 		protocol.startup(params);
 		
-		while(state != Ready) {
-			protocol.dispatch(this);
-		}
+		Startup startup = new Startup(this);
 		
-		return state != Error;
+		pump(startup);
+		
+		return startup.getError() == null;
 	}
 	
-	public boolean query(String query) throws IOException {
+	public List<Object> query(String queryTxt) throws IOException {
 		
-		state = State.Query;
+		Query query = new Query(this, PgType.Row.class);
 		
-		protocol.queryParse(null, query, Collections.<Type>emptyList());
+		protocol.queryParse(null, queryTxt, Collections.<Type>emptyList());
 		
 		protocol.queryBind(null, null, Collections.<Type>emptyList(), Collections.<Object>emptyList());
 
@@ -136,11 +132,23 @@ public class BasicContext implements Context {
 
 		protocol.queryExecute(null, 0);
 		
-		while(state != Ready) {
-			protocol.dispatch(this);
+		protocol.flush();
+		
+		protocol.sync();
+		
+		pump(query);
+		
+		return query.getResults();
+	}
+
+	private boolean pump(ResponseHandler handler) throws IOException {
+
+		
+		while(!handler.isComplete()) {
+			protocol.dispatch(handler);
 		}
 		
-		return state != Error;
+		return handler.getError() == null;
 	}
 
 	@Override
@@ -175,42 +183,6 @@ public class BasicContext implements Context {
 
 	@Override
 	public void restart(TransactionStatus txStatus) {
-		state = State.Ready;
-	}
-
-	@Override
-	public void setParameterDescriptions(List<Type> asList) {
-	}
-
-	@Override
-	public Type getParameterDataType() {
-		return null;
-	}
-
-	@Override
-	public void setResultType(Tuple type) {
-		resultType = type;
-	}
-
-	@Override
-	public Tuple getResultType() {
-		return resultType;
-	}
-
-	@Override
-	public void setResultData(Object value) {
-	}
-
-	@Override
-	public void commandComplete(String commandTag) {
-	}
-
-	@Override
-	public void bindComplete() {
-	}
-
-	@Override
-	public void closeComplete() {
 	}
 
 	@Override
@@ -258,7 +230,18 @@ public class BasicContext implements Context {
 
 	@Override
 	public void reportError(byte type, String value) {
+		
 		logger.severe(value);
+		
+		handler = null;
+		
+		try {
+			protocol.sync();
+		}
+		catch(IOException e) {
+			logger.log(SEVERE, "error syncing", e);
+		}
+		
 	}
 
 	@Override

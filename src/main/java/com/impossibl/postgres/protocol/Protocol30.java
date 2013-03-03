@@ -114,7 +114,7 @@ public class Protocol30 implements Protocol {
 	}
 
 	@Override
-	public void dispatch(Context context) throws IOException {
+	public void dispatch(ResponseHandler handler) throws IOException {
 		
 		byte msgId = in.readByte();
 		int dispatchId = msgId - '0';		
@@ -124,7 +124,7 @@ public class Protocol30 implements Protocol {
 
 		int msgLength = in.readInt();
 		
-		mp.process(in, context);
+		mp.process(in, handler);
 
 		if(msgLength != (in.getCount() - msgStart)) {
 			throw new IOException("invalid message length");
@@ -217,6 +217,28 @@ public class Protocol30 implements Protocol {
 	}
 
 	@Override
+	public void describe(char targetType, String targetName) throws IOException {
+		
+		Message msg = new Message(DESCRIBE_MSG_ID);
+		
+		msg.writeByte(targetType);
+		msg.writeCString(targetName != null ? targetName : "");
+		
+		sendMessage(msg);
+	}
+	
+	@Override
+	public void close(char targetType, String targetName) throws IOException {
+		
+		Message msg = new Message(DESCRIBE_MSG_ID);
+		
+		msg.writeByte(targetType);
+		msg.writeCString(targetName != null ? targetName : "");
+		
+		sendMessage(msg);
+	}
+	
+	@Override
 	public void functionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 		
 		Message msg = new Message(FUNCTION_CALL_MSG_ID);
@@ -226,17 +248,6 @@ public class Protocol30 implements Protocol {
 		loadParams(msg, paramTypes, paramValues);
 		
 		msg.writeShort(1);
-		
-		sendMessage(msg);
-	}
-	
-	@Override
-	public void describe(char targetType, String targetName) throws IOException {
-		
-		Message msg = new Message(DESCRIBE_MSG_ID);
-		
-		msg.writeByte(targetType);
-		msg.writeCString(targetName != null ? targetName : "");
 		
 		sendMessage(msg);
 	}

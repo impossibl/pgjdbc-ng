@@ -17,6 +17,7 @@ public class Int8s extends SimpleProcProvider {
 	static class Decoder implements Type.BinaryIO.Decoder {
 
 		public Long decode(Type type, DataInputStream stream, Context context) throws IOException {			
+			if(stream.readInt() != 8) throw new IOException("invalid length");
 			return stream.readLong();
 		}
 

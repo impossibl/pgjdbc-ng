@@ -18,8 +18,11 @@ public class UUIDs extends SimpleProcProvider {
 	static class Decoder implements Type.BinaryIO.Decoder {
 
 		public UUID decode(Type type, DataInputStream stream, Context context) throws IOException {
+			if(stream.readInt() != 16) throw new IOException("invalid length");
+			
 			long l = stream.readLong();
 			long m = stream.readLong();
+			
 			return new UUID(m, l);
 		}
 

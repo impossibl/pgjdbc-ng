@@ -18,8 +18,9 @@ public class Strings extends SimpleProcProvider {
 
 		public String decode(Type type, DataInputStream stream, Context context) throws IOException {
 			
-			int len = stream.readInt();
-			byte[] bytes = new byte[len];
+			int length = stream.readInt();
+			
+			byte[] bytes = new byte[length];
 			stream.readFully(bytes);
 			
 			return context.getStringCodec().decode(bytes);
@@ -34,6 +35,7 @@ public class Strings extends SimpleProcProvider {
 			byte[] bytes = context.getStringCodec().encode(val.toString());
 			
 			stream.writeInt(bytes.length);
+			
 			stream.write(bytes);
 		}
 

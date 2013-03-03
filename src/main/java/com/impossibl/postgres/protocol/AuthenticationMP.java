@@ -19,9 +19,10 @@ public class AuthenticationMP implements MessageProcessor {
 	HexBinaryAdapter hex = new HexBinaryAdapter();
 
 	@Override
-	public void process(DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
 
-		Protocol proto = context.getProtocol();
+		Context context = handler.getContext();
+		Protocol proto = handler.getContext().getProtocol();
 
 		int code = in.readInt();
 		switch (code) {

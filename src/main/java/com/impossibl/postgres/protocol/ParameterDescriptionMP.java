@@ -4,7 +4,6 @@ import static java.util.Arrays.asList;
 
 import java.io.IOException;
 
-import com.impossibl.postgres.Context;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
@@ -12,7 +11,7 @@ import com.impossibl.postgres.utils.DataInputStream;
 public class ParameterDescriptionMP implements MessageProcessor {
 
 	@Override
-	public void process(DataInputStream in, Context context) throws IOException {
+	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
 
 		short paramCount = in.readShort();
 
@@ -24,7 +23,7 @@ public class ParameterDescriptionMP implements MessageProcessor {
 			paramTypes[c] = Registry.loadType(paramTypeId);
 		}
 		
-		context.setParameterDescriptions(asList(paramTypes));
+		handler.setParameterTypes(asList(paramTypes));
 	}
 
 }

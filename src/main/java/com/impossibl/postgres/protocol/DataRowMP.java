@@ -13,10 +13,12 @@ import com.impossibl.postgres.utils.DataInputStream;
 
 public class DataRowMP implements MessageProcessor {
 
-	@Override
-	public void process(DataInputStream in, Context context) throws IOException {
-
-		Tuple tupleType = context.getResultType();
+	@Override	
+	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
+		
+		Context context = handler.getContext();
+		
+		Tuple tupleType = handler.getResultsType();
 
 		Object instance = context.createInstance(context.lookupInstanceType(tupleType));
 
@@ -33,14 +35,16 @@ public class DataRowMP implements MessageProcessor {
 			
 			in.mark(4);
 			if (in.readInt() != -1) {
+				
+				in.reset();
 
-				attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, in, context);
+				attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, in, handler.getContext());
 			}
 
 			target.put(attribute.name, attributeVal);
 		}
 
-		context.setResultData(instance);		
+		handler.addResult(instance);		
 	}
 
 	@SuppressWarnings("unchecked")

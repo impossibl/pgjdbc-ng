@@ -17,6 +17,7 @@ public class Int2s extends SimpleProcProvider {
 	static class Decoder implements Type.BinaryIO.Decoder {
 
 		public Short decode(Type type, DataInputStream stream, Context context) throws IOException {			
+			if(stream.readInt() != 2) throw new IOException("invalid length");
 			return stream.readShort();
 		}
 
