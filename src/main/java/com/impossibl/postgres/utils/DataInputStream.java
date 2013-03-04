@@ -11,7 +11,6 @@ import java.io.InputStream;
 
 	private long count;
 	private long mark = -1;
-	private byte[] readBuffer;
 
 	public DataInputStream(InputStream in) {
 		super(in);
@@ -157,6 +156,8 @@ import java.io.InputStream;
 			throw new EOFException();
 		return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4 << 0));
 	}
+
+	private byte[] readBuffer = new byte[8];
 
 	@Override
 	public long readLong() throws IOException {

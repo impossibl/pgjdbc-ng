@@ -25,14 +25,12 @@
 
 package com.impossibl.postgres.utils;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataOutput;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 
 public class DataOutputStream extends FilterOutputStream implements DataOutput {
 

@@ -10,7 +10,7 @@ import java.util.List;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
-public class Composite extends Type {
+public class CompositeType extends Type {
 	
 	public static class Attribute {
 		
@@ -26,15 +26,15 @@ public class Composite extends Type {
 	
 	private List<Attribute> attributes;
 	
-	public Composite(int id, String name, Type arrayType, String procName, int sqlType) {
+	public CompositeType(int id, String name, Type arrayType, String procName, int sqlType) {
 		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryIO(procName), loadNamerTextIO(procName), 0);
 	}
 	
-	public Composite(int id, String name, Type arrayType, int sqlType) {
+	public CompositeType(int id, String name, Type arrayType, int sqlType) {
 		this(id, name, arrayType, "record_", sqlType);
 	}
 	
-	public Composite() {
+	public CompositeType() {
 	}
 
 	public Attribute getAttribute(int idx) {

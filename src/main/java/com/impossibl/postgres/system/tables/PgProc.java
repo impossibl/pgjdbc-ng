@@ -1,8 +1,5 @@
 package com.impossibl.postgres.system.tables;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import com.impossibl.postgres.system.Version;
 
 public class PgProc implements Table<PgProc.Row> {
@@ -11,11 +8,6 @@ public class PgProc implements Table<PgProc.Row> {
 
 		public int oid;
 		public String name;
-		
-		public Row(ResultSet rs) throws SQLException {
-			oid = rs.getInt("oid");
-			name = rs.getString("name");
-		}
 		
 	}
 	
@@ -28,14 +20,14 @@ public class PgProc implements Table<PgProc.Row> {
 	}
 
 
-	public Row createRow(ResultSet rs) throws SQLException {
-		return new Row(rs);
+	public Row createRow() {
+		return new Row();
 	}
 	
 	public static Object[] SQL = {
 		Version.get(9, 0, 0),
 		" select " +
-		"		oid, proname as name" +
+		"		\"oid\", proname as \"name\"" +
 		" from" +
 		"		pg_proc"
 	};

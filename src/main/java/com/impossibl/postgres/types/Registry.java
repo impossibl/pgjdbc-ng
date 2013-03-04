@@ -22,24 +22,25 @@ public class Registry {
 	static
 	{
 		kindMap = new HashMap<Character, Class<? extends Type>>();
-		kindMap.put('c', Composite.class);
-		kindMap.put('d', Domain.class);
-		kindMap.put('e', Enumeration.class);
-		kindMap.put('p', Psuedo.class);
-		kindMap.put('r', Range.class);
+		kindMap.put('c', CompositeType.class);
+		kindMap.put('d', DomainType.class);
+		kindMap.put('e', EnumerationType.class);
+		kindMap.put('p', PsuedoType.class);
+		kindMap.put('r', RangeType.class);
 	}
 
 	private static Map<Integer, Type> oidMap = new HashMap<Integer, Type>();
 	static
 	{
 		//Required hardwired type for bootstrapping
-		oidMap.put(16, new Base(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
-		oidMap.put(18, new Base(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
-		oidMap.put(19, new Base(19, "name", 		(short)64,	(byte)0, Category.String,		',', null, "name", 		0));
-		oidMap.put(21, new Base(21, "int2", 		(short)2, 	(byte)0, Category.Numeric,	',', null, "int2", 		0));
-		oidMap.put(23, new Base(23, "int4", 		(short)4, 	(byte)0, Category.Numeric,	',', null, "int4", 		0));
-		oidMap.put(24, new Base(24, "regproc", 	(short)4, 	(byte)0, Category.Numeric,	',', null, "regproc", 0));
-		oidMap.put(26, new Base(26, "oid", 			(short)4,		(byte)0, Category.Numeric,	',', null, "oid",			0));
+		oidMap.put(16, new BaseType(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
+		oidMap.put(17, new BaseType(18, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 		0));
+		oidMap.put(18, new BaseType(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
+		oidMap.put(19, new BaseType(19, "name", 		(short)64,	(byte)0, Category.String,		',', null, "name", 		0));
+		oidMap.put(21, new BaseType(21, "int2", 		(short)2, 	(byte)0, Category.Numeric,	',', null, "int2", 		0));
+		oidMap.put(23, new BaseType(23, "int4", 		(short)4, 	(byte)0, Category.Numeric,	',', null, "int4", 		0));
+		oidMap.put(24, new BaseType(24, "regproc", 	(short)4, 	(byte)0, Category.Numeric,	',', null, "regproc", 0));
+		oidMap.put(26, new BaseType(26, "oid", 			(short)4,		(byte)0, Category.Numeric,	',', null, "oid",			0));
 	}
 	
 	private static Map<Integer, PgType.Row> pgTypeData = new HashMap<Integer, PgType.Row>();
@@ -82,6 +83,9 @@ public class Registry {
 	}
 	
 	private static Type loadRaw(int typeId) {
+		
+		if(typeId==0)
+			return null;
 
 		PgType.Row pgType = pgTypeData.get(typeId);
 		Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.relationId);
@@ -98,28 +102,39 @@ public class Registry {
 		
 		Type type;
 		
-		switch(pgType.discriminator) {
-		case 'b':
-			type = new Base();
-			break;
-		case 'c':
-			type = new Composite();
-			break;
-		case 'd':
-			type = new Domain();
-			break;
-		case 'e':
-			type = new Enumeration();
-			break;
-		case 'p':
-			type = new Psuedo();
-			break;
-		case 'r':
-			type = new Range();
-			break;
-		default:
-			logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
-			return null;
+		if(pgType.elementTypeId != 0) {
+			
+			ArrayType array = new ArrayType();
+			array.setElementType(loadType(pgType.elementTypeId));
+			
+			type = array;
+		}
+		else {
+			
+			switch(pgType.discriminator) {
+			case 'b':
+				type = new BaseType();
+				break;
+			case 'c':
+				type = new CompositeType();
+				break;
+			case 'd':
+				type = new DomainType();
+				break;
+			case 'e':
+				type = new EnumerationType();
+				break;
+			case 'p':
+				type = new PsuedoType();
+				break;
+			case 'r':
+				type = new RangeType();
+				break;
+			default:
+				logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
+				return null;
+			}
+			
 		}
 		
 		try {
@@ -130,6 +145,8 @@ public class Registry {
 			
 		}
 		catch(Exception e) {
+			
+			e.printStackTrace();
 			
 			oidMap.remove(pgType.oid);
 		}
@@ -181,9 +198,7 @@ public class Registry {
 		if(name == null) {
 			return null;
 		}
-		
-		logger.warning("unable to find handler for receive proc: " + name);
-		
+				
 		return Procs.loadReceiveProc(name);
 	}
 	
@@ -193,8 +208,6 @@ public class Registry {
 		if(name == null) {
 			return null;
 		}
-		
-		logger.warning("unable to find handler for send proc: " + name);
 		
 		return Procs.loadSendProc(name);
 	}

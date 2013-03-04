@@ -1,12 +1,10 @@
 package com.impossibl.postgres;
 
 import static com.impossibl.postgres.types.Registry.loadType;
-import static java.util.logging.Level.SEVERE;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.net.Socket;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -20,16 +18,18 @@ import java.util.logging.Logger;
 import com.impossibl.postgres.codecs.DateStyles;
 import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
+import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.Field;
-import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.Protocol30;
-import com.impossibl.postgres.protocol.Query;
-import com.impossibl.postgres.protocol.ResponseHandler;
-import com.impossibl.postgres.protocol.Startup;
+import com.impossibl.postgres.protocol.QueryProtocol;
+import com.impossibl.postgres.protocol.StartupProtocol;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.system.Version;
+import com.impossibl.postgres.system.tables.PgAttribute;
+import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.types.Composite.Attribute;
-import com.impossibl.postgres.types.Tuple;
+import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.TupleType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -48,26 +48,30 @@ public class BasicContext implements Context {
 	private Map<String, Class<?>>  targetTypeMap;
 	private StringCodec stringCodec;
 	private DateTimeCodec dateTimeCodec;
-	private Protocol protocol;
 	private Map<String, Object> settings;
+	private Version serverVersion;
 	private KeyData keyData;
-	private ResponseHandler handler;
+	private DataInputStream in;
+	private DataOutputStream out;
 	
 	
-	public BasicContext(InputStream in, OutputStream out, Map<String, Object> settings) {
+	public BasicContext(Socket socket, Map<String, Object> settings) throws IOException {
 		this.targetTypeMap = new HashMap<String, Class<?>>();
 		this.settings = new HashMap<String, Object>(settings);
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
 		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
-		this.protocol = new Protocol30(this, new DataInputStream(new BufferedInputStream(in)), new DataOutputStream(out));
+		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+		this.out = new DataOutputStream(socket.getOutputStream());
 	}
 
-	public Protocol getProtocol() {
-		return protocol;
+	@Override
+	public DataInputStream getInputStream() {
+		return in;
 	}
-	
-	public ResponseHandler getResponseHandler() {
-		return handler;
+
+	@Override
+	public DataOutputStream getOutputStream() {
+		return out;
 	}
 
 	@Override
@@ -77,26 +81,13 @@ public class BasicContext implements Context {
 
 	public Class<?> lookupInstanceType(Type type) {
 		
-		return targetTypeMap.get(type.getName());
+		Class<?> cls = targetTypeMap.get(type.getName());
+		if(cls == null)
+			cls = HashMap.class;
+		
+		return cls;
 	}
 	
-	public Object createInstance(Class<?> type) {
-		
-		if(type == null)
-			return new HashMap<String, Object>();
-		
-		try {
-			return type.newInstance();
-		}
-		catch (InstantiationException e) {
-			throw new RuntimeException(e);
-		}
-		catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-		
-	}
-
 	public StringCodec getStringCodec() {
 		return stringCodec;
 	}
@@ -104,51 +95,64 @@ public class BasicContext implements Context {
 	public void refreshType(int typeId) {
 	}
 	
-	public boolean start() throws IOException {
+	public void init() throws IOException {
+		
+		if(start()) {
+			
+			//Load types
+			String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
+			List<PgType.Row> pgTypes = query(typeSQL, PgType.Row.class);
+			
+			//Load attributes
+			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
+			List<PgAttribute.Row> pgAttrs = query(attrsSQL, PgAttribute.Row.class);
+			
+			//Load procs
+			String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
+			List<PgProc.Row> pgProcs = query(procsSQL, PgProc.Row.class);
+			
+			//Update the registry with known types
+			Registry.update(pgTypes, pgAttrs, pgProcs);
+		}
+	}
+	
+	private boolean start() throws IOException {
 		
 		Map<String, Object> params = new HashMap<String, Object>();
-		
+
+		params.put("application_name", "pgjdbc app");
+		params.put("client_encoding", "UTF8");
 		params.put("database", settings.get("database"));
 		params.put("user", settings.get("username"));
 		
-		protocol.startup(params);
+		StartupProtocol startupProto = new StartupProtocol(this);
 		
-		Startup startup = new Startup(this);
+		startupProto.startup(params);
 		
-		pump(startup);
+		startupProto.run();
 		
-		return startup.getError() == null;
+		return startupProto.getError() == null;
 	}
 	
-	public List<Object> query(String queryTxt) throws IOException {
+	public <T> List<T> query(String queryTxt, Class<T> rowType) throws IOException {
 		
-		Query query = new Query(this, PgType.Row.class);
+		QueryProtocol<T> queryProto = QueryProtocol.get(this, rowType);
 		
-		protocol.queryParse(null, queryTxt, Collections.<Type>emptyList());
+		queryProto.queryParse(null, queryTxt, Collections.<Type>emptyList());
 		
-		protocol.queryBind(null, null, Collections.<Type>emptyList(), Collections.<Object>emptyList());
+		queryProto.queryBind(null, null, Collections.<Object>emptyList());
 
-		protocol.describe('P', null);
+		queryProto.describe('P', null);
 
-		protocol.queryExecute(null, 0);
+		queryProto.queryExecute(null, 0);
 		
-		protocol.flush();
+		queryProto.flush();
 		
-		protocol.sync();
-		
-		pump(query);
-		
-		return query.getResults();
-	}
+		queryProto.sync();
 
-	private boolean pump(ResponseHandler handler) throws IOException {
-
+		queryProto.run();
 		
-		while(!handler.isComplete()) {
-			protocol.dispatch(handler);
-		}
-		
-		return handler.getError() == null;
+		return queryProto.getResults();
 	}
 
 	@Override
@@ -160,9 +164,9 @@ public class BasicContext implements Context {
 	}
 
 	@Override
-	public Tuple createTupleType(List<Field> fields) {
+	public TupleType createTupleType(List<Field> fields) {
 		
-		Tuple tupleType = new Tuple(-1, "", null, 0);
+		TupleType tupleType = new TupleType(-1, "", null, 0);
 		
 		List<Attribute> attrs = new ArrayList<Attribute>();
 		
@@ -194,7 +198,7 @@ public class BasicContext implements Context {
 		
 		case "server_version":
 			
-			//setServerVersion(value);
+			serverVersion = Version.parse(value);
 			break;
 			
 		case "DateStyle":
@@ -229,23 +233,7 @@ public class BasicContext implements Context {
 	}
 
 	@Override
-	public void reportError(byte type, String value) {
-		
-		logger.severe(value);
-		
-		handler = null;
-		
-		try {
-			protocol.sync();
-		}
-		catch(IOException e) {
-			logger.log(SEVERE, "error syncing", e);
-		}
-		
-	}
-
-	@Override
-	public void authenticated() {
+	public void reportError(Error error) {
 	}
 
 }

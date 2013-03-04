@@ -1,6 +1,6 @@
 package com.impossibl.postgres.types;
 
-public class Array extends Type {
+public class ArrayType extends Type {
 
 	private Type elementType;
 

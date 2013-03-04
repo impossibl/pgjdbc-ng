@@ -1,15 +1,32 @@
 package com.impossibl.postgres.system;
 
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Version {
 	
-	private static HashMap<Version,Version> all = new HashMap<Version,Version>();
+	//private static final Pattern VERSION_PATTERN = compile("(\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?");
+	private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?");
+	private static final HashMap<Version,Version> all = new HashMap<Version,Version>();
 	
 	int major;
 	Integer minor;
 	Integer revision;
 	
+	public static Version parse(String versionString) {
+		
+		Matcher matcher = VERSION_PATTERN.matcher(versionString);
+		if(!matcher.find())
+			return null;
+		
+		int major = Integer.parseInt(matcher.group(1));
+		Integer minor = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : null;
+		Integer revision = matcher.group(3) != null ? Integer.parseInt(matcher.group(3)) : null;
+		
+		return get(major, minor, revision);
+	}
+
 	public static synchronized Version get(int major, Integer minor, Integer revision) {
 		
 		Version test = new Version(major, minor, revision);

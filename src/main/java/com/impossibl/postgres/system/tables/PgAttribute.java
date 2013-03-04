@@ -1,8 +1,5 @@
 package com.impossibl.postgres.system.tables;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import com.impossibl.postgres.system.Version;
 
 public class PgAttribute implements Table<PgAttribute.Row> {
@@ -16,13 +13,53 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 		public short number;
 		public int numberOfDimensions;
 		
-		public Row(ResultSet rs) throws SQLException {
-			relationId = rs.getInt("relationId");
-			name = rs.getString("name");
-			typeId = rs.getInt("typeId");
-			length = rs.getShort("length");
-			number = rs.getShort("number");
-			numberOfDimensions = rs.getInt("numberOfDimensions");
+		public int getRelationId() {
+			return relationId;
+		}
+		
+		public void setRelationId(int relationId) {
+			this.relationId = relationId;
+		}
+		
+		public String getName() {
+			return name;
+		}
+		
+		public void setName(String name) {
+			this.name = name;
+		}
+		
+		public int getTypeId() {
+			return typeId;
+		}
+		
+		public void setTypeId(int typeId) {
+			this.typeId = typeId;
+		}
+		
+		public short getLength() {
+			return length;
+		}
+		
+		public void setLength(short length) {
+			this.length = length;
+		}
+		
+		public short getNumber() {
+			return number;
+		}
+		
+		
+		public void setNumber(short number) {
+			this.number = number;
+		}
+		
+		public int getNumberOfDimensions() {
+			return numberOfDimensions;
+		}
+		
+		public void setNumberOfDimensions(int numberOfDimensions) {
+			this.numberOfDimensions = numberOfDimensions;
 		}
 		
 	}
@@ -36,14 +73,14 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 	}
 
 
-	public Row createRow(ResultSet rs) throws SQLException {
-		return new Row(rs);
+	public Row createRow() {
+		return new Row();
 	}
 	
 	public static Object[] SQL = {
 		Version.get(9, 0, 0),
 		" select " +
-		"		attrelid as relationId, attname as name, atttypid as typeId, attlen as length, attnum as number, attndims as numberOfDimensions" +
+		"		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", attlen as \"length\", attnum as \"number\", attndims as \"numberOfDimensions\"" +
 		" from" +
 		"		pg_catalog.pg_attribute"
 	};

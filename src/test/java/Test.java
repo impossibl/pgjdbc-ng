@@ -63,12 +63,10 @@ public class Test {
 			settings.put("username", "postgres");
 			settings.put("password", "test");
 			
-			BasicContext context = new BasicContext(socket.getInputStream(), socket.getOutputStream(), settings);
-			context.start();
+			BasicContext context = new BasicContext(socket, settings);
+			context.init();
 			
-//			context.query("select ('12345',(537597c0-8403-11e2-9e96-0800200c9a66,'Tester'))::helper2");
-			List<Object> results = context.query(PgType.INSTANCE.getSQL(Version.get(9, 0, 0)));
-			System.out.print(results);
+			context.query("select array['A Name','cce010e0-8476-11e2-9e96-0800200c9a66','Tester']", HashMap.class);
 		}
 		
 	}

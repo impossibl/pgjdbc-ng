@@ -35,7 +35,7 @@ public class Tables {
 		
 		while(results.next()) {
 			
-			rows.add(table.createRow(results));
+			rows.add(table.createRow());
 			
 		}
 		

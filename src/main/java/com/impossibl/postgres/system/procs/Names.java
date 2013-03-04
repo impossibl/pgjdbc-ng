@@ -17,8 +17,11 @@ public class Names extends SimpleProcProvider {
 	static class Decoder implements Type.BinaryIO.Decoder {
 
 		public String decode(Type type, DataInputStream stream, Context context) throws IOException {
-			
+
 			int length = stream.readInt();
+			if(length == -1) {
+				return null;
+			}
 			
 			byte[] bytes = new byte[length];
 			stream.readFully(bytes);
@@ -32,11 +35,19 @@ public class Names extends SimpleProcProvider {
 
 		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
 			
-			byte[] bytes = context.getStringCodec().encode(val.toString());
+			if (val == null) {
+				
+				stream.writeInt(-1);
+			}
+			else {
 			
-			stream.writeInt(bytes.length);
+				byte[] bytes = context.getStringCodec().encode(val.toString());
 			
-			stream.write(bytes);
+				stream.writeInt(bytes.length);
+			
+				stream.write(bytes);
+			}
+			
 		}
 
 	}

@@ -8,16 +8,25 @@ import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
 
+
 public class Int4s extends SimpleProcProvider {
 
 	public Int4s() {
 		super(null, null, new Encoder(), new Decoder(), "int4", "oid", "tid", "xid", "cid", "regproc");
 	}
-	
+
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Integer decode(Type type, DataInputStream stream, Context context) throws IOException {			
-			if(stream.readInt() != 4) throw new IOException("invalid length");
+		public Integer decode(Type type, DataInputStream stream, Context context) throws IOException {
+
+			int length = stream.readInt();
+			if(length == -1) {
+				return null;
+			}
+			else if (length != 4) {
+				throw new IOException("invalid length");
+			}
+			
 			return stream.readInt();
 		}
 
@@ -26,7 +35,16 @@ public class Int4s extends SimpleProcProvider {
 	static class Encoder implements Type.BinaryIO.Encoder {
 
 		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
-			stream.writeInt((Integer)val);
+			if (val == null) {
+				
+				stream.writeInt(-1);
+			}
+			else {
+				
+				stream.writeInt(4);
+				stream.writeInt((Integer) val);
+			}
+			
 		}
 
 	}

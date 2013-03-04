@@ -1,8 +1,5 @@
 package com.impossibl.postgres.system.tables;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import com.impossibl.postgres.system.Version;
 
 
@@ -29,31 +26,7 @@ public class PgType implements Table<PgType.Row> {
 		public byte alignment;
 		public int baseTypeId;
 		public int modId;
-		public int numberOfDimension;
-		
-		
-		public Row(ResultSet rs) throws SQLException {
-			oid = rs.getInt("oid");;
-			name = rs.getString("name");
-			length = rs.getShort("length");
-			discriminator = rs.getBytes("discriminator")[0];
-			category = rs.getBytes("category")[0];
-			deliminator = rs.getBytes("deliminator")[0];
-			relationId = rs.getInt("relationId");
-			elementTypeId = rs.getInt("elementTypeId");
-			arrayTypeId = rs.getInt("arrayTypeId");
-			inputId = rs.getInt("inputId");
-			outputId = rs.getInt("outputId");
-			receiveId = rs.getInt("receiveId");
-			sendId = rs.getInt("sendId");
-			modInId = rs.getInt("modInId");
-			modOutId = rs.getInt("modOutId");
-			analyzeId = rs.getInt("analyzeId");
-			alignment = rs.getBytes("alignment")[0];
-			baseTypeId = rs.getInt("baseTypeId");
-			modId = rs.getInt("modId");
-			numberOfDimension = rs.getInt("numberOfDimension");
-		}
+		public int numberOfDimensions;
 		
 		@Override
 		public boolean equals(Object val) {
@@ -81,16 +54,16 @@ public class PgType implements Table<PgType.Row> {
 		return Tables.getSQL(SQL, currentVersion);
 	}
 	
-	public Row createRow(ResultSet resultSet) throws SQLException {
-		return new Row(resultSet);
+	public Row createRow() {
+		return new Row();
 	}
 
 	public static Object[] SQL = {
 		Version.get(9,0,0),
 		" select" +
-		"		oid, typname as name, typlen as length, typtype as discriminator, typcategory as category, typdelim as deliminator, typrelid as relationId," +
-		"		typelem as elementTypeId, typarray as arrayTypeId, typinput::oid as inputId, typoutput::oid as outputId, typreceive::oid as receiveId, typsend::oid as sendId," +
-		"		typalign as alignment, typbasetype as baseTypeId, typndims as numberOfDimension" +
+		"		oid, typname as \"name\", typlen as \"length\", typtype::bytea as \"discriminator\", typcategory::bytea as \"category\", typdelim::bytea as \"deliminator\", typrelid as \"relationId\"," +
+		"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
+		"		typalign::bytea as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
 		" from" +
 		"		pg_catalog.pg_type"
 	};

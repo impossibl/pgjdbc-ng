@@ -1,6 +1,6 @@
 package com.impossibl.postgres.types;
 
-public class Domain extends Type {
+public class DomainType extends Type {
 	
 	private Type base;
 	private boolean nullable;

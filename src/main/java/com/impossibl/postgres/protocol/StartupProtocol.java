@@ -1,67 +1,109 @@
 package com.impossibl.postgres.protocol;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+import java.util.Map;
 
 import com.impossibl.postgres.Context;
 import com.impossibl.postgres.utils.DataInputStream;
 
+public class StartupProtocol extends Protocol {
 
+	//Frontend messages
+	private static final byte PASSWORD_MSG_ID 			= 'p';
 
-public class AuthenticationMP implements MessageProcessor {
+	//Backend messages
+	private static final byte BACKEND_KEY_MSG_ID = 'K';
+	private static final byte AUTHENTICATION_MSG_ID = 'R';
 
-	HexBinaryAdapter hex = new HexBinaryAdapter();
+	
+	public StartupProtocol(Context context) {
+		super(context);
+	}
 
+	public void startup(Map<String, Object> params) throws IOException {
+
+		Message msg = new Message((byte)0);
+		
+		// Version
+		msg.writeShort(3);
+		msg.writeShort(0);
+
+		// Name=Value pairs
+		for (Map.Entry<String, Object> paramEntry : params.entrySet()) {
+			msg.writeCString(paramEntry.getKey());
+			msg.writeCString(paramEntry.getValue().toString());
+		}
+		
+		msg.writeByte(0);
+		
+		sendMessage(msg);
+	}
+
+	public void password(String password) throws IOException {
+		
+		Message msg = new Message(PASSWORD_MSG_ID);
+		
+		msg.writeCString(password);
+
+		sendMessage(msg);
+	}
+	
 	@Override
-	public void process(DataInputStream in, ResponseHandler handler) throws IOException {
-
-		Context context = handler.getContext();
-		Protocol proto = handler.getContext().getProtocol();
-
+	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
+		
+		if(super.dispatch(in, msgId))
+			return true;
+		
+		switch(msgId) {
+		case AUTHENTICATION_MSG_ID:
+			receiveAuthentication(in);
+			return true;
+			
+		case BACKEND_KEY_MSG_ID:
+			receiveBackendKeyData(in);
+			return true;
+		}
+	
+		return false;
+	}
+	
+	
+	protected void authentication() throws IOException {
+		
+	}
+	
+	private void receiveAuthentication(DataInputStream in) throws IOException {
+		
 		int code = in.readInt();
 		switch (code) {
 		case 0:
 
 			// Ok
-
-			context.authenticated();
-
 			return;
 
 		case 2:
 
 			// KerberosV5
-
 			break;
 
 		case 3:
 
-		// Cleartext
-		{
-
-			String response = context.getSetting("password").toString();
-
-			proto.authenticate(response);
-
+			// Cleartext
+			password(context.getSetting("password").toString());
 			return;
-		}
 
 		case 4:
 
 			// Crypt
-
 			return;
 
 		case 5:
 
-		// MD5
-		{
+			// MD5
 			byte[] salt = new byte[4];
 			in.readFully(salt);
 
@@ -70,40 +112,35 @@ public class AuthenticationMP implements MessageProcessor {
 
 			String response = md5(password, username, salt);
 
-			proto.authenticate(response);
+			password(response);
 
 			return;
-		}
 
 		case 6:
 
 			// SCM Credential
-
 			break;
 
 		case 7:
 
 			// GSS
-
 			break;
 
 		case 8:
 
 			// GSS Continue
-
 			break;
 
 		case 9:
 
 			// SSPI
-
 			break;
 
 		}
 
 		throw new UnsupportedOperationException("invalid authentication type");
 	}
-
+	
 	String md5(String password, String user, byte salt[]) {
 		
 		byte[] tempDigest, passDigest;
@@ -131,7 +168,7 @@ public class AuthenticationMP implements MessageProcessor {
 		hexDigest[1] = (byte) 'd';
 		hexDigest[2] = (byte) '5';
 
-		return new String(hexDigest, US_ASCII);
+		return new String(hexDigest, UTF_8);
 	}
 
 	void bytesToHex(byte[] bytes, byte[] hex, int offset) {
@@ -146,6 +183,19 @@ public class AuthenticationMP implements MessageProcessor {
 			j = (c & 0xF);
 			hex[pos++] = (byte) lookup[j];
 		}
+	}
+
+	
+	protected void backendKeyData(int processId, int secretKey) throws IOException {
+		context.setKeyData(processId, secretKey);
+	}
+	
+	private void receiveBackendKeyData(DataInputStream in) throws IOException {
+		
+		int processId = in.readInt();
+		int secretKey = in.readInt();
+		
+		backendKeyData(processId, secretKey);
 	}
 
 }

@@ -1,14 +1,16 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.utils.Factory.createInstance;
+import static org.apache.commons.beanutils.BeanUtils.getProperty;
+import static org.apache.commons.beanutils.BeanUtils.setProperty;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.commons.beanutils.BeanMap;
-
 import com.impossibl.postgres.Context;
-import com.impossibl.postgres.types.Composite;
-import com.impossibl.postgres.types.Composite.Attribute;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
@@ -26,18 +28,16 @@ public class Records extends SimpleProcProvider {
 
 		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
 
-			Composite ctype = (Composite) type;
+			CompositeType ctype = (CompositeType) type;
 
-			Object instance = context.createInstance(context.lookupInstanceType(type));
-
-			Map<Object, Object> target = makeMap(instance);
+			Object instance = createInstance(context.lookupInstanceType(type));
 
 			int lengthGiven = stream.readInt();
 
 			long writeStart = stream.getCount();
-			
+
 			int itemCount = stream.readInt();
-			
+
 			for (int c = 0; c < itemCount; ++c) {
 
 				Attribute attribute = ctype.getAttribute(c);
@@ -59,7 +59,7 @@ public class Records extends SimpleProcProvider {
 					attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, stream, context);
 				}
 
-				target.put(attribute.name, attributeVal);
+				Records.set(instance, attribute.name, attributeVal);
 			}
 
 			long lengthFound = stream.getCount() - writeStart;
@@ -76,23 +76,29 @@ public class Records extends SimpleProcProvider {
 
 		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
 
-			Composite ctype = (Composite) type;
+			if (val == null) {
 
-			Map<Object, Object> source = makeMap(val);
+				stream.writeInt(-1);
+			}
+			else {
 
-			Collection<Attribute> attributes = ctype.getAttributes();
+				CompositeType ctype = (CompositeType) type;
 
-			stream.writeInt(attributes.size());
+				Collection<Attribute> attributes = ctype.getAttributes();
 
-			for (Attribute attribute : attributes) {
+				stream.writeInt(attributes.size());
 
-				Type attributeType = attribute.type;
+				for (Attribute attribute : attributes) {
 
-				stream.writeInt(attributeType.getId());
+					Type attributeType = attribute.type;
 
-				Object attributeVal = source.get(attribute.name);
+					stream.writeInt(attributeType.getId());
 
-				attributeType.getBinaryIO().encoder.encode(attributeType, stream, attributeVal, context);
+					Object attributeVal = Records.get(val, attribute.name);
+
+					attributeType.getBinaryIO().encoder.encode(attributeType, stream, attributeVal, context);
+				}
+
 			}
 
 		}
@@ -100,13 +106,72 @@ public class Records extends SimpleProcProvider {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Map<Object, Object> makeMap(Object instance) {
+	protected static Object get(Object instance, String name) {
 
 		if (instance instanceof Map) {
-			return (Map<Object, Object>) instance;
+
+			return ((Map<Object, Object>) instance).get(name);
+		}
+		else {
+
+			try {
+
+				java.lang.reflect.Field field;
+
+				if ((field = instance.getClass().getField(name)) != null) {
+					return field.get(instance);
+				}
+
+			}
+			catch (ReflectiveOperationException | IllegalArgumentException e) {
+
+				try {
+					return getProperty(instance, name.toString());
+				}
+				catch (ReflectiveOperationException e1) {
+				}
+
+			}
 		}
 
-		return new BeanMap(instance);
+		throw new IllegalStateException("invalid poperty name/index");
+	}
+
+	@SuppressWarnings("unchecked")
+	protected static void set(Object instance, String name, Object value) {
+
+		if (instance instanceof Map) {
+
+			((Map<Object, Object>) instance).put(name, value);
+			return;
+		}
+		else {
+
+			try {
+
+				java.lang.reflect.Field field;
+
+				if ((field = instance.getClass().getField(name)) != null) {
+
+					field.set(instance, value);
+					return;
+				}
+
+			}
+			catch (ReflectiveOperationException | IllegalArgumentException e) {
+
+				try {
+
+					setProperty(instance, name.toString(), value);
+					return;
+				}
+				catch (ReflectiveOperationException e1) {
+				}
+
+			}
+		}
+
+		throw new IllegalStateException("invalid poperty name/index");
 	}
 
 }
