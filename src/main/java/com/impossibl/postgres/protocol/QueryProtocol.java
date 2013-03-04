@@ -287,10 +287,10 @@ public class QueryProtocol<T> extends CommandProtocol {
 		if(resultsType == null)
 			throw new IllegalStateException("No result data expected");
 		
-		T rowInstance = createInstance(rowType);
-
 		int itemCount = in.readShort();
 		
+		T rowInstance = createInstance(rowType, itemCount);
+
 		for (int c = 0; c < itemCount; ++c) {
 
 			Attribute attribute = resultsType.getAttribute(c);
@@ -312,6 +312,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		if(Arrays.is(instance)) {
 			
 			Arrays.set(instance, idx, value);
+			return;
 		}
 		else if (instance instanceof Map) {
 			

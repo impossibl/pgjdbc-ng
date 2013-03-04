@@ -31,7 +31,7 @@ public class Records extends SimpleProcProvider {
 
 			CompositeType ctype = (CompositeType) type;
 
-			Object instance = createInstance(context.lookupInstanceType(type));
+			Object instance = createInstance(context.lookupInstanceType(type), 0);
 
 			int lengthGiven = stream.readInt();
 

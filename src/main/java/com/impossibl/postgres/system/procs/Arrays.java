@@ -71,8 +71,7 @@ public class Arrays extends SimpleProcProvider {
 				//Array & Elements
 				//
 				
-				instance = createInstance(context.lookupInstanceType(type));
-				instance = Arrays.resize(instance, elementCount);
+				instance = createInstance(context.lookupInstanceType(type), elementCount);
 				
 				for(int e=0; e < elementCount; ++e) {
 					
@@ -146,15 +145,6 @@ public class Arrays extends SimpleProcProvider {
 
 		}
 
-	}
-
-	private static Object resize(Object val, int len) {
-		
-		if(val.getClass().isArray()) {
-			return java.lang.reflect.Array.newInstance(val.getClass().getComponentType(), len);
-		}
-		
-		return val;
 	}
 
 	public static int dimensions(Object val) {

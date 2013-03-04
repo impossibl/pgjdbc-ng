@@ -42,7 +42,7 @@ public class Test {
 			context.init();
 			
 			context.query("select array['A Name','cce010e0-8476-11e2-9e96-0800200c9a66','Tester']", HashMap.class);
-			context.query("select ('A Name',('cce010e0-8476-11e2-9e96-0800200c9a66'::uuid,'Tester'))::helper2", HashMap.class);
+			context.query("select ('A Name',('cce010e0-8476-11e2-9e96-0800200c9a66'::uuid,'Tester'))::helper2", Object[].class);
 			
 		}
 		
