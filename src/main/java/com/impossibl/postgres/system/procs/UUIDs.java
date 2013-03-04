@@ -26,11 +26,8 @@ public class UUIDs extends SimpleProcProvider {
 			else if(length != 16) {
 				throw new IOException("invalid length");
 			}
-			
-			long l = stream.readLong();
-			long m = stream.readLong();
-			
-			return new UUID(m, l);
+						
+			return new UUID(stream.readLong(), stream.readLong());
 		}
 
 	}
@@ -48,8 +45,8 @@ public class UUIDs extends SimpleProcProvider {
 				stream.writeInt(16);
 				
 				UUID uval = (UUID)val;			
-				stream.writeLong(uval.getLeastSignificantBits());
 				stream.writeLong(uval.getMostSignificantBits());
+				stream.writeLong(uval.getLeastSignificantBits());
 			}
 			
 		}
