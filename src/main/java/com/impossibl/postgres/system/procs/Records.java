@@ -4,6 +4,7 @@ import static com.impossibl.postgres.utils.Factory.createInstance;
 import static org.apache.commons.beanutils.BeanUtils.getProperty;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -49,15 +50,7 @@ public class Records extends SimpleProcProvider {
 					context.refreshType(attributeType.getId());
 				}
 
-				Object attributeVal = null;
-
-				stream.mark(4);
-				if (stream.readInt() != -1) {
-
-					stream.reset();
-
-					attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, stream, context);
-				}
+				Object attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, stream, context);
 
 				Records.set(instance, attribute.name, attributeVal);
 			}
@@ -82,23 +75,35 @@ public class Records extends SimpleProcProvider {
 			}
 			else {
 
-				CompositeType ctype = (CompositeType) type;
+				//
+				//Write to temp buffer
+				//
+				ByteArrayOutputStream recordByteStream = new ByteArrayOutputStream();
+				DataOutputStream recordDataStream = new DataOutputStream(recordByteStream);
 
+				CompositeType ctype = (CompositeType) type;
+				
 				Collection<Attribute> attributes = ctype.getAttributes();
 
-				stream.writeInt(attributes.size());
+				recordDataStream.writeInt(attributes.size());
 
 				for (Attribute attribute : attributes) {
 
 					Type attributeType = attribute.type;
 
-					stream.writeInt(attributeType.getId());
+					recordDataStream.writeInt(attributeType.getId());
 
 					Object attributeVal = Records.get(val, attribute.name);
 
-					attributeType.getBinaryIO().encoder.encode(attributeType, stream, attributeVal, context);
+					attributeType.getBinaryIO().encoder.encode(attributeType, recordDataStream, attributeVal, context);
 				}
-
+				
+				//
+				//Write temp buffer
+				//
+				byte[] buffer = recordByteStream.toByteArray();
+				stream.writeInt(buffer.length);
+				stream.write(buffer);
 			}
 
 		}
