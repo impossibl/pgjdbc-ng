@@ -7,10 +7,12 @@ import static org.apache.commons.beanutils.BeanUtils.setProperty;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.TupleType;
@@ -18,6 +20,11 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 
 public class QueryProtocol<T> extends CommandProtocol {
+	
+	enum Status {
+		Completed,
+		Suspended
+	}
 	
 	//Frontend messages
 	private static final byte QUERY_MSG_ID 					= 'Q';	
@@ -42,6 +49,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 	private List<Type> parameterTypes;
 	private TupleType resultsType;
 	private List<T> results;
+	private Status status;
 	
 
 	public static <T> QueryProtocol<T> get(Context context, Class<T> rowType) {
@@ -55,11 +63,20 @@ public class QueryProtocol<T> extends CommandProtocol {
 		results = new ArrayList<T>();
 	}
 	
+	@Override
+	public boolean isRunComplete() {
+		return super.isRunComplete() || status != null;
+	}
+
 	public List<T> getResults() {
 		return results;
 	}
 
-	public void query(String query) throws IOException {
+	public Status getStatus() {
+		return status;
+	}
+
+	public void sendQuery(String query) throws IOException {
 		
 		Message msg = new Message(QUERY_MSG_ID);
 		
@@ -68,7 +85,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 	
-	public void queryParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
+	public void sendQueryParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
 		
 		Message msg = new Message(PARSE_MSG_ID);
 		
@@ -83,7 +100,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 	
-	public void queryBind(String portalName, String stmtName, List<Object> paramValues) throws IOException {
+	public void sendQueryBind(String portalName, String stmtName, List<Object> paramValues) throws IOException {
 		
 		Message msg = new Message(BIND_MSG_ID);
 		
@@ -99,7 +116,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);				
 	}
 	
-	public void queryExecute(String portalName, int maxRows) throws IOException {
+	public void sendQueryExecute(String portalName, int maxRows) throws IOException {
 		
 		Message msg = new Message(EXECUTE_MSG_ID);
 		
@@ -109,7 +126,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 
-	public void describe(char targetType, String targetName) throws IOException {
+	public void sendDescribe(char targetType, String targetName) throws IOException {
 		
 		Message msg = new Message(DESCRIBE_MSG_ID);
 		
@@ -119,7 +136,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 	
-	public void close(char targetType, String targetName) throws IOException {
+	public void sendClose(char targetType, String targetName) throws IOException {
 		
 		Message msg = new Message(DESCRIBE_MSG_ID);
 		
@@ -128,6 +145,53 @@ public class QueryProtocol<T> extends CommandProtocol {
 		
 		sendMessage(msg);
 	}
+	
+	protected void parameterDescriptions(List<Type> paramTypes) throws IOException {
+		this.parameterTypes = paramTypes;
+	}
+
+	protected void rowDescription(TupleType tupleType) throws IOException {
+		this.resultsType = tupleType;
+	}
+
+	protected void rowData(T rowInstance) throws IOException {
+		results.add(rowInstance);
+	}
+	
+	protected void portalSuspended() {
+		status = Status.Suspended;
+	}
+	
+	protected void noData() {
+		resultsType = context.createTupleType(Collections.<Field>emptyList());
+	}
+	
+	protected void closeComplete() {
+	}
+	
+	protected void bindComplete() {
+	}
+	
+	protected void parseComplete() {
+	}
+	
+	protected void emptyQuery() {
+		status = Status.Completed;
+	}
+	
+	@Override
+	protected void commandComplete(String commandTag) {
+		super.commandComplete(commandTag);
+		status = Status.Completed;
+	}
+
+	
+	/*
+	 * 
+	 * Message dispatching & parsing
+	 * 
+	 */
+
 	
 	@Override
 	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
@@ -177,10 +241,6 @@ public class QueryProtocol<T> extends CommandProtocol {
 	}
 
 
-	protected void parameterDescriptions(List<Type> paramTypes) throws IOException {
-		this.parameterTypes = paramTypes;
-	}
-
 	private void receiveParameterDescriptions(DataInputStream in) throws IOException {
 
 		short paramCount = in.readShort();
@@ -196,10 +256,6 @@ public class QueryProtocol<T> extends CommandProtocol {
 		parameterDescriptions(asList(paramTypes));
 	}
 	
-
-	protected void rowDescription(TupleType tupleType) throws IOException {
-		this.resultsType = tupleType;
-	}
 
 	private void receiveRowDescription(DataInputStream in) throws IOException {
 		
@@ -226,11 +282,10 @@ public class QueryProtocol<T> extends CommandProtocol {
 		rowDescription(tupleType);
 	}
 	
-	protected void rowData(T rowInstance) throws IOException {
-		results.add(rowInstance);
-	}
-	
 	private void receiveRowData(DataInputStream in) throws IOException {
+		
+		if(resultsType == null)
+			throw new IllegalStateException("No result data expected");
 		
 		T rowInstance = createInstance(rowType);
 
@@ -245,16 +300,20 @@ public class QueryProtocol<T> extends CommandProtocol {
 			
 			attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, in, context);
 
-			set(rowInstance, attribute.name, attributeVal);
+			set(rowInstance, c, attribute.name, attributeVal);
 		}
 
 		rowData(rowInstance);
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected void set(Object instance, String name, Object value) {
+	protected void set(Object instance, int idx, String name, Object value) throws IOException {
 		
-		if (instance instanceof Map) {
+		if(Arrays.is(instance)) {
+			
+			Arrays.set(instance, idx, value);
+		}
+		else if (instance instanceof Map) {
 			
 			((Map<Object,Object>)instance).put(name, value);
 			return;
@@ -287,48 +346,30 @@ public class QueryProtocol<T> extends CommandProtocol {
 	}
 	
 
-	protected void portalSuspended() {
-	}
-	
 	private void receivePortalSuspended(DataInputStream in) {
 		portalSuspended();
 	}
 	
-	
-	protected void noData() {
-	}
 	
 	private void receiveNoData(DataInputStream in) {
 		noData();
 	}
 	
 	
-	protected void closeComplete() {
-	}
-	
 	private void receiveCloseComplete(DataInputStream in) {
 		closeComplete();
 	}
 
 
-	protected void bindComplete() {
-	}
-	
 	private void receiveBindComplete(DataInputStream in) {
 		bindComplete();
 	}
 
 	
-	protected void parseComplete() {
-	}
-	
 	private void receiveParseComplete(DataInputStream in) {
 		parseComplete();
 	}
 
-	
-	protected void emptyQuery() {
-	}
 	
 	private void receiveEmptyQuery(DataInputStream in) {
 		emptyQuery();

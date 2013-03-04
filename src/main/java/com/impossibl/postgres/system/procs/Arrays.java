@@ -220,5 +220,9 @@ public class Arrays extends SimpleProcProvider {
 		
 		return java.util.Arrays.asList((Object[])value).contains(null);
 	}
+
+	public static boolean is(Object val) {
+		return val.getClass().isArray() || val instanceof List;
+	}
 	
 }

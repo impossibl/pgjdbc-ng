@@ -1,14 +1,11 @@
 package com.impossibl.postgres.protocol;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import com.impossibl.postgres.Context;
 import com.impossibl.postgres.utils.DataInputStream;
+import com.impossibl.postgres.utils.MD5Authentication;
 
 public class StartupProtocol extends Protocol {
 
@@ -18,13 +15,21 @@ public class StartupProtocol extends Protocol {
 	//Backend messages
 	private static final byte BACKEND_KEY_MSG_ID = 'K';
 	private static final byte AUTHENTICATION_MSG_ID = 'R';
+	
+	
+	private boolean ready;
 
 	
 	public StartupProtocol(Context context) {
 		super(context);
 	}
 
-	public void startup(Map<String, Object> params) throws IOException {
+	@Override
+	public boolean isRunComplete() {
+		return super.isRunComplete() || ready;
+	}
+
+	public void sendStartup(Map<String, Object> params) throws IOException {
 
 		Message msg = new Message((byte)0);
 		
@@ -43,7 +48,7 @@ public class StartupProtocol extends Protocol {
 		sendMessage(msg);
 	}
 
-	public void password(String password) throws IOException {
+	public void sendPassword(String password) throws IOException {
 		
 		Message msg = new Message(PASSWORD_MSG_ID);
 		
@@ -51,6 +56,73 @@ public class StartupProtocol extends Protocol {
 
 		sendMessage(msg);
 	}
+	
+	protected void authenticated() {
+	}
+
+	protected void authenticateKerberos() {
+		//TODO: KerberosV5 authentication
+		throw new UnsupportedOperationException();
+	}
+
+	protected void authenticateClear() throws IOException {
+		
+		sendPassword(context.getSetting("password").toString());
+	}
+
+	protected void authenticateCrypt() {
+		//TODO: CRYPT authentication
+		throw new UnsupportedOperationException();
+	}
+
+	protected void authenticateMD5(byte[] salt) throws IOException {
+
+		String username = context.getSetting("username").toString();
+		String password = context.getSetting("password").toString();
+
+		String response = MD5Authentication.encode(password, username, salt);
+
+		sendPassword(response);
+	}
+
+	protected void authenticateSCM() {
+		//TODO: SCM authentication
+		throw new UnsupportedOperationException();
+	}
+
+	protected void authenticateGSS() {
+		//TODO: GSS authentication
+		throw new UnsupportedOperationException();
+	}
+
+	protected void authenticateGSSCont() {
+		throw new UnsupportedOperationException();
+	}
+
+	protected void authenticateSSPI() {
+		//TODO: SSPI authentication
+		throw new UnsupportedOperationException();
+	}
+
+	protected void backendKeyData(int processId, int secretKey) throws IOException {
+		context.setKeyData(processId, secretKey);
+	}
+	
+	@Override
+	protected void readyForQuery(TransactionStatus txStatus) throws IOException {
+		super.readyForQuery(txStatus);
+		ready = true;
+	}
+
+
+	
+	
+	
+	/*
+	 * 
+	 * Message dispatching & parsing
+	 * 
+	 */
 	
 	@Override
 	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
@@ -72,10 +144,6 @@ public class StartupProtocol extends Protocol {
 	}
 	
 	
-	protected void authentication() throws IOException {
-		
-	}
-	
 	private void receiveAuthentication(DataInputStream in) throws IOException {
 		
 		int code = in.readInt();
@@ -83,22 +151,25 @@ public class StartupProtocol extends Protocol {
 		case 0:
 
 			// Ok
+			authenticated();
 			return;
 
 		case 2:
 
 			// KerberosV5
+			authenticateKerberos();
 			break;
 
 		case 3:
 
 			// Cleartext
-			password(context.getSetting("password").toString());
+			authenticateClear();
 			return;
 
 		case 4:
 
 			// Crypt
+			authenticateCrypt();
 			return;
 
 		case 5:
@@ -107,87 +178,37 @@ public class StartupProtocol extends Protocol {
 			byte[] salt = new byte[4];
 			in.readFully(salt);
 
-			String username = context.getSetting("username").toString();
-			String password = context.getSetting("password").toString();
-
-			String response = md5(password, username, salt);
-
-			password(response);
+			authenticateMD5(salt);
 
 			return;
 
 		case 6:
 
 			// SCM Credential
+			authenticateSCM();
 			break;
 
 		case 7:
 
 			// GSS
+			authenticateGSS();
 			break;
 
 		case 8:
 
 			// GSS Continue
+			authenticateGSSCont();
 			break;
 
 		case 9:
 
 			// SSPI
+			authenticateSSPI();
 			break;
 
 		}
 
 		throw new UnsupportedOperationException("invalid authentication type");
-	}
-	
-	String md5(String password, String user, byte salt[]) {
-		
-		byte[] tempDigest, passDigest;
-		byte[] hexDigest = new byte[35];
-
-		MessageDigest md;
-		try {
-			md = MessageDigest.getInstance("MD5");
-		}
-		catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-
-		md.update(password.getBytes(UTF_8));
-		md.update(user.getBytes(UTF_8));
-		tempDigest = md.digest();
-
-		bytesToHex(tempDigest, hexDigest, 0);
-		md.update(hexDigest, 0, 32);
-		md.update(salt);
-		passDigest = md.digest();
-
-		bytesToHex(passDigest, hexDigest, 3);
-		hexDigest[0] = (byte) 'm';
-		hexDigest[1] = (byte) 'd';
-		hexDigest[2] = (byte) '5';
-
-		return new String(hexDigest, UTF_8);
-	}
-
-	void bytesToHex(byte[] bytes, byte[] hex, int offset) {
-		final char lookup[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-		int i, c, j, pos = offset;
-
-		for (i = 0; i < 16; i++) {
-			c = bytes[i] & 0xFF;
-			j = c >> 4;
-			hex[pos++] = (byte) lookup[j];
-			j = (c & 0xF);
-			hex[pos++] = (byte) lookup[j];
-		}
-	}
-
-	
-	protected void backendKeyData(int processId, int secretKey) throws IOException {
-		context.setKeyData(processId, secretKey);
 	}
 	
 	private void receiveBackendKeyData(DataInputStream in) throws IOException {

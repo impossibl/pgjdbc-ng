@@ -127,7 +127,7 @@ public class BasicContext implements Context {
 		
 		StartupProtocol startupProto = new StartupProtocol(this);
 		
-		startupProto.startup(params);
+		startupProto.sendStartup(params);
 		
 		startupProto.run();
 		
@@ -138,17 +138,17 @@ public class BasicContext implements Context {
 		
 		QueryProtocol<T> queryProto = QueryProtocol.get(this, rowType);
 		
-		queryProto.queryParse(null, queryTxt, Collections.<Type>emptyList());
+		queryProto.sendQueryParse(null, queryTxt, Collections.<Type>emptyList());
 		
-		queryProto.queryBind(null, null, Collections.<Object>emptyList());
+		queryProto.sendQueryBind(null, null, Collections.<Object>emptyList());
 
-		queryProto.describe('P', null);
+		queryProto.sendDescribe('P', null);
 
-		queryProto.queryExecute(null, 0);
+		queryProto.sendQueryExecute(null, 0);
 		
-		queryProto.flush();
+		queryProto.sendFlush();
 		
-		queryProto.sync();
+		queryProto.sendSync();
 
 		queryProto.run();
 		

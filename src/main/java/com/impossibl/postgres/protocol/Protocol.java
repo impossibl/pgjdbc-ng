@@ -22,7 +22,6 @@ public class Protocol {
 	
 	Context context;
 	Error error;
-	boolean completed;
 	
 	
 	public Protocol(Context context) {
@@ -35,34 +34,12 @@ public class Protocol {
 	
 	public void run() throws IOException {
 		
-		while(!isComplete())
+		while(!isRunComplete())
 			receive();
 	}
 	
-	public void receive() throws IOException {
-		
-		DataInputStream in = context.getInputStream();
-		
-		byte msgId = in.readByte();
-		
-		long msgStart = in.getCount();
-		
-		long msgLength = in.readInt();
-
-		try {
-			
-			dispatch(in, msgId);
-			
-		}
-		finally {
-			//Swallow leftover bytes in the event
-			//the message dispatch failed
-			long leftover = msgLength - (in.getCount() - msgStart);
-			if(leftover > 0) {
-				in.skip(leftover);
-			}
-		}
-		
+	public boolean isRunComplete() {
+		return error != null;
 	}
 	
 	protected void sendMessage(Message msg) throws IOException {
@@ -89,7 +66,57 @@ public class Protocol {
 		out.writeInt(dataLength+4);
 	}
 
-	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
+	protected void error(Error error) throws IOException {
+		context.reportError(error);
+		this.error = error;
+	}
+
+	protected void notice(byte type, String data) throws IOException {
+		context.reportNotice(type, data);
+	}
+	
+	protected void parameterStatus(String name, String value) throws IOException {
+		context.updateSystemParameter(name, value);
+	}
+
+	protected void readyForQuery(TransactionStatus txStatus) throws IOException {
+	}
+
+	
+	/*
+	 * 
+	 * Message dispatching & parsing
+	 * 
+	 */
+
+	
+	private void receive() throws IOException {
+		
+		DataInputStream in = context.getInputStream();
+		
+		byte msgId = in.readByte();
+		
+		long msgStart = in.getCount();
+		
+		long msgLength = in.readInt();
+
+		try {
+			
+			dispatch(in, msgId);
+			
+		}
+		finally {
+			//Swallow leftover bytes in the event
+			//the message dispatch failed
+			long leftover = msgLength - (in.getCount() - msgStart);
+			if(leftover > 0) {
+				in.skip(leftover);
+			}
+		}
+		
+	}
+	
+	protected boolean dispatch(DataInputStream in, byte msgId) throws IOException {
 		
 		switch(msgId) {
 		case ERROR_MSG_ID:
@@ -113,16 +140,6 @@ public class Protocol {
 	}
 
 	
-	public boolean isComplete() {
-		return completed;
-	}
-	
-	protected void error(Error error) throws IOException {
-		context.reportError(error);
-		this.error = error;
-		this.completed = true;
-	}
-
 	private void receiveError(DataInputStream in) throws IOException {
 		
 		Error error = new Error();
@@ -180,10 +197,6 @@ public class Protocol {
 	}
 
 	
-	protected void notice(byte type, String data) throws IOException {
-		context.reportNotice(type, data);
-	}
-	
 	private void receiveNotice(DataInputStream in) throws IOException {
 		
 		byte type;
@@ -198,10 +211,6 @@ public class Protocol {
 	}
 	
 	
-	protected void parameterStatus(String name, String value) throws IOException {
-		context.updateSystemParameter(name, value);
-	}
-
 	private void receiveParameterStatus(DataInputStream in) throws IOException {
 		
 		String name = in.readCString();
@@ -210,10 +219,6 @@ public class Protocol {
 		parameterStatus(name, value);
 	}
 	
-
-	protected void readyForQuery(TransactionStatus txStatus) throws IOException {
-		completed = true;
-	}
 
 	private void receiveReadyForQuery(DataInputStream in) throws IOException {
 		

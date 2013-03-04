@@ -25,15 +25,15 @@ public class CommandProtocol extends Protocol {
 		super(context);
 	}
 
-	public void flush() throws IOException {
+	public void sendFlush() throws IOException {
 		sendMessage(FLUSH_MSG_ID, 0);
 	}
 
-	public void sync() throws IOException {
+	public void sendSync() throws IOException {
 		sendMessage(SYNC_MSG_ID, 0);
 	}
 
-	public void terminate() throws IOException {
+	public void sendTerminate() throws IOException {
 		sendMessage(TERMINATE_MSG_ID, 0);
 	}
 
@@ -74,7 +74,21 @@ public class CommandProtocol extends Protocol {
 		return byteStream.toByteArray();
 	}
 
+	protected void commandComplete(String commandTag) {
+	}
+	
+	protected void notification(int processId, String channelName, String payload) throws IOException {
+		context.reportNotification(processId, channelName, payload);
+	}
 
+
+	/*
+	 * 
+	 * Message dispatching & parsing
+	 * 
+	 */
+
+	
 	@Override
 	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
 		
@@ -95,9 +109,6 @@ public class CommandProtocol extends Protocol {
 	}
 
 	
-	protected void commandComplete(String commandTag) {
-	}
-	
 	private void receiveCommandComplete(DataInputStream in) throws IOException {
 		
 		String commandTag = in.readCString();
@@ -105,10 +116,6 @@ public class CommandProtocol extends Protocol {
 		commandComplete(commandTag);
 	}
 
-
-	protected void notification(int processId, String channelName, String payload) throws IOException {
-		context.reportNotification(processId, channelName, payload);
-	}
 
 	protected void receiveNotification(DataInputStream in) throws IOException {
 		

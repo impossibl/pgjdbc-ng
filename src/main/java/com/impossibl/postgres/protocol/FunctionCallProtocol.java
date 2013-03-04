@@ -18,13 +18,18 @@ public class FunctionCallProtocol extends CommandProtocol {
 	
 	protected Type resultType;
 	protected Object result;
-	
+	protected boolean complete;
 
 	public FunctionCallProtocol(Context context) {
 		super(context);
 	}
 
-	public void functionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
+	@Override
+	public boolean isRunComplete() {
+		return super.isRunComplete() || complete;
+	}
+
+	public void sendFunctionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 		
 		Message msg = new Message(FUNCTION_CALL_MSG_ID);
 		
@@ -36,7 +41,24 @@ public class FunctionCallProtocol extends CommandProtocol {
 		
 		sendMessage(msg);
 	}
-		
+	
+	protected Type getResultType() throws IOException {
+		return resultType;
+	}
+	
+	protected void functionResult(Object value) throws IOException {
+		result = value;
+		complete = true;
+	}
+
+
+	/*
+	 * 
+	 * Message dispatching & parsing
+	 * 
+	 */
+
+	
 	@Override
 	public boolean dispatch(DataInputStream in, byte msgId) throws IOException {
 		
@@ -53,14 +75,6 @@ public class FunctionCallProtocol extends CommandProtocol {
 		return false;
 	}
 
-
-	protected Type getResultType() throws IOException {
-		return resultType;
-	}
-	
-	protected void functionResult(Object value) throws IOException {
-		result = value;
-	}
 
 	protected void receiveFunctionResult(DataInputStream in) throws IOException {
 
