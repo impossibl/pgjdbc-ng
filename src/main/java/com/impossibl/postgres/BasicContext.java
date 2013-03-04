@@ -55,8 +55,8 @@ public class BasicContext implements Context {
 	private DataOutputStream out;
 	
 	
-	public BasicContext(Socket socket, Map<String, Object> settings) throws IOException {
-		this.targetTypeMap = new HashMap<String, Class<?>>();
+	public BasicContext(Socket socket, Map<String, Object> settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
 		this.settings = new HashMap<String, Object>(settings);
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
 		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
