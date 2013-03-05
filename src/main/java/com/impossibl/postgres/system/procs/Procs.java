@@ -6,7 +6,7 @@ import com.impossibl.postgres.types.Type.TextIO;
 
 public class Procs {
 	
-	public static ProcProvider[] PROVIDERS = {
+	private static ProcProvider[] PROVIDERS = {
 		new Arrays(),
 		new Bools(),
 		new Bytes(),
@@ -19,8 +19,10 @@ public class Procs {
 		new Names(),
 		new Strings(),
 		new UUIDs(),
-		new Records()
+		new Records(),
 	};
+	
+	private static final Unsupporteds UNSUPPORTEDS = new Unsupporteds(); 
 
 	public static TextIO loadNamerTextIO(String baseName) {
 		TextIO io = new TextIO();
@@ -38,7 +40,7 @@ public class Procs {
 				return h;
 		}
 
-		return null;
+		return UNSUPPORTEDS.findTextEncoder(name);
 	}
 
 	public static TextIO.Decoder loadOutputProc(String name) {
@@ -50,7 +52,7 @@ public class Procs {
 				return h;
 		}
 		
-		return null;
+		return UNSUPPORTEDS.findTextDecoder(name);
 	}
 	
 	public static BinaryIO loadNamedBinaryIO(String baseName) {
@@ -69,7 +71,7 @@ public class Procs {
 				return h;
 		}
 
-		return null;
+		return UNSUPPORTEDS.findBinaryEncoder(name);
 	}
 
 	public static BinaryIO.Decoder loadSendProc(String name) {
@@ -81,7 +83,7 @@ public class Procs {
 				return h;
 		}
 
-		return null;
+		return UNSUPPORTEDS.findBinaryDecoder(name);
 	}
 
 }

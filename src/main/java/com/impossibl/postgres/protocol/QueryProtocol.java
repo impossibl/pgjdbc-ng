@@ -5,6 +5,8 @@ import static java.util.Arrays.asList;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,9 +15,7 @@ import java.util.Map;
 
 import com.impossibl.postgres.Context;
 import com.impossibl.postgres.system.procs.Arrays;
-import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.TupleType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 
@@ -25,6 +25,37 @@ public class QueryProtocol<T> extends CommandProtocol {
 		Completed,
 		Suspended
 	}
+	
+	
+	static class ResultField {
+		
+		enum Format {
+			Text,
+			Binary
+		}
+		
+		public String name;
+		public int relationId;
+		public short relationAttributeIndex;
+		public Type type;
+		public short typeLength;
+		public int typeModId;
+		public Format format;
+		
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append(name);
+			if(relationId != 0) {
+				sb.append(String.format(" (%s:%d)", relationId, relationAttributeIndex));
+			}
+			sb.append(" : ");
+			sb.append(type != null ? type.getName() : "<unknown>");
+			return sb.toString();
+		}
+		
+	}
+	
 	
 	//Frontend messages
 	private static final byte QUERY_MSG_ID 					= 'Q';	
@@ -47,7 +78,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 	
 	private Class<T> rowType;
 	private List<Type> parameterTypes;
-	private TupleType resultsType;
+	private List<ResultField> resultFields;
 	private List<T> results;
 	private Status status;
 	
@@ -59,8 +90,9 @@ public class QueryProtocol<T> extends CommandProtocol {
 	public QueryProtocol(Context context, Class<T> rowType) {
 		super(context);
 		this.rowType = rowType;
-		parameterTypes = new ArrayList<Type>();
-		results = new ArrayList<T>();
+		parameterTypes = new ArrayList<>();
+		results = new ArrayList<>();
+		resultFields = Collections.emptyList();
 	}
 	
 	@Override
@@ -150,8 +182,8 @@ public class QueryProtocol<T> extends CommandProtocol {
 		this.parameterTypes = paramTypes;
 	}
 
-	protected void rowDescription(TupleType tupleType) throws IOException {
-		this.resultsType = tupleType;
+	protected void rowDescription(List<ResultField> resultFields) throws IOException {
+		this.resultFields = resultFields;
 	}
 
 	protected void rowData(T rowInstance) throws IOException {
@@ -163,7 +195,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 	}
 	
 	protected void noData() {
-		resultsType = context.createTupleType(Collections.<Field>emptyList());
+		resultFields = Collections.emptyList();
 	}
 	
 	protected void closeComplete() {
@@ -261,46 +293,54 @@ public class QueryProtocol<T> extends CommandProtocol {
 		
 		short fieldCount = in.readShort();
 
-		Field[] fields = new Field[fieldCount];
+		ResultField[] fields = new ResultField[fieldCount];
 
 		for (int c = 0; c < fieldCount; ++c) {
 
-			Field field = new Field();
+			ResultField field = new ResultField();
 			field.name = in.readCString();
 			field.relationId = in.readInt();
-			field.attributeIndex = in.readShort();
-			field.typeId = in.readInt();
+			field.relationAttributeIndex = in.readShort();
+			field.type = Registry.loadType(in.readInt());
 			field.typeLength = in.readShort();
 			field.typeModId = in.readInt();
-			field.formatCode = in.readShort();
+			field.format = ResultField.Format.values()[in.readShort()];
 
 			fields[c] = field;
 		}
 		
-		TupleType tupleType = context.createTupleType(asList(fields));
-		
-		rowDescription(tupleType);
+		rowDescription(asList(fields));
 	}
 	
 	private void receiveRowData(DataInputStream in) throws IOException {
-		
-		if(resultsType == null)
+
+		if(resultFields.isEmpty())
 			throw new IllegalStateException("No result data expected");
 		
 		int itemCount = in.readShort();
+
+		Reader reader = new InputStreamReader(in);
 		
 		T rowInstance = createInstance(rowType, itemCount);
 
 		for (int c = 0; c < itemCount; ++c) {
 
-			Attribute attribute = resultsType.getAttribute(c);
+			ResultField field = resultFields.get(c);
 
-			Type attributeType = attribute.type;
-			Object attributeVal = null;
+			Type fieldType = field.type;
+			Object fieldVal = null;
 			
-			attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, in, context);
+			switch(field.format) {
+			case Text:
+				fieldVal = fieldType.getTextIO().decoder.decode(fieldType, reader, context);
+				break;
+				
+			case Binary:
+				fieldVal = fieldType.getBinaryIO().decoder.decode(fieldType, in, context);
+				break;
+			}
 
-			set(rowInstance, c, attribute.name, attributeVal);
+			set(rowInstance, c, field.name, fieldVal);
 		}
 
 		rowData(rowInstance);

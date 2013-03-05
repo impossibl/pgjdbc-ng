@@ -1,13 +1,10 @@
 package com.impossibl.postgres;
 
-import static com.impossibl.postgres.types.Registry.loadType;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +16,6 @@ import com.impossibl.postgres.codecs.DateStyles;
 import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
-import com.impossibl.postgres.protocol.Field;
 import com.impossibl.postgres.protocol.QueryProtocol;
 import com.impossibl.postgres.protocol.StartupProtocol;
 import com.impossibl.postgres.protocol.TransactionStatus;
@@ -27,9 +23,7 @@ import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.TupleType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -161,28 +155,6 @@ public class BasicContext implements Context {
 		keyData = new KeyData();
 		keyData.processId = processId;
 		keyData.secretKey = secretKey;
-	}
-
-	@Override
-	public TupleType createTupleType(List<Field> fields) {
-		
-		TupleType tupleType = new TupleType(-1, "", null, 0);
-		
-		List<Attribute> attrs = new ArrayList<Attribute>();
-		
-		for(Field field : fields) {
-			
-			Attribute attr = new Attribute();
-			
-			attr.name = field.name;
-			attr.type = loadType(field.typeId);
-			
-			attrs.add(attr);
-		}
-		
-		tupleType.setAttributes(attrs);
-		
-		return tupleType;
 	}
 
 	@Override

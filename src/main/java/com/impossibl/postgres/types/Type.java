@@ -70,11 +70,11 @@ public abstract class Type {
 	public static class TextIO {
 
 		public interface Decoder {
-			Object handle(Type type, Reader reader, Context context);
+			Object decode(Type type, Reader reader, Context context) throws IOException;
 		}
 		
 		public interface Encoder {
-			void handle(Type tyoe, Writer writer, Object value, Context context) throws IOException;
+			void encode(Type tyoe, Writer writer, Object value, Context context) throws IOException;
 		}
 
 		public Decoder decoder;
