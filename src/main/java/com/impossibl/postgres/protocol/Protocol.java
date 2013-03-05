@@ -6,12 +6,15 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import com.impossibl.postgres.Context;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
 public class Protocol {
+	
+	private static Logger logger = Logger.getLogger(Protocol.class.getName());
 	
 	//Backend messages
 	private static final byte ERROR_MSG_ID = 'E';
@@ -90,9 +93,12 @@ public class Protocol {
 	 */
 
 	
-	private void receive() throws IOException {
+	protected boolean receive() throws IOException {
 		
 		DataInputStream in = context.getInputStream();
+		
+		if(in.available() < 1)
+			return false;
 		
 		byte msgId = in.readByte();
 		
@@ -104,6 +110,7 @@ public class Protocol {
 			
 			dispatch(in, msgId);
 			
+			return true;
 		}
 		finally {
 			//Swallow leftover bytes in the event
@@ -193,6 +200,8 @@ public class Protocol {
 			
 		}
 		
+		logger.finest("ERROR: " + error.message);
+		
 		error(error);
 	}
 
@@ -206,6 +215,9 @@ public class Protocol {
 			String value = in.readCString();
 			
 			notice(type, value);
+
+			logger.finest("NOTICE: " + type + " - " + value);
+			
 		}
 		
 	}
@@ -237,6 +249,8 @@ public class Protocol {
 		default:
 			throw new IllegalStateException("invalid transaction status");
 		}
+		
+		logger.finest("READY: " + txStatus);
 		
 		readyForQuery(txStatus);
 	}

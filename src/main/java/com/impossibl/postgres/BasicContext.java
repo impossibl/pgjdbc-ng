@@ -1,5 +1,9 @@
 package com.impossibl.postgres;
 
+import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Portal;
+import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Statement;
+import static java.util.Arrays.asList;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -9,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
@@ -16,9 +21,9 @@ import com.impossibl.postgres.codecs.DateStyles;
 import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryProtocol;
 import com.impossibl.postgres.protocol.StartupProtocol;
-import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
@@ -27,6 +32,7 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
+import com.impossibl.postgres.utils.Timer;
 
 public class BasicContext implements Context {
 	
@@ -42,22 +48,27 @@ public class BasicContext implements Context {
 	private Map<String, Class<?>>  targetTypeMap;
 	private StringCodec stringCodec;
 	private DateTimeCodec dateTimeCodec;
-	private Map<String, Object> settings;
+	private Properties settings;
 	private Version serverVersion;
 	private KeyData keyData;
 	private DataInputStream in;
 	private DataOutputStream out;
+	private Protocol protocol;
 	
 	
-	public BasicContext(Socket socket, Map<String, Object> settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
-		this.settings = new HashMap<String, Object>(settings);
+		this.settings = settings;
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
 		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
 		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 		this.out = new DataOutputStream(socket.getOutputStream());
 	}
-
+	
+	public Protocol getProtocol() {
+		return protocol;
+	}
+	
 	@Override
 	public DataInputStream getInputStream() {
 		return in;
@@ -86,6 +97,10 @@ public class BasicContext implements Context {
 		return stringCodec;
 	}
 
+	public DateTimeCodec getDateTimeCodec() {
+		return dateTimeCodec;
+	}
+
 	public void refreshType(int typeId) {
 	}
 	
@@ -93,21 +108,32 @@ public class BasicContext implements Context {
 		
 		if(start()) {
 			
-			//Load types
-			String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-			List<PgType.Row> pgTypes = query(typeSQL, PgType.Row.class);
-			
-			//Load attributes
-			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-			List<PgAttribute.Row> pgAttrs = query(attrsSQL, PgAttribute.Row.class);
-			
-			//Load procs
-			String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-			List<PgProc.Row> pgProcs = query(procsSQL, PgProc.Row.class);
-			
-			//Update the registry with known types
-			Registry.update(pgTypes, pgAttrs, pgProcs);
+			loadTypes();
 		}
+	}
+
+	private void loadTypes() throws IOException {
+		
+		Timer timer = new Timer();
+		
+		//Load types
+		String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
+		List<PgType.Row> pgTypes = query(typeSQL, PgType.Row.class);
+		
+		//Load attributes
+		String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
+		List<PgAttribute.Row> pgAttrs = query(attrsSQL, PgAttribute.Row.class);
+		
+		//Load procs
+		String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
+		List<PgProc.Row> pgProcs = query(procsSQL, PgProc.Row.class);
+		
+		logger.info("query time: " + timer.getLap() + "ms");
+
+		//Update the registry with known types
+		Registry.update(pgTypes, pgAttrs, pgProcs);
+		
+		logger.info("load time: " + timer.getLap() + "ms");
 	}
 	
 	private boolean start() throws IOException {
@@ -128,15 +154,18 @@ public class BasicContext implements Context {
 		return startupProto.getError() == null;
 	}
 	
-	public <T> List<T> query(String queryTxt, Class<T> rowType) throws IOException {
+	@SuppressWarnings("unchecked")
+	public <T> List<T> query(String queryTxt, Class<T> rowType, Object... params) throws IOException {
 		
-		QueryProtocol<T> queryProto = QueryProtocol.get(this, rowType);
+		QueryProtocol queryProto = new QueryProtocol(this, rowType);
 		
 		queryProto.sendParse(null, queryTxt, Collections.<Type>emptyList());
 		
-		queryProto.sendBind(null, null, Collections.<Object>emptyList());
+		queryProto.sendDescribe(Statement, null);
+		
+		queryProto.sendBind(null, null, queryProto.getParameterTypes(), asList(params));
 
-		queryProto.sendDescribe('P', null);
+		queryProto.sendDescribe(Portal, null);
 
 		queryProto.sendExecute(null, 0);
 		
@@ -146,7 +175,7 @@ public class BasicContext implements Context {
 
 		queryProto.run();
 		
-		return queryProto.getResults();
+		return (List<T>)queryProto.getResults();
 	}
 
 	@Override
@@ -155,10 +184,6 @@ public class BasicContext implements Context {
 		keyData = new KeyData();
 		keyData.processId = processId;
 		keyData.secretKey = secretKey;
-	}
-
-	@Override
-	public void restart(TransactionStatus txStatus) {
 	}
 
 	@Override

@@ -1,8 +1,8 @@
 package com.impossibl.postgres;
 
+import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
-import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -13,12 +13,11 @@ public interface Context {
 	DataOutputStream getOutputStream();
 	
 	StringCodec getStringCodec();
+	DateTimeCodec getDateTimeCodec();
 
 	Class<?> lookupInstanceType(Type type);
 
 	void refreshType(int typeId);
-
-	void restart(TransactionStatus txStatus);
 
 	Object getSetting(String string);
 	

@@ -3,6 +3,7 @@ package com.impossibl.postgres.protocol;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import com.impossibl.postgres.Context;
 import com.impossibl.postgres.types.Type;
@@ -10,6 +11,8 @@ import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
 public class CommandProtocol extends Protocol {
+	
+	private static final Logger logger = Logger.getLogger(CommandProtocol.class.getName());
 
 	//Frontend messages
 	private static final byte FLUSH_MSG_ID 					= 'H';
@@ -44,22 +47,19 @@ public class CommandProtocol extends Protocol {
 		out.writeShort(1);
 
 		//Values for each parameter
-		out.writeShort(paramTypes.size());
-		for(int c=0; c < paramTypes.size(); ++c) {
-			
-			Type paramType = paramTypes.get(c);
-			Object paramValue = paramValues.get(c);
-			
-			if(paramValue == null) {
-				out.writeInt(-1);
-			}
-			else {
-				byte[] paramData = serialize(paramType, paramValue);
-				out.writeInt(paramData.length);
-				out.write(paramData);
+		if(paramTypes == null) {
+			out.writeShort(0);
+		}
+		else {
+			out.writeShort(paramTypes.size());
+			for(int c=0; c < paramTypes.size(); ++c) {
+				
+				Type paramType = paramTypes.get(c);
+				Object paramValue = paramValues.get(c);
+				
+				paramType.getBinaryIO().encoder.encode(paramType, out, paramValue, context);
 			}
 		}
-		
 	}
 	
 	protected byte[] serialize(Type type, Object value) throws IOException {
@@ -114,6 +114,9 @@ public class CommandProtocol extends Protocol {
 		String commandTag = in.readCString();
 		
 		commandComplete(commandTag);
+		
+		logger.finest("COMPLETE: " + commandTag);
+		
 	}
 
 
@@ -124,6 +127,8 @@ public class CommandProtocol extends Protocol {
 		String payload = in.readCString();
 		
 		notification(processId, channelName, payload);
+
+		logger.finest("NOTIFY: " + processId + " - " + channelName + " - " + payload);
 	}
 
 }
