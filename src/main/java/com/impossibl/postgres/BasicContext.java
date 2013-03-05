@@ -132,13 +132,13 @@ public class BasicContext implements Context {
 		
 		QueryProtocol<T> queryProto = QueryProtocol.get(this, rowType);
 		
-		queryProto.sendQueryParse(null, queryTxt, Collections.<Type>emptyList());
+		queryProto.sendParse(null, queryTxt, Collections.<Type>emptyList());
 		
-		queryProto.sendQueryBind(null, null, Collections.<Object>emptyList());
+		queryProto.sendBind(null, null, Collections.<Object>emptyList());
 
 		queryProto.sendDescribe('P', null);
 
-		queryProto.sendQueryExecute(null, 0);
+		queryProto.sendExecute(null, 0);
 		
 		queryProto.sendFlush();
 		

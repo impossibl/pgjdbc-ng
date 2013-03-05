@@ -117,7 +117,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 	
-	public void sendQueryParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
+	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
 		
 		Message msg = new Message(PARSE_MSG_ID);
 		
@@ -132,7 +132,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);
 	}
 	
-	public void sendQueryBind(String portalName, String stmtName, List<Object> paramValues) throws IOException {
+	public void sendBind(String portalName, String stmtName, List<Object> paramValues) throws IOException {
 		
 		Message msg = new Message(BIND_MSG_ID);
 		
@@ -148,7 +148,7 @@ public class QueryProtocol<T> extends CommandProtocol {
 		sendMessage(msg);				
 	}
 	
-	public void sendQueryExecute(String portalName, int maxRows) throws IOException {
+	public void sendExecute(String portalName, int maxRows) throws IOException {
 		
 		Message msg = new Message(EXECUTE_MSG_ID);
 		
