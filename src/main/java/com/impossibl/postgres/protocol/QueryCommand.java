@@ -111,8 +111,9 @@ public List<Type> getParameterTypes() {
 		return resultFields;
 	}
 
-	public List<?> getResults() {
-		return results;
+	@SuppressWarnings("unchecked")
+	public <T> List<T> getResults(Class<T> type) {
+		return (List<T>)results;
 	}
 
 	public void execute(Context context) throws IOException {

@@ -165,7 +165,6 @@ public class BasicContext implements Context {
 		return startup.getError() == null;
 	}
 	
-	@SuppressWarnings("unchecked")
 	public <T> List<T> query(String queryTxt, Class<T> rowType, Object... params) throws IOException {
 
 		PrepareCommand prepare = new PrepareCommand(null, queryTxt, Collections.<Type>emptyList());
@@ -175,7 +174,7 @@ public class BasicContext implements Context {
 		
 		query.execute(this);
 		
-		return (List<T>)query.getResults();
+		return query.getResults(rowType);
 	}
 
 	@Override

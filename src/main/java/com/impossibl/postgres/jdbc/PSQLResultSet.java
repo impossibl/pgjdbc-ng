@@ -41,14 +41,13 @@ public class PSQLResultSet implements ResultSet {
 	List<ResultField> resultFields;
 	List<Object[]> results;
 
-	@SuppressWarnings("unchecked")
 	public PSQLResultSet(PSQLStatement statement, String portalName, QueryCommand command) {
 		super();
 		this.statement = statement;
 		this.currentRow = -1;
 		this.command = command;
 		this.resultFields = command.getResultFields();
-		this.results = (List<Object[]>) command.getResults();
+		this.results = command.getResults(Object[].class);
 	}
 
 	@Override
@@ -61,7 +60,6 @@ public class PSQLResultSet implements ResultSet {
 		return false;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean next() throws SQLException {
 		
@@ -74,7 +72,7 @@ public class PSQLResultSet implements ResultSet {
 					command.execute(statement.connection);
 					
 					resultFields = command.getResultFields();
-					results = (List<Object[]>) command.getResults();
+					results = (List<Object[]>) command.getResults(Object[].class);
 					currentRow = -1;
 					
 					return next();
