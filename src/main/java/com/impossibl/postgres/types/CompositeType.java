@@ -10,30 +10,32 @@ import java.util.List;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
+
+
 public class CompositeType extends Type {
-	
+
 	public static class Attribute {
-		
+
 		public String name;
 		public Type type;
-		
+
 		@Override
 		public String toString() {
 			return name + " : " + type;
 		}
-		
+
 	}
-	
+
 	private List<Attribute> attributes;
-	
+
 	public CompositeType(int id, String name, Type arrayType, String procName, int sqlType) {
-		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryIO(procName), loadNamerTextIO(procName), 0);
+		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryIO(procName, null), loadNamerTextIO(procName, null), 0);
 	}
-	
+
 	public CompositeType(int id, String name, Type arrayType, int sqlType) {
 		this(id, name, arrayType, "record_", sqlType);
 	}
-	
+
 	public CompositeType() {
 	}
 
@@ -51,20 +53,35 @@ public class CompositeType extends Type {
 
 	@Override
 	public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs, Registry registry) {
-		
+
 		super.load(pgType, pgAttrs, registry);
-		
+
 		Attribute[] attributes = new Attribute[pgAttrs.size()];
-		
-		for(PgAttribute.Row pgAttr : pgAttrs) {
-			
+
+		int lastFreeIdx = attributes.length - 1;
+
+		for (PgAttribute.Row pgAttr : pgAttrs) {
+
 			Attribute attr = new Attribute();
 			attr.name = pgAttr.name;
 			attr.type = registry.loadType(pgAttr.typeId);
-			
-			attributes[pgAttr.number-1] = attr;
+
+			int idx;
+
+			// System columns have arbitrary
+			// negative numbers. We assign
+			// them a free slot from the
+			// end of the list
+			if (pgAttr.number < 1) {
+				idx = lastFreeIdx--;
+			}
+			else {
+				idx = pgAttr.number - 1;
+			}
+
+			attributes[idx] = attr;
 		}
-		
+
 		this.attributes = Arrays.asList(attributes);
 	}
 
