@@ -4,11 +4,17 @@ import java.sql.Date;
 import java.text.DateFormat;
 import java.util.TimeZone;
 
+
+
+/*
+ * Codec for DateTime values that use a specific
+ * DateFormat and TimeZone. 
+ */
 public class DateTimeCodec implements Codec<Date> {
-	
+
 	private DateFormat format;
 	private TimeZone timeZone;
-	
+
 	public DateTimeCodec(DateFormat format, TimeZone timeZone) {
 		this.format = format;
 		this.timeZone = timeZone;
