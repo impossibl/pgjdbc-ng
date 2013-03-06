@@ -13,7 +13,7 @@ public class StartupProtocol extends Protocol {
 	private static final byte PASSWORD_MSG_ID 			= 'p';
 
 	//Backend messages
-	private static final byte BACKEND_KEY_MSG_ID = 'K';
+	private static final byte BACKEND_KEY_MSG_ID 		= 'K';
 	private static final byte AUTHENTICATION_MSG_ID = 'R';
 	
 	

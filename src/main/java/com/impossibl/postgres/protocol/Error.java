@@ -18,5 +18,12 @@ public class Error {
 	public String file;
 	public int line;
 	
+	public Error() {
+	}
+	
+	public Error(Severity severity, String message) {
+		this.severity = severity;
+		this.message = message;
+	}
+	
 }
-

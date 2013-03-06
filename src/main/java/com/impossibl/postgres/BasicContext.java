@@ -1,7 +1,5 @@
 package com.impossibl.postgres;
 
-import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Portal;
-import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Statement;
 import static java.util.Arrays.asList;
 
 import java.io.BufferedInputStream;
@@ -15,15 +13,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.codecs.DateStyles;
 import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
-import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.QueryProtocol;
-import com.impossibl.postgres.protocol.StartupProtocol;
+import com.impossibl.postgres.protocol.PrepareCommand;
+import com.impossibl.postgres.protocol.ProtocolHandler;
+import com.impossibl.postgres.protocol.ProtocolV30;
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
@@ -53,7 +55,8 @@ public class BasicContext implements Context {
 	private KeyData keyData;
 	private DataInputStream in;
 	private DataOutputStream out;
-	private Protocol protocol;
+	private ProtocolV30 protocol;
+	private Lock protocolLock;
 	
 	
 	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
@@ -63,10 +66,19 @@ public class BasicContext implements Context {
 		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
 		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 		this.out = new DataOutputStream(socket.getOutputStream());
+		this.protocol = new ProtocolV30(this);
+		this.protocolLock = new ReentrantLock();
 	}
 	
-	public Protocol getProtocol() {
+	public ProtocolV30 lockProtocol(ProtocolHandler handler) {
+		protocolLock.lock();
+		protocol.setHandler(handler);
 		return protocol;
+	}
+	
+	public void unlockProtocol() {
+		protocol.setHandler(null);
+		protocolLock.unlock();
 	}
 	
 	@Override
@@ -145,37 +157,24 @@ public class BasicContext implements Context {
 		params.put("database", settings.get("database"));
 		params.put("user", settings.get("username"));
 		
-		StartupProtocol startupProto = new StartupProtocol(this);
+		StartupCommand startup = new StartupCommand(params);
 		
-		startupProto.sendStartup(params);
+		startup.execute(this);
 		
-		startupProto.run();
-		
-		return startupProto.getError() == null;
+		return startup.getError() == null;
 	}
 	
 	@SuppressWarnings("unchecked")
 	public <T> List<T> query(String queryTxt, Class<T> rowType, Object... params) throws IOException {
-		
-		QueryProtocol queryProto = new QueryProtocol(this, rowType);
-		
-		queryProto.sendParse(null, queryTxt, Collections.<Type>emptyList());
-		
-		queryProto.sendDescribe(Statement, null);
-		
-		queryProto.sendBind(null, null, queryProto.getParameterTypes(), asList(params));
 
-		queryProto.sendDescribe(Portal, null);
-
-		queryProto.sendExecute(null, 0);
+		PrepareCommand prepare = new PrepareCommand(null, queryTxt, Collections.<Type>emptyList());
+		prepare.execute(this);
 		
-		queryProto.sendFlush();
+		QueryCommand query = new QueryCommand(null, null, prepare.getParameterTypes(), asList(params), rowType);
 		
-		queryProto.sendSync();
-
-		queryProto.run();
+		query.execute(this);
 		
-		return (List<T>)queryProto.getResults();
+		return (List<T>)query.getResults();
 	}
 
 	@Override

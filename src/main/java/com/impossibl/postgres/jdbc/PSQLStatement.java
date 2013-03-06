@@ -1,8 +1,5 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Portal;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -28,7 +25,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
-import com.impossibl.postgres.protocol.QueryProtocol;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.types.Type;
 
 public class PSQLStatement implements PreparedStatement {
@@ -39,6 +36,7 @@ public class PSQLStatement implements PreparedStatement {
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
 	int maxRows;
+	QueryCommand command;
 	
 
 	PSQLStatement(PSQLConnection connection, String name, List<Type> parameterTypes) {
@@ -46,32 +44,17 @@ public class PSQLStatement implements PreparedStatement {
 		this.name = name;
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
+		this.command = new QueryCommand(null, name, parameterTypes, parameterValues, Object[].class);
 	}
 
 	@Override
 	public boolean execute() throws SQLException {
 
-		try {
-			
-			QueryProtocol queryProto = new QueryProtocol(connection, Object[].class);
-			
-			queryProto.sendBind(null, name, parameterTypes, parameterValues);
-			
-			queryProto.sendDescribe(Portal, null);
-			
-			queryProto.sendExecute(null, maxRows);
-			
-			queryProto.sendSync();
-			
-			queryProto.run();
-			
-		}
-		catch (IOException e) {
-			
-			throw new SQLException("Error executing query", e);
-		}
+		command.setMaxRows(maxRows);
 		
-		return false;
+		command.execute(connection);
+		
+		return true;	//TODO: return correct value
 	}
 
 	@Override

@@ -23,10 +23,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-import java.util.logging.Logger;
 
 import com.impossibl.postgres.BasicContext;
 import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.PrepareProtocol;
 import com.impossibl.postgres.types.Type;
 
@@ -60,33 +60,18 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
 		
-		try {
-			
-			String statementName = (++statementId).toString();
-			
-			PrepareProtocol prepProto = new PrepareProtocol(this);
+		String statementName = (++statementId).toString();
 		
-			prepProto.sendParse(statementName.toString(), sql, Collections.<Type>emptyList());
-			
-			prepProto.sendDescribe(Statement, statementName.toString());
-			
-			prepProto.sendFlush();
-			
-			prepProto.run();
-			
-			Error error = prepProto.getError();
-			if(error != null) {
-				throw new SQLException(error.message, error.code);
-			}
+		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type>emptyList());
 		
-			return new PSQLStatement(this, statementName, prepProto.getParameterTypes());
-			
+		prepare.execute(this);
+		
+		Error error = prepare.getError();
+		if(error != null) {
+			throw new SQLException(error.message, error.code);
 		}
-		catch(IOException e) {
-			
-			throw new SQLException(e);
-		}
-		
+	
+		return new PSQLStatement(this, statementName, prepare.getParameterTypes());		
 	}
 
 	@Override

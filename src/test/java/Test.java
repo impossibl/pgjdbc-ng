@@ -2,6 +2,7 @@
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -31,27 +32,25 @@ public class Test {
 
 	public static void main(String[] args) throws SQLException, IOException {
 
-		try (Socket socket = new Socket(InetAddress.getByName("10.0.10.26"), 5432)) {
+		Properties settings = new Properties();
+		settings.put("database", "impossibl");
+		settings.put("username", "postgres");
+		settings.put("password", "test");
 
-			Properties settings = new Properties();
-			settings.put("database", "impossibl");
-			settings.put("username", "postgres");
-			settings.put("password", "test");
+		Map<String, Class<?>> targetTypeMap = new HashMap<String, Class<?>>();
+		targetTypeMap.put("helper2", Helper2.class);
+		targetTypeMap.put("role_granter", RoleGrant.class);
+		
+		PSQLDriver driver = new PSQLDriver();
+		
+		// Connection conn = DriverManager.getConnection("jdbc:postgresql://db/impossibl", settings);
 
-			Map<String, Class<?>> targetTypeMap = new HashMap<String, Class<?>>();
-			targetTypeMap.put("helper2", Helper2.class);
-			targetTypeMap.put("role_granter", RoleGrant.class);
-
-			PSQLDriver driver = new PSQLDriver();
-			
-			PSQLConnection conn = DriverManager.getConnection("jdbc:postgresql://db/impossibl", settings);
-			
-			conn.prepareStatement("select array['A Name','cce010e0-8476-11e2-9e96-0800200c9a66','Tester']").execute();
-			conn.prepareStatement("select ('A Name',('cce010e0-8476-11e2-9e96-0800200c9a66'::uuid,'Tester'))::helper2").execute();
-			conn.prepareStatement("select oid,typname,typlen,typbyval,typcategory,typdelim,typrelid from pg_type where oid=$1").execute();
-
-		}
-
+		PSQLConnection conn = driver.connect("jdbc:postgresql://mongo/impossibl", settings);
+		conn.setTypeMap(targetTypeMap);
+		
+		conn.prepareStatement("select array['A Name','cce010e0-8476-11e2-9e96-0800200c9a66','Tester']").execute();
+		conn.prepareStatement("select ('A Name',('cce010e0-8476-11e2-9e96-0800200c9a66'::uuid,'Tester'))::helper2").execute();
+		conn.prepareStatement("select oid,typname,typlen,typbyval,typcategory,typdelim,typrelid from pg_type where oid=$1").execute();
 	}
-
+	
 }
