@@ -16,7 +16,7 @@ public class StartupCommand extends Command {
 	}
 
 	@Override
-	public void execute(final Context context) {
+	public void execute(final Context context) throws IOException {
 		
 		ProtocolHandler handler = new AbstractProtocolHandler() {
 
@@ -24,21 +24,27 @@ public class StartupCommand extends Command {
 			public boolean isComplete() {
 				return ready || error != null;
 			}
+			
+			@Override
+			public void ready(TransactionStatus txStatus) {
+				StartupCommand.this.ready = true;
+			}
+
 			@Override
 			public void backendKeyData(int processId, int secretKey) {
 				context.setKeyData(processId, secretKey);
 			}
 
 			@Override
-			public void authenticated(ProtocolV30 protocol) {
+			public void authenticated(Protocol protocol) {
 			}
 
 			@Override
-			public void authenticateKerberos(ProtocolV30 protocol) {
+			public void authenticateKerberos(Protocol protocol) {
 			}
 
 			@Override
-			public void authenticateClear(ProtocolV30 protocol) throws IOException {
+			public void authenticateClear(Protocol protocol) throws IOException {
 				
 				String password = context.getSetting("password").toString();
 
@@ -46,11 +52,11 @@ public class StartupCommand extends Command {
 			}
 
 			@Override
-			public void authenticateCrypt(ProtocolV30 protocol) throws IOException {
+			public void authenticateCrypt(Protocol protocol) throws IOException {
 			}
 
 			@Override
-			public void authenticateMD5(ProtocolV30 protocol, byte[] salt) throws IOException {
+			public void authenticateMD5(Protocol protocol, byte[] salt) throws IOException {
 				
 				String username = context.getSetting("username").toString();
 				String password = context.getSetting("password").toString();
@@ -61,32 +67,29 @@ public class StartupCommand extends Command {
 			}
 
 			@Override
-			public void authenticateSCM(ProtocolV30 protocol) {
+			public void authenticateSCM(Protocol protocol) {
 			}
 
 			@Override
-			public void authenticateGSS(ProtocolV30 protocol) {
+			public void authenticateGSS(Protocol protocol) {
 			}
 
 			@Override
-			public void authenticateGSSCont(ProtocolV30 protocol) {
+			public void authenticateGSSCont(Protocol protocol) {
 			}
 
 			@Override
-			public void authenticateSSPI(ProtocolV30 protocol) {
+			public void authenticateSSPI(Protocol protocol) {
 			}
 			
 		};
 		
-		try(ProtocolV30 protocol = context.lockProtocol(handler)) {
+		try(Protocol protocol = context.lockProtocol(handler)) {
 			
 			protocol.sendStartup(params);
 
 			protocol.run();
 			
-		}
-		catch (IOException e) {
-			error = new Error();
 		}
 		
 	}

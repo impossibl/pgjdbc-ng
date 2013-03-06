@@ -23,6 +23,7 @@ import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ProtocolHandler;
+import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ProtocolV30;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
@@ -55,7 +56,7 @@ public class BasicContext implements Context {
 	private KeyData keyData;
 	private DataInputStream in;
 	private DataOutputStream out;
-	private ProtocolV30 protocol;
+	private Protocol protocol;
 	private Lock protocolLock;
 	
 	
@@ -70,7 +71,7 @@ public class BasicContext implements Context {
 		this.protocolLock = new ReentrantLock();
 	}
 	
-	public ProtocolV30 lockProtocol(ProtocolHandler handler) {
+	public Protocol lockProtocol(ProtocolHandler handler) {
 		protocolLock.lock();
 		protocol.setHandler(handler);
 		return protocol;
@@ -170,7 +171,7 @@ public class BasicContext implements Context {
 		PrepareCommand prepare = new PrepareCommand(null, queryTxt, Collections.<Type>emptyList());
 		prepare.execute(this);
 		
-		QueryCommand query = new QueryCommand(null, null, prepare.getParameterTypes(), asList(params), rowType);
+		QueryCommand query = new QueryCommand(null, null, prepare.getDescribedParameterTypes(), asList(params), rowType);
 		
 		query.execute(this);
 		

@@ -17,16 +17,20 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.Context;
-import com.impossibl.postgres.protocol.AbstractQueryProtocol.Target;
+import com.impossibl.postgres.protocol.Message;
+import com.impossibl.postgres.protocol.ProtocolHandler;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObject;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
 
-public class ProtocolV30 implements AutoCloseable {
+public class ProtocolV30 implements Protocol {
 
-	private static Logger logger = Logger.getLogger(Protocol.class.getName());
+	private static Logger logger = Logger.getLogger(ProtocolV30.class.getName());
 	
 	//Frontend messages
 	private static final byte PASSWORD_MSG_ID 				= 'p';
@@ -184,7 +188,7 @@ public class ProtocolV30 implements AutoCloseable {
 		sendMessage(msg);
 	}
 	
-	public void sendClose(Target target, String targetName) throws IOException {
+	public void sendClose(ServerObject target, String targetName) throws IOException {
 		
 		Message msg = new Message(CLOSE_MSG_ID);
 		
@@ -367,10 +371,7 @@ public class ProtocolV30 implements AutoCloseable {
 		
 		DataInputStream in = context.getInputStream();
 		
-		if(in.available() < 1)
-			return false;
-		
-		byte msgId = in.readByte();
+		byte msgId = in.readByte();			
 		
 		long msgStart = in.getCount();
 		

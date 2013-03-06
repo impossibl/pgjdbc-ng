@@ -4,7 +4,7 @@ import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.ProtocolHandler;
-import com.impossibl.postgres.protocol.ProtocolV30;
+import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -30,7 +30,7 @@ public interface Context {
 	void reportNotice(byte type, String value);
 	void reportError(Error error);
 
-	ProtocolV30 lockProtocol(ProtocolHandler handler);
+	Protocol lockProtocol(ProtocolHandler handler);
 	void unlockProtocol();
 
 }

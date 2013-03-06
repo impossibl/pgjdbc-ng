@@ -1,5 +1,10 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
+import static java.lang.Math.min;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -20,23 +25,30 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+
+
+
 public class PSQLResultSet implements ResultSet {
-	
+
 	PSQLStatement statement;
-	String portalName;
 	int currentRow;
-	List<Object[]> rows;
-	
-	public PSQLResultSet(PSQLStatement statement, String portalName) {
+	QueryCommand command;
+	List<ResultField> resultFields;
+	List<Object[]> results;
+
+	@SuppressWarnings("unchecked")
+	public PSQLResultSet(PSQLStatement statement, String portalName, QueryCommand command) {
 		super();
 		this.statement = statement;
-		this.portalName = portalName;
 		this.currentRow = -1;
-		this.rows = Collections.emptyList();
+		this.command = command;
+		this.resultFields = command.getResultFields();
+		this.results = (List<Object[]>) command.getResults();
 	}
 
 	@Override
@@ -48,23 +60,37 @@ public class PSQLResultSet implements ResultSet {
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		return false;
 	}
-	
-	private void fetchRows() {
-		
-		PSQLConnection conn = statement.connection;
-		
-	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean next() throws SQLException {
 		
-		++currentRow;
-		
-		if(currentRow >= rows.size()) {
-			fetchRows();
+		if (min(++currentRow, results.size()) == results.size()) {
+
+			if(command.getStatus() != Completed) {
+				
+				try {
+				
+					command.execute(statement.connection);
+					
+					resultFields = command.getResultFields();
+					results = (List<Object[]>) command.getResults();
+					currentRow = -1;
+					
+					return next();
+				
+				}
+				catch (IOException e) {
+					
+					throw new SQLException(e);
+				}
+				
+			}
+			
+			return false;
 		}
-		
-		return currentRow >= rows.size();
+
+		return true;
 	}
 
 	@Override
@@ -81,176 +107,147 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public String getString(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (String) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public boolean getBoolean(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return (Boolean) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public byte getByte(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Byte) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public short getShort(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Short) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public int getInt(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Integer) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public long getLong(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Long) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public float getFloat(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Float) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public double getDouble(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Double) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (BigDecimal) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public byte[] getBytes(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (byte[]) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public Date getDate(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Date) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public Time getTime(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Time) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public Timestamp getTimestamp(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Timestamp) results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public InputStream getAsciiStream(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public InputStream getBinaryStream(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return new ByteArrayInputStream((byte[]) results.get(currentRow)[columnIndex]);
 	}
 
 	@Override
 	public String getString(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (String) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public boolean getBoolean(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return (Boolean) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public byte getByte(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Byte) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public short getShort(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Short) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public int getInt(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Integer) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public long getLong(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Long) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public float getFloat(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Float) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public double getDouble(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return (Double) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (BigDecimal) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public byte[] getBytes(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (byte[]) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public Date getDate(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Date) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public Time getTime(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Time) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return (Timestamp) results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
@@ -267,8 +264,7 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public InputStream getBinaryStream(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return new ByteArrayInputStream((byte[]) results.get(currentRow)[findColumn(columnLabel)]);
 	}
 
 	@Override
@@ -297,20 +293,24 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public Object getObject(int columnIndex) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return results.get(currentRow)[columnIndex];
 	}
 
 	@Override
 	public Object getObject(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return results.get(currentRow)[findColumn(columnLabel)];
 	}
 
 	@Override
 	public int findColumn(String columnLabel) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+
+		for (int c = 0; c < resultFields.size(); ++c) {
+
+			if (resultFields.get(c).name.equals(columnLabel))
+				return c;
+		}
+
+		throw new SQLException("invalid column");
 	}
 
 	@Override
@@ -339,74 +339,67 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public boolean isBeforeFirst() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return currentRow == -1;
 	}
 
 	@Override
 	public boolean isAfterLast() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return currentRow == results.size();
 	}
 
 	@Override
 	public boolean isFirst() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return currentRow == 0;
 	}
 
 	@Override
 	public boolean isLast() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return currentRow == results.size() - 1;
 	}
 
 	@Override
 	public void beforeFirst() throws SQLException {
-		// TODO Auto-generated method stub
-
+		currentRow = -1;
 	}
 
 	@Override
 	public void afterLast() throws SQLException {
-		// TODO Auto-generated method stub
-
+		currentRow = results.size();
 	}
 
 	@Override
 	public boolean first() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		currentRow = 0;
+		return true;
 	}
 
 	@Override
 	public boolean last() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		currentRow = results.size() - 1;
+		return true;
 	}
 
 	@Override
 	public int getRow() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return currentRow;
 	}
 
 	@Override
 	public boolean absolute(int row) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		currentRow = row;
+		return true;
 	}
 
 	@Override
 	public boolean relative(int rows) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		currentRow += rows;
+		return true;
 	}
 
 	@Override
 	public boolean previous() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		currentRow--;
+		return true;
 	}
 
 	@Override
@@ -735,8 +728,7 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public Statement getStatement() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return statement;
 	}
 
 	@Override

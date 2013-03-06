@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -44,22 +45,34 @@ public class PSQLStatement implements PreparedStatement {
 		this.name = name;
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
-		this.command = new QueryCommand(null, name, parameterTypes, parameterValues, Object[].class);
 	}
 
 	@Override
 	public boolean execute() throws SQLException {
 
+		command = new QueryCommand(null, name, parameterTypes, parameterValues, Object[].class);
+		
 		command.setMaxRows(maxRows);
 		
-		command.execute(connection);
+		try {
+			
+			command.execute(connection);
+			
+		}
+		catch(IOException e) {
+			
+			throw new SQLException(e);
+		}
 		
 		return true;	//TODO: return correct value
 	}
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		// TODO Auto-generated method stub
+
+		if(execute())
+			return new PSQLResultSet(this, null, command);
+		
 		return null;
 	}
 

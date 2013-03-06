@@ -27,6 +27,54 @@ public class QueryCommand extends Command {
 	private List<Object> results;
 	private int maxRows;
 	private Status status;
+	private ProtocolHandler handler = new AbstractProtocolHandler() {
+		
+		@Override
+		public boolean isComplete() {
+			return status != null || error != null;
+		}
+	
+		@Override
+		public void bindComplete() {
+		}
+
+		@Override
+		public void rowDescription(List<ResultField> resultFields) {
+			QueryCommand.this.resultFields = resultFields;
+		}
+
+		@Override
+		public void noData() {
+			resultFields = Collections.emptyList();
+		}
+	
+		@Override
+		public void rowData(Protocol protocol, DataInputStream stream) throws IOException {
+			results.add(protocol.parseRowData(stream, resultFields, rowType));
+		}
+
+		@Override
+		public void emptyQuery() {
+			status = Status.Completed;
+		}
+
+		@Override
+		public void portalSuspended() {
+			status = Status.Suspended;
+		}
+
+		@Override
+		public void commandComplete(String commandTag) {
+			status = Status.Completed;
+		}
+
+		@Override
+		public void error(Error error) {
+			QueryCommand.this.error = error;
+		}
+		
+	};
+	
 	
 	public QueryCommand(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, Class<?> rowType) {
 		this.statementName = statementName;
@@ -38,7 +86,16 @@ public class QueryCommand extends Command {
 		this.results = new ArrayList<>();
 	}
 	
-	public List<Type> getParameterTypes() {
+	public void reset() {
+		status = null;
+		results.clear();
+	}
+	
+	public Status getStatus() {
+		return status;
+	}
+
+public List<Type> getParameterTypes() {
 		return parameterTypes;
 	}
 	
@@ -54,72 +111,36 @@ public class QueryCommand extends Command {
 		return resultFields;
 	}
 
-	public List<Object> getResults() {
+	public List<?> getResults() {
 		return results;
 	}
 
-	public void execute(Context context) {
+	public void execute(Context context) throws IOException {
 		
-		ProtocolHandler handler = new AbstractProtocolHandler() {
+		try(Protocol protocol = context.lockProtocol(handler)) {
 			
-			@Override
-			public boolean isComplete() {
-				return status != null || error != null;
-			}
-		
-			@Override
-			public void bindComplete() {
-			}
-
-			@Override
-			public void rowDescription(List<ResultField> resultFields) {
-				QueryCommand.this.resultFields = resultFields;
-			}
-
-			@Override
-			public void noData() {
-				resultFields = Collections.emptyList();
-			}
-		
-			@Override
-			public void rowData(ProtocolV30 protocol, DataInputStream stream) throws IOException {
-				results.add(protocol.parseRowData(stream, resultFields, rowType));
-			}
-
-			@Override
-			public void emptyQuery() {
-				status = Status.Completed;
-			}
-
-			@Override
-			public void portalSuspended() {
-				status = Status.Suspended;
-			}
-
-			@Override
-			public void commandComplete(String commandTag) {
-				status = Status.Completed;
-			}
-
-			@Override
-			public void error(Error error) {
-				QueryCommand.this.error = error;
-			}
+			if(status != Status.Suspended) {
+				
+				protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
 			
-		};
-
-		try(ProtocolV30 protocol = context.lockProtocol(handler)) {
+				protocol.sendDescribe(Portal, portalName);
 			
-			protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
-			
-			protocol.sendDescribe(Portal, portalName);
+			}
 			
 			protocol.sendExecute(portalName, maxRows);
 			
+			protocol.sendFlush();
+			
+			reset();
+			
 			protocol.run();
 			
-		}
-		catch(IOException e) {
+			if(status == Status.Completed) {
+				
+				protocol.sendSync();
+
+			}
+			
 		}
 		
 	}

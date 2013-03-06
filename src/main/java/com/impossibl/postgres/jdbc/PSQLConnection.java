@@ -1,7 +1,5 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.AbstractQueryProtocol.Target.Statement;
-
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.Array;
@@ -27,7 +25,6 @@ import java.util.concurrent.Executor;
 import com.impossibl.postgres.BasicContext;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.PrepareProtocol;
 import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {
@@ -64,14 +61,19 @@ public class PSQLConnection extends BasicContext implements Connection {
 		
 		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type>emptyList());
 		
-		prepare.execute(this);
+		try {
+			prepare.execute(this);
+		}
+		catch(IOException e) {
+			throw new SQLException(e);
+		}
 		
 		Error error = prepare.getError();
 		if(error != null) {
 			throw new SQLException(error.message, error.code);
 		}
 	
-		return new PSQLStatement(this, statementName, prepare.getParameterTypes());		
+		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());		
 	}
 
 	@Override

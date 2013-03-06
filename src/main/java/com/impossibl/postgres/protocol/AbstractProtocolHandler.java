@@ -38,7 +38,7 @@ public class AbstractProtocolHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public void rowData(ProtocolV30 protocol, DataInputStream stream) throws IOException {
+	public void rowData(Protocol protocol, DataInputStream stream) throws IOException {
 	}
 
 	@Override
@@ -74,39 +74,39 @@ public class AbstractProtocolHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public void authenticated(ProtocolV30 protocol) throws IOException {
+	public void authenticated(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateKerberos(ProtocolV30 protocol) throws IOException {
+	public void authenticateKerberos(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateClear(ProtocolV30 protocol) throws IOException {
+	public void authenticateClear(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateCrypt(ProtocolV30 protocol) throws IOException {
+	public void authenticateCrypt(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateMD5(ProtocolV30 protocol, byte[] salt) throws IOException {
+	public void authenticateMD5(Protocol protocol, byte[] salt) throws IOException {
 	}
 
 	@Override
-	public void authenticateSCM(ProtocolV30 protocol) throws IOException {
+	public void authenticateSCM(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateGSS(ProtocolV30 protocol) throws IOException {
+	public void authenticateGSS(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateGSSCont(ProtocolV30 protocol) throws IOException {
+	public void authenticateGSSCont(Protocol protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateSSPI(ProtocolV30 protocol) throws IOException {
+	public void authenticateSSPI(Protocol protocol) throws IOException {
 	}
 
 }

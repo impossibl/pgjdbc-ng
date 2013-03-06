@@ -1,8 +1,9 @@
 package com.impossibl.postgres.protocol;
 
-import static com.impossibl.postgres.protocol.ServerObject.Portal;
+import static com.impossibl.postgres.protocol.ServerObject.Statement;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import com.impossibl.postgres.Context;
@@ -12,61 +13,63 @@ public class PrepareCommand extends Command {
 
 	private String statementName;
 	private String query;
-	private List<Type> parameterTypes;
+	private List<Type> parseParameterTypes;
+	private List<Type> describedParameterTypes;
+	private ProtocolHandler handler = new AbstractProtocolHandler() {
+		
+		@Override
+		public void parseComplete() {
+		}
+		
+		@Override
+		public boolean isComplete() {
+			return describedParameterTypes != null || error != null;
+		}
 	
-	public PrepareCommand(String statementName, String query, List<Type> parameterTypes) {
+		@Override
+		public void parametersDescription(List<Type> parameterTypes) {
+			PrepareCommand.this.describedParameterTypes = parameterTypes;
+		}
+	
+		@Override
+		public void noData() {
+			PrepareCommand.this.describedParameterTypes = Collections.emptyList();
+		}
+	
+		@Override
+		public void error(Error error) {
+			PrepareCommand.this.error = error;
+		}
+		
+	};
+	
+	
+	public PrepareCommand(String statementName, String query, List<Type> parseParameterTypes) {
 		this.statementName = statementName;
 		this.query = query;
-		this.parameterTypes = parameterTypes;
+		this.parseParameterTypes = parseParameterTypes;
 	}
 	
 	public String getQuery() {
 		return query;
 	}
 
-	public List<Type> getParameterTypes() {
-		return parameterTypes;
+	public List<Type> getDescribedParameterTypes() {
+		return describedParameterTypes;
 	}
 
-	public void execute(Context context) {
-		
-		ProtocolHandler handler = new AbstractProtocolHandler() {
-			
-			@Override
-			public void parseComplete() {
-			}
-			
-			@Override
-			public boolean isComplete() {
-				return parameterTypes != null || error != null;
-			}
-		
-			@Override
-			public void parametersDescription(List<Type> parameterTypes) {
-				PrepareCommand.this.parameterTypes = parameterTypes;
-			}
-		
-			@Override
-			public void noData() {
-			}
-		
-			@Override
-			public void error(Error error) {
-				PrepareCommand.this.error = error;
-			}
-			
-		};
+	public void execute(Context context) throws IOException {
 
-		try(ProtocolV30 protocol = context.lockProtocol(handler)) {
+		try(Protocol protocol = context.lockProtocol(handler)) {
 			
-			protocol.sendParse(statementName, query, parameterTypes);
+			protocol.sendParse(statementName, query, parseParameterTypes);
 			
-			protocol.sendDescribe(Portal, statementName);
+			protocol.sendDescribe(Statement, statementName);
+			
+			protocol.sendFlush();
 			
 			protocol.run();
 			
-		}
-		catch(IOException e) {	
 		}
 		
 	}

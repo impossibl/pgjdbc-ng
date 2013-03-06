@@ -3,6 +3,7 @@ package com.impossibl.postgres.jdbc;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -37,6 +38,10 @@ public class PSQLDriver implements Driver {
 		public Map<String, String> parameters = new HashMap<String, String>();
 	}
 	
+	
+	public PSQLDriver() throws SQLException {
+		DriverManager.registerDriver(this);
+	}
 
 	@Override
 	public PSQLConnection connect(String url, Properties info) throws SQLException {
@@ -58,6 +63,7 @@ public class PSQLDriver implements Driver {
 			
 		}
 		catch (IOException e) {
+			
 			throw new SQLException("Connection Error", e);
 		}
 		

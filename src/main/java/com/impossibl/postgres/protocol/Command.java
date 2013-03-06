@@ -1,5 +1,7 @@
 package com.impossibl.postgres.protocol;
 
+import java.io.IOException;
+
 import com.impossibl.postgres.Context;
 
 public abstract class Command {
@@ -14,6 +16,6 @@ public abstract class Command {
 		this.error = error;
 	}
 
-	public abstract void execute(Context context);
+	public abstract void execute(Context context) throws IOException;
 
 }
