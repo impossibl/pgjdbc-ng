@@ -16,14 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import com.impossibl.postgres.protocol.Message;
-import com.impossibl.postgres.protocol.ProtocolHandler;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObject;
-import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Arrays;
-import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -617,7 +611,7 @@ public class ProtocolV30 implements Protocol {
 		for(int c=0; c < paramCount; ++c) {
 			
 			int paramTypeId = in.readInt();
-			paramTypes[c] = Registry.loadType(paramTypeId);
+			paramTypes[c] = context.getRegistry().loadType(paramTypeId);
 		}
 		
 		logger.finest("PARAM-DESC: " + paramCount);
@@ -638,7 +632,7 @@ public class ProtocolV30 implements Protocol {
 			field.name = in.readCString();
 			field.relationId = in.readInt();
 			field.relationAttributeIndex = in.readShort();
-			field.type = Registry.loadType(in.readInt());
+			field.type = context.getRegistry().loadType(in.readInt());
 			field.typeLength = in.readShort();
 			field.typeModId = in.readInt();
 			field.format = ResultField.Format.values()[in.readShort()];

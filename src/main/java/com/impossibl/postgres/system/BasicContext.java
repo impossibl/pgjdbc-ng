@@ -22,8 +22,8 @@ import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.ProtocolHandler;
 import com.impossibl.postgres.protocol.Protocol;
+import com.impossibl.postgres.protocol.ProtocolHandler;
 import com.impossibl.postgres.protocol.ProtocolV30;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
@@ -47,6 +47,7 @@ public class BasicContext implements Context {
 	}
 	
 	
+	private Registry registry;
 	private Map<String, Class<?>>  targetTypeMap;
 	private StringCodec stringCodec;
 	private DateTimeCodec dateTimeCodec;
@@ -60,6 +61,7 @@ public class BasicContext implements Context {
 	
 	
 	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+		this.registry = new Registry();
 		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
 		this.settings = settings;
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
@@ -70,6 +72,11 @@ public class BasicContext implements Context {
 		this.protocolLock = new ReentrantLock();
 	}
 	
+	@Override
+	public Registry getRegistry() {
+		return registry;
+	}
+
 	public Protocol lockProtocol(ProtocolHandler handler) {
 		protocolLock.lock();
 		protocol.setHandler(handler);
@@ -143,7 +150,7 @@ public class BasicContext implements Context {
 		logger.info("query time: " + timer.getLap() + "ms");
 
 		//Update the registry with known types
-		Registry.update(pgTypes, pgAttrs, pgProcs);
+		registry.update(pgTypes, pgAttrs, pgProcs);
 		
 		logger.info("load time: " + timer.getLap() + "ms");
 	}

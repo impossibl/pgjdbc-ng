@@ -50,9 +50,9 @@ public class CompositeType extends Type {
 	}
 
 	@Override
-	public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs) {
+	public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs, Registry registry) {
 		
-		super.load(pgType, pgAttrs);
+		super.load(pgType, pgAttrs, registry);
 		
 		Attribute[] attributes = new Attribute[pgAttrs.size()];
 		
@@ -60,7 +60,7 @@ public class CompositeType extends Type {
 			
 			Attribute attr = new Attribute();
 			attr.name = pgAttr.name;
-			attr.type = Registry.loadType(pgAttr.typeId);
+			attr.type = registry.loadType(pgAttr.typeId);
 			
 			attributes[pgAttr.number-1] = attr;
 		}

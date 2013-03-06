@@ -8,7 +8,6 @@ import java.util.Map;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -45,7 +44,7 @@ public class Arrays extends SimpleProcProvider {
 				
 				int dimensionCount = stream.readInt();
 				/* boolean hasNulls = */ stream.readInt() /* == 1 ? true : false */;
-				Type elementType = Registry.loadType(stream.readInt());
+				Type elementType = context.getRegistry().loadType(stream.readInt());
 				
 				//Each Dimension
 				int elementCount = 1;

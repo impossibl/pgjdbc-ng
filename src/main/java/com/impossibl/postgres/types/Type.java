@@ -190,7 +190,7 @@ public abstract class Type {
 		this.sqlType = sqlType;
 	}
 
-	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs) {
+	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
 		
 		id = source.oid;
 		name = source.name;
@@ -198,9 +198,9 @@ public abstract class Type {
 		alignment = getAlignment(source.alignment); 
 		category = Category.valueOf(source.category);
 		delimeter = (char)source.deliminator;
-		arrayType = Registry.loadType(source.arrayTypeId);
-		textIO = Registry.loadTextIO(source.inputId, source.outputId);
-		binaryIO = Registry.loadBinaryIO(source.receiveId, source.sendId);
+		arrayType = registry.loadType(source.arrayTypeId);
+		textIO = registry.loadTextIO(source.inputId, source.outputId);
+		binaryIO = registry.loadBinaryIO(source.receiveId, source.sendId);
 	}
 	
 	public static Byte getAlignment(Byte align) {

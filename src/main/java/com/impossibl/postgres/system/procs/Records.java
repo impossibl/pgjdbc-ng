@@ -12,7 +12,6 @@ import java.util.Map;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
-import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;
@@ -43,7 +42,7 @@ public class Records extends SimpleProcProvider {
 
 				Attribute attribute = ctype.getAttribute(c);
 
-				Type attributeType = Registry.loadType(stream.readInt());
+				Type attributeType = context.getRegistry().loadType(stream.readInt());
 
 				if (attributeType.getId() != attribute.type.getId()) {
 

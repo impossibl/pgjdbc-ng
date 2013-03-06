@@ -18,23 +18,31 @@ public class Registry {
 	
 	private static Logger logger = Logger.getLogger(Registry.class.getName());
 	
-	private static Map<Character, Class<? extends Type>> kindMap;
-	static
-	{
+	private Map<Character, Class<? extends Type>> kindMap;
+	private Map<Integer, Type> oidMap;
+
+	private Map<Integer, PgType.Row> pgTypeData;
+	private Map<Integer, Collection<PgAttribute.Row>> pgAttrData;
+	private Map<Integer, PgProc.Row> pgProcData;
+	
+	
+	public Registry() {
+		
+		pgTypeData = new HashMap<Integer, PgType.Row>();
+		pgAttrData = new HashMap<Integer, Collection<PgAttribute.Row>>();
+		pgProcData = new HashMap<Integer, PgProc.Row>();
+
 		kindMap = new HashMap<Character, Class<? extends Type>>();
 		kindMap.put('c', CompositeType.class);
 		kindMap.put('d', DomainType.class);
 		kindMap.put('e', EnumerationType.class);
 		kindMap.put('p', PsuedoType.class);
 		kindMap.put('r', RangeType.class);
-	}
 
-	private static Map<Integer, Type> oidMap = new HashMap<Integer, Type>();
-	static
-	{
-		//Required hardwired type for bootstrapping
+		//Required initial types for bootstrapping
+		oidMap = new HashMap<Integer, Type>();
 		oidMap.put(16, new BaseType(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
-		oidMap.put(17, new BaseType(18, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 		0));
+		oidMap.put(17, new BaseType(18, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 	0));
 		oidMap.put(18, new BaseType(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
 		oidMap.put(19, new BaseType(19, "name", 		(short)64,	(byte)0, Category.String,		',', null, "name", 		0));
 		oidMap.put(21, new BaseType(21, "int2", 		(short)2, 	(byte)0, Category.Numeric,	',', null, "int2", 		0));
@@ -43,12 +51,8 @@ public class Registry {
 		oidMap.put(26, new BaseType(26, "oid", 			(short)4,		(byte)0, Category.Numeric,	',', null, "oid",			0));
 	}
 	
-	private static Map<Integer, PgType.Row> pgTypeData = new HashMap<Integer, PgType.Row>();
-	private static Map<Integer, Collection<PgAttribute.Row>> pgAttrData = new HashMap<Integer, Collection<PgAttribute.Row>>();
-	private static Map<Integer, PgProc.Row> pgProcData = new HashMap<Integer, PgProc.Row>();
-	
 
-	public static synchronized Type loadType(int typeId) {
+	public synchronized Type loadType(int typeId) {
 		
 		Type type = oidMap.get(typeId);
 		if(type == null) {			
@@ -58,7 +62,7 @@ public class Registry {
 		return type;
 	}
 	
-	public static void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
+	public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
 		
 		for(PgAttribute.Row pgAttrRow : pgAttrRows) {
 			
@@ -82,7 +86,7 @@ public class Registry {
 
 	}
 	
-	private static Type loadRaw(int typeId) {
+	private Type loadRaw(int typeId) {
 		
 		if(typeId==0)
 			return null;
@@ -98,7 +102,7 @@ public class Registry {
 		return type;
 	}
 	
-	private static Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
+	private Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
 		
 		Type type;
 		
@@ -141,7 +145,7 @@ public class Registry {
 			
 			oidMap.put(pgType.oid, type);
 		
-			type.load(pgType, pgAttrs);
+			type.load(pgType, pgAttrs, this);
 			
 		}
 		catch(Exception e) {
@@ -154,21 +158,21 @@ public class Registry {
 		return type;
 	}
 
-	public static BinaryIO loadBinaryIO(int receiveId, int sendId) {
+	public BinaryIO loadBinaryIO(int receiveId, int sendId) {
 		BinaryIO io = new BinaryIO();
 		io.decoder = loadSendProc(sendId);
 		io.encoder = loadReceiveProc(receiveId);
 		return io;
 	}
 
-	public static TextIO loadTextIO(int inputId, int outputId) {
+	public TextIO loadTextIO(int inputId, int outputId) {
 		TextIO io = new TextIO();
 		io.encoder = loadInputProc(inputId);
 		io.decoder = loadOutputProc(outputId);
 		return io;
 	}
 	
-	private static TextIO.Encoder loadInputProc(int inputId) {
+	private TextIO.Encoder loadInputProc(int inputId) {
 		
 		String name = findProcName(inputId);
 		if(name == null) {
@@ -180,7 +184,7 @@ public class Registry {
 		return Procs.loadInputProc(name);
 	}
 
-	private static TextIO.Decoder loadOutputProc(int outputId) {
+	private TextIO.Decoder loadOutputProc(int outputId) {
 		
 		String name = findProcName(outputId);
 		if(name == null) {
@@ -192,7 +196,7 @@ public class Registry {
 		return Procs.loadOutputProc(name);
 	}
 	
-	private static BinaryIO.Encoder loadReceiveProc(int receiveId) {
+	private BinaryIO.Encoder loadReceiveProc(int receiveId) {
 		
 		String name = findProcName(receiveId);
 		if(name == null) {
@@ -202,7 +206,7 @@ public class Registry {
 		return Procs.loadReceiveProc(name);
 	}
 	
-	private static BinaryIO.Decoder loadSendProc(int sendId) {
+	private BinaryIO.Decoder loadSendProc(int sendId) {
 		
 		String name = findProcName(sendId);
 		if(name == null) {
@@ -212,7 +216,7 @@ public class Registry {
 		return Procs.loadSendProc(name);
 	}
 
-	private static String findProcName(int procId) {
+	private String findProcName(int procId) {
 		
 		PgProc.Row pgProc = pgProcData.get(procId);
 		if(pgProc == null)
