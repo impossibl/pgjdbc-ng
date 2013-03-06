@@ -5,7 +5,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.utils.DataInputStream;

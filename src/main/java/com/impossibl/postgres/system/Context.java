@@ -1,4 +1,4 @@
-package com.impossibl.postgres;
+package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;

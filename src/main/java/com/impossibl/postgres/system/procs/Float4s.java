@@ -2,7 +2,7 @@ package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 import com.impossibl.postgres.utils.DataOutputStream;

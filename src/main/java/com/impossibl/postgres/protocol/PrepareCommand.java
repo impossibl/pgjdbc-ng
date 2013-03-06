@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
 public class PrepareCommand extends Command {

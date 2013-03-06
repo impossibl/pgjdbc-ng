@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 
 
 public class PSQLDriver implements Driver {
@@ -134,12 +134,12 @@ public class PSQLDriver implements Driver {
 
 	@Override
 	public int getMajorVersion() {
-		return 1;
+		return 0;
 	}
 
 	@Override
 	public int getMinorVersion() {
-		return 0;
+		return 1;
 	}
 
 	@Override

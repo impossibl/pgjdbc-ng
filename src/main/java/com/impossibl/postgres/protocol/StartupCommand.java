@@ -3,7 +3,7 @@ package com.impossibl.postgres.protocol;
 import java.io.IOException;
 import java.util.Map;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.utils.MD5Authentication;
 
 public class StartupCommand extends Command {

@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import com.impossibl.postgres.BasicContext;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
+import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {

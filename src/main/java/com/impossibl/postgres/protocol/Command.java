@@ -2,7 +2,7 @@ package com.impossibl.postgres.protocol;
 
 import java.io.IOException;
 
-import com.impossibl.postgres.Context;
+import com.impossibl.postgres.system.Context;
 
 public abstract class Command {
 	

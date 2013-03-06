@@ -1,4 +1,4 @@
-package com.impossibl.postgres;
+package com.impossibl.postgres.system;
 
 import static java.util.Arrays.asList;
 
@@ -27,7 +27,6 @@ import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ProtocolV30;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
