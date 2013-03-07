@@ -61,7 +61,7 @@ public class BasicContext implements Context {
 	
 	
 	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
-		this.registry = new Registry();
+		this.registry = new Registry(this);
 		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
 		this.settings = settings;
 		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));

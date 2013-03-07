@@ -13,7 +13,7 @@ public class BaseType extends Type {
 	}
 
 	public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, String procName, int sqlType) {
-		super(id, name, length, alignment, category, delimeter, arrayType, loadNamedBinaryIO(procName), loadNamerTextIO(procName), sqlType);
+		super(id, name, length, alignment, category, delimeter, arrayType, loadNamedBinaryIO(procName, null), loadNamerTextIO(procName, null), sqlType);
 	}
 	
 }

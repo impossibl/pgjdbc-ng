@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
@@ -24,9 +25,13 @@ public class Registry {
 	private Map<Integer, PgType.Row> pgTypeData;
 	private Map<Integer, Collection<PgAttribute.Row>> pgAttrData;
 	private Map<Integer, PgProc.Row> pgProcData;
+
+	private Context context;
 	
 	
-	public Registry() {
+	public Registry(Context context) {
+		
+		this.context = context;
 		
 		pgTypeData = new HashMap<Integer, PgType.Row>();
 		pgAttrData = new HashMap<Integer, Collection<PgAttribute.Row>>();
@@ -83,6 +88,9 @@ public class Registry {
 			pgTypeData.put(pgTypeRow.oid, pgTypeRow);
 			oidMap.remove(pgTypeRow.oid);
 		}
+		
+		for(Integer id : pgTypeData.keySet())
+			loadType(id);
 
 	}
 	
@@ -160,19 +168,19 @@ public class Registry {
 
 	public BinaryIO loadBinaryIO(int receiveId, int sendId) {
 		BinaryIO io = new BinaryIO();
-		io.decoder = loadSendProc(sendId);
-		io.encoder = loadReceiveProc(receiveId);
+		io.decoder = loadBinaryDecoderProc(sendId);
+		io.encoder = loadBinaryEncoderProc(receiveId);
 		return io;
 	}
 
 	public TextIO loadTextIO(int inputId, int outputId) {
 		TextIO io = new TextIO();
-		io.encoder = loadInputProc(inputId);
-		io.decoder = loadOutputProc(outputId);
+		io.decoder = loadTextDecoderProc(outputId);
+		io.encoder = loadTextEncoderProc(inputId);
 		return io;
 	}
 	
-	private TextIO.Encoder loadInputProc(int inputId) {
+	private TextIO.Encoder loadTextEncoderProc(int inputId) {
 		
 		String name = findProcName(inputId);
 		if(name == null) {
@@ -181,10 +189,10 @@ public class Registry {
 		
 		//logger.warning("unable to find encoder for input proc: " + name);
 		
-		return Procs.loadInputProc(name);
+		return Procs.loadTextEncoderProc(name, context);
 	}
 
-	private TextIO.Decoder loadOutputProc(int outputId) {
+	private TextIO.Decoder loadTextDecoderProc(int outputId) {
 		
 		String name = findProcName(outputId);
 		if(name == null) {
@@ -193,27 +201,27 @@ public class Registry {
 		
 		//logger.warning("unable to find handler for output proc: " + name);
 		
-		return Procs.loadOutputProc(name);
+		return Procs.loadTextDecoderProc(name, context);
 	}
 	
-	private BinaryIO.Encoder loadReceiveProc(int receiveId) {
+	private BinaryIO.Encoder loadBinaryEncoderProc(int receiveId) {
 		
 		String name = findProcName(receiveId);
 		if(name == null) {
 			return null;
 		}
 				
-		return Procs.loadReceiveProc(name);
+		return Procs.loadBinaryEncoderProc(name, context);
 	}
 	
-	private BinaryIO.Decoder loadSendProc(int sendId) {
+	private BinaryIO.Decoder loadBinaryDecoderProc(int sendId) {
 		
 		String name = findProcName(sendId);
 		if(name == null) {
 			return null;
 		}
 		
-		return Procs.loadSendProc(name);
+		return Procs.loadBinaryDecoderProc(name, context);
 	}
 
 	private String findProcName(int procId) {

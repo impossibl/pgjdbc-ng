@@ -70,22 +70,22 @@ public class Unsupporteds implements ProcProvider {
 	}
 
 	@Override
-	public BinaryIO.Encoder findBinaryEncoder(String name) {
+	public BinaryIO.Encoder findBinaryEncoder(String name, Context context) {
 		return new BinEncoder(name);
 	}
 
 	@Override
-	public BinaryIO.Decoder findBinaryDecoder(String name) {
+	public BinaryIO.Decoder findBinaryDecoder(String name, Context context) {
 		return new BinDecoder(name);
 	}
 
 	@Override
-	public TextIO.Encoder findTextEncoder(String name) {
+	public TextIO.Encoder findTextEncoder(String name, Context context) {
 		return new TxtEncoder(name);
 	}
 
 	@Override
-	public TextIO.Decoder findTextDecoder(String name) {
+	public TextIO.Decoder findTextDecoder(String name, Context context) {
 		return new TxtDecoder(name);
 	}
 	
