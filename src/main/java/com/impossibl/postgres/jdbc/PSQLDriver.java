@@ -35,7 +35,7 @@ public class PSQLDriver implements Driver {
 		public String hostname;
 		public Integer port;
 		public String database;
-		public Map<String, String> parameters = new HashMap<String, String>();
+		public Properties parameters = new Properties();
 	}
 	
 	
@@ -50,12 +50,17 @@ public class PSQLDriver implements Driver {
 		if(connSpec == null) {
 			return null;
 		}
-		
+
 		try {
+
+			Properties settings = new Properties();
+			settings.putAll(connSpec.parameters);
+			settings.putAll(info);
+			settings.put("database", connSpec.database);
 			
 			Socket socket = new Socket(connSpec.hostname, connSpec.port);
 			
-			PSQLConnection conn = new PSQLConnection(socket, info, Collections.<String, Class<?>>emptyMap());
+			PSQLConnection conn = new PSQLConnection(socket, settings, Collections.<String, Class<?>>emptyMap());
 			
 			conn.init();
 			
@@ -79,7 +84,7 @@ public class PSQLDriver implements Driver {
 		try {
 			
 			Matcher urlMatcher = URL_PATTERN.matcher(url);
-			if (!urlMatcher.find()) {
+			if (!urlMatcher.matches()) {
 				return null;
 			}
 			
