@@ -213,9 +213,9 @@ public class BasicContext implements Context {
 			dateTimeCodec.setTimeZone(TimeZone.getTimeZone(value));
 			break;
 			
-		case "integer_timestamps":
+		case "integer_datetimes":
 
-			//TODO: set timestamp format
+			settings.put("datetimes.binary.class", Integer.class);
 			break;
 			
 		case "client_encoding":
