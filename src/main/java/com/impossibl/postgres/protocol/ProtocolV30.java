@@ -5,6 +5,7 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 import static java.util.Arrays.asList;
+import static java.util.logging.Level.FINEST;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.ByteArrayOutputStream;
@@ -140,6 +141,8 @@ public class ProtocolV30 implements Protocol {
 
 	@Override
 	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
+		
+		logger.finest("PARSE (" + stmtName + "): " + query);
 
 		Message msg = new Message(PARSE_MSG_ID);
 
@@ -156,6 +159,8 @@ public class ProtocolV30 implements Protocol {
 
 	@Override
 	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
+
+		logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
 		Message msg = new Message(BIND_MSG_ID);
 
@@ -174,6 +179,8 @@ public class ProtocolV30 implements Protocol {
 	@Override
 	public void sendDescribe(ServerObject target, String targetName) throws IOException {
 
+		logger.finest("DESCRIBE " + target + " (" + targetName + ")");
+
 		Message msg = new Message(DESCRIBE_MSG_ID);
 
 		msg.writeByte(target.getId());
@@ -184,6 +191,9 @@ public class ProtocolV30 implements Protocol {
 
 	@Override
 	public void sendExecute(String portalName, int maxRows) throws IOException {
+
+		if(logger.isLoggable(FINEST))
+			logger.finest("EXECUTE (" + portalName + "): " + maxRows);
 
 		Message msg = new Message(EXECUTE_MSG_ID);
 
