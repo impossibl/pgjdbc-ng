@@ -8,7 +8,7 @@ import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SQLTextUtils {
+public class PSQLTextUtils {
 
 	public static String getIsolationLevelText(int level) {
 		
@@ -31,6 +31,10 @@ public class SQLTextUtils {
 		return "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLACTION LEVEL " + getIsolationLevelText(level);
 	}
 
+	public static String getBeginText() {
+		return "BEGIN";
+	}
+	
 	public static String getCommitText() {
 		return "COMMIT";
 	}
@@ -52,9 +56,10 @@ public class SQLTextUtils {
 	}
 
 	
-	private static final Pattern PARAM_SEARCH_PATTERN = Pattern.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|\\?");
+	private static final Pattern PARAM_SEARCH_PATTERN =
+			Pattern.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|(?:\\-\\-.*$)|(?:/\\*.*\\*/)|\\?", Pattern.MULTILINE);
 	
-	public static String getPostgreSQLText(String sql) {
+	public static String getProtocolSQLText(String sql) {
 		
 		Matcher matcher = PARAM_SEARCH_PATTERN.matcher(sql);
 		
@@ -63,11 +68,16 @@ public class SQLTextUtils {
 		int paramId = 1;
 		
 		while(matcher.find()) {
-			if(matcher.group().equals("?"))
-				matcher.appendReplacement(newSql, "$" + paramId++);
-			else
-				matcher.appendReplacement(newSql, "\1");
+			if(matcher.group().equals("?")) {
+				matcher.appendReplacement(newSql, "");
+				newSql.append("$" + paramId++);
+			}
+			else {
+				matcher.appendReplacement(newSql, "$0");
+			}
 		}
+		
+		matcher.appendTail(newSql);
 		
 		return newSql.toString();
 	}
