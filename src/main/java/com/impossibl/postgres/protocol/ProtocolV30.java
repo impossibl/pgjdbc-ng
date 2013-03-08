@@ -719,8 +719,8 @@ public class ProtocolV30 implements Protocol {
 		String[] parts = commandTag.split(" ");
 
 		String command = parts[0];
-		Integer rowsAffected = null;
-		Integer oid = null;
+		Long rowsAffected = null;
+		Long oid = null;
 
 		switch (command) {
 
@@ -728,8 +728,8 @@ public class ProtocolV30 implements Protocol {
 
 			if (parts.length == 3) {
 
-				oid = Integer.parseInt(parts[1]);
-				rowsAffected = Integer.parseInt(parts[2]);
+				oid = Long.parseLong(parts[1]);
+				rowsAffected = Long.parseLong(parts[2]);
 			}
 			else {
 				throw new IOException("error parsing command tag");
@@ -745,7 +745,7 @@ public class ProtocolV30 implements Protocol {
 
 			if (parts.length == 2) {
 
-				rowsAffected = Integer.parseInt(parts[1]);
+				rowsAffected = Long.parseLong(parts[1]);
 			}
 			else {
 				throw new IOException("error parsing command tag");
@@ -761,7 +761,7 @@ public class ProtocolV30 implements Protocol {
 			}
 			else if (parts.length == 2) {
 
-				rowsAffected = Integer.parseInt(parts[1]);
+				rowsAffected = Long.parseLong(parts[1]);
 			}
 			else {
 				throw new IOException("error parsing command tag");

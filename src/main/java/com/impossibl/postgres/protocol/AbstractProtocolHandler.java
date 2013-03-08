@@ -54,7 +54,7 @@ public class AbstractProtocolHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public void commandComplete(String command, Integer rowsAffected, Integer oid) {
+	public void commandComplete(String command, Long rowsAffected, Long oid) {
 	}
 
 	@Override

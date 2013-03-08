@@ -17,7 +17,7 @@ public class ExecuteCommand extends Command {
 		}
 	
 		@Override
-		public void commandComplete(String command, Integer rowsAffected, Integer oid) {
+		public void commandComplete(String command, Long rowsAffected, Long oid) {
 			ExecuteCommand.this.complete = true;
 		}
 

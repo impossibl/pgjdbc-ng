@@ -25,8 +25,9 @@ public class QueryCommand extends Command {
 	private List<ResultField> resultFields;
 	private Class<?> rowType;
 	private List<Object> results;
-	private Integer rowsAffected;
-	private Integer insertedOid;
+	private String resultCommand;
+	private Long resultRowsAffected;
+	private Long resultInsertedOid;
 	private int maxRows;
 	private Status status;
 	private ProtocolHandler handler = new AbstractProtocolHandler() {
@@ -66,10 +67,11 @@ public class QueryCommand extends Command {
 		}
 
 		@Override
-		public void commandComplete(String command, Integer rowsAffected, Integer oid) {
+		public void commandComplete(String command, Long rowsAffected, Long oid) {
 			status = Status.Completed;
-			QueryCommand.this.rowsAffected = rowsAffected;
-			QueryCommand.this.insertedOid = oid;
+			QueryCommand.this.resultCommand = command;
+			QueryCommand.this.resultRowsAffected = rowsAffected;
+			QueryCommand.this.resultInsertedOid = oid;
 		}
 
 		@Override
@@ -127,12 +129,16 @@ public List<Type> getParameterTypes() {
 		return (List<T>) results;
 	}
 
-	public Integer getRowsAffected() {
-		return rowsAffected;
+	public String getResultCommand() {
+		return resultCommand;
 	}
 
-	public Integer getInsertedOid() {
-		return insertedOid;
+	public Long getResultRowsAffected() {
+		return resultRowsAffected;
+	}
+
+	public Long getResultInsertedOid() {
+		return resultInsertedOid;
 	}
 
 	public void execute(Context context) throws IOException {
