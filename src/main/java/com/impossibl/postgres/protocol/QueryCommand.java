@@ -25,6 +25,8 @@ public class QueryCommand extends Command {
 	private List<ResultField> resultFields;
 	private Class<?> rowType;
 	private List<Object> results;
+	private Integer rowsAffected;
+	private Integer insertedOid;
 	private int maxRows;
 	private Status status;
 	private ProtocolHandler handler = new AbstractProtocolHandler() {
@@ -64,8 +66,10 @@ public class QueryCommand extends Command {
 		}
 
 		@Override
-		public void commandComplete(String commandTag) {
+		public void commandComplete(String command, Integer rowsAffected, Integer oid) {
 			status = Status.Completed;
+			QueryCommand.this.rowsAffected = rowsAffected;
+			QueryCommand.this.insertedOid = oid;
 		}
 
 		@Override
@@ -110,15 +114,30 @@ public List<Type> getParameterTypes() {
 	public List<ResultField> getResultFields() {
 		return resultFields;
 	}
+	
+	public static class ListTypeLiteral<T> {
+		public Class<List<T>> type;
+		public ListTypeLiteral(Class<T> elementType) {
+			
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	public <T> List<T> getResults(Class<T> type) {
-		return (List<T>)results;
+		return (List<T>) results;
+	}
+
+	public Integer getRowsAffected() {
+		return rowsAffected;
+	}
+
+	public Integer getInsertedOid() {
+		return insertedOid;
 	}
 
 	public void execute(Context context) throws IOException {
 		
-		try(Protocol protocol = context.lockProtocol(handler)) {
+		try(Protocol protocol = context.lockProtocol()) {
 			
 			if(status != Status.Suspended) {
 				
@@ -134,7 +153,7 @@ public List<Type> getParameterTypes() {
 			
 			reset();
 			
-			protocol.run();
+			protocol.run(handler);
 			
 			if(status == Status.Completed) {
 				

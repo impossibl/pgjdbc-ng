@@ -20,6 +20,8 @@ public class Procs {
 		new Names(),
 		new Strings(),
 		new Dates(),
+		new TimesWithoutTZ(),
+		new TimesWithTZ(),
 		new Timestamps(),
 		new UUIDs(),
 		new Records(),

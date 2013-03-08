@@ -1,5 +1,18 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getPostgreSQLText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getReleaseSavepointText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackToText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSavepointText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLevelText;
+import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
+import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
+import static java.util.Collections.unmodifiableMap;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.Array;
@@ -18,146 +31,117 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.ExecuteCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {
-		
-	
-	Long statementId = 0l;
+			
+
+	long statementId = 0l;
+	long portalId = 0l;
+	int savepointId;
+	private int holdability;
+	boolean autoCommit = true;
+	int networkTimeout;
 	
 	
 	public PSQLConnection(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(socket, settings, targetTypeMap);
 	}
-
-	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Statement createStatement() throws SQLException {
-		return null;
-	}
-
-	@Override
-	public PreparedStatement prepareStatement(String sql) throws SQLException {
-		
-		String statementName = (++statementId).toString();
-		
-		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type>emptyList());
-		
-		try {
-			prepare.execute(this);
-		}
-		catch(IOException e) {
-			throw new SQLException(e);
-		}
-		
-		Error error = prepare.getError();
-		if(error != null) {
-			throw new SQLException(error.message, error.code);
-		}
 	
-		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());		
+	public String getNextStatementName() {
+		return String.format("%s-%016X",++statementId);
 	}
 
-	@Override
-	public CallableStatement prepareCall(String sql) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String nativeSQL(String sql) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public boolean getAutoCommit() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void commit() throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void rollback() throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void close() throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public boolean isClosed() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public DatabaseMetaData getMetaData() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setReadOnly(boolean readOnly) throws SQLException {
-		// TODO Auto-generated method stub
-
+	public String getNextPortalName() {
+		return String.format("%s-%016X",++portalId);
 	}
 
 	@Override
 	public boolean isReadOnly() throws SQLException {
+		return false;
+	}
+
+	@Override
+	public void setReadOnly(boolean readOnly) throws SQLException {
+		//TODO: 
+	}
+
+	@Override
+	public boolean isValid(int timeout) throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public void setCatalog(String catalog) throws SQLException {
-		// TODO Auto-generated method stub
-
+	public Map<String, Class<?>> getTypeMap() throws SQLException {
+		return unmodifiableMap(targetTypeMap);
 	}
 
 	@Override
-	public String getCatalog() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+	public void setTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
+		targetTypeMap = new HashMap<>(typeMap);
 	}
 
 	@Override
-	public void setTransactionIsolation(int level) throws SQLException {
-		// TODO Auto-generated method stub
+	public int getHoldability() throws SQLException {
+		return holdability;
+	}
 
+	@Override
+	public void setHoldability(int holdability) throws SQLException {
+		this.holdability = holdability;
+	}
+	
+	@Override
+	public DatabaseMetaData getMetaData() throws SQLException {
+		throw new SQLException("not supported");
+	}
+
+		private void execute(String sql) throws SQLException {
+			
+			execute(new ExecuteCommand(sql));
+		}
+
+		private void execute(Command cmd) throws SQLException {
+		
+		try {
+			
+			cmd.execute(this);
+			
+			if(cmd.getError() != null) {
+				
+				throw new SQLException(cmd.getError().message);
+			}
+			
+		}
+		catch (IOException e) {
+			
+			throw new SQLException(e);
+		}
+		
+	}
+
+	@Override
+	public boolean getAutoCommit() throws SQLException {
+		return autoCommit;
+	}
+
+	@Override
+	public void setAutoCommit(boolean autoCommit) throws SQLException {
+		
+		if(protocol.getTransactionStatus() != Idle)
+			throw new SQLException("cannot set auto-commit while transaction is active");
+		
+		this.autoCommit = autoCommit;
 	}
 
 	@Override
@@ -167,104 +151,134 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public SQLWarning getWarnings() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+	public void setTransactionIsolation(int level) throws SQLException {
+
+		if(autoCommit)
+			throw new SQLException("cannot set isolation level when auto-commit is enabled");
+
+		execute(getSetSessionIsolationLevelText(level));
 	}
 
 	@Override
-	public void clearWarnings() throws SQLException {
-		// TODO Auto-generated method stub
+	public void commit() throws SQLException {
+		
+		if(autoCommit)
+			throw new SQLException("cannot commit when auto-commit is enabled");
 
-	}
-
-	@Override
-	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map<String, Class<?>> getTypeMap() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void setHoldability(int holdability) throws SQLException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public int getHoldability() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		execute(getCommitText());
 	}
 
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		PSQLSavepoint savepoint = new PSQLSavepoint(++savepointId);
+		
+		execute(getSetSavepointText(savepoint));
+		
+		return savepoint;
 	}
 
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		PSQLSavepoint savepoint = new PSQLSavepoint(name);
+		
+		execute(getSetSavepointText(savepoint));
+		
+		return savepoint;
 	}
 
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
-		// TODO Auto-generated method stub
-
+		
+		execute(getRollbackToText((PSQLSavepoint)savepoint));
+		
 	}
 
 	@Override
 	public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-		// TODO Auto-generated method stub
 
+		execute(getReleaseSavepointText((PSQLSavepoint)savepoint));
+		
+	}
+
+	@Override
+	public void rollback() throws SQLException {
+
+		execute(getRollbackText());
+	}
+
+	@Override
+	public String getCatalog() throws SQLException {
+		return null;
+	}
+
+	@Override
+	public void setCatalog(String catalog) throws SQLException {
+	}
+
+	@Override
+	public String getSchema() throws SQLException {
+		return null;
+	}
+
+	@Override
+	public void setSchema(String schema) throws SQLException {
+	}
+
+	@Override
+	public String nativeSQL(String sql) throws SQLException {
+		
+		return getPostgreSQLText(sql);
+	}
+
+	@Override
+	public Statement createStatement() throws SQLException {
+		
+		return createStatement(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
+	}
+
+	@Override
+	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+		
+		return createStatement(resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		// TODO Auto-generated method stub
+		
 		return null;
+	}
+
+	@Override
+	public PreparedStatement prepareStatement(String sql) throws SQLException {
+		
+		return prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
+	}
+
+	@Override
+	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+
+		return prepareStatement(sql, resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	@Override
-	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		sql = nativeSQL(sql);
+		
+		String statementName = getNextStatementName();
+		
+		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type>emptyList());
+		
+		execute(prepare);
+	
+		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());		
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-		// TODO Auto-generated method stub
+
 		return null;
 	}
 
@@ -276,6 +290,24 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CallableStatement prepareCall(String sql) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -302,12 +334,6 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public SQLXML createSQLXML() throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public boolean isValid(int timeout) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override
@@ -347,15 +373,15 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public void setSchema(String schema) throws SQLException {
+	public void close() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public String getSchema() throws SQLException {
+	public boolean isClosed() throws SQLException {
 		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
 
 	@Override
@@ -365,15 +391,35 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+	public SQLWarning getWarnings() throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void clearWarnings() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public int getNetworkTimeout() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return networkTimeout;
+	}
+
+	@Override
+	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+		networkTimeout = milliseconds;
+	}
+
+	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException {
+		return iface.cast(this);
+	}
+
+	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException {
+		return iface.isAssignableFrom(getClass());
 	}
 
 }

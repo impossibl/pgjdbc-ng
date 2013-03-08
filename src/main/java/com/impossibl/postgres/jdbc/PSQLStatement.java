@@ -412,8 +412,7 @@ public class PSQLStatement implements PreparedStatement {
 
 	@Override
 	public void setDate(int parameterIndex, Date x) throws SQLException {
-		// TODO Auto-generated method stub
-		
+		parameterValues.set(parameterIndex, x);
 	}
 
 	@Override

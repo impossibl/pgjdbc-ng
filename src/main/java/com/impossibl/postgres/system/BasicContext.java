@@ -23,7 +23,6 @@ import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.ProtocolHandler;
 import com.impossibl.postgres.protocol.ProtocolV30;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
@@ -47,17 +46,17 @@ public class BasicContext implements Context {
 	}
 	
 	
-	private Registry registry;
-	private Map<String, Class<?>>  targetTypeMap;
-	private StringCodec stringCodec;
-	private DateTimeCodec dateTimeCodec;
-	private Properties settings;
-	private Version serverVersion;
-	private KeyData keyData;
-	private DataInputStream in;
-	private DataOutputStream out;
-	private Protocol protocol;
-	private Lock protocolLock;
+	protected Registry registry;
+	protected Map<String, Class<?>>  targetTypeMap;
+	protected StringCodec stringCodec;
+	protected DateTimeCodec dateTimeCodec;
+	protected Properties settings;
+	protected Version serverVersion;
+	protected KeyData keyData;
+	protected DataInputStream in;
+	protected DataOutputStream out;
+	protected Protocol protocol;
+	protected Lock protocolLock;
 	
 	
 	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
@@ -77,14 +76,12 @@ public class BasicContext implements Context {
 		return registry;
 	}
 
-	public Protocol lockProtocol(ProtocolHandler handler) {
+	public Protocol lockProtocol() {
 		protocolLock.lock();
-		protocol.setHandler(handler);
 		return protocol;
 	}
 	
 	public void unlockProtocol() {
-		protocol.setHandler(null);
 		protocolLock.unlock();
 	}
 	

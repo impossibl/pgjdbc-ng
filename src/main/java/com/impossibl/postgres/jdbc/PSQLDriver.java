@@ -7,7 +7,9 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -131,8 +133,21 @@ public class PSQLDriver implements Driver {
 
 	@Override
 	public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		List<DriverPropertyInfo> propInfo = new ArrayList<>();
+		
+		ConnectionSpecifier spec = parseURL(url);
+		if(spec == null)
+			spec = new ConnectionSpecifier();
+		
+		if(spec.database == null || spec.database.isEmpty())
+			propInfo.add(new DriverPropertyInfo("database",""));			
+		if(spec.parameters.get("username") == null || spec.parameters.get("username").toString().isEmpty())
+			propInfo.add(new DriverPropertyInfo("username",""));			
+		if(spec.parameters.get("password") == null || spec.parameters.get("password").toString().isEmpty())
+			propInfo.add(new DriverPropertyInfo("password",""));			
+		
+		return propInfo.toArray(new DriverPropertyInfo[propInfo.size()]);
 	}
 
 	@Override

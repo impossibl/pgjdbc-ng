@@ -19,7 +19,7 @@ public interface ProtocolHandler {
 	void functionResult(Object value) throws IOException;
 	void emptyQuery() throws IOException;
 	void portalSuspended() throws IOException;
-	void commandComplete(String commandTag) throws IOException;
+	void commandComplete(String command, Integer rowsAffected, Integer oid) throws IOException;
 	void closeComplete() throws IOException;
 
 	void ready(TransactionStatus txStatus) throws IOException;

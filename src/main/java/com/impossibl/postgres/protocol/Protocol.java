@@ -10,10 +10,9 @@ import com.impossibl.postgres.utils.DataInputStream;
 public interface Protocol extends AutoCloseable {
 
 	public void close();
-	
-	public void setHandler(ProtocolHandler handler);
-	
-	public void run() throws IOException;
+	public void run(ProtocolHandler handler) throws IOException;	
+
+	public TransactionStatus getTransactionStatus();
 	
 	public void sendStartup(Map<String, Object> params) throws IOException;
 	public void sendPassword(String password) throws IOException;	

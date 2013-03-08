@@ -1,10 +1,12 @@
 package com.impossibl.postgres.system.procs;
 
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.sql.Date;
 import java.util.Calendar;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
@@ -15,7 +17,7 @@ import com.impossibl.postgres.utils.DataOutputStream;
 
 public class Dates extends SimpleProcProvider {
 
-	private static final long PG_JAVA_EPOCH_DIFF_DAYS = calculateEpochDifferenceDays();
+	private static final long PG_JAVA_EPOCH_DIFF_MILLIS = calculateEpochDifferenceMillis();
 
 
 	public Dates() {
@@ -35,10 +37,10 @@ public class Dates extends SimpleProcProvider {
 			}
 			
 			int daysPg = stream.readInt();
-			long daysJava = daysPg + PG_JAVA_EPOCH_DIFF_DAYS;
-			long timeJava = TimeUnit.DAYS.toMillis(daysJava);
+			long millisPg = DAYS.toMillis(daysPg);
+			long millisJava = millisPg + PG_JAVA_EPOCH_DIFF_MILLIS;
 			
-			return new Date(timeJava);
+			return new Date(millisJava);
 		}
 
 	}
@@ -53,10 +55,10 @@ public class Dates extends SimpleProcProvider {
 			else {
 				
 				Date date = (Date) val;
-				
-				long timeJava = date.getTime();
-				long daysJava = TimeUnit.MILLISECONDS.toDays(timeJava);
-				int daysPg = (int)(daysJava - PG_JAVA_EPOCH_DIFF_DAYS);
+								
+				long millisJava = date.getTime();				
+				long millisPg = millisJava - PG_JAVA_EPOCH_DIFF_MILLIS;
+				int daysPg = (int) MILLISECONDS.toDays(millisPg);
 				
 				stream.writeInt(4);
 				stream.writeInt(daysPg);
@@ -66,14 +68,14 @@ public class Dates extends SimpleProcProvider {
 
 	}
 	
-	private static long calculateEpochDifferenceDays() {
+	private static long calculateEpochDifferenceMillis() {
 		
-		Calendar pgEpochInJava = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+		Calendar pgEpochInJava = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
 		pgEpochInJava.clear();
 		pgEpochInJava.set(2000, 0, 1);
 		
-		return TimeUnit.MILLISECONDS.toDays(pgEpochInJava.getTimeInMillis());
+		return pgEpochInJava.getTimeInMillis();
 	}
 
 }

@@ -1,6 +1,7 @@
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -53,10 +54,31 @@ public class Test {
 		}
 		
 		{
-			PreparedStatement ps0 = conn.prepareStatement("select '2013-03-06'::date");
+			PreparedStatement ps0 = conn.prepareStatement("insert into dt_test (d) values ($1)");
+			ps0.setDate(0, new Date(System.currentTimeMillis()));
 			ResultSet rs0 = ps0.executeQuery();
 			while(rs0.next()) {
 				System.out.println(rs0.getObject(0));
+			}
+		}
+		
+		{
+			PreparedStatement ps0 = conn.prepareStatement("select '2013-03-07'::date");
+			ResultSet rs0 = ps0.executeQuery();
+			while(rs0.next()) {
+				System.out.println(rs0.getObject(0));
+			}
+		}
+		
+		{
+			PreparedStatement ps0 = conn.prepareStatement("select d,t,ttz,ts from dt_test");
+			ResultSet rs0 = ps0.executeQuery();
+			while(rs0.next()) {
+				for(int c=0; c < 4; ++c) {
+					System.out.print(rs0.getObject(c));
+					System.out.print(", ");
+				}
+				System.out.println();
 			}
 		}
 		
@@ -70,12 +92,6 @@ public class Test {
 		ResultSet rs2 = ps2.executeQuery();
 		while(rs2.next()) {
 			System.out.println(rs2.getObject(0));
-		}
-		
-		PreparedStatement ps3 = conn.prepareStatement("select oid,typname,typlen,typbyval,typcategory,typdelim,typrelid from pg_type");
-		ResultSet rs3 = ps3.executeQuery();
-		while(rs3.next()) {
-			System.out.println(rs3.getObject(0));
 		}
 		
 	}

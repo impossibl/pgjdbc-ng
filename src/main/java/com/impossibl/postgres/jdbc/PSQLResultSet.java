@@ -94,7 +94,6 @@ public class PSQLResultSet implements ResultSet {
 	@Override
 	public void close() throws SQLException {
 		// TODO Auto-generated method stub
-
 	}
 
 	@Override

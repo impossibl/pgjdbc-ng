@@ -4,7 +4,6 @@ import com.impossibl.postgres.codecs.DateTimeCodec;
 import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.ProtocolHandler;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
@@ -33,7 +32,7 @@ public interface Context {
 	void reportNotice(byte type, String value);
 	void reportError(Error error);
 
-	Protocol lockProtocol(ProtocolHandler handler);
+	Protocol lockProtocol();
 	void unlockProtocol();
 
 }

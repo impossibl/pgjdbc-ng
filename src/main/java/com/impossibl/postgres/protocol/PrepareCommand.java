@@ -60,7 +60,7 @@ public class PrepareCommand extends Command {
 
 	public void execute(Context context) throws IOException {
 
-		try(Protocol protocol = context.lockProtocol(handler)) {
+		try(Protocol protocol = context.lockProtocol()) {
 			
 			protocol.sendParse(statementName, query, parseParameterTypes);
 			
@@ -68,7 +68,7 @@ public class PrepareCommand extends Command {
 			
 			protocol.sendFlush();
 			
-			protocol.run();
+			protocol.run(handler);
 			
 		}
 		

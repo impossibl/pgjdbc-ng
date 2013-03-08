@@ -84,11 +84,11 @@ public class StartupCommand extends Command {
 			
 		};
 		
-		try(Protocol protocol = context.lockProtocol(handler)) {
+		try(Protocol protocol = context.lockProtocol()) {
 			
 			protocol.sendStartup(params);
 
-			protocol.run();
+			protocol.run(handler);
 			
 		}
 		
