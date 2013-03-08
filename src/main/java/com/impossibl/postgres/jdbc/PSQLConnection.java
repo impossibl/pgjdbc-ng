@@ -1,12 +1,14 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getPostgreSQLText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getReleaseSavepointText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackToText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSavepointText;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLevelText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getBeginText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getCommitText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getProtocolSQLText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getReleaseSavepointText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackToText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSavepointText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSessionIsolationLevelText;
+import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
@@ -42,8 +44,9 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.types.Type;
 
+
+
 public class PSQLConnection extends BasicContext implements Connection {
-			
 
 	long statementId = 0l;
 	long portalId = 0l;
@@ -51,18 +54,17 @@ public class PSQLConnection extends BasicContext implements Connection {
 	private int holdability;
 	boolean autoCommit = true;
 	int networkTimeout;
-	
-	
+
 	public PSQLConnection(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(socket, settings, targetTypeMap);
 	}
-	
+
 	public String getNextStatementName() {
-		return String.format("%s-%016X",++statementId);
+		return String.format("%016X", ++statementId);
 	}
 
 	public String getNextPortalName() {
-		return String.format("%s-%016X",++portalId);
+		return String.format("%016X", ++portalId);
 	}
 
 	@Override
@@ -72,7 +74,8 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void setReadOnly(boolean readOnly) throws SQLException {
-		//TODO: 
+		// TODO
+
 	}
 
 	@Override
@@ -100,34 +103,34 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public void setHoldability(int holdability) throws SQLException {
 		this.holdability = holdability;
 	}
-	
+
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
 		throw new SQLException("not supported");
 	}
 
-		private void execute(String sql) throws SQLException {
-			
-			execute(new ExecuteCommand(sql));
-		}
+	private void execute(String sql) throws SQLException {
 
-		private void execute(Command cmd) throws SQLException {
-		
+		execute(new ExecuteCommand(sql));
+	}
+
+	private void execute(Command cmd) throws SQLException {
+
 		try {
-			
+
 			cmd.execute(this);
-			
-			if(cmd.getError() != null) {
-				
+
+			if (cmd.getError() != null) {
+
 				throw new SQLException(cmd.getError().message);
 			}
-			
+
 		}
 		catch (IOException e) {
-			
+
 			throw new SQLException(e);
 		}
-		
+
 	}
 
 	@Override
@@ -137,10 +140,10 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		
-		if(protocol.getTransactionStatus() != Idle)
+
+		if (protocol.getTransactionStatus() != Idle)
 			throw new SQLException("cannot set auto-commit while transaction is active");
-		
+
 		this.autoCommit = autoCommit;
 	}
 
@@ -153,7 +156,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
 
-		if(autoCommit)
+		if (autoCommit)
 			throw new SQLException("cannot set isolation level when auto-commit is enabled");
 
 		execute(getSetSessionIsolationLevelText(level));
@@ -161,51 +164,74 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void commit() throws SQLException {
-		
-		if(autoCommit)
-			throw new SQLException("cannot commit when auto-commit is enabled");
+
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("no transaction is active");
 
 		execute(getCommitText());
+
+		if (!autoCommit) {
+			execute(getBeginText());
+		}
+
 	}
 
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		
+
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("transaction not active");
+
 		PSQLSavepoint savepoint = new PSQLSavepoint(++savepointId);
-		
+
 		execute(getSetSavepointText(savepoint));
-		
+
 		return savepoint;
 	}
 
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
-		
+
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("transaction not active");
+
 		PSQLSavepoint savepoint = new PSQLSavepoint(name);
-		
+
 		execute(getSetSavepointText(savepoint));
-		
+
 		return savepoint;
 	}
 
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
-		
-		execute(getRollbackToText((PSQLSavepoint)savepoint));
-		
+
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("transaction not active");
+
+		execute(getRollbackToText((PSQLSavepoint) savepoint));
+
 	}
 
 	@Override
 	public void releaseSavepoint(Savepoint savepoint) throws SQLException {
 
-		execute(getReleaseSavepointText((PSQLSavepoint)savepoint));
-		
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("transaction not active");
+
+		execute(getReleaseSavepointText((PSQLSavepoint) savepoint));
+
 	}
 
 	@Override
 	public void rollback() throws SQLException {
 
+		if (protocol.getTransactionStatus() != Active)
+			throw new SQLException("transaction not active");
+
 		execute(getRollbackText());
+
+		if (!autoCommit)
+			execute(getBeginText());
 	}
 
 	@Override
@@ -228,31 +254,31 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public String nativeSQL(String sql) throws SQLException {
-		
-		return getPostgreSQLText(sql);
+
+		return getProtocolSQLText(sql);
 	}
 
 	@Override
 	public Statement createStatement() throws SQLException {
-		
+
 		return createStatement(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-		
+
 		return createStatement(resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
-		
+
 		return prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
@@ -266,14 +292,14 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 
 		sql = nativeSQL(sql);
-		
+
 		String statementName = getNextStatementName();
-		
-		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type>emptyList());
-		
+
+		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type> emptyList());
+
 		execute(prepare);
-	
-		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());		
+
+		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());
 	}
 
 	@Override
@@ -284,92 +310,92 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Clob createClob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Blob createBlob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public NClob createNClob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public SQLXML createSQLXML() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void setClientInfo(String name, String value) throws SQLClientInfoException {
-		// TODO Auto-generated method stub
-
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void setClientInfo(Properties properties) throws SQLClientInfoException {
-		// TODO Auto-generated method stub
-
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public String getClientInfo(String name) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Properties getClientInfo() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -386,20 +412,20 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void abort(Executor executor) throws SQLException {
-		// TODO Auto-generated method stub
-
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
-		// TODO Auto-generated method stub
-
+		// TODO: implement
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
