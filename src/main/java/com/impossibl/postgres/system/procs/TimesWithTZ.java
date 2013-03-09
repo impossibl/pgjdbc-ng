@@ -61,7 +61,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 				long millis = time.getTime();
 				
 				long baseMicros = MILLISECONDS.toMicros(millis);
-				int tzOffsetSecs = (int)MILLISECONDS.toSeconds(context.getDateTimeCodec().getTimeZone().getRawOffset());
+				int tzOffsetSecs = (int)MILLISECONDS.toSeconds(context.getTimeZone().getRawOffset());
 				
 				stream.writeInt(12);
 				stream.writeLong(baseMicros);

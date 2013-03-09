@@ -26,7 +26,7 @@ public class Names extends SimpleProcProvider {
 			byte[] bytes = new byte[length];
 			stream.readFully(bytes);
 			
-			return context.getStringCodec().decode(bytes);
+			return new String(bytes, context.getCharset());
 		}
 
 	}
@@ -41,7 +41,7 @@ public class Names extends SimpleProcProvider {
 			}
 			else {
 			
-				byte[] bytes = context.getStringCodec().encode(val.toString());
+				byte[] bytes = val.toString().getBytes(context.getCharset());
 			
 				stream.writeInt(bytes.length);
 			

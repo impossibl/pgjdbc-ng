@@ -105,7 +105,7 @@ public class ProtocolImpl implements Protocol {
 	public synchronized void execute(Command cmd) throws IOException {
 		
 		if(cmd instanceof CommandImpl == false)
-			throw new IllegalStateException();
+			throw new IllegalArgumentException();
 		
 		((CommandImpl)cmd).execute(this);
 	}

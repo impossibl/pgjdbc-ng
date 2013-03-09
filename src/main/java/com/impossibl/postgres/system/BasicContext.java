@@ -1,12 +1,12 @@
 package com.impossibl.postgres.system;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -15,9 +15,6 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
-import com.impossibl.postgres.codecs.DateStyles;
-import com.impossibl.postgres.codecs.DateTimeCodec;
-import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
@@ -46,8 +43,8 @@ public class BasicContext implements Context {
 	
 	protected Registry registry;
 	protected Map<String, Class<?>>  targetTypeMap;
-	protected StringCodec stringCodec;
-	protected DateTimeCodec dateTimeCodec;
+	protected Charset charset;
+	protected TimeZone timeZone;
 	protected Properties settings;
 	protected Version serverVersion;
 	protected KeyData keyData;
@@ -60,8 +57,8 @@ public class BasicContext implements Context {
 		this.registry = new Registry(this);
 		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
 		this.settings = settings;
-		this.stringCodec = new StringCodec((Charset) settings.get("client.encoding"));
-		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
+		this.charset = UTF_8;
+		this.timeZone = TimeZone.getTimeZone("UTC");
 		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 		this.out = new DataOutputStream(socket.getOutputStream());
 		this.protocol = new ProtocolImpl(this);
@@ -100,12 +97,12 @@ public class BasicContext implements Context {
 		return cls;
 	}
 	
-	public StringCodec getStringCodec() {
-		return stringCodec;
+	public Charset getCharset() {
+		return charset;
 	}
 
-	public DateTimeCodec getDateTimeCodec() {
-		return dateTimeCodec;
+	public TimeZone getTimeZone() {
+		return timeZone;
 	}
 
 	public void refreshType(int typeId) {
@@ -193,13 +190,12 @@ public class BasicContext implements Context {
 			break;
 			
 		case "DateStyle":
-			
-			dateTimeCodec.setFormat(DateStyles.get(value));
+
 			break;
 			
 		case "TimeZone":
 			
-			dateTimeCodec.setTimeZone(TimeZone.getTimeZone(value));
+			timeZone = TimeZone.getTimeZone(value);
 			break;
 			
 		case "integer_datetimes":
@@ -209,7 +205,7 @@ public class BasicContext implements Context {
 			
 		case "client_encoding":
 			
-			stringCodec.setCharset(Charset.forName(value));
+			charset = Charset.forName(value);
 			break;
 		}
 		

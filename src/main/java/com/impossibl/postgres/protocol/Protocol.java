@@ -11,7 +11,7 @@ public interface Protocol {
 	
 	TransactionStatus getTransactionStatus();
 
-	StartupCommand createStartup(Map<String,Object> settings);
+	StartupCommand createStartup(Map<String,Object> parameters);
 	PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
 	QueryCommand createQuery(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, Class<?> rowType);
 	ExecuteCommand createExec(String sqlText);

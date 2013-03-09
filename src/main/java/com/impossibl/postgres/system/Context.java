@@ -1,7 +1,8 @@
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.codecs.DateTimeCodec;
-import com.impossibl.postgres.codecs.StringCodec;
+import java.nio.charset.Charset;
+import java.util.TimeZone;
+
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
@@ -16,8 +17,8 @@ public interface Context {
 	DataInputStream getInputStream();
 	DataOutputStream getOutputStream();
 	
-	StringCodec getStringCodec();
-	DateTimeCodec getDateTimeCodec();
+	Charset getCharset();
+	TimeZone getTimeZone();
 
 	Class<?> lookupInstanceType(Type type);
 
