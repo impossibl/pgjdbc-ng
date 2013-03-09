@@ -1,4 +1,6 @@
 
+import static java.util.logging.Level.ALL;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -9,6 +11,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
 
 
 public class Test {
@@ -29,6 +33,12 @@ public class Test {
 
 	public static void main(String[] args) throws SQLException, IOException, ClassNotFoundException {
 		
+		for(Handler x : Logger.getLogger("").getHandlers()) {
+			x.setLevel(ALL);
+		}
+		
+		Logger.getLogger("com.impossibl.postgres").setLevel(ALL);
+		
 		Connection conn = DriverManager.getConnection("jdbc:postgresql://db/impossibl?username=postgres&password=test");
 
 		Map<String, Class<?>> targetTypeMap = new HashMap<String, Class<?>>();
@@ -37,6 +47,30 @@ public class Test {
 		
 		conn.setTypeMap(targetTypeMap);
 
+		{
+			PreparedStatement ps0 = conn.prepareStatement("select m from money_test");
+			ResultSet rs0 = ps0.executeQuery();
+			while(rs0.next()) {
+				System.out.println(rs0.getObject(0));
+			}
+		}
+		
+		{
+			PreparedStatement ps0 = conn.prepareStatement("select bits from bit_test");
+			ResultSet rs0 = ps0.executeQuery();
+			while(rs0.next()) {
+				System.out.println(rs0.getObject(0));
+			}
+		}
+		
+		{
+			PreparedStatement ps0 = conn.prepareStatement("select num from num_test");
+			ResultSet rs0 = ps0.executeQuery();
+			while(rs0.next()) {
+				System.out.println(rs0.getObject(0));
+			}
+		}
+		
 		{
 			PreparedStatement ps0 = conn.prepareStatement("select '2013-03-06 19:15:25.514776'::timestamp");
 			ResultSet rs0 = ps0.executeQuery();

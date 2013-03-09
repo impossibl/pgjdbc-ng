@@ -25,7 +25,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
-			throw new UnssupportedFormatException();
+			throw new UnssupportedFormatException("No matching binary decoder found for: " + name);
 		}
 
 	}
@@ -38,7 +38,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
-			throw new UnssupportedFormatException();
+			throw new UnssupportedFormatException("No matching binary encoder found for: " + name);
 		}
 
 	}
@@ -51,7 +51,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public Object decode(Type type, Reader reader, Context context) throws IOException {
-			throw new UnssupportedFormatException();
+			throw new UnssupportedFormatException("No matching text decoder found for: " + name);
 		}
 
 	}
@@ -64,7 +64,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public void encode(Type type, Writer writer, Object val, Context context) throws IOException {
-			throw new UnssupportedFormatException();
+			throw new UnssupportedFormatException("No matching text encoder found for: " + name);
 		}
 
 	}

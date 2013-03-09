@@ -8,8 +8,8 @@ import com.impossibl.postgres.types.Type.TextIO;
 public class Procs {
 	
 	private static ProcProvider[] PROVIDERS = {
-		new Arrays(),
 		new Bools(),
+		new Bits(),
 		new Bytes(),
 		new Chars(),
 		new Float4s(),
@@ -17,6 +17,7 @@ public class Procs {
 		new Int2s(),
 		new Int4s(),
 		new Int8s(),
+		new Numerics(),
 		new Names(),
 		new Strings(),
 		new Dates(),
@@ -24,6 +25,8 @@ public class Procs {
 		new TimesWithTZ(),
 		new Timestamps(),
 		new UUIDs(),
+		new Moneys(),
+		new Arrays(),
 		new Records(),
 	};
 	
