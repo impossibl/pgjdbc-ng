@@ -1,8 +1,11 @@
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.v30;
 
 import java.io.IOException;
 import java.util.List;
 
+import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 
@@ -15,7 +18,7 @@ public interface ProtocolHandler {
 	void noData() throws IOException;
 	void bindComplete() throws IOException;
 	void rowDescription(List<ResultField> resultFields) throws IOException;
-	void rowData(Protocol protocol, DataInputStream stream) throws IOException;
+	void rowData(ProtocolImpl protocol, DataInputStream stream) throws IOException;
 	void functionResult(Object value) throws IOException;
 	void emptyQuery() throws IOException;
 	void portalSuspended() throws IOException;
@@ -28,14 +31,14 @@ public interface ProtocolHandler {
 
 	void backendKeyData(int processId, int secretKey) throws IOException;
 	
-	void authenticated(Protocol protocol) throws IOException;
-	void authenticateKerberos(Protocol protocol) throws IOException;
-	void authenticateClear(Protocol protocol) throws IOException;
-	void authenticateCrypt(Protocol protocol) throws IOException;
-	void authenticateMD5(Protocol protocol, byte[] salt) throws IOException;
-	void authenticateSCM(Protocol protocol) throws IOException;
-	void authenticateGSS(Protocol protocol) throws IOException;
-	void authenticateGSSCont(Protocol protocol) throws IOException;
-	void authenticateSSPI(Protocol protocol) throws IOException;
+	void authenticated(ProtocolImpl protocol) throws IOException;
+	void authenticateKerberos(ProtocolImpl protocol) throws IOException;
+	void authenticateClear(ProtocolImpl protocol) throws IOException;
+	void authenticateCrypt(ProtocolImpl protocol) throws IOException;
+	void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException;
+	void authenticateSCM(ProtocolImpl protocol) throws IOException;
+	void authenticateGSS(ProtocolImpl protocol) throws IOException;
+	void authenticateGSSCont(ProtocolImpl protocol) throws IOException;
+	void authenticateSSPI(ProtocolImpl protocol) throws IOException;
 
 }

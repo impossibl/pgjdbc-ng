@@ -1,4 +1,4 @@
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.v30;
 
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
@@ -17,6 +17,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.ExecuteCommand;
+import com.impossibl.postgres.protocol.Message;
+import com.impossibl.postgres.protocol.PrepareCommand;
+import com.impossibl.postgres.protocol.Protocol;
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObject;
+import com.impossibl.postgres.protocol.StartupCommand;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Type;
@@ -25,9 +36,9 @@ import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
-public class ProtocolV30 implements Protocol {
+public class ProtocolImpl implements Protocol {
 
-	private static Logger logger = Logger.getLogger(ProtocolV30.class.getName());
+	private static Logger logger = Logger.getLogger(ProtocolImpl.class.getName());
 
 	// Frontend messages
 	private static final byte PASSWORD_MSG_ID = 'p';
@@ -66,14 +77,37 @@ public class ProtocolV30 implements Protocol {
 	TransactionStatus txStatus;
 	ProtocolHandler handler;
 
-	public ProtocolV30(Context context) {
+	public ProtocolImpl(Context context) {
 		this.context = context;
 		this.txStatus = Idle;
 	}
+	
+	@Override
+	public StartupCommand createStartup(Map<String, Object> settings) {
+		return new StartupCommandImpl(settings);
+	}
 
 	@Override
-	public void close() {
-		context.unlockProtocol();
+	public PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes) {
+		return new PrepareCommandImpl(statementName, sqlText, parameterTypes);
+	}
+
+	@Override
+	public QueryCommand createQuery(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, Class<?> rowType) {
+		return new QueryCommandImpl(portalName, statementName, parameterTypes, parameterValues, rowType);
+	}
+
+	@Override
+	public ExecuteCommand createExec(String sqlText) {
+		return new ExecuteCommandImpl(sqlText);
+	}
+
+	public synchronized void execute(Command cmd) throws IOException {
+		
+		if(cmd instanceof CommandImpl == false)
+			throw new IllegalStateException();
+		
+		((CommandImpl)cmd).execute(this);
 	}
 
 	@Override
@@ -81,7 +115,6 @@ public class ProtocolV30 implements Protocol {
 		return txStatus;
 	}
 
-	@Override
 	public void run(ProtocolHandler handler) throws IOException {
 
 		try {
@@ -99,7 +132,6 @@ public class ProtocolV30 implements Protocol {
 
 	}
 
-	@Override
 	public void sendStartup(Map<String, Object> params) throws IOException {
 
 		Message msg = new Message((byte) 0);
@@ -119,7 +151,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendPassword(String password) throws IOException {
 
 		Message msg = new Message(PASSWORD_MSG_ID);
@@ -129,7 +160,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendQuery(String query) throws IOException {
 
 		Message msg = new Message(QUERY_MSG_ID);
@@ -139,7 +169,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
 		
 		logger.finest("PARSE (" + stmtName + "): " + query);
@@ -157,7 +186,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
 
 		logger.finest("BIND (" + portalName + "): " + parameterValues.size());
@@ -176,7 +204,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendDescribe(ServerObject target, String targetName) throws IOException {
 
 		logger.finest("DESCRIBE " + target + " (" + targetName + ")");
@@ -189,7 +216,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendExecute(String portalName, int maxRows) throws IOException {
 
 		if(logger.isLoggable(FINEST))
@@ -203,7 +229,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendFunctionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
 		Message msg = new Message(FUNCTION_CALL_MSG_ID);
@@ -217,7 +242,6 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendClose(ServerObject target, String targetName) throws IOException {
 
 		Message msg = new Message(CLOSE_MSG_ID);
@@ -228,17 +252,14 @@ public class ProtocolV30 implements Protocol {
 		sendMessage(msg);
 	}
 
-	@Override
 	public void sendFlush() throws IOException {
 		sendMessage(FLUSH_MSG_ID, 0);
 	}
 
-	@Override
 	public void sendSync() throws IOException {
 		sendMessage(SYNC_MSG_ID, 0);
 	}
 
-	@Override
 	public void sendTerminate() throws IOException {
 		sendMessage(TERMINATE_MSG_ID, 0);
 	}
@@ -301,7 +322,6 @@ public class ProtocolV30 implements Protocol {
 		out.writeInt(dataLength + 4);
 	}
 
-	@Override
 	public Object parseRowData(DataInputStream in, List<ResultField> resultFields, Class<?> rowType) throws IOException {
 
 		int itemCount = in.readShort();
@@ -373,7 +393,6 @@ public class ProtocolV30 implements Protocol {
 		throw new IllegalStateException("invalid poperty name/index");
 	}
 
-	@Override
 	public Object parseResultData(DataInputStream in, Type resultType) throws IOException {
 
 		Object value = null;

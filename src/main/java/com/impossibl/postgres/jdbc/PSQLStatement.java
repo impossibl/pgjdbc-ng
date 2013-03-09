@@ -1,6 +1,5 @@
 package com.impossibl.postgres.jdbc;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -180,21 +179,14 @@ public class PSQLStatement implements PreparedStatement {
 			portalName = connection.getNextPortalName();
 		}
 
-		command = new QueryCommand(portalName, name, parameterTypes, parameterValues, Object[].class);
+		command = connection.getProtocol().createQuery(portalName, name, parameterTypes, parameterValues, Object[].class);
 
 		command.setMaxRows(fetchSize);
 
-		try {
+		connection.execute(command);
 
-			command.execute(connection);
-
-			return !command.getResultFields().isEmpty();
-		}
-		catch (IOException e) {
-
-			throw new SQLException(e);
-		}
-
+		return !command.getResultFields().isEmpty();
+		
 	}
 
 	@Override

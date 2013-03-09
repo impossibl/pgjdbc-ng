@@ -39,7 +39,6 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.ExecuteCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.types.Type;
@@ -111,14 +110,14 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	private void execute(String sql) throws SQLException {
 
-		execute(new ExecuteCommand(sql));
+		execute(protocol.createExec(sql));
 	}
 
-	private void execute(Command cmd) throws SQLException {
+	void execute(Command cmd) throws SQLException {
 
 		try {
 
-			cmd.execute(this);
+			protocol.execute(cmd);
 
 			if (cmd.getError() != null) {
 
@@ -295,7 +294,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		String statementName = getNextStatementName();
 
-		PrepareCommand prepare = new PrepareCommand(statementName, sql, Collections.<Type> emptyList());
+		PrepareCommand prepare = protocol.createPrepare(statementName, sql, Collections.<Type> emptyList());
 
 		execute(prepare);
 

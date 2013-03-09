@@ -2,7 +2,7 @@ package com.impossibl.postgres.protocol;
 
 public class Error {
 	
-	enum Severity {
+	public enum Severity {
 		ERROR,
 		FATAL,
 		PANIC

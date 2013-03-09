@@ -1,8 +1,11 @@
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.v30;
 
 import java.io.IOException;
 import java.util.List;
 
+import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.DataInputStream;
 
@@ -38,7 +41,7 @@ public class AbstractProtocolHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public void rowData(Protocol protocol, DataInputStream stream) throws IOException {
+	public void rowData(ProtocolImpl protocol, DataInputStream stream) throws IOException {
 	}
 
 	@Override
@@ -74,39 +77,39 @@ public class AbstractProtocolHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public void authenticated(Protocol protocol) throws IOException {
+	public void authenticated(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateKerberos(Protocol protocol) throws IOException {
+	public void authenticateKerberos(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateClear(Protocol protocol) throws IOException {
+	public void authenticateClear(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateCrypt(Protocol protocol) throws IOException {
+	public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateMD5(Protocol protocol, byte[] salt) throws IOException {
+	public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
 	}
 
 	@Override
-	public void authenticateSCM(Protocol protocol) throws IOException {
+	public void authenticateSCM(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateGSS(Protocol protocol) throws IOException {
+	public void authenticateGSS(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateGSSCont(Protocol protocol) throws IOException {
+	public void authenticateGSSCont(ProtocolImpl protocol) throws IOException {
 	}
 
 	@Override
-	public void authenticateSSPI(Protocol protocol) throws IOException {
+	public void authenticateSSPI(ProtocolImpl protocol) throws IOException {
 	}
 
 }

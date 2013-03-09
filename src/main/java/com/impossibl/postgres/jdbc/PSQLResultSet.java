@@ -1,10 +1,9 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
+import static com.impossibl.postgres.protocol.v30.QueryCommandImpl.Status.Completed;
 import static java.lang.Math.min;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -104,22 +103,13 @@ public class PSQLResultSet implements ResultSet {
 
 			if(command.getStatus() != Completed) {
 				
-				try {
+				statement.connection.execute(command);
 				
-					command.execute(statement.connection);
-					
-					resultFields = command.getResultFields();
-					results = (List<Object[]>) command.getResults(Object[].class);
-					currentRow = -1;
-					
-					return next();
+				resultFields = command.getResultFields();
+				results = (List<Object[]>) command.getResults(Object[].class);
+				currentRow = -1;
 				
-				}
-				catch (IOException e) {
-					
-					throw new SQLException(e);
-				}
-				
+				return next();				
 			}
 			
 			return false;

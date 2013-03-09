@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.codecs.DateStyles;
@@ -23,9 +21,9 @@ import com.impossibl.postgres.codecs.StringCodec;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.ProtocolV30;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
+import com.impossibl.postgres.protocol.v30.ProtocolImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
@@ -56,7 +54,6 @@ public class BasicContext implements Context {
 	protected DataInputStream in;
 	protected DataOutputStream out;
 	protected Protocol protocol;
-	protected Lock protocolLock;
 	
 	
 	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
@@ -67,8 +64,7 @@ public class BasicContext implements Context {
 		this.dateTimeCodec = new DateTimeCodec(DateFormat.getDateInstance(),TimeZone.getDefault());
 		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 		this.out = new DataOutputStream(socket.getOutputStream());
-		this.protocol = new ProtocolV30(this);
-		this.protocolLock = new ReentrantLock();
+		this.protocol = new ProtocolImpl(this);
 	}
 	
 	@Override
@@ -76,13 +72,8 @@ public class BasicContext implements Context {
 		return registry;
 	}
 
-	public Protocol lockProtocol() {
-		protocolLock.lock();
+	public Protocol getProtocol() {
 		return protocol;
-	}
-	
-	public void unlockProtocol() {
-		protocolLock.unlock();
 	}
 	
 	@Override
@@ -161,21 +152,22 @@ public class BasicContext implements Context {
 		params.put("database", settings.get("database"));
 		params.put("user", settings.get("username"));
 		
-		StartupCommand startup = new StartupCommand(params);
-		
-		startup.execute(this);
+		StartupCommand startup = protocol.createStartup(params);
+
+		protocol.execute(startup);
 		
 		return startup.getError() == null;
 	}
 	
 	public <T> List<T> query(String queryTxt, Class<T> rowType, Object... params) throws IOException {
 
-		PrepareCommand prepare = new PrepareCommand(null, queryTxt, Collections.<Type>emptyList());
-		prepare.execute(this);
+		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 		
-		QueryCommand query = new QueryCommand(null, null, prepare.getDescribedParameterTypes(), asList(params), rowType);
+		protocol.execute(prepare);
 		
-		query.execute(this);
+		QueryCommand query = protocol.createQuery(null, null, prepare.getDescribedParameterTypes(), asList(params), rowType);
+		
+		protocol.execute(query);
 		
 		return query.getResults(rowType);
 	}

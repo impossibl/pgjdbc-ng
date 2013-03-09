@@ -1,21 +1,7 @@
 package com.impossibl.postgres.protocol;
 
-import java.io.IOException;
-
-import com.impossibl.postgres.system.Context;
-
-public abstract class Command {
+public interface Command {
 	
-	protected Error error;
-	
-	public Error getError() {
-		return error;
-	}
-
-	public void setError(Error error) {
-		this.error = error;
-	}
-
-	public abstract void execute(Context context) throws IOException;
+	Error getError();
 
 }

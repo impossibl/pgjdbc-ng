@@ -32,7 +32,6 @@ public interface Context {
 	void reportNotice(byte type, String value);
 	void reportError(Error error);
 
-	Protocol lockProtocol();
-	void unlockProtocol();
+	Protocol getProtocol();
 
 }

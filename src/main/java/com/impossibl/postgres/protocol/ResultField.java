@@ -4,7 +4,7 @@ import com.impossibl.postgres.types.Type;
 
 public class ResultField {
 	
-	enum Format {
+	public enum Format {
 		Text,
 		Binary
 	}
