@@ -134,6 +134,9 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendStartup(Map<String, Object> params) throws IOException {
 
+		if(logger.isLoggable(FINEST))
+			logger.finest("STARTUP: " + params);
+			
 		Message msg = new Message((byte) 0);
 
 		// Version
@@ -153,6 +156,9 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendPassword(String password) throws IOException {
 
+		if(logger.isLoggable(FINEST))
+			logger.finest("PASSWORD: " + password);
+			
 		Message msg = new Message(PASSWORD_MSG_ID);
 
 		msg.writeCString(password);
@@ -162,6 +168,9 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendQuery(String query) throws IOException {
 
+		if(logger.isLoggable(FINEST))
+			logger.finest("QUERY: " + query);
+			
 		Message msg = new Message(QUERY_MSG_ID);
 
 		msg.writeCString(query);
@@ -171,7 +180,8 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
 		
-		logger.finest("PARSE (" + stmtName + "): " + query);
+		if(logger.isLoggable(FINEST))
+			logger.finest("PARSE (" + stmtName + "): " + query);
 
 		Message msg = new Message(PARSE_MSG_ID);
 
@@ -188,7 +198,8 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
 
-		logger.finest("BIND (" + portalName + "): " + parameterValues.size());
+		if(logger.isLoggable(FINEST))
+			logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
 		Message msg = new Message(BIND_MSG_ID);
 
@@ -206,7 +217,8 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendDescribe(ServerObject target, String targetName) throws IOException {
 
-		logger.finest("DESCRIBE " + target + " (" + targetName + ")");
+		if(logger.isLoggable(FINEST))
+			logger.finest("DESCRIBE " + target + " (" + targetName + ")");
 
 		Message msg = new Message(DESCRIBE_MSG_ID);
 
@@ -244,6 +256,9 @@ public class ProtocolImpl implements Protocol {
 
 	public void sendClose(ServerObject target, String targetName) throws IOException {
 
+		if(logger.isLoggable(FINEST))
+			logger.finest("CLOSE " + target + ": " + targetName);
+			
 		Message msg = new Message(CLOSE_MSG_ID);
 
 		msg.writeByte(target.getId());
@@ -253,14 +268,26 @@ public class ProtocolImpl implements Protocol {
 	}
 
 	public void sendFlush() throws IOException {
+		
+		if(logger.isLoggable(FINEST))
+			logger.finest("FLUSH");
+			
 		sendMessage(FLUSH_MSG_ID, 0);
 	}
 
 	public void sendSync() throws IOException {
+
+		if(logger.isLoggable(FINEST))
+			logger.finest("SYNC");
+			
 		sendMessage(SYNC_MSG_ID, 0);
 	}
 
 	public void sendTerminate() throws IOException {
+
+		if(logger.isLoggable(FINEST))
+			logger.finest("TERM");
+			
 		sendMessage(TERMINATE_MSG_ID, 0);
 	}
 
