@@ -1,5 +1,6 @@
 package com.impossibl.postgres.protocol.v30;
 
+import static com.impossibl.postgres.protocol.ServerObject.Portal;
 import static java.util.Arrays.asList;
 
 import java.io.IOException;
@@ -168,6 +169,12 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 			
 			protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
 				
+		}
+		
+		if(resultFields == null) {
+			
+			protocol.sendDescribe(Portal, portalName);
+			
 		}
 		
 		protocol.sendExecute(portalName, maxRows);
