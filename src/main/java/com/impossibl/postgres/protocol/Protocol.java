@@ -17,5 +17,7 @@ public interface Protocol {
 	ExecuteCommand createExec(String sqlText);
 	
 	void execute(Command cmd) throws IOException;
+	
+	void dispatch(ResponseMessage msg) throws IOException;
 
 }

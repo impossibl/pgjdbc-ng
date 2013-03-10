@@ -15,8 +15,6 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -79,12 +77,10 @@ public class ProtocolImpl implements Protocol {
 	Context context;
 	TransactionStatus txStatus;
 	ProtocolHandler handler;
-	BlockingQueue<ResponseMessage> responseMessageQueue;
 
 	public ProtocolImpl(Context context) {
 		this.context = context;
 		this.txStatus = Idle;
-		this.responseMessageQueue = new LinkedBlockingQueue<>();
 	}
 	
 	void setHandler(ProtocolHandler handler) {
@@ -440,83 +436,82 @@ public class ProtocolImpl implements Protocol {
 	 * Message dispatching & parsing
 	 */
 
-	protected boolean dispatch(ResponseMessage msg) throws IOException {
+	public void dispatch(ResponseMessage msg) throws IOException {
 
 		switch (msg.id) {
 		case AUTHENTICATION_MSG_ID:
 			receiveAuthentication(msg.data);
-			return true;
+			break;
 
 		case BACKEND_KEY_MSG_ID:
 			receiveBackendKeyData(msg.data);
-			return true;
+			break;
 
 		case PARAMETER_DESC_MSG_ID:
 			receiveParameterDescriptions(msg.data);
-			return true;
+			break;
 
 		case ROW_DESC_MSG_ID:
 			receiveRowDescription(msg.data);
-			return true;
+			break;
 
 		case ROW_DATA_MSG_ID:
 			receiveRowData(msg.data);
-			return true;
+			break;
 
 		case PORTAL_SUSPENDED_MSG_ID:
 			receivePortalSuspended(msg.data);
-			return true;
+			break;
 
 		case NO_DATA_MSG_ID:
 			receiveNoData(msg.data);
-			return true;
+			break;
 
 		case PARSE_COMPLETE_MSG_ID:
 			receiveParseComplete(msg.data);
-			return true;
+			break;
 
 		case BIND_COMPLETE_MSG_ID:
 			receiveBindComplete(msg.data);
-			return true;
+			break;
 
 		case CLOSE_COMPLETE_MSG_ID:
 			receiveCloseComplete(msg.data);
-			return true;
+			break;
 
 		case EMPTY_QUERY_MSG_ID:
 			receiveEmptyQuery(msg.data);
-			return true;
+			break;
 
 		case FUNCTION_RESULT_MSG_ID:
 			receiveFunctionResult(msg.data);
-			return true;
+			break;
 
 		case ERROR_MSG_ID:
 			receiveError(msg.data);
-			return true;
+			break;
 
 		case NOTICE_MSG_ID:
 			receiveNotice(msg.data);
-			return true;
+			break;
 
 		case NOTIFICATION_MSG_ID:
 			receiveNotification(msg.data);
-			return true;
+			break;
 
 		case COMMAND_COMPLETE_MSG_ID:
 			receiveCommandComplete(msg.data);
-			return true;
+			break;
 
 		case PARAMETER_STATUS_MSG_ID:
 			receiveParameterStatus(msg.data);
-			return true;
+			break;
 
 		case READY_FOR_QUERY_MSG_ID:
 			receiveReadyForQuery(msg.data);
-			return true;
+			break;
 		}
 
-		return false;
 	}
 
 	private void receiveAuthentication(ChannelBuffer buffer) throws IOException {

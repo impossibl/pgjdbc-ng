@@ -12,25 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.v30.MessageDecoder;
-import com.impossibl.postgres.protocol.v30.MessageHandler;
 import com.impossibl.postgres.protocol.v30.ProtocolImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
@@ -51,7 +41,7 @@ public class BasicContext implements Context {
 	
 	
 	protected Registry registry;
-	protected Map<String, Class<?>>  targetTypeMap;
+	protected Map<String, Class<?>> targetTypeMap;
 	protected Charset charset;
 	protected TimeZone timeZone;
 	protected Properties settings;
@@ -59,7 +49,7 @@ public class BasicContext implements Context {
 	protected KeyData keyData;
 	protected Protocol protocol;
 	protected Channel channel;
-	
+	private static ContextShared shared = new ContextShared();
 	
 	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		this.registry = new Registry(this);
@@ -68,26 +58,11 @@ public class BasicContext implements Context {
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
 		this.protocol = new ProtocolImpl(this);
-		
-		ChannelFactory channelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
-		ClientBootstrap bootstrap = new ClientBootstrap(channelFactory);
-		
-		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-
-			@Override
-			public ChannelPipeline getPipeline() throws Exception {
-				return Channels.pipeline(new MessageDecoder(), new MessageHandler());
-			}
-			
-		});
-		
-		ChannelFuture channelFuture = bootstrap.connect(address).awaitUninterruptibly();
-		if(!channelFuture.isSuccess()) {
-			throw new IOException(channelFuture.getCause());
-		}
-		
-		channel = channelFuture.getChannel();
-		channel.setAttachment(protocol);
+		this.channel = shared.connect(address, this.protocol);
+	}
+	
+	protected void shutdown() {		
+		shared.disconnect(channel);
 	}
 	
 	public Channel getChannel() {

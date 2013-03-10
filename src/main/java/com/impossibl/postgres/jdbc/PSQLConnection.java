@@ -108,11 +108,6 @@ public class PSQLConnection extends BasicContext implements Connection {
 		throw new SQLException("not supported");
 	}
 
-	private void execute(String sql) throws SQLException {
-
-		execute(protocol.createExec(sql));
-	}
-
 	void execute(Command cmd) throws SQLException {
 
 		try {
@@ -130,6 +125,11 @@ public class PSQLConnection extends BasicContext implements Connection {
 			throw new SQLException(e);
 		}
 
+	}
+
+	private void execute(String sql) throws SQLException {
+
+		execute(protocol.createExec(sql));
 	}
 
 	@Override
@@ -399,8 +399,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void close() throws SQLException {
-		// TODO Auto-generated method stub
-
+		shutdown();
 	}
 
 	@Override
