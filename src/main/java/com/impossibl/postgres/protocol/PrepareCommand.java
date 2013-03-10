@@ -9,5 +9,6 @@ public interface PrepareCommand extends Command {
 	String getStatementName();
 	List<Type> getParseParameterTypes();
 	List<Type> getDescribedParameterTypes();
+	List<ResultField> getDescribedResultFields();
 	
 }

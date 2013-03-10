@@ -3,10 +3,10 @@ package com.impossibl.postgres.system.procs;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
@@ -22,9 +22,9 @@ public class Numerics extends SimpleProcProvider {
 
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public BigDecimal decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if (length == -1) {
 				return null;
 			}
@@ -32,16 +32,16 @@ public class Numerics extends SimpleProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			short digitCount = stream.readShort();
+			short digitCount = buffer.readShort();
 
 			short[] info = new short[3];
-			info[0] = stream.readShort();	//weight
-			info[1] = stream.readShort();	//sign
-			info[2] = stream.readShort();	//displayScale
+			info[0] = buffer.readShort();	//weight
+			info[1] = buffer.readShort();	//sign
+			info[2] = buffer.readShort();	//displayScale
 
 			short[] digits = new short[digitCount];
 			for (int d = 0; d < digits.length; ++d)
-				digits[d] = stream.readShort();
+				digits[d] = buffer.readShort();
 
 			String num = decodeToString(info[0], info[1], info[2], digits);
 
@@ -52,10 +52,10 @@ public class Numerics extends SimpleProcProvider {
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 
@@ -64,12 +64,12 @@ public class Numerics extends SimpleProcProvider {
 				short[] info = new short[3];
 				short[] digits = encodeFromString(num, info);
 
-				stream.writeShort(info[0]);	//weight
-				stream.writeShort(info[1]);	//sign
-				stream.writeShort(info[2]);	//displayScale
+				buffer.writeShort(info[0]);	//weight
+				buffer.writeShort(info[1]);	//sign
+				buffer.writeShort(info[2]);	//displayScale
 
 				for (int d = 0; d < digits.length; ++d)
-					stream.writeShort(digits[d]);
+					buffer.writeShort(digits[d]);
 			}
 
 		}

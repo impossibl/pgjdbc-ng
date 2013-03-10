@@ -1,6 +1,4 @@
 
-import static java.util.logging.Level.ALL;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -13,6 +11,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
+
+import com.impossibl.postgres.utils.Timer;
 
 
 public class Test {
@@ -34,10 +34,10 @@ public class Test {
 	public static void main(String[] args) throws SQLException, IOException, ClassNotFoundException {
 		
 		for(Handler x : Logger.getLogger("").getHandlers()) {
-			x.setLevel(ALL);
+			//x.setLevel(ALL);
 		}
 		
-		Logger.getLogger("com.impossibl.postgres").setLevel(ALL);
+		//Logger.getLogger("com.impossibl.postgres").setLevel(ALL);
 		
 		Connection conn = DriverManager.getConnection("jdbc:postgresql://db/impossibl?username=postgres&password=test");
 
@@ -48,11 +48,13 @@ public class Test {
 		conn.setTypeMap(targetTypeMap);
 
 		{
-			PreparedStatement ps0 = conn.prepareStatement("select m from money_test");
+			Timer timer = new Timer();
+			PreparedStatement ps0 = conn.prepareStatement("select val from big_test");
 			ResultSet rs0 = ps0.executeQuery();
-			while(rs0.next()) {
-				System.out.println(rs0.getObject(0));
-			}
+//			while(rs0.next()) {
+//				//System.out.println(rs0.getObject(0));
+//			}
+			System.out.println("SELECT TIME = " + timer.getLap());
 		}
 		
 		{

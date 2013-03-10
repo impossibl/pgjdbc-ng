@@ -16,7 +16,7 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
-import java.net.Socket;
+import java.net.SocketAddress;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -54,8 +54,8 @@ public class PSQLConnection extends BasicContext implements Connection {
 	boolean autoCommit = true;
 	int networkTimeout;
 
-	public PSQLConnection(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
-		super(socket, settings, targetTypeMap);
+	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+		super(address, settings, targetTypeMap);
 	}
 
 	public String getNextStatementName() {
@@ -298,7 +298,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		execute(prepare);
 
-		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes());
+		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 	}
 
 	@Override

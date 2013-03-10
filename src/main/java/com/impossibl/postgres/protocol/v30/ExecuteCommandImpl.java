@@ -57,9 +57,11 @@ public class ExecuteCommandImpl extends CommandImpl implements ExecuteCommand {
 
 	public void execute(ProtocolImpl protocol) throws IOException {
 		
+		protocol.setHandler(handler);
+		
 		protocol.sendQuery(command);
 		
-		protocol.run(handler);
+		waitFor(handler);
 	}
 
 }

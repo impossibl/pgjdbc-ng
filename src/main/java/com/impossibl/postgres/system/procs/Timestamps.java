@@ -8,10 +8,10 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
@@ -28,9 +28,9 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.BinaryIO.Decoder {
 
-		public Timestamp decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public Timestamp decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if (length == -1) {
 				return null;
 			}
@@ -38,7 +38,7 @@ public class Timestamps extends SettingSelectProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			long microsPg = stream.readLong();
+			long microsPg = buffer.readLong();
 			long microsJava = microsPg + PG_JAVA_EPOCH_DIFF_MICROS;
 
 			return convertMicrosToTimestamp(microsJava);
@@ -48,10 +48,10 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	static class BinIntegerEncoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 				
@@ -60,8 +60,8 @@ public class Timestamps extends SettingSelectProcProvider {
 				long microsJava = convertTimestampToMicros(ts);
 				long microsPg = microsJava - PG_JAVA_EPOCH_DIFF_MICROS;
 				
-				stream.writeInt(8);
-				stream.writeLong(microsPg);
+				buffer.writeInt(8);
+				buffer.writeLong(microsPg);
 			}
 
 		}

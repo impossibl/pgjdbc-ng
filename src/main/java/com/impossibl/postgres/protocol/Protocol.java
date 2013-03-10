@@ -13,7 +13,7 @@ public interface Protocol {
 
 	StartupCommand createStartup(Map<String,Object> parameters);
 	PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
-	QueryCommand createQuery(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, Class<?> rowType);
+	QueryCommand createQuery(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
 	ExecuteCommand createExec(String sqlText);
 	
 	void execute(Command cmd) throws IOException;

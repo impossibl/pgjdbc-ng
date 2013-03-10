@@ -4,17 +4,16 @@ import static com.impossibl.postgres.utils.Factory.createInstance;
 import static org.apache.commons.beanutils.BeanUtils.getProperty;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
@@ -26,36 +25,35 @@ public class Records extends SimpleProcProvider {
 
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			CompositeType ctype = (CompositeType) type;
 
 			Object instance = createInstance(context.lookupInstanceType(type), 0);
 
-			int lengthGiven = stream.readInt();
+			int lengthGiven = buffer.readInt();
 
-			long writeStart = stream.getCount();
+			long readStart = buffer.readerIndex();
 
-			int itemCount = stream.readInt();
+			int itemCount = buffer.readInt();
 
 			for (int c = 0; c < itemCount; ++c) {
 
 				Attribute attribute = ctype.getAttribute(c);
 
-				Type attributeType = context.getRegistry().loadType(stream.readInt());
+				Type attributeType = context.getRegistry().loadType(buffer.readInt());
 
 				if (attributeType.getId() != attribute.type.getId()) {
 
 					context.refreshType(attributeType.getId());
 				}
 
-				Object attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, stream, context);
+				Object attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, buffer, context);
 
 				Records.set(instance, attribute.name, attributeVal);
 			}
 
-			long lengthFound = stream.getCount() - writeStart;
-			if (lengthFound != lengthGiven) {
+			if (lengthGiven != buffer.readerIndex() - readStart) {
 				throw new IllegalStateException();
 			}
 
@@ -66,43 +64,37 @@ public class Records extends SimpleProcProvider {
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {
 
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
+				
+				buffer.writeInt(-1);
 
-				//
-				//Write to temp buffer
-				//
-				ByteArrayOutputStream recordByteStream = new ByteArrayOutputStream();
-				DataOutputStream recordDataStream = new DataOutputStream(recordByteStream);
+				int writeStart = buffer.writerIndex();
 
 				CompositeType ctype = (CompositeType) type;
 				
 				Collection<Attribute> attributes = ctype.getAttributes();
 
-				recordDataStream.writeInt(attributes.size());
+				buffer.writeInt(attributes.size());
 
 				for (Attribute attribute : attributes) {
 
 					Type attributeType = attribute.type;
 
-					recordDataStream.writeInt(attributeType.getId());
+					buffer.writeInt(attributeType.getId());
 
 					Object attributeVal = Records.get(val, attribute.name);
 
-					attributeType.getBinaryIO().encoder.encode(attributeType, recordDataStream, attributeVal, context);
+					attributeType.getBinaryIO().encoder.encode(attributeType, buffer, attributeVal, context);
 				}
-				
-				//
-				//Write temp buffer
-				//
-				byte[] buffer = recordByteStream.toByteArray();
-				stream.writeInt(buffer.length);
-				stream.write(buffer);
+
+				//Set length
+				buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
 			}
 
 		}

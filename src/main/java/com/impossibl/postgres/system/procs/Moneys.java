@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 public class Moneys extends SimpleProcProvider {
@@ -20,9 +20,9 @@ public class Moneys extends SimpleProcProvider {
 
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public BigDecimal decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if (length == -1) {
 				return null;
 			}
@@ -30,7 +30,7 @@ public class Moneys extends SimpleProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			long val = stream.readLong();
+			long val = buffer.readLong();
 			
 			int fracDigits = getFractionalDigits(context);
 			
@@ -41,11 +41,11 @@ public class Moneys extends SimpleProcProvider {
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {
 				
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 				
@@ -55,8 +55,8 @@ public class Moneys extends SimpleProcProvider {
 				
 				dec.setScale(fracDigits, HALF_UP);
 				
-				stream.writeInt(8);
-				stream.writeLong(dec.unscaledValue().longValue());
+				buffer.writeInt(8);
+				buffer.writeLong(dec.unscaledValue().longValue());
 			}
 			
 		}

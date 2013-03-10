@@ -1,7 +1,8 @@
 package com.impossibl.postgres.jdbc;
 
 import java.io.IOException;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -20,23 +21,13 @@ import com.impossibl.postgres.system.Context;
 
 public class PSQLDriver implements Driver {
 	
-	/*
-	 * URL Pattern jdbc:postgresql:(?://(?:([a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(\d+))?)/)?(\w+)(?:\?(.*))?
-	 * 	Capturing Groups:
-	 * 		1 = host name, IPv4, IPv6	(optional)
-	 * 		2 = port 									(optional)
-	 * 		3 = database name					(required)
-	 * 		4 = parameters						(optional)
-	 */
-	private static final Pattern URL_PATTERN = Pattern.compile("jdbc:postgresql:(?://(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)/)?(\\w+)(?:\\?(.*))?");
-	
-	
 	static class ConnectionSpecifier {
 		public String hostname;
 		public Integer port;
 		public String database;
 		public Properties parameters = new Properties();
 	}
+
 	
 	
 	public PSQLDriver() throws SQLException {
@@ -58,9 +49,9 @@ public class PSQLDriver implements Driver {
 			settings.putAll(info);
 			settings.put("database", connSpec.database);
 			
-			Socket socket = new Socket(connSpec.hostname, connSpec.port);
+			SocketAddress address = new InetSocketAddress(connSpec.hostname, connSpec.port);
 			
-			PSQLConnection conn = new PSQLConnection(socket, settings, Collections.<String, Class<?>>emptyMap());
+			PSQLConnection conn = new PSQLConnection(address, settings, Collections.<String, Class<?>>emptyMap());
 			
 			conn.init();
 			
@@ -79,6 +70,16 @@ public class PSQLDriver implements Driver {
 		return parseURL(url) != null;
 	}
 
+	/*
+	 * URL Pattern jdbc:postgresql:(?://(?:([a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(\d+))?)/)?(\w+)(?:\?(.*))?
+	 * 	Capturing Groups:
+	 * 		1 = host name, IPv4, IPv6	(optional)
+	 * 		2 = port 									(optional)
+	 * 		3 = database name					(required)
+	 * 		4 = parameters						(optional)
+	 */
+	private static final Pattern URL_PATTERN = Pattern.compile("jdbc:postgresql:(?://(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)/)?(\\w+)(?:\\?(.*))?");
+	
 	private ConnectionSpecifier parseURL(String url) {
 		
 		try {

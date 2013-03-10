@@ -5,11 +5,11 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 public abstract class Type {
 	
@@ -56,11 +56,11 @@ public abstract class Type {
 	public static class BinaryIO {
 
 		public interface Decoder {
-			Object decode(Type type, DataInputStream stream, Context context) throws IOException;
+			Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException;
 		}
 		
 		public interface Encoder {
-			void encode(Type tyoe, DataOutputStream stream, Object value, Context context) throws IOException;
+			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
 
 		public Decoder decoder;

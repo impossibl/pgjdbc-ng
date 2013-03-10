@@ -3,10 +3,10 @@ package com.impossibl.postgres.system.procs;
 import java.io.IOException;
 import java.util.BitSet;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
@@ -18,18 +18,18 @@ public class Bits extends SimpleProcProvider {
 
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public BitSet decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public BitSet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if (length == -1) {
 				return null;
 			}
 
-			int bitCount = stream.readInt();
+			int bitCount = buffer.readInt();
 			int byteCount = (bitCount + 7) / 8;
 
 			byte[] bytes = new byte[byteCount];
-			stream.readFully(bytes);
+			buffer.readBytes(bytes);
 
 			// Set equivalent bits in bit set (they use reversed encodings so
 			// they cannot be just copied in
@@ -45,11 +45,11 @@ public class Bits extends SimpleProcProvider {
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {
 
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 
@@ -65,8 +65,8 @@ public class Bits extends SimpleProcProvider {
 					bytes[c / 8] |= ((0x80 >> (c % 8)) & (bs.get(c) ? 0xff : 0x00));
 				}
 
-				stream.writeInt(bs.size());
-				stream.write(bytes);
+				buffer.writeInt(bs.size());
+				buffer.writeBytes(bytes);
 			}
 
 		}

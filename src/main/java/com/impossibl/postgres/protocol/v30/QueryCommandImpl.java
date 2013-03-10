@@ -1,6 +1,5 @@
 package com.impossibl.postgres.protocol.v30;
 
-import static com.impossibl.postgres.protocol.ServerObject.Portal;
 import static java.util.Arrays.asList;
 
 import java.io.IOException;
@@ -8,11 +7,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
 
 public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
@@ -55,42 +55,50 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		}
 	
 		@Override
-		public void rowData(ProtocolImpl protocol, DataInputStream stream) throws IOException {
-			results.add(protocol.parseRowData(stream, resultFields, rowType));
+		public void rowData(ProtocolImpl protocol, ChannelBuffer buffer) throws IOException {
+			results.add(protocol.parseRowData(buffer, resultFields, rowType));
 		}
 
 		@Override
-		public void emptyQuery() {
+		public synchronized void emptyQuery() {
 			status = Status.Completed;
+			notifyAll();
 		}
 
 		@Override
-		public void portalSuspended() {
+		public synchronized void portalSuspended() {
 			status = Status.Suspended;
+			notifyAll();
 		}
 
 		@Override
-		public void commandComplete(String command, Long rowsAffected, Long oid) {
+		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
 			status = Status.Completed;
 			QueryCommandImpl.this.resultCommand = command;
 			QueryCommandImpl.this.resultRowsAffected = rowsAffected;
 			QueryCommandImpl.this.resultInsertedOid = oid;
+			notifyAll();
 		}
 
 		@Override
-		public void error(Error error) {
+		public synchronized void error(Error error) {
 			QueryCommandImpl.this.error = error;
+			notifyAll();
 		}
 		
 	};
 	
 	
-	public QueryCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, Class<?> rowType) {
+	public QueryCommandImpl(
+			String portalName, String statementName,
+			List<Type> parameterTypes, List<Object> parameterValues,
+			List<ResultField> resultFields, Class<?> rowType) {
+		
 		this.statementName = statementName;
 		this.portalName = portalName;
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = parameterValues;
-		this.resultFields = null;
+		this.resultFields = resultFields;
 		this.rowType = rowType;
 		this.results = new ArrayList<>();
 	}
@@ -154,12 +162,12 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
 	public void execute(ProtocolImpl protocol) throws IOException {
 		
+		protocol.setHandler(handler);
+		
 		if(status != Status.Suspended) {
 			
 			protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
-		
-			protocol.sendDescribe(Portal, portalName);
-		
+				
 		}
 		
 		protocol.sendExecute(portalName, maxRows);
@@ -168,7 +176,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		
 		reset();
 		
-		protocol.run(handler);
+		waitFor(handler);
 		
 		if(status == Status.Completed) {
 			

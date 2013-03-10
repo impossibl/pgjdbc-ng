@@ -3,6 +3,7 @@ package com.impossibl.postgres.protocol.v30;
 import java.io.IOException;
 import java.util.Map;
 
+import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.utils.MD5Authentication;
@@ -27,8 +28,14 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			}
 			
 			@Override
-			public void ready(TransactionStatus txStatus) {
+			public synchronized void ready(TransactionStatus txStatus) {
 				StartupCommandImpl.this.ready = true;
+				notify();
+			}
+			
+			@Override
+			public synchronized void error(Error error) {
+				setError(error);
 			}
 
 			@Override
@@ -85,10 +92,11 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			
 		};
 		
+		protocol.setHandler(handler);
+		
 		protocol.sendStartup(params);
 
-		protocol.run(handler);
-		
+		waitFor(handler);
 	}
 
 }

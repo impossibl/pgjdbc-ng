@@ -3,10 +3,10 @@ package com.impossibl.postgres.system.procs;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 public class UUIDs extends SimpleProcProvider {
@@ -17,9 +17,9 @@ public class UUIDs extends SimpleProcProvider {
 	
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public UUID decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public UUID decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if(length == -1) {
 				return null;
 			}
@@ -27,26 +27,26 @@ public class UUIDs extends SimpleProcProvider {
 				throw new IOException("invalid length");
 			}
 						
-			return new UUID(stream.readLong(), stream.readLong());
+			return new UUID(buffer.readLong(), buffer.readLong());
 		}
 
 	}
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
 			if (val == null) {
 				
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 				
-				stream.writeInt(16);
+				buffer.writeInt(16);
 				
 				UUID uval = (UUID)val;			
-				stream.writeLong(uval.getMostSignificantBits());
-				stream.writeLong(uval.getLeastSignificantBits());
+				buffer.writeLong(uval.getMostSignificantBits());
+				buffer.writeLong(uval.getLeastSignificantBits());
 			}
 			
 		}

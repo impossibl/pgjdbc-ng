@@ -6,11 +6,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 /*
@@ -26,11 +26,11 @@ public class Arrays extends SimpleProcProvider {
 	
 	static class Decoder implements Type.BinaryIO.Decoder {
 
-		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int lengthGiven = stream.readInt();
+			int lengthGiven = buffer.readInt();
 			
-			long writeStart = stream.getCount();
+			int readStart = buffer.readerIndex();
 			
 			Object instance = null;
 			
@@ -42,9 +42,9 @@ public class Arrays extends SimpleProcProvider {
 				//Header
 				//
 				
-				int dimensionCount = stream.readInt();
-				/* boolean hasNulls = */ stream.readInt() /* == 1 ? true : false */;
-				Type elementType = context.getRegistry().loadType(stream.readInt());
+				int dimensionCount = buffer.readInt();
+				/* boolean hasNulls = */ buffer.readInt() /* == 1 ? true : false */;
+				Type elementType = context.getRegistry().loadType(buffer.readInt());
 				
 				//Each Dimension
 				int elementCount = 1;
@@ -53,10 +53,10 @@ public class Arrays extends SimpleProcProvider {
 				for(int d=0; d < dimensionCount; ++d) {
 					
 					//Dimension
-					dimensions[d] = stream.readInt();
+					dimensions[d] = buffer.readInt();
 					
 					//Lower bounds
-					lowerBounds[d] = stream.readInt();
+					lowerBounds[d] = buffer.readInt();
 					
 					
 					elementCount *= dimensions[d];
@@ -74,14 +74,14 @@ public class Arrays extends SimpleProcProvider {
 				
 				for(int e=0; e < elementCount; ++e) {
 					
-					Object elementVal = elementType.getBinaryIO().decoder.decode(elementType, stream, context);
+					Object elementVal = elementType.getBinaryIO().decoder.decode(elementType, buffer, context);
 					
 					Arrays.set(instance, e, elementVal);
 				}				
 				
 			}
 			
-			if(lengthGiven != (stream.getCount() - writeStart)) {
+			if(lengthGiven != buffer.readerIndex() - readStart) {
 				throw new IOException("invalid length");
 			}
 
@@ -92,13 +92,17 @@ public class Arrays extends SimpleProcProvider {
 
 	static class Encoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
 			if(val == null) {
 				
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
+				
+				buffer.writeInt(-1);
+				
+				int writeStart = buffer.writerIndex();
 				
 				ArrayType atype = ((ArrayType)type);
 				Type elementType = atype.getElementType();
@@ -109,11 +113,11 @@ public class Arrays extends SimpleProcProvider {
 				
 				int dimensionCount = Arrays.dimensions(val);
 				//Dimension count
-				stream.writeInt(dimensionCount);
+				buffer.writeInt(dimensionCount);
 				//Has nulls
-				stream.writeInt(hasNulls(val) ? 1 : 0);
+				buffer.writeInt(hasNulls(val) ? 1 : 0);
 				//Element type
-				stream.writeInt(elementType.getId());
+				buffer.writeInt(elementType.getId());
 				
 				//each dimension
 				int elementCount = 1;
@@ -122,10 +126,10 @@ public class Arrays extends SimpleProcProvider {
 					int dimension = Arrays.length(val,d);
 					
 					//Dimension
-					stream.writeInt(dimension);
+					buffer.writeInt(dimension);
 					
 					//Lower bounds
-					stream.writeInt(0);
+					buffer.writeInt(0);
 					
 					elementCount *= dimension;
 				}
@@ -137,8 +141,11 @@ public class Arrays extends SimpleProcProvider {
 					
 					Object elementVal = Arrays.get(val, e);
 					
-					elementType.getBinaryIO().encoder.encode(elementType, stream, elementVal, context);
+					elementType.getBinaryIO().encoder.encode(elementType, buffer, elementVal, context);
 				}
+				
+				//Set length
+				buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
 
 			}
 
