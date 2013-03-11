@@ -3,10 +3,16 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.Version;
 
 
+/**
+ * Table for "pg_type"
+ *  
+ * @author kdubb
+ *
+ */
 public class PgType implements Table<PgType.Row> {
-	
+
 	public static class Row {
-		
+
 		public int oid;
 		public String name;
 		public short length;
@@ -27,45 +33,46 @@ public class PgType implements Table<PgType.Row> {
 		public int baseTypeId;
 		public int modId;
 		public int numberOfDimensions;
-		
+
 		@Override
 		public boolean equals(Object val) {
 			if(val == null)
 				return false;
 			if(val instanceof Integer)
-				return oid == (Integer)val;
+				return oid == (Integer) val;
 			if(val instanceof PgType)
-				return oid == ((Row)val).oid;
+				return oid == ((Row) val).oid;
 			return false;
 		}
-		
+
 		@Override
 		public int hashCode() {
 			return oid;
 		}
-		
+
 	}
-	
-	public static PgType INSTANCE = new PgType(); 
-	
-	private PgType() {}
-	
+
+	public static PgType INSTANCE = new PgType();
+
+	private PgType() {
+	}
+
 	public String getSQL(Version currentVersion) {
 		return Tables.getSQL(SQL, currentVersion);
 	}
-	
+
 	public Row createRow() {
 		return new Row();
 	}
 
 	public static Object[] SQL = {
-		Version.get(9,0,0),
-		" select" +
-		"		oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-		"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
-		"		typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
-		" from" +
-		"		pg_catalog.pg_type"
+			Version.get(9, 0, 0),
+			" select"	+
+			"		oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
+			"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\","	+
+			"		typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
+			" from" +
+			"		pg_catalog.pg_type"
 	};
 
 }

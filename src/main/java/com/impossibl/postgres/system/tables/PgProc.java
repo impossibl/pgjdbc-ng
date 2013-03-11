@@ -3,7 +3,12 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.Version;
 
 
-
+/**
+ * Table for "pg_proc"
+ * 
+ * @author kdubb
+ *
+ */
 public class PgProc implements Table<PgProc.Row> {
 
 	public static class Row {

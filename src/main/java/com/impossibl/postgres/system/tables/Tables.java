@@ -6,6 +6,15 @@ import com.impossibl.postgres.system.Version;
 
 public class Tables {
 	
+	/**
+	 * Helper function for matching a SQL query with a version.
+	 * 
+	 * @param sqlData An array of [Version, String] pairs to select from
+	 * @param currentVersion The requested version of SQL to retrieve
+	 * @return SQL text for the requested version
+	 * @throws UnsupportedServerVersion if no match can be found
+	 * @throws IllegalStateException if the sqlData pairs are ill formed
+	 */
 	public static String getSQL(Object[] sqlData, Version currentVersion) {
 
 		try {

@@ -3,7 +3,12 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.Version;
 
 
-
+/**
+ * Table for "pg_attribute"
+ * 
+ * @author kdubb
+ *
+ */
 public class PgAttribute implements Table<PgAttribute.Row> {
 
 	public static class Row {
@@ -26,20 +31,20 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
 		@Override
 		public boolean equals(Object obj) {
-			if (this == obj)
+			if(this == obj)
 				return true;
-			if (obj == null)
+			if(obj == null)
 				return false;
-			if (getClass() != obj.getClass())
+			if(getClass() != obj.getClass())
 				return false;
 			Row other = (Row) obj;
-			if (name == null) {
-				if (other.name != null)
+			if(name == null) {
+				if(other.name != null)
 					return false;
 			}
-			else if (!name.equals(other.name))
+			else if(!name.equals(other.name))
 				return false;
-			if (typeId != other.typeId)
+			if(typeId != other.typeId)
 				return false;
 			return true;
 		}
