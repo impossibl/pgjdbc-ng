@@ -2,12 +2,17 @@ package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getCommitText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionIsolationLevelText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionReadabilityText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getIsolationLevel;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getProtocolSQLText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getReleaseSavepointText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackToText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSavepointText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSessionIsolationLevelText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSessionReadabilityText;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.isTrue;
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -127,9 +132,34 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	}
 
-	private void execute(String sql) throws SQLException {
+	void execute(String sql) throws SQLException {
 
-		execute(protocol.createQuery(sql));
+		try {
+			
+			execQuery(sql);
+			
+		}
+		catch(IOException e) {
+			
+			throw new SQLException(e);
+			
+		}
+		
+	}
+
+	String executeForString(String sql) throws SQLException {
+
+		try {
+			
+			return execQueryForString(sql);
+			
+		}
+		catch(IOException e) {
+			
+			throw new SQLException(e);
+			
+		}
+
 	}
 
 	@Override
@@ -147,9 +177,28 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
+	public boolean isReadOnly() throws SQLException {
+		
+		String readability = executeForString(getGetSessionReadabilityText());
+		
+		return isTrue(readability);
+	}
+
+	@Override
+	public void setReadOnly(boolean readOnly) throws SQLException {
+
+		if (autoCommit)
+			throw new SQLException("cannot set read only when auto-commit is enabled");
+
+		execute(getSetSessionReadabilityText(readOnly));
+	}
+
+	@Override
 	public int getTransactionIsolation() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		
+		String isolLevel = executeForString(getGetSessionIsolationLevelText());
+
+		return getIsolationLevel(isolLevel);
 	}
 
 	@Override

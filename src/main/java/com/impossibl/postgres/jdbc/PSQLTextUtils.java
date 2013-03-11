@@ -12,6 +12,14 @@ import java.util.regex.Pattern;
 
 public class PSQLTextUtils {
 
+	public static boolean isTrue(String value) {
+		return "on".equals(value);
+	}
+
+	public static boolean isFalse(String value) {
+		return "off".equals(value);
+	}
+
 	public static String getIsolationLevelText(int level) {
 
 		switch (level) {
@@ -26,6 +34,37 @@ public class PSQLTextUtils {
 		}
 
 		throw new RuntimeException("unknown isolation level");
+	}
+
+	public static int getIsolationLevel(String level) {
+
+		switch (level.toUpperCase()) {
+		case "READ UNCOMMITTED":
+			return TRANSACTION_READ_UNCOMMITTED;
+		case "READ COMMITTED":
+			return TRANSACTION_READ_COMMITTED;
+		case "REPEATABLE READ":
+			return TRANSACTION_REPEATABLE_READ;
+		case "SERIALIZABLE":
+			return TRANSACTION_SERIALIZABLE;
+		}
+
+		throw new RuntimeException("unknown isolation level");
+	}
+
+	public static String getGetSessionReadabilityText() {
+		
+		return "SHOW default_transaction_read_only";
+	}
+
+	public static String getSetSessionReadabilityText(boolean readOnly) {
+		
+		return "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
+	}
+
+	public static String getGetSessionIsolationLevelText() {
+		
+		return "SHOW default_transaction_isolation";
 	}
 
 	public static String getSetSessionIsolationLevelText(int level) {
