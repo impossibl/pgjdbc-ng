@@ -14,7 +14,7 @@ import com.impossibl.postgres.types.Type;
 public class Strings extends SimpleProcProvider {
 
 	public Strings() {
-		super(null, null, new Encoder(), new Decoder(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
+		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
