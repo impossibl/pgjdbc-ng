@@ -4,6 +4,8 @@ import static java.lang.Runtime.getRuntime;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
@@ -11,6 +13,8 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.util.ThreadNameDeterminer;
+import org.jboss.netty.util.ThreadRenamingRunnable;
 
 
 
@@ -74,8 +78,10 @@ public class ProtocolShared {
 
 	private void init() {
 
-		Executor bossExecutorService = Executors.newCachedThreadPool();
-		Executor workerExecutorService = Executors.newCachedThreadPool();
+		ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
+		
+		Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
+		Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
 
 		int workerCount = getRuntime().availableProcessors();
 
@@ -100,4 +106,27 @@ public class ProtocolShared {
 		bootstrap.releaseExternalResources();
 	}
 
+}
+
+
+class NamedThreadFactory implements ThreadFactory {
+
+	private String baseName;
+	private AtomicInteger idx = new AtomicInteger(1);
+	
+	public NamedThreadFactory(String baseName) {
+		super();
+		this.baseName = baseName;
+	}
+
+	@Override
+	public Thread newThread(Runnable r) {
+		Thread thread = new Thread(r, baseName + " (" + idx.getAndIncrement() + ")");
+		if(thread.isDaemon())
+			thread.setDaemon(false);
+		if(thread.getPriority() != Thread.NORM_PRIORITY)
+			thread.setPriority(Thread.NORM_PRIORITY);
+		return thread;
+	}
+	
 }
