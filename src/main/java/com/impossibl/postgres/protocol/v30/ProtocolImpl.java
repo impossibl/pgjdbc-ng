@@ -740,7 +740,9 @@ public class ProtocolImpl implements Protocol {
 			break;
 
 		default:
-			throw new IOException("error parsing command tag");
+			
+			if(parts.length != 1)
+				throw new IOException("error parsing command tag");
 		}
 
 		logger.finest("COMPLETE: " + commandTag);
