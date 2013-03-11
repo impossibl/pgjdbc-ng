@@ -109,15 +109,15 @@ public class BasicContext implements Context {
 		
 		//Load types
 		String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-		List<PgType.Row> pgTypes = query(typeSQL, PgType.Row.class);
+		List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class);
 		
 		//Load attributes
 		String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-		List<PgAttribute.Row> pgAttrs = query(attrsSQL, PgAttribute.Row.class);
+		List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class);
 		
 		//Load procs
 		String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-		List<PgProc.Row> pgProcs = query(procsSQL, PgProc.Row.class);
+		List<PgProc.Row> pgProcs = execQuery(procsSQL, PgProc.Row.class);
 		
 		logger.info("query time: " + timer.getLap() + "ms");
 
@@ -143,7 +143,7 @@ public class BasicContext implements Context {
 		return startup.getError() == null;
 	}
 	
-	public <T> List<T> query(String queryTxt, Class<T> rowType, Object... params) throws IOException {
+	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException {
 
 		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 		
@@ -154,6 +154,54 @@ public class BasicContext implements Context {
 		protocol.execute(query);
 		
 		return query.getResults(rowType);
+	}
+
+	public List<Object[]> execQuery(String queryTxt) throws IOException {
+
+		QueryCommand query = protocol.createQuery(queryTxt);
+		
+		protocol.execute(query);
+		
+		@SuppressWarnings("unchecked")
+		List<Object[]> res = (List<Object[]>) query.getResults();
+		
+		return res;
+	}
+
+	public Object execQueryForResult(String queryTxt) throws IOException {
+		
+		QueryCommand query = protocol.createQuery(queryTxt);
+		
+		protocol.execute(query);
+		
+		@SuppressWarnings("unchecked")
+		List<Object[]> res = (List<Object[]>) query.getResults();
+		if(res.isEmpty()) {
+			return query.getResultRowsAffected();
+		}
+		
+		Object[] firstRow = res.get(0);
+		if(firstRow.length == 0)
+			return null;
+		
+		return firstRow[0];
+	}
+	
+	public String execQueryForString(String queryTxt) throws IOException {
+
+		List<Object[]> res = execQuery(queryTxt);
+		if(res.isEmpty()) {
+			return "";
+		}
+		
+		Object[] firstRow = res.get(0);
+		if(firstRow.length == 0)
+			return "";
+		
+		if(firstRow[0] == null)
+			return "";
+		
+		return firstRow[0].toString();
 	}
 
 	public void setKeyData(int processId, int secretKey) {
