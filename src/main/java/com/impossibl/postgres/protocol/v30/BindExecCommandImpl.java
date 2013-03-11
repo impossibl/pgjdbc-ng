@@ -184,8 +184,13 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		return resultFields;
 	}
 
+	public List<?> getResults() {
+		return results;
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> List<T> getResults(Class<T> rowType) {
+		//TODO do this unchecked
 		return (List<T>) results;
 	}
 

@@ -7,5 +7,6 @@ public interface QueryCommand extends Command {
 	String getResultCommand();
 	Long getResultRowsAffected();
 	List<Long> getResultInsertedOids();
+	List<?> getResults();
 	
 }

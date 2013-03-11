@@ -1,22 +1,30 @@
 package com.impossibl.postgres.protocol.v30;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Type;
 
 
 
 public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
-	String command;
-	String resultCommand;
-	Long resultRowsAffected;
-	Long resultInsertedOid;
+	class QueryListener extends BaseProtocolListener {
 
-	private ProtocolListener listener = new BaseProtocolListener() {
+		Context context;
+	
+		public QueryListener(Context context) {
+			super();
+			this.context = context;
+		}
 
 		@Override
 		public boolean isComplete() {
@@ -24,18 +32,63 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		}
 
 		@Override
-		public void commandComplete(String command, Long rowsAffected, Long oid) {
-			QueryCommandImpl.this.resultCommand = command;
-			QueryCommandImpl.this.resultRowsAffected = rowsAffected;
-			QueryCommandImpl.this.resultInsertedOid = oid;
+		public void rowDescription(List<ResultField> resultFields) {
+			QueryCommandImpl.this.resultFields = resultFields;
 		}
 
 		@Override
-		public void error(Error error) {
+		public void rowData(ChannelBuffer buffer) throws IOException {
+			
+			int fieldCount = buffer.readShort();
+
+			Object[] rowInstance = new Object[fieldCount];
+
+			for (int c = 0; c < fieldCount; ++c) {
+
+				ResultField field = resultFields.get(c);
+
+				Type fieldType = field.type;
+				Object fieldVal = null;
+
+				switch (field.format) {
+				case Text:
+					fieldVal = fieldType.getTextCodec().decoder.decode(fieldType, buffer, context);
+					break;
+
+				default:
+					throw new IOException("simple queries only support text format");
+				}
+
+				rowInstance[c] = fieldVal;
+			}
+
+			results.add(rowInstance);
+		}
+
+		@Override
+		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
+			QueryCommandImpl.this.resultCommand = command;
+			QueryCommandImpl.this.resultRowsAffected = rowsAffected;
+			QueryCommandImpl.this.resultInsertedOid = oid;
+			notifyAll();
+		}
+
+		@Override
+		public synchronized void error(Error error) {
 			QueryCommandImpl.this.error = error;
+			notifyAll();
 		}
 
 	};
+
+
+	
+	String command;
+	String resultCommand;
+	Long resultRowsAffected;
+	Long resultInsertedOid;
+	List<ResultField> resultFields;
+	List<Object[]> results;
 
 	public QueryCommandImpl(String command) {
 		this.command = command;
@@ -56,8 +109,17 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		return Arrays.asList(resultInsertedOid);
 	}
 
-	public void execute(ProtocolImpl protocol) throws IOException {
+	@Override
+	public List<Object[]> getResults() {
+		return results;
+	}
 
+	public void execute(ProtocolImpl protocol) throws IOException {
+		
+		results = new ArrayList<>();
+
+		QueryListener listener = new QueryListener(protocol.getContext());
+		
 		protocol.setListener(listener);
 
 		protocol.sendQuery(command);
