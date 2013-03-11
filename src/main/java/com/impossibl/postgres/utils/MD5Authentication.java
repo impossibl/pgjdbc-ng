@@ -1,14 +1,27 @@
 package com.impossibl.postgres.utils;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 public class MD5Authentication {
 
+	/**
+	 * Generates an authentication token compatible with PostgreSQL's
+	 * MD5 scheme
+	 * 
+	 * @param password Password to generate token from
+	 * @param user Username to generate token from
+	 * @param salt Salt to generate token from
+	 * @return MD5 authentication token
+	 */
 	public static String encode(String password, String user, byte salt[]) {
 		
+		HexBinaryAdapter hex = new HexBinaryAdapter();
 		byte[] tempDigest, passDigest;
 		byte[] hexDigest = new byte[35];
 
@@ -24,31 +37,13 @@ public class MD5Authentication {
 		md.update(user.getBytes(UTF_8));
 		tempDigest = md.digest();
 
-		bytesToHex(tempDigest, hexDigest, 0);
-		md.update(hexDigest, 0, 32);
+		hexDigest = hex.marshal(tempDigest).toLowerCase().getBytes(US_ASCII);
+		
+		md.update(hexDigest);
 		md.update(salt);
 		passDigest = md.digest();
-
-		bytesToHex(passDigest, hexDigest, 3);
-		hexDigest[0] = (byte) 'm';
-		hexDigest[1] = (byte) 'd';
-		hexDigest[2] = (byte) '5';
-
-		return new String(hexDigest, UTF_8);
-	}
-
-	static void bytesToHex(byte[] bytes, byte[] hex, int offset) {
-		final char lookup[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-		int i, c, j, pos = offset;
-
-		for (i = 0; i < 16; i++) {
-			c = bytes[i] & 0xFF;
-			j = c >> 4;
-			hex[pos++] = (byte) lookup[j];
-			j = (c & 0xF);
-			hex[pos++] = (byte) lookup[j];
-		}
+		
+		return "md5" + hex.marshal(passDigest).toLowerCase();
 	}
 
 }
