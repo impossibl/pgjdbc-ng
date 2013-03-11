@@ -8,31 +8,33 @@ import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.utils.MD5Authentication;
 
+
+
 public class StartupCommandImpl extends CommandImpl implements StartupCommand {
-	
+
 	Map<String, Object> params;
 	boolean ready;
-	
+
 	public StartupCommandImpl(Map<String, Object> params) {
 		this.params = params;
 	}
 
 	@Override
 	public void execute(final ProtocolImpl protocol) throws IOException {
-		
-		ProtocolHandler handler = new AbstractProtocolHandler() {
+
+		ProtocolListener listener = new BaseProtocolListener() {
 
 			@Override
 			public boolean isComplete() {
 				return ready || error != null;
 			}
-			
+
 			@Override
 			public synchronized void ready(TransactionStatus txStatus) {
 				StartupCommandImpl.this.ready = true;
 				notify();
 			}
-			
+
 			@Override
 			public synchronized void error(Error error) {
 				setError(error);
@@ -53,7 +55,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
 			@Override
 			public void authenticateClear(ProtocolImpl protocol) throws IOException {
-				
+
 				String password = protocol.context.getSetting("password").toString();
 
 				protocol.sendPassword(password);
@@ -65,7 +67,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
 			@Override
 			public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
-				
+
 				String username = protocol.context.getSetting("username").toString();
 				String password = protocol.context.getSetting("password").toString();
 
@@ -89,14 +91,14 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			@Override
 			public void authenticateSSPI(ProtocolImpl protocol) {
 			}
-			
+
 		};
-		
-		protocol.setHandler(handler);
-		
+
+		protocol.setListener(listener);
+
 		protocol.sendStartup(params);
 
-		waitFor(handler);
+		waitFor(listener);
 	}
 
 }

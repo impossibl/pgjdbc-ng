@@ -4,10 +4,12 @@ import java.io.IOException;
 
 import com.impossibl.postgres.protocol.Error;
 
+
+
 public abstract class CommandImpl {
-	
+
 	protected Error error;
-	
+
 	public Error getError() {
 		return error;
 	}
@@ -15,26 +17,26 @@ public abstract class CommandImpl {
 	public void setError(Error error) {
 		this.error = error;
 	}
-	
-	public void waitFor(ProtocolHandler handler) {
 
-		synchronized(handler) {
-			
-			while(handler.isComplete() == false) {
-				
+	public void waitFor(ProtocolListener listener) {
+
+		synchronized(listener) {
+
+			while(listener.isComplete() == false) {
+
 				try {
-					handler.wait();
+					listener.wait();
 				}
 				catch(InterruptedException e) {
-					//Ignore
+					// Ignore
 				}
-				
+
 			}
 
 		}
-		
+
 	}
-	
+
 	public abstract void execute(ProtocolImpl protocol) throws IOException;
 
 }

@@ -4,7 +4,6 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 
-import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ResponseMessage;
 
 public class MessageHandler extends SimpleChannelUpstreamHandler {
@@ -14,7 +13,7 @@ public class MessageHandler extends SimpleChannelUpstreamHandler {
 		
 		ResponseMessage msg = (ResponseMessage) e.getMessage();
 		
-		Protocol protocol = (Protocol) ctx.getChannel().getAttachment();
+		ProtocolImpl protocol = (ProtocolImpl) ctx.getChannel().getAttachment();
 		protocol.dispatch(msg);
 	}
 

@@ -19,10 +19,12 @@ import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
 
+import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Error;
-import com.impossibl.postgres.protocol.ExecuteCommand;
+import com.impossibl.postgres.protocol.FunctionCallCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -74,17 +76,31 @@ public class ProtocolImpl implements Protocol {
 	private static final byte CLOSE_COMPLETE_MSG_ID = '3';
 	private static final byte FUNCTION_RESULT_MSG_ID = 'V';
 
+	ProtocolShared.Ref sharedRef;
+	Channel channel;
 	Context context;
 	TransactionStatus txStatus;
-	ProtocolHandler handler;
+	ProtocolListener listener;
 
-	public ProtocolImpl(Context context) {
+	public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, Context context) {
+		this.sharedRef = sharedRef;
+		this.channel = channel;
 		this.context = context;
 		this.txStatus = Idle;
 	}
 	
-	void setHandler(ProtocolHandler handler) {
-		this.handler = handler;
+	public Context getContext() {
+		return context;
+	}
+	
+	@Override
+	public void shutdown() {
+		channel.disconnect();
+		sharedRef.release();
+	}
+	
+	void setListener(ProtocolListener listener) {
+		this.listener = listener;
 	}
 	
 	@Override
@@ -98,13 +114,18 @@ public class ProtocolImpl implements Protocol {
 	}
 
 	@Override
-	public QueryCommand createQuery(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
-		return new QueryCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields, rowType);
+	public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+		return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields, rowType);
 	}
 
 	@Override
-	public ExecuteCommand createExec(String sqlText) {
-		return new ExecuteCommandImpl(sqlText);
+	public QueryCommand createQuery(String sqlText) {
+		return new QueryCommandImpl(sqlText);
+	}
+
+	@Override
+	public FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
+		return new FunctionCallCommandImpl(functionName, parameterTypes, parameterValues);
 	}
 
 	public synchronized void execute(Command cmd) throws IOException {
@@ -119,8 +140,8 @@ public class ProtocolImpl implements Protocol {
 		}
 		finally {
 			
-			//Ensure handler is reset
-			handler = null;
+			//Ensure listener is reset
+			listener = null;
 		}
 	}
 
@@ -327,7 +348,7 @@ public class ProtocolImpl implements Protocol {
 		
 		msg.setInt(lengthPos, msg.readableBytes() - lengthPos);
 		
-		context.getChannel().write(msg);
+		channel.write(msg);
 	}
 
 	protected void sendMessage(byte msgId) throws IOException {
@@ -337,7 +358,7 @@ public class ProtocolImpl implements Protocol {
 		buffer.writeByte(msgId);
 		buffer.writeInt(4);
 		
-		context.getChannel().write(buffer);
+		channel.write(buffer);
 	}
 
 	public Object parseRowData(ChannelBuffer buffer, List<ResultField> resultFields, Class<?> rowType) throws IOException {
@@ -521,25 +542,25 @@ public class ProtocolImpl implements Protocol {
 		case 0:
 
 			// Ok
-			handler.authenticated(this);
+			listener.authenticated(this);
 			return;
 
 		case 2:
 
 			// KerberosV5
-			handler.authenticateKerberos(this);
+			listener.authenticateKerberos(this);
 			break;
 
 		case 3:
 
 			// Cleartext
-			handler.authenticateClear(this);
+			listener.authenticateClear(this);
 			return;
 
 		case 4:
 
 			// Crypt
-			handler.authenticateCrypt(this);
+			listener.authenticateCrypt(this);
 			return;
 
 		case 5:
@@ -548,32 +569,32 @@ public class ProtocolImpl implements Protocol {
 			byte[] salt = new byte[4];
 			buffer.readBytes(salt);
 
-			handler.authenticateMD5(this, salt);
+			listener.authenticateMD5(this, salt);
 
 			return;
 
 		case 6:
 
 			// SCM Credential
-			handler.authenticateSCM(this);
+			listener.authenticateSCM(this);
 			break;
 
 		case 7:
 
 			// GSS
-			handler.authenticateGSS(this);
+			listener.authenticateGSS(this);
 			break;
 
 		case 8:
 
 			// GSS Continue
-			handler.authenticateGSSCont(this);
+			listener.authenticateGSSCont(this);
 			break;
 
 		case 9:
 
 			// SSPI
-			handler.authenticateSSPI(this);
+			listener.authenticateSSPI(this);
 			break;
 
 		}
@@ -586,7 +607,7 @@ public class ProtocolImpl implements Protocol {
 		int processId = buffer.readInt();
 		int secretKey = buffer.readInt();
 
-		handler.backendKeyData(processId, secretKey);
+		listener.backendKeyData(processId, secretKey);
 	}
 
 	private void receiveError(ChannelBuffer buffer) throws IOException {
@@ -644,7 +665,7 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("ERROR: " + error.message);
 
-		handler.error(error);
+		listener.error(error);
 	}
 
 	private void receiveParameterDescriptions(ChannelBuffer buffer) throws IOException {
@@ -661,7 +682,7 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("PARAM-DESC: " + paramCount);
 
-		handler.parametersDescription(asList(paramTypes));
+		listener.parametersDescription(asList(paramTypes));
 	}
 
 	private void receiveRowDescription(ChannelBuffer buffer) throws IOException {
@@ -686,49 +707,49 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("ROW-DESC: " + fieldCount);
 
-		handler.rowDescription(asList(fields));
+		listener.rowDescription(asList(fields));
 	}
 
 	private void receiveRowData(ChannelBuffer buffer) throws IOException {
 		logger.finest("DATA");
-		handler.rowData(this, buffer);
+		listener.rowData(this, buffer);
 	}
 
 	private void receivePortalSuspended(ChannelBuffer buffer) throws IOException {
 		logger.finest("SUSPEND");
-		handler.portalSuspended();
+		listener.portalSuspended();
 	}
 
 	private void receiveNoData(ChannelBuffer buffer) throws IOException {
 		logger.finest("NO-DATA");
-		handler.noData();
+		listener.noData();
 	}
 
 	private void receiveCloseComplete(ChannelBuffer buffer) throws IOException {
 		logger.finest("CLOSE-COMP");
-		handler.closeComplete();
+		listener.closeComplete();
 	}
 
 	private void receiveBindComplete(ChannelBuffer buffer) throws IOException {
 		logger.finest("BIND-COMP");
-		handler.bindComplete();
+		listener.bindComplete();
 	}
 
 	private void receiveParseComplete(ChannelBuffer buffer) throws IOException {
 		logger.finest("PARSE-COMP");
-		handler.parseComplete();
+		listener.parseComplete();
 	}
 
 	private void receiveEmptyQuery(ChannelBuffer buffer) throws IOException {
 		logger.finest("EMPTY");
-		handler.emptyQuery();
+		listener.emptyQuery();
 	}
 
 	private void receiveFunctionResult(ChannelBuffer buffer) throws IOException {
 
 		logger.finest("FUNCTION-RES");
 
-		handler.functionResult(buffer);
+		listener.functionResult(buffer);
 	}
 
 	private void receiveCommandComplete(ChannelBuffer buffer) throws IOException {
@@ -794,7 +815,7 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("COMPLETE: " + commandTag);
 
-		handler.commandComplete(command, rowsAffected, oid);
+		listener.commandComplete(command, rowsAffected, oid);
 	}
 
 	protected void receiveNotification(ChannelBuffer buffer) throws IOException {
@@ -805,7 +826,7 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("NOTIFY: " + processId + " - " + channelName + " - " + payload);
 
-		handler.notification(processId, channelName, payload);
+		listener.notification(processId, channelName, payload);
 	}
 
 	private void receiveNotice(ChannelBuffer buffer) throws IOException {
@@ -852,8 +873,8 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("READY: " + txStatus);
 
-		if(handler != null)
-			handler.ready(txStatus);
+		if(listener != null)
+			listener.ready(txStatus);
 	}
 
 }

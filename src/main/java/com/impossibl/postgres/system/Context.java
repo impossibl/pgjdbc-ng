@@ -3,8 +3,6 @@ package com.impossibl.postgres.system;
 import java.nio.charset.Charset;
 import java.util.TimeZone;
 
-import org.jboss.netty.channel.Channel;
-
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
@@ -14,8 +12,6 @@ public interface Context {
 	
 	Registry getRegistry();
 	
-	Channel getChannel();
-
 	Charset getCharset();
 	TimeZone getTimeZone();
 

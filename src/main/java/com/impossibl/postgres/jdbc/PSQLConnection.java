@@ -129,7 +129,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	private void execute(String sql) throws SQLException {
 
-		execute(protocol.createExec(sql));
+		execute(protocol.createQuery(sql));
 	}
 
 	@Override

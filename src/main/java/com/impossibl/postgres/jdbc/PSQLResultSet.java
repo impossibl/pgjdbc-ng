@@ -1,6 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.v30.QueryCommandImpl.Status.Completed;
+import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
 
 import java.io.ByteArrayInputStream;
@@ -27,7 +27,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.ResultField;
 
 
@@ -39,11 +39,11 @@ public class PSQLResultSet implements ResultSet {
 	int concurrency;
 	int holdability;
 	int currentRow;
-	QueryCommand command;
+	BindExecCommand command;
 	List<ResultField> resultFields;
 	List<Object[]> results;
 
-	public PSQLResultSet(PSQLStatement statement, QueryCommand command) {
+	public PSQLResultSet(PSQLStatement statement, BindExecCommand command) {
 		super();
 		this.statement = statement;
 		this.currentRow = -1;

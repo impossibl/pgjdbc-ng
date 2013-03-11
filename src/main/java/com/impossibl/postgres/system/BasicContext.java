@@ -14,14 +14,12 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
-import org.jboss.netty.channel.Channel;
-
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.v30.ProtocolImpl;
+import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
@@ -48,8 +46,6 @@ public class BasicContext implements Context {
 	protected Version serverVersion;
 	protected KeyData keyData;
 	protected Protocol protocol;
-	protected Channel channel;
-	private static ContextShared shared = new ContextShared();
 	
 	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		this.registry = new Registry(this);
@@ -57,16 +53,11 @@ public class BasicContext implements Context {
 		this.settings = settings;
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
-		this.protocol = new ProtocolImpl(this);
-		this.channel = shared.connect(address, this.protocol);
+		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 	}
 	
 	protected void shutdown() {		
-		shared.disconnect(channel);
-	}
-	
-	public Channel getChannel() {
-		return channel;
+		protocol.shutdown();
 	}
 
 	@Override
@@ -157,7 +148,7 @@ public class BasicContext implements Context {
 		
 		protocol.execute(prepare);
 		
-		QueryCommand query = protocol.createQuery(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
+		BindExecCommand query = protocol.createBindExec(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
 		
 		protocol.execute(query);
 		

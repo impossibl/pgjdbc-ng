@@ -10,7 +10,9 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 
-public class AbstractProtocolHandler implements ProtocolHandler {
+
+
+public class BaseProtocolListener implements ProtocolListener {
 
 	@Override
 	public boolean isComplete() {
