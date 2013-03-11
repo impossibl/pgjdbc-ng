@@ -6,7 +6,6 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.replay.ReplayingDecoder;
 import org.jboss.netty.handler.codec.replay.VoidEnum;
 
-import com.impossibl.postgres.protocol.ResponseMessage;
 
 public class MessageDecoder extends ReplayingDecoder<VoidEnum> {
 

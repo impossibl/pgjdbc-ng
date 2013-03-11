@@ -1,4 +1,4 @@
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.v30;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 

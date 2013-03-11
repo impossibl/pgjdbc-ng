@@ -25,7 +25,6 @@ import com.impossibl.postgres.protocol.FunctionCallCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ResponseMessage;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObject;
 import com.impossibl.postgres.protocol.StartupCommand;
