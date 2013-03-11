@@ -341,7 +341,7 @@ public class PSQLResultSet implements ResultSet {
 			return;
 		
 		// Notify statement of our closure
-		statement.notifyClosure(this);
+		statement.handleResultSetClosure(this);
 
 		internalClose();		
 	}

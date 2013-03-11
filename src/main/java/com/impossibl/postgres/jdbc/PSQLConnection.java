@@ -37,8 +37,10 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -52,34 +54,42 @@ import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {
 
+	
+	
 	long statementId = 0l;
 	long portalId = 0l;
 	int savepointId;
 	private int holdability;
 	boolean autoCommit = true;
 	int networkTimeout;
+	List<PSQLStatement> activeStatements;
+	
+	
 
 	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
+		activeStatements = new ArrayList<>();
 	}
 
-	public String getNextStatementName() {
+	String getNextStatementName() {
 		return String.format("%016X", ++statementId);
 	}
 
-	public String getNextPortalName() {
+	String getNextPortalName() {
 		return String.format("%016X", ++portalId);
 	}
-
-	@Override
-	public boolean isReadOnly() throws SQLException {
-		return false;
+	
+	void handleStatementClosure(PSQLStatement statement) {
+		
+		activeStatements.remove(statement);
 	}
-
-	@Override
-	public void setReadOnly(boolean readOnly) throws SQLException {
-		// TODO
-
+	
+	void closeStatements() throws SQLException {
+		
+		for(PSQLStatement statement : activeStatements) {
+			
+			statement.internalClose();
+		}
 	}
 
 	@Override
@@ -159,7 +169,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 			throw new SQLException(e);
 			
 		}
-
+		
 	}
 
 	@Override
@@ -347,7 +357,9 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		execute(prepare);
 
-		return new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+		PSQLStatement statement = new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+		activeStatements.add(statement);
+		return statement;
 	}
 
 	@Override
@@ -447,14 +459,25 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public void close() throws SQLException {
-		shutdown();
+	public boolean isClosed() throws SQLException {
+		return protocol == null;
 	}
 
 	@Override
-	public boolean isClosed() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+	public void close() throws SQLException {
+		
+		//Ignore multiple closes
+		if(isClosed())
+			return;
+		
+		internalClose();
+	}
+	
+	void internalClose() throws SQLException {
+		
+		closeStatements();
+		
+		shutdown();
 	}
 
 	@Override

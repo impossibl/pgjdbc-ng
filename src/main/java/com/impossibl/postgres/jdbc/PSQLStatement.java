@@ -107,9 +107,10 @@ public class PSQLStatement implements PreparedStatement {
 		
 	}
 	
-	void notifyClosure(PSQLResultSet resultSet) throws SQLException {
+	void handleResultSetClosure(PSQLResultSet resultSet) throws SQLException {
 		
 		activeResultSets.remove(resultSet);
+		
 		if(autoClose && activeResultSets.isEmpty()) {
 			
 			close();
@@ -149,7 +150,7 @@ public class PSQLStatement implements PreparedStatement {
 	@Override
 	public boolean isPoolable() throws SQLException {
 		checkClosed();
-		
+		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -271,7 +272,7 @@ public class PSQLStatement implements PreparedStatement {
 
 	/*
 	 * Determines whether or not the current statement state requires a named
-	 * portal or could use the unnammed portal instead
+	 * portal or could use the unnamed portal instead
 	 */
 	private boolean needsNamedPortal() {
 
@@ -468,8 +469,9 @@ public class PSQLStatement implements PreparedStatement {
 		if(isClosed())
 			return;
 
-		internalClose();
+		connection.handleStatementClosure(this);
 		
+		internalClose();
 	}
 	
 	void internalClose() throws SQLException {

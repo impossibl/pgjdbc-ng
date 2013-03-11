@@ -19,6 +19,7 @@ import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -58,7 +59,16 @@ public class BasicContext implements Context {
 	}
 	
 	protected void shutdown() {		
+		
 		protocol.shutdown();
+		
+		//Release resources
+		protocol = null;
+		registry = null;
+		targetTypeMap = null;
+		settings = null;
+		serverVersion = null;
+		keyData = null;
 	}
 
 	@Override
