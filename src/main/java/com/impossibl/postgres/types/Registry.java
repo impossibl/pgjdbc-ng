@@ -12,9 +12,8 @@ import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.types.Type.BinaryIO;
 import com.impossibl.postgres.types.Type.Category;
-import com.impossibl.postgres.types.Type.TextIO;
+import com.impossibl.postgres.types.Type.Codec;
 
 public class Registry {
 	
@@ -192,62 +191,31 @@ public class Registry {
 		return type;
 	}
 
-	public BinaryIO loadBinaryIO(int receiveId, int sendId) {
-		BinaryIO io = new BinaryIO();
-		io.decoder = loadBinaryDecoderProc(sendId);
-		io.encoder = loadBinaryEncoderProc(receiveId);
-		return io;
-	}
-
-	public TextIO loadTextIO(int inputId, int outputId) {
-		TextIO io = new TextIO();
-		io.decoder = loadTextDecoderProc(outputId);
-		io.encoder = loadTextEncoderProc(inputId);
+	public Codec loadCodec(int receiveId, int sendId) {
+		Codec io = new Codec();
+		io.decoder = loadDecoderProc(sendId);
+		io.encoder = loadEncoderProc(receiveId);
 		return io;
 	}
 	
-	private TextIO.Encoder loadTextEncoderProc(int inputId) {
-		
-		String name = lookupProcName(inputId);
-		if(name == null) {
-			return null;
-		}
-		
-		//logger.warning("unable to find encoder for input proc: " + name);
-		
-		return Procs.loadTextEncoderProc(name, context);
-	}
-
-	private TextIO.Decoder loadTextDecoderProc(int outputId) {
-		
-		String name = lookupProcName(outputId);
-		if(name == null) {
-			return null;
-		}
-		
-		//logger.warning("unable to find handler for output proc: " + name);
-		
-		return Procs.loadTextDecoderProc(name, context);
-	}
-	
-	private BinaryIO.Encoder loadBinaryEncoderProc(int receiveId) {
+	private Codec.Encoder loadEncoderProc(int receiveId) {
 		
 		String name = lookupProcName(receiveId);
 		if(name == null) {
 			return null;
 		}
-				
-		return Procs.loadBinaryEncoderProc(name, context);
+		
+		return Procs.loadEncoderProc(name, context);
 	}
 	
-	private BinaryIO.Decoder loadBinaryDecoderProc(int sendId) {
+	private Codec.Decoder loadDecoderProc(int sendId) {
 		
 		String name = lookupProcName(sendId);
 		if(name == null) {
 			return null;
 		}
 		
-		return Procs.loadBinaryDecoderProc(name, context);
+		return Procs.loadDecoderProc(name, context);
 	}
 
 }

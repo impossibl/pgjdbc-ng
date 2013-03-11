@@ -81,11 +81,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 				switch (field.format) {
 				case Text:
-					fieldVal = fieldType.getTextIO().decoder.decode(fieldType, buffer, parsingContext);
+					fieldVal = fieldType.getTextCodec().decoder.decode(fieldType, buffer, parsingContext);
 					break;
 
 				case Binary:
-					fieldVal = fieldType.getBinaryIO().decoder.decode(fieldType, buffer, parsingContext);
+					fieldVal = fieldType.getBinaryCodec().decoder.decode(fieldType, buffer, parsingContext);
 					break;
 				}
 

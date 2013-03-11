@@ -1,26 +1,25 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type.BinaryIO;
-import com.impossibl.postgres.types.Type.TextIO;
+import com.impossibl.postgres.types.Type.Codec;
 
 public class SettingSelectProcProvider extends BaseProcProvider {
 
 	String settingName;
 	Object settingMatchValue;
-	TextIO.Encoder matchedTxtEncoder;
-	TextIO.Decoder matchedTxtDecoder;
-	BinaryIO.Encoder matchedBinEncoder;
-	BinaryIO.Decoder matchedBinDecoder;
-	TextIO.Encoder unmatchedTxtEncoder;
-	TextIO.Decoder unmatchedTxtDecoder;
-	BinaryIO.Encoder unmatchedBinEncoder;
-	BinaryIO.Decoder unmatchedBinDecoder;
+	Codec.Encoder matchedTxtEncoder;
+	Codec.Decoder matchedTxtDecoder;
+	Codec.Encoder matchedBinEncoder;
+	Codec.Decoder matchedBinDecoder;
+	Codec.Encoder unmatchedTxtEncoder;
+	Codec.Decoder unmatchedTxtDecoder;
+	Codec.Encoder unmatchedBinEncoder;
+	Codec.Decoder unmatchedBinDecoder;
 	
 	public SettingSelectProcProvider(
 			String settingName, Object settingMatchValue,
-			TextIO.Encoder matchedTxtEncoder, TextIO.Decoder matchedTxtDecoder, BinaryIO.Encoder matchedBinEncoder, BinaryIO.Decoder matchedBinDecoder, 
-			TextIO.Encoder unmatchedTxtEncoder, TextIO.Decoder unmatchedTxtDecoder, BinaryIO.Encoder unmatchedBinEncoder, BinaryIO.Decoder unmatchedBinDecoder, 
+			Codec.Encoder matchedTxtEncoder, Codec.Decoder matchedTxtDecoder, Codec.Encoder matchedBinEncoder, Codec.Decoder matchedBinDecoder, 
+			Codec.Encoder unmatchedTxtEncoder, Codec.Decoder unmatchedTxtDecoder, Codec.Encoder unmatchedBinEncoder, Codec.Decoder unmatchedBinDecoder, 
 			String... baseNames) {
 		super(baseNames);
 		this.settingName = settingName;
@@ -35,29 +34,15 @@ public class SettingSelectProcProvider extends BaseProcProvider {
 		this.unmatchedBinDecoder = unmatchedBinDecoder;
 	}
 
-	public BinaryIO.Encoder findBinaryEncoder(String name, Context context) {
-		if(context != null && hasName(name, "recv")) {
-			if(context.getSetting(settingName).equals(settingMatchValue))
+	public Codec.Encoder findEncoder(String name, Context context) {
+		if(name.endsWith("recv") && hasName(name, "recv")) {
+			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedBinEncoder;
 			else
 				return unmatchedBinEncoder;
 		}
-		return null;
-	}
-
-	public BinaryIO.Decoder findBinaryDecoder(String name, Context context) {
-		if(context != null && hasName(name, "send")) {
-			if(context.getSetting(settingName).equals(settingMatchValue))
-				return matchedBinDecoder;
-			else
-				return unmatchedBinDecoder;
-		}
-		return null;
-	}
-
-	public TextIO.Encoder findTextEncoder(String name, Context context) {
-		if(context != null && hasName(name, "in")) {
-			if(context.getSetting(settingName).equals(settingMatchValue))
+		else if(name.endsWith("in") && hasName(name, "in")) {
+			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedTxtEncoder;
 			else
 				return unmatchedTxtEncoder;
@@ -65,9 +50,15 @@ public class SettingSelectProcProvider extends BaseProcProvider {
 		return null;
 	}
 
-	public TextIO.Decoder findTextDecoder(String name, Context context) {
-		if(context != null && hasName(name, "out")) {
-			if(context.getSetting(settingName).equals(settingMatchValue))
+	public Codec.Decoder findDecoder(String name, Context context) {
+		if(name.endsWith("send") && hasName(name, "send")) {
+			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
+				return matchedBinDecoder;
+			else
+				return unmatchedBinDecoder;
+		}
+		else if(name.endsWith("out") && hasName(name, "out")) {
+			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedTxtDecoder;
 			else
 				return unmatchedTxtDecoder;

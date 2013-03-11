@@ -1,8 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type.BinaryIO;
-import com.impossibl.postgres.types.Type.TextIO;
+import com.impossibl.postgres.types.Type.Codec;
 
 
 public class Procs {
@@ -31,66 +30,42 @@ public class Procs {
 	
 	private static final Unsupporteds UNSUPPORTEDS = new Unsupporteds(); 
 
-	public static TextIO loadNamerTextIO(String baseName, Context context) {
-		TextIO io = new TextIO();
-		io.encoder = loadTextEncoderProc(baseName + "in", context);
-		io.decoder = loadTextDecoderProc(baseName + "out", context);
-		return io;
+	public static Codec loadNamedTextCodec(String baseName, Context context) {
+		Codec codec = new Codec();
+		codec.encoder = loadEncoderProc(baseName + "in", context);
+		codec.decoder = loadDecoderProc(baseName + "out", context);
+		return codec;
 	}
 
-	public static TextIO.Encoder loadTextEncoderProc(String name, Context context) {
+	public static Codec loadNamedBinaryCodec(String baseName, Context context) {
+		Codec codec = new Codec();
+		codec.encoder = loadEncoderProc(baseName + "recv", context);
+		codec.decoder = loadDecoderProc(baseName + "send", context);
+		return codec;
+	}
 
-		TextIO.Encoder h;
+	public static Codec.Encoder loadEncoderProc(String name, Context context) {
+		
+		Codec.Encoder h;
 		
 		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findTextEncoder(name, context)) != null)
+			if((h = pp.findEncoder(name, context)) != null)
 				return h;
 		}
 
-		return UNSUPPORTEDS.findTextEncoder(name, context);
+		return UNSUPPORTEDS.findEncoder(name, context);
 	}
 
-	public static TextIO.Decoder loadTextDecoderProc(String name, Context context) {
+	public static Codec.Decoder loadDecoderProc(String name, Context context) {
 		
-		TextIO.Decoder h;
-		
-		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findTextDecoder(name, context)) != null)
-				return h;
-		}
-		
-		return UNSUPPORTEDS.findTextDecoder(name, context);
-	}
-	
-	public static BinaryIO loadNamedBinaryIO(String baseName, Context context) {
-		BinaryIO io = new BinaryIO();
-		io.encoder = loadBinaryEncoderProc(baseName + "recv", context);
-		io.decoder = loadBinaryDecoderProc(baseName + "send", context);
-		return io;
-	}
-
-	public static BinaryIO.Encoder loadBinaryEncoderProc(String name, Context context) {
-		
-		BinaryIO.Encoder h;
+		Codec.Decoder h;
 		
 		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findBinaryEncoder(name, context)) != null)
+			if((h = pp.findDecoder(name, context)) != null)
 				return h;
 		}
 
-		return UNSUPPORTEDS.findBinaryEncoder(name, context);
-	}
-
-	public static BinaryIO.Decoder loadBinaryDecoderProc(String name, Context context) {
-		
-		BinaryIO.Decoder h;
-		
-		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findBinaryDecoder(name, context)) != null)
-				return h;
-		}
-
-		return UNSUPPORTEDS.findBinaryDecoder(name, context);
+		return UNSUPPORTEDS.findDecoder(name, context);
 	}
 
 }

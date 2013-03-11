@@ -16,7 +16,7 @@ public class Bits extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "bit_", "varbit_");
 	}
 
-	static class Decoder implements Type.BinaryIO.Decoder {
+	static class Decoder implements Type.Codec.Decoder {
 
 		public BitSet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
@@ -43,7 +43,7 @@ public class Bits extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.BinaryIO.Encoder {
+	static class Encoder implements Type.Codec.Encoder {
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 

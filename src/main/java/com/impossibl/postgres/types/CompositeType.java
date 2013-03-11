@@ -1,7 +1,7 @@
 package com.impossibl.postgres.types;
 
-import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryIO;
-import static com.impossibl.postgres.system.procs.Procs.loadNamerTextIO;
+import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
+import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,7 +29,7 @@ public class CompositeType extends Type {
 	private List<Attribute> attributes;
 
 	public CompositeType(int id, String name, Type arrayType, String procName, int sqlType) {
-		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryIO(procName, null), loadNamerTextIO(procName, null), 0);
+		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null), 0);
 	}
 
 	public CompositeType(int id, String name, Type arrayType, int sqlType) {

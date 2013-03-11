@@ -9,6 +9,18 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
+/**
+ * 
+ * Represents a single type in the databases known types table. Type is the
+ * base of a hierarchy that mirrors the kinds of types they represent.
+ * 
+ *  
+ * NOTE: A Type, or one of its derived types, represents a single entry in
+ * the "pg_type" table.
+ *  
+ * @author kdubb
+ *
+ */
 public abstract class Type {
 	
 	public enum Category {
@@ -39,6 +51,12 @@ public abstract class Type {
 			return id;
 		}
 
+		/**
+		 * Lookup Category by its associated "id".
+		 * 
+		 * @param id
+		 * @return Associated category or null if none
+		 */
 		public static Category findValue(String id) {
 			
 			if(id == null || id.isEmpty())
@@ -54,26 +72,23 @@ public abstract class Type {
 		
 	}
 	
-	public static class BinaryIO {
+	/**
+	 * A pair of related interface methods to encode/decode a type in a
+	 * specific format.  The are mapped to their equivalent procedures
+	 * in the database.
+	 */
+	public static class Codec {
 
+		/**
+		 *	Decodes the given data into a Java language object
+		 */
 		public interface Decoder {
 			Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException;
 		}
 		
-		public interface Encoder {
-			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
-		}
-
-		public Decoder decoder;
-		public Encoder encoder;
-	}
-
-	public static class TextIO {
-
-		public interface Decoder {
-			Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException;
-		}
-		
+		/**
+		 * Encodes the given Java language as data the server expects.  
+		 */
 		public interface Encoder {
 			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
@@ -89,15 +104,15 @@ public abstract class Type {
 	private Category category;
 	private Character delimeter;
 	private Type arrayType;
-	private BinaryIO binaryIO;
-	private TextIO textIO;
+	private Codec binaryCodec;
+	private Codec textCodec;
 	private int sqlType;
 	
 	
 	public Type() {
 	}
 
-	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, BinaryIO binaryIO, TextIO textIO, int sqlType) {
+	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, Codec binaryCodec, Codec textCodec, int sqlType) {
 		super();
 		this.id = id;
 		this.name = name;
@@ -106,8 +121,8 @@ public abstract class Type {
 		this.category = category;
 		this.delimeter = delimeter;
 		this.arrayType = arrayType;
-		this.binaryIO = binaryIO;
-		this.textIO = textIO;
+		this.binaryCodec = binaryCodec;
+		this.textCodec = textCodec;
 		this.sqlType = sqlType;
 	}
 
@@ -167,20 +182,20 @@ public abstract class Type {
 		this.arrayType = arrayType;
 	}
 	
-	public BinaryIO getBinaryIO() {
-		return binaryIO;
+	public Codec getBinaryCodec() {
+		return binaryCodec;
 	}
 	
-	public void setBinaryIO(BinaryIO binaryIO) {
-		this.binaryIO = binaryIO;
+	public void setBinaryCodec(Codec binaryCodec) {
+		this.binaryCodec = binaryCodec;
 	}
 	
-	public TextIO getTextIO() {
-		return textIO;
+	public Codec getTextCodec() {
+		return textCodec;
 	}
 
-	public void setTextIO(TextIO textIO) {
-		this.textIO = textIO;
+	public void setTextCodec(Codec textCodec) {
+		this.textCodec = textCodec;
 	}
 
 	public int getSqlType() {
@@ -191,6 +206,14 @@ public abstract class Type {
 		this.sqlType = sqlType;
 	}
 
+	/**
+	 * Load this type from a "pg_type" table entry and, if available, a
+	 * collection of "pg_attribute" table entries.
+	 * 
+	 * @param source The "pg_type" table entry
+	 * @param attrs Associated "pg_attribute" table entries, if available.
+	 * @param registry The registry that is loading the type.
+	 */
 	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
 		
 		id = source.oid;
@@ -200,10 +223,16 @@ public abstract class Type {
 		category = Category.findValue(source.category);
 		delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
 		arrayType = registry.loadType(source.arrayTypeId);
-		textIO = registry.loadTextIO(source.inputId, source.outputId);
-		binaryIO = registry.loadBinaryIO(source.receiveId, source.sendId);
+		textCodec = registry.loadCodec(source.inputId, source.outputId);
+		binaryCodec = registry.loadCodec(source.receiveId, source.sendId);
 	}
 	
+	/**
+	 * Translates a protocol alignment id into a specific number of bytes.
+	 * 
+	 * @param align Alignment ID
+	 * @return # of bytes to align on
+	 */
 	public static Byte getAlignment(Character align) {
 		
 		if(align == null)

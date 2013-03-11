@@ -1,14 +1,11 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type.BinaryIO;
-import com.impossibl.postgres.types.Type.TextIO;
+import com.impossibl.postgres.types.Type.Codec;
 
 public interface ProcProvider {
 	
-	public BinaryIO.Encoder findBinaryEncoder(String name, Context context);
-	public BinaryIO.Decoder findBinaryDecoder(String name, Context context);
-	public TextIO.Encoder findTextEncoder(String name, Context context);
-	public TextIO.Decoder findTextDecoder(String name, Context context);
+	public Codec.Encoder findEncoder(String name, Context context);
+	public Codec.Decoder findDecoder(String name, Context context);
 
 }

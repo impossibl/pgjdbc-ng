@@ -23,7 +23,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 				"time_");
 	}
 
-	static class BinIntegerDecoder implements Type.BinaryIO.Decoder {
+	static class BinIntegerDecoder implements Type.Codec.Decoder {
 
 		public Time decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
@@ -44,7 +44,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 	}
 
-	static class BinIntegerEncoder implements Type.BinaryIO.Encoder {
+	static class BinIntegerEncoder implements Type.Codec.Encoder {
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {

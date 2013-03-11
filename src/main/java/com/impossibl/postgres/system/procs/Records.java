@@ -23,7 +23,7 @@ public class Records extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "record_");
 	}
 
-	static class Decoder implements Type.BinaryIO.Decoder {
+	static class Decoder implements Type.Codec.Decoder {
 
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
@@ -48,7 +48,7 @@ public class Records extends SimpleProcProvider {
 					context.refreshType(attributeType.getId());
 				}
 
-				Object attributeVal = attributeType.getBinaryIO().decoder.decode(attributeType, buffer, context);
+				Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
 
 				Records.set(instance, attribute.name, attributeVal);
 			}
@@ -62,7 +62,7 @@ public class Records extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.BinaryIO.Encoder {
+	static class Encoder implements Type.Codec.Encoder {
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
@@ -90,7 +90,7 @@ public class Records extends SimpleProcProvider {
 
 					Object attributeVal = Records.get(val, attribute.name);
 
-					attributeType.getBinaryIO().encoder.encode(attributeType, buffer, attributeVal, context);
+					attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
 				}
 
 				//Set length

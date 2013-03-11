@@ -339,7 +339,7 @@ public class ProtocolImpl implements Protocol {
 				Type paramType = paramTypes.get(c);
 				Object paramValue = paramValues.get(c);
 
-				paramType.getBinaryIO().encoder.encode(paramType, buffer, paramValue, context);
+				paramType.getBinaryCodec().encoder.encode(paramType, buffer, paramValue, context);
 			}
 		}
 	}

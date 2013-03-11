@@ -24,7 +24,7 @@ public class Arrays extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "array_");
 	}
 	
-	static class Decoder implements Type.BinaryIO.Decoder {
+	static class Decoder implements Type.Codec.Decoder {
 
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
@@ -74,7 +74,7 @@ public class Arrays extends SimpleProcProvider {
 				
 				for(int e=0; e < elementCount; ++e) {
 					
-					Object elementVal = elementType.getBinaryIO().decoder.decode(elementType, buffer, context);
+					Object elementVal = elementType.getBinaryCodec().decoder.decode(elementType, buffer, context);
 					
 					Arrays.set(instance, e, elementVal);
 				}				
@@ -90,7 +90,7 @@ public class Arrays extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.BinaryIO.Encoder {
+	static class Encoder implements Type.Codec.Encoder {
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
@@ -141,7 +141,7 @@ public class Arrays extends SimpleProcProvider {
 					
 					Object elementVal = Arrays.get(val, e);
 					
-					elementType.getBinaryIO().encoder.encode(elementType, buffer, elementVal, context);
+					elementType.getBinaryCodec().encoder.encode(elementType, buffer, elementVal, context);
 				}
 				
 				//Set length

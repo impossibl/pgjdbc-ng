@@ -15,7 +15,7 @@ public class Int2s extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "int2");
 	}
 
-	static class Decoder implements Type.BinaryIO.Decoder {
+	static class Decoder implements Type.Codec.Decoder {
 
 		public Short decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
@@ -32,7 +32,7 @@ public class Int2s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.BinaryIO.Encoder {
+	static class Encoder implements Type.Codec.Encoder {
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
