@@ -25,7 +25,8 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
 
 
@@ -39,15 +40,17 @@ public class PSQLStatement implements PreparedStatement {
 	String name;
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
+	List<ResultField> resultFields;
 	int maxRows;
 	int fetchSize;
-	QueryCommand command;
+	BindExecCommand command;
 
-	PSQLStatement(PSQLConnection connection, String name, List<Type> parameterTypes) {
+	PSQLStatement(PSQLConnection connection, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
 		this.connection = connection;
 		this.name = name;
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
+		this.resultFields = resultFields;
 	}
 
 	@Override
@@ -179,7 +182,7 @@ public class PSQLStatement implements PreparedStatement {
 			portalName = connection.getNextPortalName();
 		}
 
-		command = connection.getProtocol().createQuery(portalName, name, parameterTypes, parameterValues, Object[].class);
+		command = connection.getProtocol().createBindExec(portalName, name, parameterTypes, parameterValues, resultFields, Object[].class);
 
 		command.setMaxRows(fetchSize);
 

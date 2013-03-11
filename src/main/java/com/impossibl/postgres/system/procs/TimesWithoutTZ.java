@@ -6,10 +6,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.sql.Time;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 
@@ -24,9 +24,9 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.BinaryIO.Decoder {
 
-		public Time decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public Time decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int length = stream.readInt();
+			int length = buffer.readInt();
 			if (length == -1) {
 				return null;
 			}
@@ -34,7 +34,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			long micros = stream.readLong();
+			long micros = buffer.readLong();
 			
 			long millis = MICROSECONDS.toMillis(micros);
 			
@@ -45,10 +45,10 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 	static class BinIntegerEncoder implements Type.BinaryIO.Encoder {
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 
-				stream.writeInt(-1);
+				buffer.writeInt(-1);
 			}
 			else {
 				
@@ -58,8 +58,8 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 				
 				long micros = MILLISECONDS.toMicros(millis);
 				
-				stream.writeInt(8);
-				stream.writeLong(micros);
+				buffer.writeInt(8);
+				buffer.writeLong(micros);
 			}
 
 		}

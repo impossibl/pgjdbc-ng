@@ -7,15 +7,10 @@ import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 public interface Context {
 	
 	Registry getRegistry();
-
-	DataInputStream getInputStream();
-	DataOutputStream getOutputStream();
 	
 	Charset getCharset();
 	TimeZone getTimeZone();

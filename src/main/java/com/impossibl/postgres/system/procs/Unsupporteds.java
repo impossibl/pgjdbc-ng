@@ -4,12 +4,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.BinaryIO;
 import com.impossibl.postgres.types.Type.TextIO;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 
 
 /*
@@ -24,7 +24,7 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
-		public Object decode(Type type, DataInputStream stream, Context context) throws IOException {
+		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching binary decoder found for: " + name);
 		}
 
@@ -37,7 +37,7 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
-		public void encode(Type type, DataOutputStream stream, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching binary encoder found for: " + name);
 		}
 

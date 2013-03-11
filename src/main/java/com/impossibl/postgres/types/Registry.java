@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.system.Context;
@@ -21,10 +22,12 @@ public class Registry {
 	
 	private Map<Character, Class<? extends Type>> kindMap;
 	private Map<Integer, Type> oidMap;
+	private Map<String, Type> nameMap;
 
 	private Map<Integer, PgType.Row> pgTypeData;
 	private Map<Integer, Collection<PgAttribute.Row>> pgAttrData;
 	private Map<Integer, PgProc.Row> pgProcData;
+	private Map<String, PgProc.Row> pgProcNameMap; 
 
 	private Context context;
 	
@@ -33,11 +36,12 @@ public class Registry {
 		
 		this.context = context;
 		
-		pgTypeData = new HashMap<Integer, PgType.Row>();
-		pgAttrData = new HashMap<Integer, Collection<PgAttribute.Row>>();
-		pgProcData = new HashMap<Integer, PgProc.Row>();
+		pgTypeData = new TreeMap<>();
+		pgAttrData = new TreeMap<>();
+		pgProcData = new TreeMap<>();
+		pgProcNameMap = new HashMap<>();
 
-		kindMap = new HashMap<Character, Class<? extends Type>>();
+		kindMap = new HashMap<>();
 		kindMap.put('c', CompositeType.class);
 		kindMap.put('d', DomainType.class);
 		kindMap.put('e', EnumerationType.class);
@@ -45,7 +49,7 @@ public class Registry {
 		kindMap.put('r', RangeType.class);
 
 		//Required initial types for bootstrapping
-		oidMap = new HashMap<Integer, Type>();
+		oidMap = new HashMap<>();
 		oidMap.put(16, new BaseType(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
 		oidMap.put(17, new BaseType(18, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 	0));
 		oidMap.put(18, new BaseType(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
@@ -54,6 +58,8 @@ public class Registry {
 		oidMap.put(23, new BaseType(23, "int4", 		(short)4, 	(byte)0, Category.Numeric,	',', null, "int4", 		0));
 		oidMap.put(24, new BaseType(24, "regproc", 	(short)4, 	(byte)0, Category.Numeric,	',', null, "regproc", 0));
 		oidMap.put(26, new BaseType(26, "oid", 			(short)4,		(byte)0, Category.Numeric,	',', null, "oid",			0));
+		
+		nameMap = new HashMap<>();
 	}
 	
 
@@ -67,6 +73,24 @@ public class Registry {
 		return type;
 	}
 	
+	public String lookupProcName(int procId) {
+		
+		PgProc.Row pgProc = pgProcData.get(procId);
+		if(pgProc == null)
+			return null;
+		
+		return pgProc.name;
+	}
+
+	public int lookupProcId(String procName) {
+		
+		PgProc.Row pgProc = pgProcNameMap.get(procName);
+		if(pgProc == null)
+			return 0;
+		
+		return pgProc.oid;
+	}
+
 	public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
 		
 		for(PgAttribute.Row pgAttrRow : pgAttrRows) {
@@ -82,6 +106,7 @@ public class Registry {
 		
 		for(PgProc.Row pgProcRow : pgProcRows) {
 			pgProcData.put(pgProcRow.oid, pgProcRow);
+			pgProcNameMap.put(pgProcRow.name, pgProcRow);
 		}
 		
 		for(PgType.Row pgTypeRow : pgTypeRows) {
@@ -105,6 +130,7 @@ public class Registry {
 		Type type = loadRaw(pgType, pgAttrs);
 		if(type != null) {
 			oidMap.put(typeId, type);
+			nameMap.put(type.getName(), type);
 		}
 
 		return type;
@@ -182,7 +208,7 @@ public class Registry {
 	
 	private TextIO.Encoder loadTextEncoderProc(int inputId) {
 		
-		String name = findProcName(inputId);
+		String name = lookupProcName(inputId);
 		if(name == null) {
 			return null;
 		}
@@ -194,7 +220,7 @@ public class Registry {
 
 	private TextIO.Decoder loadTextDecoderProc(int outputId) {
 		
-		String name = findProcName(outputId);
+		String name = lookupProcName(outputId);
 		if(name == null) {
 			return null;
 		}
@@ -206,7 +232,7 @@ public class Registry {
 	
 	private BinaryIO.Encoder loadBinaryEncoderProc(int receiveId) {
 		
-		String name = findProcName(receiveId);
+		String name = lookupProcName(receiveId);
 		if(name == null) {
 			return null;
 		}
@@ -216,21 +242,12 @@ public class Registry {
 	
 	private BinaryIO.Decoder loadBinaryDecoderProc(int sendId) {
 		
-		String name = findProcName(sendId);
+		String name = lookupProcName(sendId);
 		if(name == null) {
 			return null;
 		}
 		
 		return Procs.loadBinaryDecoderProc(name, context);
-	}
-
-	private String findProcName(int procId) {
-		
-		PgProc.Row pgProc = pgProcData.get(procId);
-		if(pgProc == null)
-			return null;
-		
-		return pgProc.name;
 	}
 
 }

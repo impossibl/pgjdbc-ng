@@ -3,9 +3,8 @@ package com.impossibl.postgres.system;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,16 +17,14 @@ import java.util.logging.Logger;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.v30.ProtocolImpl;
+import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.DataInputStream;
-import com.impossibl.postgres.utils.DataOutputStream;
 import com.impossibl.postgres.utils.Timer;
 
 public class BasicContext implements Context {
@@ -42,28 +39,27 @@ public class BasicContext implements Context {
 	
 	
 	protected Registry registry;
-	protected Map<String, Class<?>>  targetTypeMap;
+	protected Map<String, Class<?>> targetTypeMap;
 	protected Charset charset;
 	protected TimeZone timeZone;
 	protected Properties settings;
 	protected Version serverVersion;
 	protected KeyData keyData;
-	protected DataInputStream in;
-	protected DataOutputStream out;
 	protected Protocol protocol;
 	
-	
-	public BasicContext(Socket socket, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		this.registry = new Registry(this);
 		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
 		this.settings = settings;
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
-		this.in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-		this.out = new DataOutputStream(socket.getOutputStream());
-		this.protocol = new ProtocolImpl(this);
+		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 	}
 	
+	protected void shutdown() {		
+		protocol.shutdown();
+	}
+
 	@Override
 	public Registry getRegistry() {
 		return registry;
@@ -71,16 +67,6 @@ public class BasicContext implements Context {
 
 	public Protocol getProtocol() {
 		return protocol;
-	}
-	
-	@Override
-	public DataInputStream getInputStream() {
-		return in;
-	}
-
-	@Override
-	public DataOutputStream getOutputStream() {
-		return out;
 	}
 
 	@Override
@@ -162,7 +148,7 @@ public class BasicContext implements Context {
 		
 		protocol.execute(prepare);
 		
-		QueryCommand query = protocol.createQuery(null, null, prepare.getDescribedParameterTypes(), asList(params), rowType);
+		BindExecCommand query = protocol.createBindExec(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
 		
 		protocol.execute(query);
 		
