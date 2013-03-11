@@ -553,6 +553,7 @@ public class PSQLResultSet implements ResultSet {
 	@Override
 	public Object getObject(int columnIndex) throws SQLException {
 		checkClosed();
+		checkColumnIndex(columnIndex);
 
 		return get(columnIndex);
 	}
