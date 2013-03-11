@@ -31,6 +31,11 @@
 			<artifactId>netty</artifactId>
 			<version>3.6.2.Final</version>
 		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>14.0</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

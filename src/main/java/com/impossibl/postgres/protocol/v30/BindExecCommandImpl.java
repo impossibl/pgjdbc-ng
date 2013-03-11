@@ -1,18 +1,25 @@
 package com.impossibl.postgres.protocol.v30;
 
 import static com.impossibl.postgres.protocol.ServerObject.Portal;
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.utils.Factory.createInstance;
 import static java.util.Arrays.asList;
+import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.SettingsContext;
+import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Type;
 
 
@@ -34,9 +41,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private Long resultRowsAffected;
 	private Long resultInsertedOid;
 	private int maxRows;
+	private int maxFieldLength;
 	private Status status;
+	private SettingsContext parsingContext;
 	private ProtocolListener listener = new BaseProtocolListener() {
-
+		
 		@Override
 		public boolean isComplete() {
 			return status != null || error != null;
@@ -57,8 +66,33 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public void rowData(ProtocolImpl protocol, ChannelBuffer buffer) throws IOException {
-			results.add(protocol.parseRowData(buffer, resultFields, rowType));
+		public void rowData(ChannelBuffer buffer) throws IOException {
+
+			int itemCount = buffer.readShort();
+
+			Object rowInstance = createInstance(rowType, itemCount);
+
+			for (int c = 0; c < itemCount; ++c) {
+
+				ResultField field = resultFields.get(c);
+
+				Type fieldType = field.type;
+				Object fieldVal = null;
+
+				switch (field.format) {
+				case Text:
+					fieldVal = fieldType.getTextIO().decoder.decode(fieldType, buffer, parsingContext);
+					break;
+
+				case Binary:
+					fieldVal = fieldType.getBinaryIO().decoder.decode(fieldType, buffer, parsingContext);
+					break;
+				}
+
+				setField(rowInstance, c, field.name, fieldVal);
+			}
+
+			results.add(rowInstance);
 		}
 
 		@Override
@@ -99,6 +133,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.resultFields = resultFields;
 		this.rowType = rowType;
 		this.results = new ArrayList<>();
+		this.maxRows = 0;
+		this.maxFieldLength = Integer.MAX_VALUE;
 	}
 
 	public void reset() {
@@ -136,6 +172,14 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.maxRows = maxRows;
 	}
 
+	public int getMaxFieldLength() {
+		return maxFieldLength;
+	}
+
+	public void setMaxFieldLength(int maxFieldLength) {
+		this.maxFieldLength = maxFieldLength;
+	}
+
 	public List<ResultField> getResultFields() {
 		return resultFields;
 	}
@@ -158,6 +202,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	}
 
 	public void execute(ProtocolImpl protocol) throws IOException {
+		
+		// Setup context for parsing fields with customized parameters
+		//
+		parsingContext = new SettingsContext(protocol.getContext());
+		parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
 		protocol.setListener(listener);
 
@@ -187,6 +236,46 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		}
 
+	}
+
+	@SuppressWarnings("unchecked")
+	protected void setField(Object instance, int idx, String name, Object value) throws IOException {
+
+		if (Arrays.is(instance)) {
+
+			Arrays.set(instance, idx, value);
+			return;
+		}
+		else if (instance instanceof Map) {
+
+			((Map<Object, Object>) instance).put(name, value);
+			return;
+		}
+		else {
+
+			try {
+
+				java.lang.reflect.Field field;
+
+				if ((field = instance.getClass().getField(name)) != null) {
+					field.set(instance, value);
+					return;
+				}
+
+			}
+			catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e1) {
+
+				try {
+					setProperty(instance, name.toString(), value);
+					return;
+				}
+				catch (IllegalAccessException | InvocationTargetException e) {
+				}
+
+			}
+		}
+
+		throw new IllegalStateException("invalid poperty name/index");
 	}
 
 }

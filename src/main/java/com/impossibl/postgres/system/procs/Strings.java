@@ -1,5 +1,8 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static java.lang.Math.min;
+
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -11,7 +14,7 @@ import com.impossibl.postgres.types.Type;
 public class Strings extends SimpleProcProvider {
 
 	public Strings() {
-		super(null, null, new Encoder(), new Decoder(), "text", "varchar", "bpchar", "enum_", "json_", "xml_");
+		super(null, null, new Encoder(), new Decoder(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
 	}
 	
 	static class Decoder implements Type.BinaryIO.Decoder {
@@ -22,9 +25,19 @@ public class Strings extends SimpleProcProvider {
 			if(length == -1) {
 				return null;
 			}
-						
-			byte[] bytes = new byte[length];
+
+			byte[] bytes;
+
+			Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+			if(maxLength != null) {
+				bytes = new byte[min(maxLength, length)];
+			}
+			else {
+				bytes = new byte[length];				
+			}
+			
 			buffer.readBytes(bytes);
+			buffer.skipBytes(length - bytes.length);
 			
 			return new String(bytes, context.getCharset());
 		}

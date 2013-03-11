@@ -1,5 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.system.Settings.FIELD_MONEY_FRACTIONAL_DIGITS;
 import static java.math.RoundingMode.HALF_UP;
 
 import java.io.IOException;
@@ -65,7 +66,7 @@ public class Moneys extends SimpleProcProvider {
 
 	static int getFractionalDigits(Context context) {
 		
-		Object val = context.getSetting("money.fractionalDigits");
+		Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
 		if(val == null)
 			return 2;
 		

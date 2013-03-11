@@ -1,5 +1,8 @@
 package com.impossibl.postgres.protocol.v30;
 
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -56,7 +59,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			@Override
 			public void authenticateClear(ProtocolImpl protocol) throws IOException {
 
-				String password = protocol.context.getSetting("password").toString();
+				String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
 
 				protocol.sendPassword(password);
 			}
@@ -68,8 +71,8 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			@Override
 			public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
 
-				String username = protocol.context.getSetting("username").toString();
-				String password = protocol.context.getSetting("password").toString();
+				String username = protocol.context.getSetting(CREDENTIALS_USERNAME).toString();
+				String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
 
 				String response = MD5Authentication.encode(password, username, salt);
 

@@ -1,5 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -20,7 +21,7 @@ public class Timestamps extends SettingSelectProcProvider {
 	private static long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
 
 	public Timestamps() {
-		super("datetimes.binary.class", Integer.class,
+		super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
 				null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
 				null, null, null, null,
 				"timestamp_", "timestamptz_");

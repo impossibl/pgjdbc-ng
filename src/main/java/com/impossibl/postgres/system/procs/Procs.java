@@ -11,7 +11,6 @@ public class Procs {
 		new Bools(),
 		new Bits(),
 		new Bytes(),
-		new Chars(),
 		new Float4s(),
 		new Float8s(),
 		new Int2s(),

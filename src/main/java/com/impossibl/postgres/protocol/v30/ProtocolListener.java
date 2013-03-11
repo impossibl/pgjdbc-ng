@@ -26,7 +26,7 @@ public interface ProtocolListener {
 
 	void rowDescription(List<ResultField> resultFields) throws IOException;
 
-	void rowData(ProtocolImpl protocol, ChannelBuffer buffer) throws IOException;
+	void rowData(ChannelBuffer buffer) throws IOException;
 
 	void functionResult(Object value) throws IOException;
 

@@ -1,8 +1,6 @@
 package com.impossibl.postgres.types;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.util.Collection;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -41,10 +39,13 @@ public abstract class Type {
 			return id;
 		}
 
-		public static Category valueOf(byte id) {
+		public static Category findValue(String id) {
+			
+			if(id == null || id.isEmpty())
+				return null;
 			
 			for(Category cat : values()) {
-				if(cat.id == id)
+				if(cat.id == id.charAt(0))
 					return cat;
 			}
 			
@@ -70,11 +71,11 @@ public abstract class Type {
 	public static class TextIO {
 
 		public interface Decoder {
-			Object decode(Type type, Reader reader, Context context) throws IOException;
+			Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException;
 		}
 		
 		public interface Encoder {
-			void encode(Type tyoe, Writer writer, Object value, Context context) throws IOException;
+			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
 
 		public Decoder decoder;
@@ -86,7 +87,7 @@ public abstract class Type {
 	private Short length;
 	private Byte alignment;
 	private Category category;
-	private char delimeter;
+	private Character delimeter;
 	private Type arrayType;
 	private BinaryIO binaryIO;
 	private TextIO textIO;
@@ -195,15 +196,16 @@ public abstract class Type {
 		id = source.oid;
 		name = source.name;
 		length = source.length != -1 ? source.length : null;
-		alignment = getAlignment(source.alignment); 
-		category = Category.valueOf(source.category);
-		delimeter = (char)source.deliminator;
+		alignment = getAlignment(source.alignment != null ? source.alignment.charAt(0) : null); 
+		category = Category.findValue(source.category);
+		delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
 		arrayType = registry.loadType(source.arrayTypeId);
 		textIO = registry.loadTextIO(source.inputId, source.outputId);
 		binaryIO = registry.loadBinaryIO(source.receiveId, source.sendId);
 	}
 	
-	public static Byte getAlignment(Byte align) {
+	public static Byte getAlignment(Character align) {
+		
 		if(align == null)
 			return null;
 		

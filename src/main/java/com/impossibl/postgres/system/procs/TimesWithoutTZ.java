@@ -1,5 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -16,7 +17,7 @@ import com.impossibl.postgres.types.Type;
 public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 	public TimesWithoutTZ() {
-		super("datetimes.binary.class", Integer.class,
+		super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
 				null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
 				null, null, null, null,
 				"time_");

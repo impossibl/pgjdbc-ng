@@ -8,14 +8,14 @@ import org.jboss.netty.channel.ChannelFuture;
 
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ProtocolFactory;
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.BasicContext;
 
 
 
 public class ProtocolFactoryImpl implements ProtocolFactory {
 
 	@Override
-	public Protocol connect(SocketAddress address, Context context) throws IOException {
+	public Protocol connect(SocketAddress address, BasicContext context) throws IOException {
 
 		ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
 

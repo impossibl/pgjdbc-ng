@@ -1,8 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -50,7 +48,7 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
-		public Object decode(Type type, Reader reader, Context context) throws IOException {
+		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching text decoder found for: " + name);
 		}
 
@@ -63,7 +61,7 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
-		public void encode(Type type, Writer writer, Object val, Context context) throws IOException {
+		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching text encoder found for: " + name);
 		}
 

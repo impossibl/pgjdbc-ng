@@ -1,5 +1,6 @@
 package com.impossibl.postgres.system;
 
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
@@ -155,7 +156,6 @@ public class BasicContext implements Context {
 		return query.getResults(rowType);
 	}
 
-	@Override
 	public void setKeyData(int processId, int secretKey) {
 
 		keyData = new KeyData();
@@ -163,7 +163,6 @@ public class BasicContext implements Context {
 		keyData.secretKey = secretKey;
 	}
 
-	@Override
 	public void updateSystemParameter(String name, String value) {
 		
 		logger.info("system paramter: " + name + "=" + value);
@@ -186,7 +185,7 @@ public class BasicContext implements Context {
 			
 		case "integer_datetimes":
 
-			settings.put("datetimes.binary.class", Integer.class);
+			settings.put(FIELD_DATETIME_FORMAT_CLASS, Integer.class);
 			break;
 			
 		case "client_encoding":
@@ -197,15 +196,12 @@ public class BasicContext implements Context {
 		
 	}
 
-	@Override
 	public void reportNotification(int processId, String channelName, String payload) {
 	}
 
-	@Override
 	public void reportNotice(byte type, String value) {
 	}
 
-	@Override
 	public void reportError(Error error) {
 	}
 

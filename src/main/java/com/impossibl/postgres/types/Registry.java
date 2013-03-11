@@ -51,7 +51,7 @@ public class Registry {
 		//Required initial types for bootstrapping
 		oidMap = new HashMap<>();
 		oidMap.put(16, new BaseType(16, "bool", 		(short)1,		(byte)0, Category.Boolean,	',', null, "bool", 		0));
-		oidMap.put(17, new BaseType(18, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 	0));
+		oidMap.put(17, new BaseType(17, "bytea", 		(short)1,		(byte)0, Category.Numeric, 	',', null, "bytea", 	0));
 		oidMap.put(18, new BaseType(18, "char", 		(short)1,		(byte)0, Category.String, 	',', null, "char", 		0));
 		oidMap.put(19, new BaseType(19, "name", 		(short)64,	(byte)0, Category.String,		',', null, "name", 		0));
 		oidMap.put(21, new BaseType(21, "int2", 		(short)2, 	(byte)0, Category.Numeric,	',', null, "int2", 		0));
@@ -149,7 +149,7 @@ public class Registry {
 		}
 		else {
 			
-			switch(pgType.discriminator) {
+			switch(pgType.discriminator.charAt(0)) {
 			case 'b':
 				type = new BaseType();
 				break;

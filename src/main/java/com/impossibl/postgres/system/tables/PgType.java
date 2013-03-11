@@ -10,9 +10,9 @@ public class PgType implements Table<PgType.Row> {
 		public int oid;
 		public String name;
 		public short length;
-		public byte discriminator;
-		public byte category;
-		public byte deliminator;
+		public String discriminator;
+		public String category;
+		public String deliminator;
 		public int relationId;
 		public int elementTypeId;
 		public int arrayTypeId;
@@ -23,7 +23,7 @@ public class PgType implements Table<PgType.Row> {
 		public int modInId;
 		public int modOutId;
 		public int analyzeId;
-		public byte alignment;
+		public String alignment;
 		public int baseTypeId;
 		public int modId;
 		public int numberOfDimensions;
@@ -61,9 +61,9 @@ public class PgType implements Table<PgType.Row> {
 	public static Object[] SQL = {
 		Version.get(9,0,0),
 		" select" +
-		"		oid, typname as \"name\", typlen as \"length\", typtype::bytea as \"discriminator\", typcategory::bytea as \"category\", typdelim::bytea as \"deliminator\", typrelid as \"relationId\"," +
+		"		oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
 		"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
-		"		typalign::bytea as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
+		"		typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
 		" from" +
 		"		pg_catalog.pg_type"
 	};

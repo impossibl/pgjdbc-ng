@@ -5,14 +5,10 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
-import static com.impossibl.postgres.utils.Factory.createInstance;
 import static java.util.Arrays.asList;
 import static java.util.logging.Level.FINEST;
-import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -22,6 +18,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Error;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
@@ -33,8 +30,8 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObject;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Type;
 
 
@@ -78,11 +75,11 @@ public class ProtocolImpl implements Protocol {
 
 	ProtocolShared.Ref sharedRef;
 	Channel channel;
-	Context context;
+	BasicContext context;
 	TransactionStatus txStatus;
 	ProtocolListener listener;
 
-	public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, Context context) {
+	public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
 		this.sharedRef = sharedRef;
 		this.channel = channel;
 		this.context = context;
@@ -126,6 +123,11 @@ public class ProtocolImpl implements Protocol {
 	@Override
 	public FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
 		return new FunctionCallCommandImpl(functionName, parameterTypes, parameterValues);
+	}
+
+	@Override
+	public CloseCommand createClose(ServerObject target, String targetName) {
+		return new CloseCommandImpl(target, targetName);
 	}
 
 	public synchronized void execute(Command cmd) throws IOException {
@@ -359,77 +361,6 @@ public class ProtocolImpl implements Protocol {
 		buffer.writeInt(4);
 		
 		channel.write(buffer);
-	}
-
-	public Object parseRowData(ChannelBuffer buffer, List<ResultField> resultFields, Class<?> rowType) throws IOException {
-
-		int itemCount = buffer.readShort();
-
-		Reader reader = null;//new InputStreamReader(in);
-
-		Object rowInstance = createInstance(rowType, itemCount);
-
-		for (int c = 0; c < itemCount; ++c) {
-
-			ResultField field = resultFields.get(c);
-
-			Type fieldType = field.type;
-			Object fieldVal = null;
-
-			switch (field.format) {
-			case Text:
-				fieldVal = fieldType.getTextIO().decoder.decode(fieldType, reader, context);
-				break;
-
-			case Binary:
-				fieldVal = fieldType.getBinaryIO().decoder.decode(fieldType, buffer, context);
-				break;
-			}
-
-			setField(rowInstance, c, field.name, fieldVal);
-		}
-
-		return rowInstance;
-	}
-
-	@SuppressWarnings("unchecked")
-	protected void setField(Object instance, int idx, String name, Object value) throws IOException {
-
-		if (Arrays.is(instance)) {
-
-			Arrays.set(instance, idx, value);
-			return;
-		}
-		else if (instance instanceof Map) {
-
-			((Map<Object, Object>) instance).put(name, value);
-			return;
-		}
-		else {
-
-			try {
-
-				java.lang.reflect.Field field;
-
-				if ((field = instance.getClass().getField(name)) != null) {
-					field.set(instance, value);
-					return;
-				}
-
-			}
-			catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e1) {
-
-				try {
-					setProperty(instance, name.toString(), value);
-					return;
-				}
-				catch (IllegalAccessException | InvocationTargetException e) {
-				}
-
-			}
-		}
-
-		throw new IllegalStateException("invalid poperty name/index");
 	}
 
 	public Object parseResultData(ChannelBuffer buffer, Type resultType) throws IOException {
@@ -712,7 +643,7 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveRowData(ChannelBuffer buffer) throws IOException {
 		logger.finest("DATA");
-		listener.rowData(this, buffer);
+		listener.rowData(buffer);
 	}
 
 	private void receivePortalSuspended(ChannelBuffer buffer) throws IOException {

@@ -44,7 +44,7 @@ public class BaseProtocolListener implements ProtocolListener {
 	}
 
 	@Override
-	public void rowData(ProtocolImpl protocol, ChannelBuffer buffer) throws IOException {
+	public void rowData(ChannelBuffer buffer) throws IOException {
 	}
 
 	@Override
