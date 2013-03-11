@@ -3,6 +3,12 @@ package com.impossibl.postgres.types;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
+/**
+ * A database primitive type
+ * 
+ * @author kdubb
+ *
+ */
 public class BaseType extends Type {
 
 	public BaseType() {

@@ -1,5 +1,11 @@
 package com.impossibl.postgres.types;
 
+/**
+ * A database domain type.
+ * 
+ * @author kdubb
+ *
+ */
 public class DomainType extends Type {
 	
 	private Type base;

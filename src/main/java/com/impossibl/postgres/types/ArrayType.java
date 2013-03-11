@@ -1,5 +1,11 @@
 package com.impossibl.postgres.types;
 
+/**
+ * A database array type.
+ * 
+ * @author kdubb
+ *
+ */
 public class ArrayType extends Type {
 
 	private Type elementType;
@@ -11,5 +17,5 @@ public class ArrayType extends Type {
 	public void setElementType(Type elementType) {
 		this.elementType = elementType;
 	}
-	
+
 }

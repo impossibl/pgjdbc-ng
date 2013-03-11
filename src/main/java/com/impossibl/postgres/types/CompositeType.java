@@ -11,9 +11,17 @@ import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
 
-
+/**
+ * A database composite type.
+ * 
+ * @author kdubb
+ *
+ */
 public class CompositeType extends Type {
 
+	/**
+	 *	An attribute of the composite type.
+	 */
 	public static class Attribute {
 
 		public String name;
