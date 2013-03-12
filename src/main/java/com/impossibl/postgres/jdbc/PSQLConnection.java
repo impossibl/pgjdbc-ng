@@ -32,6 +32,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -71,79 +72,81 @@ public class PSQLConnection extends BasicContext implements Connection {
 		activeStatements = new ArrayList<>();
 	}
 
+	/**
+	 * Ensure the connection is not closed
+	 * 
+	 * @throws SQLException
+	 * 					If the connection is closed
+	 */
 	void checkClosed() throws SQLException {
 
 		if(isClosed())
 			throw new SQLException("connection closed");
 	}
 
+	/**
+	 * Ensures the connection is currently in manual-commit mode
+	 * 
+	 * @throws SQLException
+	 * 					If the connection is not in manual-commit mode
+	 */
 	void checkManualCommit() throws SQLException {
 
 		if(autoCommit != false)
 			throw new SQLException("must not be in auto-commit mode");
 	}
 
+	/**
+	 * Ensures the connection is currently in auto-commit mode
+	 * 
+	 * @throws SQLException
+	 * 					IF the connection is not in auto-commit mode
+	 */
 	void checkAutoCommit() throws SQLException {
 
 		if(autoCommit != false)
 			throw new SQLException("must be in auto-commit mode");
 	}
 
+	/**
+	 * Generates and returns the next unique statement name for this connection
+	 * 
+	 * @return New unique statement name
+	 */
 	String getNextStatementName() {
 		return String.format("%016X", ++statementId);
 	}
 
+	/**
+	 * Generates and returns the next unique portal name for this connection
+	 * 
+	 * @return New unique portal name
+	 */
 	String getNextPortalName() {
 		return String.format("%016X", ++portalId);
 	}
 
+	/**
+	 * Called by statements to notify the connection of their closure
+	 * 
+	 * @param statement
+	 */
 	void handleStatementClosure(PSQLStatement statement) {
 
 		activeStatements.remove(statement);
 	}
 
+	/**
+	 * Closes all active statements for this connection
+	 * 
+	 * @throws SQLException
+	 */
 	void closeStatements() throws SQLException {
 
 		for(PSQLStatement statement : activeStatements) {
 
 			statement.internalClose();
 		}
-	}
-
-	@Override
-	public boolean isValid(int timeout) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Map<String, Class<?>> getTypeMap() throws SQLException {
-		checkClosed();
-		return unmodifiableMap(targetTypeMap);
-	}
-
-	@Override
-	public void setTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
-		checkClosed();
-		targetTypeMap = new HashMap<>(typeMap);
-	}
-
-	@Override
-	public int getHoldability() throws SQLException {
-		checkClosed();
-		return holdability;
-	}
-
-	@Override
-	public void setHoldability(int holdability) throws SQLException {
-		checkClosed();
-		this.holdability = holdability;
-	}
-
-	@Override
-	public DatabaseMetaData getMetaData() throws SQLException {
-		checkClosed();
-		throw new SQLException("not supported");
 	}
 
 	/**
@@ -226,8 +229,58 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
+	public boolean isValid(int timeout) throws SQLException {
+		
+		//Not valid if connection is closed
+		if(isClosed())
+			return false;
+		
+		return executeForString("SELECT 1").equals("1");
+	}
+
+	@Override
+	public Map<String, Class<?>> getTypeMap() throws SQLException {
+		checkClosed();
+		
+		return unmodifiableMap(targetTypeMap);
+	}
+
+	@Override
+	public void setTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
+		checkClosed();
+		
+		targetTypeMap = new HashMap<>(typeMap);
+	}
+
+	@Override
+	public int getHoldability() throws SQLException {
+		checkClosed();
+		
+		return holdability;
+	}
+
+	@Override
+	public void setHoldability(int holdability) throws SQLException {
+		checkClosed();
+		
+		if( holdability != ResultSet.CLOSE_CURSORS_AT_COMMIT &&
+				holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
+			throw new SQLException("illegal argument");
+		}
+			
+		this.holdability = holdability;
+	}
+
+	@Override
+	public DatabaseMetaData getMetaData() throws SQLException {
+		checkClosed();
+		throw new SQLException("not supported");
+	}
+
+	@Override
 	public boolean getAutoCommit() throws SQLException {
 		checkClosed();
+		
 		return autoCommit;
 	}
 
