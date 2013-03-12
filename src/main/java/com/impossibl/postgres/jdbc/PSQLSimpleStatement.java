@@ -14,8 +14,8 @@ import com.impossibl.postgres.types.Type;
 
 public class PSQLSimpleStatement extends PSQLStatement {
 
-	public PSQLSimpleStatement(PSQLConnection connection) {
-		super(connection, null, Collections.<ResultField>emptyList());
+	public PSQLSimpleStatement(PSQLConnection connection, int type, int concurrency, int holdability) {
+		super(connection, type, concurrency, holdability, null, Collections.<ResultField>emptyList());
 	}
 
 	SQLWarning prepare(String sql) throws SQLException {

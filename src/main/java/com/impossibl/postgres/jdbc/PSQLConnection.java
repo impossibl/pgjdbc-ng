@@ -502,7 +502,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
 
-		return new PSQLSimpleStatement(this);
+		return new PSQLSimpleStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
 	}
 
 	@Override
@@ -529,8 +529,12 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		warningChain = execute(prepare);
 
-		PSQLPreparedStatement statement = new PSQLPreparedStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+		PSQLPreparedStatement statement =
+				new PSQLPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
+						statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+		
 		activeStatements.add(statement);
+		
 		return statement;
 	}
 

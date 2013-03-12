@@ -39,8 +39,11 @@ public abstract class PSQLStatement implements Statement {
 
 	
 	
-	PSQLStatement(PSQLConnection connection, String name, List<ResultField> resultFields) {
+	PSQLStatement(PSQLConnection connection, int type, int concurrency, int holdability, String name, List<ResultField> resultFields) {
 		this.connection = connection;
+		this.type = type;
+		this.concurrency = concurrency;
+		this.holdability = holdability;
 		this.name = name;
 		this.resultFields = resultFields;
 		this.activeResultSets = new ArrayList<>();

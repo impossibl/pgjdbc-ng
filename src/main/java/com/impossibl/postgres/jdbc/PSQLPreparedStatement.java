@@ -45,8 +45,8 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	
 	
 	
-	PSQLPreparedStatement(PSQLConnection connection, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
-		super(connection, name, resultFields);
+	PSQLPreparedStatement(PSQLConnection connection, int type, int concurrency, int holdability, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
+		super(connection, type, concurrency, holdability, name, resultFields);
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
 	}
