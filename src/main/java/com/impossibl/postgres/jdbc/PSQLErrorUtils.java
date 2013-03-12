@@ -108,6 +108,14 @@ public class PSQLErrorUtils {
 		return new SQLException(notice.message, notice.code);
 	}
 
+	/**
+	 * Creates a single chain of warnings. The method attempts to append to the
+	 * base chain but if no base is provided it returns the add chain.
+	 *  
+	 * @param base Base warning chain
+	 * @param add Warning chain to append to base
+	 * @return Head of the new complete warning chain
+	 */
 	public static SQLWarning chainWarnings(SQLWarning base, SQLWarning add) {
 		
 		if(base == null)
@@ -122,5 +130,5 @@ public class PSQLErrorUtils {
 		
 		return base;
 	}
-
+ 
 }
