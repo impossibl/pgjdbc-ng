@@ -20,7 +20,7 @@ import org.jboss.netty.channel.Channel;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
@@ -542,60 +542,20 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveError(ChannelBuffer buffer) throws IOException {
 
-		Error error = new Error();
+		Notice notice = parseNotice(buffer);
 
-		byte msgId;
+		logger.finest("ERROR: " + notice.code + ": " + notice.message);
 
-		while ((msgId = buffer.readByte()) != 0) {
+		listener.error(notice);
+	}
 
-			switch (msgId) {
-			case 'S':
-				error.severity = Error.Severity.valueOf(readCString(buffer));
-				break;
+	private void receiveNotice(ChannelBuffer buffer) throws IOException {
 
-			case 'C':
-				error.code = readCString(buffer);
-				break;
+		Notice notice = parseNotice(buffer);
+		
+		logger.finest(notice.severity + ": " + notice.code + ": " + notice.message);
 
-			case 'M':
-				error.message = readCString(buffer);
-				break;
-
-			case 'D':
-				error.detail = readCString(buffer);
-				break;
-
-			case 'H':
-				error.hint = readCString(buffer);
-				break;
-
-			case 'P':
-				error.position = Integer.parseInt(readCString(buffer));
-				break;
-
-			case 'F':
-				error.file = readCString(buffer);
-				break;
-
-			case 'L':
-				error.line = Integer.parseInt(readCString(buffer));
-				break;
-
-			case 'R':
-				error.routine = readCString(buffer);
-				break;
-
-			default:
-				// Read and ignore
-				readCString(buffer);
-				break;
-			}
-
-		}
-
-		logger.finest("ERROR: " + error.message);
-
-		listener.error(error);
+		listener.notice(notice);
 	}
 
 	private void receiveParameterDescriptions(ChannelBuffer buffer) throws IOException {
@@ -761,22 +721,6 @@ public class ProtocolImpl implements Protocol {
 		listener.notification(processId, channelName, payload);
 	}
 
-	private void receiveNotice(ChannelBuffer buffer) throws IOException {
-
-		byte type;
-
-		while ((type = buffer.readByte()) != 0) {
-
-			String value = readCString(buffer);
-
-			logger.finest("NOTICE: " + type + " - " + value);
-
-			context.reportNotice(type, value);
-
-		}
-
-	}
-
 	private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {
 
 		String name = readCString(buffer);
@@ -807,6 +751,66 @@ public class ProtocolImpl implements Protocol {
 
 		if(listener != null)
 			listener.ready(txStatus);
+	}
+
+	private Notice parseNotice(ChannelBuffer buffer) {
+
+		Notice notice = new Notice();
+
+		byte msgId;
+
+		while ((msgId = buffer.readByte()) != 0) {
+
+			switch (msgId) {
+			case 'S':
+				notice.severity = readCString(buffer);
+				break;
+
+			case 'C':
+				notice.code = readCString(buffer);
+				break;
+
+			case 'M':
+				notice.message = readCString(buffer);
+				break;
+
+			case 'D':
+				notice.detail = readCString(buffer);
+				break;
+
+			case 'H':
+				notice.hint = readCString(buffer);
+				break;
+
+			case 'P':
+				notice.position = readCString(buffer);
+				break;
+				
+			case 'W':
+				notice.where = readCString(buffer);
+				break;
+
+			case 'F':
+				notice.file = readCString(buffer);
+				break;
+
+			case 'L':
+				notice.line = readCString(buffer);
+				break;
+
+			case 'R':
+				notice.routine = readCString(buffer);
+				break;
+
+			default:
+				// Read and ignore
+				readCString(buffer);
+				break;
+			}
+
+		}
+		
+		return notice;
 	}
 
 }

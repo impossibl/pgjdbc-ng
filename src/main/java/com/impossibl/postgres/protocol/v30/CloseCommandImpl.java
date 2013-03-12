@@ -3,7 +3,7 @@ package com.impossibl.postgres.protocol.v30;
 import java.io.IOException;
 
 import com.impossibl.postgres.protocol.CloseCommand;
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ServerObject;
 
 
@@ -28,7 +28,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 		}
 
 		@Override
-		public synchronized void error(Error error) {
+		public synchronized void error(Notice error) {
 			CloseCommandImpl.this.error = error;
 			notifyAll();
 		}

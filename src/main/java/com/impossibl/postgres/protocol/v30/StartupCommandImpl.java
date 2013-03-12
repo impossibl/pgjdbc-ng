@@ -6,7 +6,7 @@ import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import java.io.IOException;
 import java.util.Map;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.utils.MD5Authentication;
@@ -39,7 +39,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			}
 
 			@Override
-			public synchronized void error(Error error) {
+			public synchronized void error(Notice error) {
 				setError(error);
 			}
 

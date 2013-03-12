@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.system.Context;
@@ -74,7 +74,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		}
 
 		@Override
-		public synchronized void error(Error error) {
+		public synchronized void error(Notice error) {
 			QueryCommandImpl.this.error = error;
 			notifyAll();
 		}

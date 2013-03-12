@@ -1,5 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLWarningChain;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getCommitText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionIsolationLevelText;
@@ -63,6 +65,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	boolean autoCommit = true;
 	boolean readOnly = false;
 	int networkTimeout;
+	SQLWarning warningChain;
 	List<PSQLStatement> activeStatements;
 	
 	
@@ -147,23 +150,25 @@ public class PSQLConnection extends BasicContext implements Connection {
 		throw new SQLException("not supported");
 	}
 
-	void execute(Command cmd) throws SQLException {
+	SQLWarning execute(Command cmd) throws SQLException {
 
 		try {
 
 			protocol.execute(cmd);
 
 			if (cmd.getError() != null) {
-
-				throw new SQLException(cmd.getError().message);
+				
+				throw makeSQLException(cmd.getError());
 			}
+			
+			return makeSQLWarningChain(cmd.getWarnings());
 
 		}
 		catch (IOException e) {
-
+			
 			throw new SQLException(e);
 		}
-
+		
 	}
 
 	void execute(String sql) throws SQLException {
@@ -441,7 +446,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		PrepareCommand prepare = protocol.createPrepare(statementName, sql, Collections.<Type> emptyList());
 
-		execute(prepare);
+		warningChain = execute(prepare);
 
 		PSQLStatement statement = new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 		activeStatements.add(statement);
@@ -560,7 +565,6 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public boolean isClosed() throws SQLException {
-		checkClosed();
 		return protocol == null;
 	}
 

@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
@@ -70,9 +70,13 @@ public class BaseProtocolListener implements ProtocolListener {
 	@Override
 	public void notification(int processId, String channelName, String payload) {
 	}
+	
+	@Override
+	public void notice(Notice notice) {
+	}
 
 	@Override
-	public void error(Error error) {
+	public void error(Notice error) {
 	}
 
 	@Override

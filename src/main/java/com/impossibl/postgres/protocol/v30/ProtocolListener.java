@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
@@ -40,7 +40,9 @@ public interface ProtocolListener {
 
 	void ready(TransactionStatus txStatus) throws IOException;
 
-	void error(Error error) throws IOException;
+	void error(Notice error) throws IOException;
+
+	void notice(Notice notice) throws IOException;
 
 	void notification(int processId, String channelName, String payload) throws IOException;
 

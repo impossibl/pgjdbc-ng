@@ -16,8 +16,9 @@ import java.util.Map;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Type;
@@ -27,25 +28,18 @@ import com.impossibl.postgres.types.Type;
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
 	public enum Status {
-		Completed, Suspended
+		Completed,
+		Suspended
 	}
 
-	private String statementName;
-	private String portalName;
-	private List<Type> parameterTypes;
-	private List<Object> parameterValues;
-	private List<ResultField> resultFields;
-	private Class<?> rowType;
-	private List<Object> results;
-	private String resultCommand;
-	private Long resultRowsAffected;
-	private Long resultInsertedOid;
-	private int maxRows;
-	private int maxFieldLength;
-	private Status status;
-	private SettingsContext parsingContext;
-	private ProtocolListener listener = new BaseProtocolListener() {
+	class BindExecCommandListener extends BaseProtocolListener {
 		
+		Context context;
+		
+		public BindExecCommandListener(Context context) {
+			this.context = context;
+		}
+
 		@Override
 		public boolean isComplete() {
 			return status != null || error != null;
@@ -117,13 +111,30 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public synchronized void error(Error error) {
+		public synchronized void error(Notice error) {
 			BindExecCommandImpl.this.error = error;
 			notifyAll();
 		}
 
 	};
 
+
+	private String statementName;
+	private String portalName;
+	private List<Type> parameterTypes;
+	private List<Object> parameterValues;
+	private List<ResultField> resultFields;
+	private Class<?> rowType;
+	private List<Object> results;
+	private String resultCommand;
+	private Long resultRowsAffected;
+	private Long resultInsertedOid;
+	private int maxRows;
+	private int maxFieldLength;
+	private Status status;
+	private SettingsContext parsingContext; 
+
+	
 	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
 
 		this.statementName = statementName;
@@ -213,6 +224,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		parsingContext = new SettingsContext(protocol.getContext());
 		parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
+		BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
+		
 		protocol.setListener(listener);
 
 		if(status != Status.Suspended) {

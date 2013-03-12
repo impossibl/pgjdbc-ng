@@ -1,7 +1,10 @@
 package com.impossibl.postgres.protocol;
 
+import java.util.List;
+
 public interface Command {
 	
-	Error getError();
+	Notice getError();
+	List<Notice> getWarnings();
 
 }

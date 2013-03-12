@@ -15,7 +15,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.BindExecCommand;
@@ -260,7 +260,7 @@ public class BasicContext implements Context {
 	public void reportNotice(byte type, String value) {
 	}
 
-	public void reportError(Error error) {
+	public void reportError(Notice error) {
 	}
 
 }

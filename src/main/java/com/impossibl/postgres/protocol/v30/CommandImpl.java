@@ -1,21 +1,42 @@
 package com.impossibl.postgres.protocol.v30;
 
-import java.io.IOException;
+import static java.util.Collections.emptyList;
 
-import com.impossibl.postgres.protocol.Error;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.impossibl.postgres.protocol.Notice;
 
 
 
 public abstract class CommandImpl {
 
-	protected Error error;
-
-	public Error getError() {
-		return error;
+	protected Notice error;
+	protected List<Notice> notices;
+	
+	public Notice getError() {
+		return error;		
 	}
 
-	public void setError(Error error) {
+	public void setError(Notice error) {
 		this.error = error;
+	}
+	
+	public List<Notice> getWarnings() {
+		
+		if(notices == null)
+			return emptyList();
+		
+		List<Notice> warnings = new ArrayList<>();
+		
+		for(Notice notice : notices) {
+			
+			if(notice.isWarning())
+				warnings.add(notice);
+		}
+		
+		return warnings;
 	}
 
 	public void waitFor(ProtocolListener listener) {

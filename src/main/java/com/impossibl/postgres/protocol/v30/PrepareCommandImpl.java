@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
@@ -56,7 +56,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 		}
 
 		@Override
-		public synchronized void error(Error error) {
+		public synchronized void error(Notice error) {
 			PrepareCommandImpl.this.error = error;
 			notifyAll();
 		}

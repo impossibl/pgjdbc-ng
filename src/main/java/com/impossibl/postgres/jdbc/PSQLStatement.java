@@ -63,6 +63,7 @@ public class PSQLStatement implements PreparedStatement {
 	BindExecCommand command;
 	boolean autoClose;
 	List<PSQLResultSet> activeResultSets;
+	private SQLWarning warningChain;
 
 	
 	
@@ -298,7 +299,7 @@ public class PSQLStatement implements PreparedStatement {
 		if(maxFieldSize != null)
 			command.setMaxFieldLength(maxFieldSize);
 
-		connection.execute(command);
+		warningChain = connection.execute(command);
 
 		return !command.getResultFields().isEmpty();
 		
@@ -855,14 +856,15 @@ public class PSQLStatement implements PreparedStatement {
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
-		return null;
+		
+		return warningChain;
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		
+		warningChain = null;
 	}
 
 	@Override

@@ -3,7 +3,7 @@ package com.impossibl.postgres.protocol.v30;
 import java.io.IOException;
 import java.util.List;
 
-import com.impossibl.postgres.protocol.Error;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
 import com.impossibl.postgres.types.Type;
 
@@ -28,7 +28,7 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 		}
 
 		@Override
-		public synchronized void error(Error error) {
+		public synchronized void error(Notice error) {
 			FunctionCallCommandImpl.this.error = error;
 			notifyAll();
 		}

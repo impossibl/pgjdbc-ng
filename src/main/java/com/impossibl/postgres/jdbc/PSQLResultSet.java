@@ -44,6 +44,7 @@ public class PSQLResultSet implements ResultSet {
 	Integer fetchSize;
 	int currentRow;
 	BindExecCommand command;
+	SQLWarning warningChain;
 	List<ResultField> resultFields;
 	List<Object[]> results;
 	Boolean nullFlag;
@@ -151,7 +152,7 @@ public class PSQLResultSet implements ResultSet {
 				if(fetchSize != null)
 					command.setMaxRows(fetchSize);
 				
-				statement.connection.execute(command);
+				warningChain = statement.connection.execute(command);
 				
 				resultFields = command.getResultFields();
 				results = (List<Object[]>) command.getResults(Object[].class);
@@ -1369,14 +1370,16 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		checkClosed();
+		
+		return warningChain;
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
-		// TODO Auto-generated method stub
-
+		checkClosed();
+		
+		warningChain = null;
 	}
 
 	@Override
