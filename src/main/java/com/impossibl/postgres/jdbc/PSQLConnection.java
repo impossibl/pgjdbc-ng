@@ -57,6 +57,8 @@ import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {
 
+	
+	
 	long statementId = 0l;
 	long portalId = 0l;
 	int savepointId;
@@ -67,6 +69,8 @@ public class PSQLConnection extends BasicContext implements Connection {
 	SQLWarning warningChain;
 	List<PSQLStatement> activeStatements;
 
+	
+	
 	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();

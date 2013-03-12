@@ -3,13 +3,20 @@ package com.impossibl.postgres.jdbc;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 
+
+/**
+ * Reference to a savepoint
+ * 
+ * @author kdubb
+ *
+ */
 public class PSQLSavepoint implements Savepoint {
-	
+
 	Integer id;
 	String name;
 
 	public PSQLSavepoint(int id) {
-		this.id  = id;
+		this.id = id;
 	}
 
 	public PSQLSavepoint(String name) {
@@ -29,7 +36,7 @@ public class PSQLSavepoint implements Savepoint {
 			throw new SQLException("auto savepoints have no name");
 		return name;
 	}
-	
+
 	public String toString() {
 		return name != null ? name : Integer.toString(id);
 	}
@@ -37,7 +44,7 @@ public class PSQLSavepoint implements Savepoint {
 	public boolean isValid() {
 		return id != null || name != null;
 	}
-	
+
 	public void invalidate() {
 		id = null;
 		name = null;
