@@ -1,5 +1,8 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -21,6 +24,9 @@ import com.impossibl.postgres.system.Context;
 
 public class PSQLDriver implements Driver {
 	
+	private static final String JDBC_USERNAME_PARAM = "user";
+	private static final String JDBC_PASSWORD_PARAM = "password";
+
 	static class ConnectionSpecifier {
 		public String hostname;
 		public Integer port;
@@ -28,6 +34,7 @@ public class PSQLDriver implements Driver {
 		public Properties parameters = new Properties();
 	}
 
+	
 	
 	
 	public PSQLDriver() throws SQLException {
@@ -44,10 +51,7 @@ public class PSQLDriver implements Driver {
 
 		try {
 
-			Properties settings = new Properties();
-			settings.putAll(connSpec.parameters);
-			settings.putAll(info);
-			settings.put("database", connSpec.database);
+			Properties settings = buildSettings(connSpec, info);
 			
 			SocketAddress address = new InetSocketAddress(connSpec.hostname, connSpec.port);
 			
@@ -68,6 +72,35 @@ public class PSQLDriver implements Driver {
 	@Override
 	public boolean acceptsURL(String url) throws SQLException {
 		return parseURL(url) != null;
+	}
+	
+	/**
+	 * Combines multiple sources of properties into one group. Connection info
+	 * parameters take precedence over URL query parameters. Also, it ensure
+	 * that all required parameters has some default value. 
+	 * 
+	 * @param connSpec Connection specification as parsed
+	 * @param connectInfo Connection info properties passed to connect
+	 * @return Single group of settings
+	 */
+	Properties buildSettings(ConnectionSpecifier connSpec, Properties connectInfo) {
+		
+		Properties settings = new Properties();
+		
+		//Start by adding all parameters from the URL query string
+		settings.putAll(connSpec.parameters);
+		
+		//Add (or overwrite) parameters from the connection info
+		settings.putAll(connectInfo);
+		
+		//Set PostgreSQL's database parameter from connSpec
+		settings.put("database", connSpec.database);
+		
+		//Translate JDBC parameters to PostgreSQL parameters
+		settings.put(CREDENTIALS_USERNAME, connSpec.parameters.getProperty(JDBC_USERNAME_PARAM, ""));
+		settings.put(CREDENTIALS_PASSWORD, connSpec.parameters.getProperty(JDBC_PASSWORD_PARAM, ""));
+		
+		return settings;
 	}
 
 	/*
