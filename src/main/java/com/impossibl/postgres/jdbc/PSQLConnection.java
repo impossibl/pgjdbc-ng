@@ -61,6 +61,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	int savepointId;
 	private int holdability;
 	boolean autoCommit = true;
+	boolean readOnly = false;
 	int networkTimeout;
 	List<PSQLStatement> activeStatements;
 	
@@ -69,6 +70,24 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();
+	}
+	
+	void checkClosed() throws SQLException {
+		
+		if(isClosed())
+			throw new SQLException("connection closed");
+	}
+
+	void checkManualCommit() throws SQLException {
+		
+		if(autoCommit != false)
+			throw new SQLException("must not be in auto-commit mode");
+	}
+
+	void checkAutoCommit() throws SQLException {
+		
+		if(autoCommit != false)
+			throw new SQLException("must be in auto-commit mode");
 	}
 
 	String getNextStatementName() {
@@ -100,26 +119,31 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public Map<String, Class<?>> getTypeMap() throws SQLException {
+		checkClosed();
 		return unmodifiableMap(targetTypeMap);
 	}
 
 	@Override
 	public void setTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
+		checkClosed();
 		targetTypeMap = new HashMap<>(typeMap);
 	}
 
 	@Override
 	public int getHoldability() throws SQLException {
+		checkClosed();
 		return holdability;
 	}
 
 	@Override
 	public void setHoldability(int holdability) throws SQLException {
+		checkClosed();
 		this.holdability = holdability;
 	}
 
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
+		checkClosed();
 		throw new SQLException("not supported");
 	}
 
@@ -174,20 +198,30 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public boolean getAutoCommit() throws SQLException {
+		checkClosed();
 		return autoCommit;
 	}
 
 	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
+		checkClosed();
 
-		if (protocol.getTransactionStatus() != Idle)
-			throw new SQLException("cannot set auto-commit while transaction is active");
-
+		//Do nothing if no change in state
+		if(this.autoCommit == autoCommit)
+			return;
+		
+		//Commit any in-flight transaction (cannot call commit as it will start a
+		//new transaction since we would still be in manual commit mode)
+		if(!this.autoCommit && protocol.getTransactionStatus() != Idle) {
+			execute(getCommitText());
+		}
+		
 		this.autoCommit = autoCommit;
 	}
 
 	@Override
 	public boolean isReadOnly() throws SQLException {
+		checkClosed();
 		
 		String readability = executeForString(getGetSessionReadabilityText());
 		
@@ -196,16 +230,19 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void setReadOnly(boolean readOnly) throws SQLException {
-
-		if (autoCommit)
-			throw new SQLException("cannot set read only when auto-commit is enabled");
+		checkClosed();
+		
+		if(protocol.getTransactionStatus() != Idle) {
+			throw new SQLException("cannot set read only during a transaction");
+		}
 
 		execute(getSetSessionReadabilityText(readOnly));
 	}
 
 	@Override
 	public int getTransactionIsolation() throws SQLException {
-		
+		checkClosed();
+
 		String isolLevel = executeForString(getGetSessionIsolationLevelText());
 
 		return getIsolationLevel(isolLevel);
@@ -213,35 +250,61 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
-
-		if (autoCommit)
-			throw new SQLException("cannot set isolation level when auto-commit is enabled");
+		checkClosed();
+		
+		if( level != Connection.TRANSACTION_NONE &&
+				level != Connection.TRANSACTION_READ_UNCOMMITTED &&
+				level != Connection.TRANSACTION_READ_COMMITTED &&
+				level != Connection.TRANSACTION_REPEATABLE_READ &&
+				level != Connection.TRANSACTION_SERIALIZABLE) {
+			throw new SQLException("illegal argument");
+		}
 
 		execute(getSetSessionIsolationLevelText(level));
 	}
 
 	@Override
 	public void commit() throws SQLException {
+		checkClosed();
+		checkManualCommit();
 
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("no transaction is active");
-
-		execute(getCommitText());
-
-		if (!autoCommit) {
-			execute(getBeginText());
+		//Commit the current transaction
+		if(protocol.getTransactionStatus() != Idle) {
+			execute(getCommitText());
 		}
 
+		//Start new transaction
+		execute(getBeginText());
+	}
+
+	@Override
+	public void rollback() throws SQLException {
+		checkClosed();
+		checkManualCommit();
+
+		//Roll back the current transaction
+		if (protocol.getTransactionStatus() != Idle) {
+			execute(getRollbackText());
+		}
+
+		//Start new transaction
+		execute(getBeginText());
 	}
 
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
+		checkClosed();
+		checkManualCommit();
 
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("transaction not active");
+		//Start transaction if none available
+		if (protocol.getTransactionStatus() != Active) {
+			execute(getBeginText());
+		}
 
+		//Allocate new save-point name & wrapper
 		PSQLSavepoint savepoint = new PSQLSavepoint(++savepointId);
 
+		//Mark save-point
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
@@ -249,69 +312,90 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
+		checkClosed();
+		checkManualCommit();
 
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("transaction not active");
+		//Start transaction if none available
+		if (protocol.getTransactionStatus() != Active) {
+			execute(getBeginText());
+		}
 
+		//Allocate new save-point wrapper
 		PSQLSavepoint savepoint = new PSQLSavepoint(name);
 
+		//Mark save-point
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
 	}
 
 	@Override
-	public void rollback(Savepoint savepoint) throws SQLException {
+	public void rollback(Savepoint savepointParam) throws SQLException {
+		checkClosed();
+		checkManualCommit();
 
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("transaction not active");
+		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
+		
+		if(!savepoint.isValid()) {
+			throw new SQLException("invalid savepoint");
+		}
 
-		execute(getRollbackToText((PSQLSavepoint) savepoint));
-
+		//Use up the savepoint
+		savepoint.invalidate();
+		
+		//Rollback to save-point (if in transaction)
+		if (protocol.getTransactionStatus() != Idle) {
+			execute(getRollbackToText(savepoint));
+		}
+		
 	}
 
 	@Override
-	public void releaseSavepoint(Savepoint savepoint) throws SQLException {
+	public void releaseSavepoint(Savepoint savepointParam) throws SQLException {
+		checkClosed();
+		checkManualCommit();
 
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("transaction not active");
+		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
+		
+		if(!savepoint.isValid()) {
+			throw new SQLException("invalid savepoint");
+		}
 
-		execute(getReleaseSavepointText((PSQLSavepoint) savepoint));
+		//Use up the save-point
+		savepoint.invalidate();
+		
+		//Release the save-point (if in a transaction)
+		if(protocol.getTransactionStatus() != Idle) {
+			execute(getReleaseSavepointText((PSQLSavepoint) savepoint));
+		}
 
-	}
-
-	@Override
-	public void rollback() throws SQLException {
-
-		if (protocol.getTransactionStatus() != Active)
-			throw new SQLException("transaction not active");
-
-		execute(getRollbackText());
-
-		if (!autoCommit)
-			execute(getBeginText());
 	}
 
 	@Override
 	public String getCatalog() throws SQLException {
+		checkClosed();
 		return null;
 	}
 
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
+		checkClosed();
 	}
 
 	@Override
 	public String getSchema() throws SQLException {
+		checkClosed();
 		return null;
 	}
 
 	@Override
 	public void setSchema(String schema) throws SQLException {
+		checkClosed();
 	}
 
 	@Override
 	public String nativeSQL(String sql) throws SQLException {
+		checkClosed();
 
 		return getProtocolSQLText(sql);
 	}
@@ -330,6 +414,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
@@ -348,6 +433,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+		checkClosed();
 
 		sql = nativeSQL(sql);
 
@@ -364,60 +450,70 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
+		checkClosed();
 
 		return null;
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Clob createClob() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Blob createBlob() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public NClob createNClob() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public SQLXML createSQLXML() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
@@ -436,30 +532,35 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public String getClientInfo(String name) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Properties getClientInfo() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public boolean isClosed() throws SQLException {
+		checkClosed();
 		return protocol == null;
 	}
 
@@ -488,23 +589,27 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
+		checkClosed();
 		// TODO: implement
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public int getNetworkTimeout() throws SQLException {
+		checkClosed();
 		return networkTimeout;
 	}
 
 	@Override
 	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+		checkClosed();
 		networkTimeout = milliseconds;
 	}
 

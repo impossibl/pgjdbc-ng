@@ -34,4 +34,13 @@ public class PSQLSavepoint implements Savepoint {
 		return name != null ? name : Integer.toString(id);
 	}
 
+	public boolean isValid() {
+		return id != null || name != null;
+	}
+	
+	public void invalidate() {
+		id = null;
+		name = null;
+	}
+
 }
