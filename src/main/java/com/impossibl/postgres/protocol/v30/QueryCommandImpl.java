@@ -79,6 +79,11 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 			notifyAll();
 		}
 
+		@Override
+		public void notice(Notice notice) {
+			addNotice(notice);
+		}
+
 	};
 
 

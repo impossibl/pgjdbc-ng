@@ -61,6 +61,11 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 			notifyAll();
 		}
 
+		@Override
+		public void notice(Notice notice) {
+			addNotice(notice);
+		}
+
 	};
 
 	public PrepareCommandImpl(String statementName, String query, List<Type> parseParameterTypes) {

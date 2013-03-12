@@ -116,6 +116,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 			notifyAll();
 		}
 
+		@Override
+		public void notice(Notice notice) {
+			addNotice(notice);
+		}
+
 	};
 
 

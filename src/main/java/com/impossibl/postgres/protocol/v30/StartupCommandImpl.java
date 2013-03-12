@@ -44,6 +44,11 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			}
 
 			@Override
+			public void notice(Notice notice) {
+				addNotice(notice);
+			}
+
+			@Override
 			public void backendKeyData(int processId, int secretKey) {
 				protocol.context.setKeyData(processId, secretKey);
 			}

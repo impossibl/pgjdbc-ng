@@ -23,6 +23,14 @@ public abstract class CommandImpl {
 		this.error = error;
 	}
 	
+	public void addNotice(Notice notice) {
+		
+		if(notices == null)
+			notices = new ArrayList<>();
+			
+		notices.add(notice);
+	}
+	
 	public List<Notice> getWarnings() {
 		
 		if(notices == null)

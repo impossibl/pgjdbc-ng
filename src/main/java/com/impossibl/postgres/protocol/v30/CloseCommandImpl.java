@@ -33,6 +33,11 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 			notifyAll();
 		}
 
+		@Override
+		public void notice(Notice notice) {
+			addNotice(notice);
+		}
+
 	};
 
 	public CloseCommandImpl(ServerObject target, String targetName) {

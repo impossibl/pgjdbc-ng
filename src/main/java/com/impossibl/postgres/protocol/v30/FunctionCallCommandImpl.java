@@ -33,6 +33,11 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 			notifyAll();
 		}
 
+		@Override
+		public void notice(Notice notice) {
+			addNotice(notice);
+		}
+
 	};
 
 	public FunctionCallCommandImpl(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
