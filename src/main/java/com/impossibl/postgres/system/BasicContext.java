@@ -5,14 +5,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
@@ -48,14 +52,17 @@ public class BasicContext implements Context {
 	protected Version serverVersion;
 	protected KeyData keyData;
 	protected Protocol protocol;
+	protected Set<WeakReference<NotificationListener>> notificationListeners;
+	
 	
 	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		this.registry = new Registry(this);
-		this.targetTypeMap = new HashMap<String, Class<?>>(targetTypeMap);
+		this.targetTypeMap = new HashMap<>(targetTypeMap);
 		this.settings = settings;
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
 		this.protocol = new ProtocolFactoryImpl().connect(address, this);
+		this.notificationListeners = new ConcurrentSkipListSet<>(); 
 	}
 	
 	protected void shutdown() {		
@@ -256,13 +263,28 @@ public class BasicContext implements Context {
 		
 	}
 
+	public void addNotificationListener(NotificationListener listener) {
+		
+		notificationListeners.add(new WeakReference<NotificationListener>(listener));
+	}
+	
 	public void reportNotification(int processId, String channelName, String payload) {
-	}
-
-	public void reportNotice(byte type, String value) {
-	}
-
-	public void reportError(Notice error) {
+		
+		Iterator<WeakReference<NotificationListener>> iter = notificationListeners.iterator();
+		while(iter.hasNext()) {
+			
+			NotificationListener listener = iter.next().get();
+			if(listener == null) {
+				
+				iter.remove();
+			}
+			else {
+				
+				listener.notification(processId, channelName, payload);
+			}
+			
+		}
+		
 	}
 
 }
