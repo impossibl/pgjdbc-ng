@@ -56,8 +56,6 @@ import com.impossibl.postgres.types.Type;
 
 public class PSQLConnection extends BasicContext implements Connection {
 
-	
-	
 	long statementId = 0l;
 	long portalId = 0l;
 	int savepointId;
@@ -67,28 +65,26 @@ public class PSQLConnection extends BasicContext implements Connection {
 	int networkTimeout;
 	SQLWarning warningChain;
 	List<PSQLStatement> activeStatements;
-	
-	
 
 	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();
 	}
-	
+
 	void checkClosed() throws SQLException {
-		
+
 		if(isClosed())
 			throw new SQLException("connection closed");
 	}
 
 	void checkManualCommit() throws SQLException {
-		
+
 		if(autoCommit != false)
 			throw new SQLException("must not be in auto-commit mode");
 	}
 
 	void checkAutoCommit() throws SQLException {
-		
+
 		if(autoCommit != false)
 			throw new SQLException("must be in auto-commit mode");
 	}
@@ -100,16 +96,16 @@ public class PSQLConnection extends BasicContext implements Connection {
 	String getNextPortalName() {
 		return String.format("%016X", ++portalId);
 	}
-	
+
 	void handleStatementClosure(PSQLStatement statement) {
-		
+
 		activeStatements.remove(statement);
 	}
-	
+
 	void closeStatements() throws SQLException {
-		
+
 		for(PSQLStatement statement : activeStatements) {
-			
+
 			statement.internalClose();
 		}
 	}
@@ -150,55 +146,83 @@ public class PSQLConnection extends BasicContext implements Connection {
 		throw new SQLException("not supported");
 	}
 
+	/**
+	 * Executes the given command and throws a SQLException if an error was
+	 * encountered and returns a chain of SQLWarnings if any were generated.
+	 * 
+	 * @param cmd
+	 *          Command to execute
+	 * @return Chain of SQLWarning objects if any were encountered
+	 * @throws SQLException
+	 *           If an error was encountered
+	 */
 	SQLWarning execute(Command cmd) throws SQLException {
 
 		try {
 
 			protocol.execute(cmd);
 
-			if (cmd.getError() != null) {
-				
+			if(cmd.getError() != null) {
+
 				throw makeSQLException(cmd.getError());
 			}
-			
+
 			return makeSQLWarningChain(cmd.getWarnings());
 
 		}
-		catch (IOException e) {
-			
+		catch(IOException e) {
+
 			throw new SQLException(e);
 		}
-		
+
 	}
 
+	/**
+	 * Executes the given SQL text ignoring all result values
+	 * 
+	 * @param sql
+	 *          SQL text to execute
+	 * @throws SQLException
+	 *           If an error was encountered during execution
+	 */
 	void execute(String sql) throws SQLException {
 
 		try {
-			
+
 			execQuery(sql);
-			
+
 		}
 		catch(IOException e) {
-			
+
 			throw new SQLException(e);
-			
+
 		}
-		
+
 	}
 
+	/**
+	 * Executes the given SQL text returning the first column of the first row
+	 * 
+	 * @param sql
+	 *          SQL text to execute
+	 * @return String String value of the 1st column of the 1st row or empty
+	 *         string if no results are available
+	 * @throws SQLException
+	 *           If an error was encountered during execution
+	 */
 	String executeForString(String sql) throws SQLException {
 
 		try {
-			
+
 			return execQueryForString(sql);
-			
+
 		}
 		catch(IOException e) {
-			
+
 			throw new SQLException(e);
-			
+
 		}
-		
+
 	}
 
 	@Override
@@ -211,32 +235,32 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
 		checkClosed();
 
-		//Do nothing if no change in state
+		// Do nothing if no change in state
 		if(this.autoCommit == autoCommit)
 			return;
-		
-		//Commit any in-flight transaction (cannot call commit as it will start a
-		//new transaction since we would still be in manual commit mode)
+
+		// Commit any in-flight transaction (cannot call commit as it will start a
+		// new transaction since we would still be in manual commit mode)
 		if(!this.autoCommit && protocol.getTransactionStatus() != Idle) {
 			execute(getCommitText());
 		}
-		
+
 		this.autoCommit = autoCommit;
 	}
 
 	@Override
 	public boolean isReadOnly() throws SQLException {
 		checkClosed();
-		
+
 		String readability = executeForString(getGetSessionReadabilityText());
-		
+
 		return isTrue(readability);
 	}
 
 	@Override
 	public void setReadOnly(boolean readOnly) throws SQLException {
 		checkClosed();
-		
+
 		if(protocol.getTransactionStatus() != Idle) {
 			throw new SQLException("cannot set read only during a transaction");
 		}
@@ -256,7 +280,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
 		checkClosed();
-		
+
 		if( level != Connection.TRANSACTION_NONE &&
 				level != Connection.TRANSACTION_READ_UNCOMMITTED &&
 				level != Connection.TRANSACTION_READ_COMMITTED &&
@@ -273,12 +297,12 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		//Commit the current transaction
+		// Commit the current transaction
 		if(protocol.getTransactionStatus() != Idle) {
 			execute(getCommitText());
 		}
 
-		//Start new transaction
+		// Start new transaction
 		execute(getBeginText());
 	}
 
@@ -287,12 +311,12 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		//Roll back the current transaction
-		if (protocol.getTransactionStatus() != Idle) {
+		// Roll back the current transaction
+		if(protocol.getTransactionStatus() != Idle) {
 			execute(getRollbackText());
 		}
 
-		//Start new transaction
+		// Start new transaction
 		execute(getBeginText());
 	}
 
@@ -301,15 +325,15 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		//Start transaction if none available
-		if (protocol.getTransactionStatus() != Active) {
+		// Start transaction if none available
+		if(protocol.getTransactionStatus() != Active) {
 			execute(getBeginText());
 		}
 
-		//Allocate new save-point name & wrapper
+		// Allocate new save-point name & wrapper
 		PSQLSavepoint savepoint = new PSQLSavepoint(++savepointId);
 
-		//Mark save-point
+		// Mark save-point
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
@@ -320,15 +344,15 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		//Start transaction if none available
-		if (protocol.getTransactionStatus() != Active) {
+		// Start transaction if none available
+		if(protocol.getTransactionStatus() != Active) {
 			execute(getBeginText());
 		}
 
-		//Allocate new save-point wrapper
+		// Allocate new save-point wrapper
 		PSQLSavepoint savepoint = new PSQLSavepoint(name);
 
-		//Mark save-point
+		// Mark save-point
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
@@ -340,19 +364,19 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkManualCommit();
 
 		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
-		
+
 		if(!savepoint.isValid()) {
 			throw new SQLException("invalid savepoint");
 		}
 
-		//Use up the savepoint
+		// Use up the savepoint
 		savepoint.invalidate();
-		
-		//Rollback to save-point (if in transaction)
-		if (protocol.getTransactionStatus() != Idle) {
+
+		// Rollback to save-point (if in transaction)
+		if(protocol.getTransactionStatus() != Idle) {
 			execute(getRollbackToText(savepoint));
 		}
-		
+
 	}
 
 	@Override
@@ -361,15 +385,15 @@ public class PSQLConnection extends BasicContext implements Connection {
 		checkManualCommit();
 
 		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
-		
+
 		if(!savepoint.isValid()) {
 			throw new SQLException("invalid savepoint");
 		}
 
-		//Use up the save-point
+		// Use up the save-point
 		savepoint.invalidate();
-		
-		//Release the save-point (if in a transaction)
+
+		// Release the save-point (if in a transaction)
 		if(protocol.getTransactionStatus() != Idle) {
 			execute(getReleaseSavepointText((PSQLSavepoint) savepoint));
 		}
@@ -570,18 +594,18 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	@Override
 	public void close() throws SQLException {
-		
-		//Ignore multiple closes
+
+		// Ignore multiple closes
 		if(isClosed())
 			return;
-		
+
 		internalClose();
 	}
-	
+
 	void internalClose() throws SQLException {
-		
+
 		closeStatements();
-		
+
 		shutdown();
 	}
 
