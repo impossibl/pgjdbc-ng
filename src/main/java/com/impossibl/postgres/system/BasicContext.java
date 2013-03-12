@@ -15,10 +15,10 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
+import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
@@ -105,12 +105,11 @@ public class BasicContext implements Context {
 	public void refreshType(int typeId) {
 	}
 	
-	public void init() throws IOException {
+	public void init() throws IOException, NoticeException {
 		
-		if(start()) {
+		start();
 			
-			loadTypes();
-		}
+		loadTypes();
 	}
 
 	private void loadTypes() throws IOException {
@@ -137,7 +136,7 @@ public class BasicContext implements Context {
 		logger.info("load time: " + timer.getLap() + "ms");
 	}
 	
-	private boolean start() throws IOException {
+	private void start() throws IOException, NoticeException {
 		
 		Map<String, Object> params = new HashMap<String, Object>();
 
@@ -150,7 +149,10 @@ public class BasicContext implements Context {
 
 		protocol.execute(startup);
 		
-		return startup.getError() == null;
+		Notice error = startup.getError();
+		if (error != null) {
+			throw new NoticeException("Startup Failed", error);
+		}
 	}
 	
 	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException {

@@ -41,6 +41,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 			@Override
 			public synchronized void error(Notice error) {
 				setError(error);
+				notify();
 			}
 
 			@Override

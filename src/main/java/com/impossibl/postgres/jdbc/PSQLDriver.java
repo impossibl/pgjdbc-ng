@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 
@@ -20,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.NoticeException;
 
 
 public class PSQLDriver implements Driver {
@@ -65,6 +67,10 @@ public class PSQLDriver implements Driver {
 		catch (IOException e) {
 			
 			throw new SQLException("Connection Error", e);
+		}
+		catch (NoticeException e) {
+			
+			throw makeSQLException(e.getNotice());
 		}
 		
 	}
