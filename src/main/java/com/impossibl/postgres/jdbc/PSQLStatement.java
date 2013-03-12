@@ -1,6 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.ServerObject.Statement;
+import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -39,7 +39,7 @@ import com.google.common.io.CharStreams;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObject;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -76,28 +76,56 @@ public class PSQLStatement implements PreparedStatement {
 		this.activeResultSets = new ArrayList<>();
 	}
 
+	/**
+	 * Ensure the connection is not closed
+	 * 
+	 * @throws SQLException
+	 * 					If the connection is closed
+	 */
 	void checkClosed() throws SQLException {
 		
 		if(isClosed())
 			throw new SQLException("closed statement");
 	}
 	
+	/**
+	 * Ensure the given parameter index is valid for this statement
+	 * 
+	 * @throws SQLException
+	 * 					If the parameter index is out of bounds
+	 */
 	void checkParameterIndex(int idx) throws SQLException {
 		
 		if(idx < 1 && idx > parameterValues.size())
 			throw new SQLException("parameter index out of bounds");
 	}
 
-	void dispose(ServerObject target, String targetName) throws SQLException {
+	/**
+	 * Disposes of the named server object
+	 * 
+	 * @param objectType
+	 * 					Type of object to dispose of
+	 * @param objectName
+	 * 					Name of the object to dispose of
+	 * @throws SQLException
+	 * 					If an error occurs during disposal
+	 */
+	void dispose(ServerObjectType objectType, String objectName) throws SQLException {
 		
-		if(targetName == null)
+		if(objectName == null)
 			return;
 	
-		CloseCommand close = connection.getProtocol().createClose(target, targetName);
+		CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
 		
 		connection.execute(close);		
 	}
 	
+	/**
+	 * Closes all active result sets for this statement
+	 * 
+	 * @throws SQLException
+	 * 					If an error occurs closing a result set
+	 */
 	void closeResultSets() throws SQLException {
 		
 		for(PSQLResultSet rs : activeResultSets) {
@@ -108,6 +136,16 @@ public class PSQLStatement implements PreparedStatement {
 		
 	}
 	
+	/**
+	 * Called by result sets to notify the statement of their closure. Removes
+	 * the result set from the active set of result sets. If auto-close is
+	 * enabled this closes the statement when the last result set is closed.
+	 * 
+	 * @param resultSet
+	 * 					The result set that is closing
+	 * @throws SQLException
+	 * 					If an error occurs closing a result set
+	 */
 	void handleResultSetClosure(PSQLResultSet resultSet) throws SQLException {
 		
 		activeResultSets.remove(resultSet);
@@ -120,6 +158,36 @@ public class PSQLStatement implements PreparedStatement {
 		
 	}
 	
+	/**
+	 * Determines whether or not the current statement state requires a named 
+	 * portal or could use the unnamed portal instead
+	 * 
+	 * @return true when a named portal is required and false when it is not
+	 */
+	boolean needsNamedPortal() {
+
+		return fetchSize != null;
+	}
+
+	/**
+	 * Cleans up all resources, including active result sets
+	 * 
+	 * @throws SQLException
+	 * 					If an error occurs closing result sets or 
+	 */
+	void internalClose() throws SQLException {
+
+		closeResultSets();
+		
+		dispose(Statement, name);
+		
+		connection = null;
+		command = null;
+		parameterTypes = null;
+		parameterValues = null;
+		resultFields = null;
+	}
+
 	@Override
 	public Connection getConnection() throws SQLException {
 		checkClosed();
@@ -271,22 +339,13 @@ public class PSQLStatement implements PreparedStatement {
 
 	}
 
-	/*
-	 * Determines whether or not the current statement state requires a named
-	 * portal or could use the unnamed portal instead
-	 */
-	private boolean needsNamedPortal() {
-
-		return fetchSize != null;
-	}
-
 	@Override
 	public boolean execute() throws SQLException {
 		
 		closeResultSets();
 
 		String portalName = null;
-
+		
 		if (needsNamedPortal()) {
 			portalName = connection.getNextPortalName();
 		}
@@ -475,19 +534,6 @@ public class PSQLStatement implements PreparedStatement {
 		internalClose();
 	}
 	
-	void internalClose() throws SQLException {
-
-		closeResultSets();
-		
-		dispose(Statement, name);
-		
-		connection = null;
-		command = null;
-		parameterTypes = null;
-		parameterValues = null;
-		resultFields = null;
-	}
-
 	@Override
 	public void clearParameters() throws SQLException {
 		checkClosed();

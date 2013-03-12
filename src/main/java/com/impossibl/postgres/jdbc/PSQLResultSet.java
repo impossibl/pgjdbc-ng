@@ -1,6 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.protocol.ServerObject.Portal;
+import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
 
@@ -61,6 +61,12 @@ public class PSQLResultSet implements ResultSet {
 		this.results = command.getResults(Object[].class);
 	}
 	
+	/**
+	 * Ensure the connection is not closed
+	 * 
+	 * @throws SQLException
+	 * 					If the connection is closed
+	 */
 	void checkClosed() throws SQLException {
 		
 		if(isClosed())

@@ -2,8 +2,8 @@ package com.impossibl.postgres.protocol;
 
 public interface CloseCommand extends Command {
 	
-	ServerObject getTarget();
+	ServerObjectType getObjectType();
 
-	String getTargetName();
+	String getObjectName();
 
 }

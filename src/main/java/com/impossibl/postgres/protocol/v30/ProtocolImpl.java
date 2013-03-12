@@ -26,7 +26,7 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObject;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
@@ -125,8 +125,8 @@ public class ProtocolImpl implements Protocol {
 	}
 
 	@Override
-	public CloseCommand createClose(ServerObject target, String targetName) {
-		return new CloseCommandImpl(target, targetName);
+	public CloseCommand createClose(ServerObjectType objectType, String objectName) {
+		return new CloseCommandImpl(objectType, objectName);
 	}
 
 	public synchronized void execute(Command cmd) throws IOException {
@@ -234,7 +234,7 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendDescribe(ServerObject target, String targetName) throws IOException {
+	public void sendDescribe(ServerObjectType target, String targetName) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("DESCRIBE " + target + " (" + targetName + ")");
@@ -284,7 +284,7 @@ public class ProtocolImpl implements Protocol {
 		return msg;
 	}
 
-	public void sendClose(ServerObject target, String targetName) throws IOException {
+	public void sendClose(ServerObjectType target, String targetName) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("CLOSE " + target + ": " + targetName);

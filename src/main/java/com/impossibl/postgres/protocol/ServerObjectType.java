@@ -1,12 +1,12 @@
 package com.impossibl.postgres.protocol;
 
-public enum ServerObject {
+public enum ServerObjectType {
 	
 	Statement	('S'),
 	Portal		('P');
 	
 	byte id;
-	ServerObject(char id) { this.id = (byte)id; }
+	ServerObjectType(char id) { this.id = (byte)id; }
 	public byte getId() { return id; }
 }
 

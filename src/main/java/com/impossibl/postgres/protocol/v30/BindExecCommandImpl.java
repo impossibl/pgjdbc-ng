@@ -1,6 +1,6 @@
 package com.impossibl.postgres.protocol.v30;
 
-import static com.impossibl.postgres.protocol.ServerObject.Portal;
+import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 import static java.util.Arrays.asList;

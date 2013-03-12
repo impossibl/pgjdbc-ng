@@ -17,7 +17,7 @@ public interface Protocol {
 	QueryCommand createQuery(String sqlText);
 	FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues);
 	
-	CloseCommand createClose(ServerObject target, String targetName);
+	CloseCommand createClose(ServerObjectType objectType, String objectName);
 	
 	void execute(Command cmd) throws IOException;
 	

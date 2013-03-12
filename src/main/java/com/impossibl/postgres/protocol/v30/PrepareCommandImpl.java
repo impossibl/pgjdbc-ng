@@ -1,6 +1,6 @@
 package com.impossibl.postgres.protocol.v30;
 
-import static com.impossibl.postgres.protocol.ServerObject.Statement;
+import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.io.IOException;
 import java.util.Collections;

@@ -4,14 +4,14 @@ import java.io.IOException;
 
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.ServerObject;
+import com.impossibl.postgres.protocol.ServerObjectType;
 
 
 
 public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 	
-	ServerObject target;
-	String targetName;
+	ServerObjectType objectType;
+	String objectName;
 	boolean complete;
 
 	private ProtocolListener listener = new BaseProtocolListener() {
@@ -40,19 +40,19 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 	};
 
-	public CloseCommandImpl(ServerObject target, String targetName) {
-		this.target = target;
-		this.targetName = targetName;
+	public CloseCommandImpl(ServerObjectType objectType, String objectName) {
+		this.objectType = objectType;
+		this.objectName = objectName;
 	}
 
 	@Override
-	public ServerObject getTarget() {
-		return target;
+	public ServerObjectType getObjectType() {
+		return objectType;
 	}
 	
 	@Override
-	public String getTargetName() {
-		return targetName;
+	public String getObjectName() {
+		return objectName;
 	}
 
 	@Override
@@ -60,7 +60,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 		protocol.setListener(listener);
 		
-		protocol.sendClose(target, targetName);
+		protocol.sendClose(objectType, objectName);
 		
 		protocol.sendFlush();
 
