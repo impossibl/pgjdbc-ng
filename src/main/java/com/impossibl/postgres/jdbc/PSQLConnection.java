@@ -235,7 +235,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 		if(isClosed())
 			return false;
 		
-		return executeForString("SELECT 1").equals("1");
+		return executeForString("SELECT '1'::char").equals("1");
 	}
 
 	@Override
