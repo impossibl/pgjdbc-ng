@@ -501,8 +501,8 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+
+		return new PSQLSimpleStatement(this);
 	}
 
 	@Override
@@ -529,7 +529,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		warningChain = execute(prepare);
 
-		PSQLStatement statement = new PSQLStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+		PSQLPreparedStatement statement = new PSQLPreparedStatement(this, statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 		activeStatements.add(statement);
 		return statement;
 	}

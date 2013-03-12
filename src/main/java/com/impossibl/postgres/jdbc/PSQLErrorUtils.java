@@ -108,4 +108,19 @@ public class PSQLErrorUtils {
 		return new SQLException(notice.message, notice.code);
 	}
 
+	public static SQLWarning chainWarnings(SQLWarning base, SQLWarning add) {
+		
+		if(base == null)
+			return add;
+
+		SQLWarning current = base;
+		while(current.getNextWarning() != null) {
+			current = current.getNextWarning();
+		}
+		
+		current.setNextWarning(add);
+		
+		return base;
+	}
+
 }
