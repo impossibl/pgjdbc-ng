@@ -7,6 +7,7 @@ import static java.util.Arrays.asList;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -105,12 +106,11 @@ public class BasicContext implements Context {
 	public void refreshType(int typeId) {
 	}
 	
-	public void init() throws IOException {
+	public void init() throws IOException, SQLException {
 		
-		if(start()) {
+		start();
 			
-			loadTypes();
-		}
+		loadTypes();
 	}
 
 	private void loadTypes() throws IOException {
@@ -137,7 +137,7 @@ public class BasicContext implements Context {
 		logger.info("load time: " + timer.getLap() + "ms");
 	}
 	
-	private boolean start() throws IOException {
+	private void start() throws IOException, SQLException {
 		
 		Map<String, Object> params = new HashMap<String, Object>();
 
@@ -150,7 +150,10 @@ public class BasicContext implements Context {
 
 		protocol.execute(startup);
 		
-		return startup.getError() == null;
+		Notice error = startup.getError();
+		if (error != null) {
+			throw new SQLException("Could not open connection: " + error.code + ": " + error.message);
+		}
 	}
 	
 	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException {
