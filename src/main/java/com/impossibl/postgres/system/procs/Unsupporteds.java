@@ -23,7 +23,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
-			throw new UnssupportedFormatException("No matching binary decoder found for: " + name);
+			throw new UnssupportedFormatException("No matching decoder found for: " + name);
 		}
 
 	}
@@ -37,7 +37,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-			throw new UnssupportedFormatException("No matching binary encoder found for: " + name);
+			throw new UnssupportedFormatException("No matching encoder found for: " + name);
 		}
 
 	}
