@@ -80,21 +80,41 @@ public class PSQLDriver implements Driver {
 	 */
 	private static final Pattern URL_PATTERN = Pattern.compile("jdbc:postgresql:(?://(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)/)?(\\w+)(?:\\?(.*))?");
 	
+	/**
+	 * Parses a URL connection string.
+	 * 
+	 * Uses the URL_PATTERN to capture a hostname or ip address, port, database
+	 * name and a list of parameters specified as query name=value pairs. All
+	 * parts but the database name are optional.
+	 * 
+	 * @param url
+	 * @return
+	 */
 	private ConnectionSpecifier parseURL(String url) {
 		
 		try {
+			
+			//First match aginst the entire URL pattern.  If that doesn't work
+			//then the url is invalid
 			
 			Matcher urlMatcher = URL_PATTERN.matcher(url);
 			if (!urlMatcher.matches()) {
 				return null;
 			}
 			
+			//Now build a conn-spec from the optional pieces of the URL
+			//
+			
 			ConnectionSpecifier spec = new ConnectionSpecifier();
+			
+			//Assign hostname, if provided, or use the default "localhost"
 			
 			spec.hostname = urlMatcher.group(1);
 			if(spec.hostname == null || spec.hostname.isEmpty()) {
 				spec.hostname = "localhost";
 			}
+			
+			//Assign port, if provided, or use the default "5432"
 			
 			String port = urlMatcher.group(2);
 			if(port != null && !port.isEmpty()) {
@@ -104,7 +124,12 @@ public class PSQLDriver implements Driver {
 				spec.port = 5432;
 			}
 			
+			//Assign the database
+			
 			spec.database = urlMatcher.group(3);
+			
+			//Parse the query string as a list of name=value pairs separated by '&'
+			//then assign them as extra parameters
 			
 			String params = urlMatcher.group(4);
 			if(params != null && !params.isEmpty()) {
