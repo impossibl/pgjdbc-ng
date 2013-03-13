@@ -5,6 +5,9 @@ import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -196,8 +199,6 @@ public class PSQLTextUtils {
 	private static final Pattern PARAM_SEARCH_PATTERN = Pattern
 			.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|(?:\\-\\-.*$)|(?:/\\*.*\\*/)|\\?", Pattern.MULTILINE);
 
-	/*
-	 */
 	/**
 	 * Transforms JDBC SQL text into text suitable for use with PostgreSQL's
 	 * native protocol.
@@ -229,6 +230,131 @@ public class PSQLTextUtils {
 		matcher.appendTail(newSql);
 
 		return newSql.toString();
+	}
+
+	/*
+	 * Pattern that finds these things:
+	 * 	> Double quoted strings (ignoring escaped double quotes)
+	 * 	> Single quoted strings (ignoring escaped single quotes)
+	 * 	> SQL comments... from "--" to end of line
+	 *  > C-Style comments (including nested sections)
+	 *  > ? Parameter Placements 
+	 */
+	private static final Pattern STMT_END_SEARCH_PATTERN = Pattern
+			.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|(?:\\-\\-.*$)|(?:/\\*.*\\*/)|;", Pattern.MULTILINE);
+
+	/**
+	 * Splits an SQL text block into multiple statements.
+	 * 
+	 * Uses the STMT_END_SEARCH_PATTERN to find, and ignore, string and comment
+	 * sections and replaces ';' and the gathered text to the list of statements
+	 * 
+	 * @param sqlText SQL text block
+	 * @return List of SQL statements in the text block
+	 */
+	public static List<String> splitStatements(String sqlText) {
+		
+		List<String> statements = new ArrayList<>();
+		
+		Matcher matcher = STMT_END_SEARCH_PATTERN.matcher(sqlText);
+
+		StringBuffer current = new StringBuffer();
+		
+		while (matcher.find()) {
+			
+			if (matcher.group().equals(";")) {
+				
+				//Break it into a separate the statement
+				
+				matcher.appendReplacement(current, "");
+				
+				String statement = current.toString().trim();
+				if(!statement.isEmpty())
+					statements.add(statement);
+				
+				current = new StringBuffer();
+			}
+			else {
+				
+				matcher.appendReplacement(current, "$0");
+			}
+		}
+
+		matcher.appendTail(current);
+
+		String lastStatement = current.toString().trim();
+		if(!lastStatement.isEmpty())
+			statements.add(lastStatement);
+
+		return statements;
+	}
+	
+	/**
+	 * Appends a clause, provided as text, to the given SQL text.
+	 * 
+	 * @param sqlText Input SQL text
+	 * @return SQL text with appended clause or null if sqlText cannot be
+	 * 					appended to
+	 */
+	public static String appendClause(String sqlText, String clause) {
+		
+		List<String> statements = splitStatements(sqlText);
+		if(statements.size() > 1)
+			return null;
+		
+		String statement = statements.get(0);
+
+		return statement + " " + clause;
+	}
+	
+	/**
+	 * Appends a RETURNING clause, containing only the provided columns, to the
+	 * given SQL text.
+	 * 
+	 * @param sqlText Input SQL text
+	 * @return SQL text with appended clause or null if sqlText cannot be
+	 * 					appended to
+	 */
+	public static String appendReturningClause(String sqlText, List<String> columns) {
+		
+		return appendClause(sqlText, " RETURNING " + joinColumns(columns, " , "));
+	}
+	
+	/**
+	 * Appends a RETURNING * clause to the given SQL text.
+	 * 
+	 * @param sqlText Input SQL text
+	 * @return SQL text with appended clause or null if sqlText cannot be
+	 * 					appended to
+	 */
+	public static String appendReturningClause(String sqlText) {
+		
+		return appendClause(sqlText, " RETURNING *");
+	}
+	
+	/**
+	 * Joins a list of columns into a string
+	 * 
+	 * @param columns List of columns to join
+	 * @param separator String to separate columns with
+	 * @return Joined representation of columns
+	 */
+	public static String joinColumns(List<String> columns, String separator) {
+		
+		StringBuilder sb = new StringBuilder();
+		Iterator<String> columnIter = columns.iterator();
+		
+		while(columnIter.hasNext()) {
+			
+			sb.append(columnIter.next());
+			
+			if(columnIter.hasNext()) {
+				sb.append(separator);
+			}
+			
+		}
+		
+		return sb.toString();
 	}
 
 }

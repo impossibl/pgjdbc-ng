@@ -1,5 +1,10 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.PSQLExceptions.CLOSED_STATEMENT;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.ILLEGAL_ARGUMENT;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NO_RESULT_COUNT_AVAILABLE;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.sql.Connection;
@@ -35,6 +40,7 @@ public abstract class PSQLStatement implements Statement {
 	BindExecCommand command;
 	boolean autoClose;
 	List<PSQLResultSet> activeResultSets;
+	PSQLResultSet generatedKeysResultSet;
 	SQLWarning warningChain;
 
 	
@@ -49,6 +55,10 @@ public abstract class PSQLStatement implements Statement {
 		this.activeResultSets = new ArrayList<>();
 	}
 
+	public void finalize() throws SQLException {
+		close();
+	}
+
 	/**
 	 * Ensure the connection is not closed
 	 * 
@@ -58,7 +68,7 @@ public abstract class PSQLStatement implements Statement {
 	void checkClosed() throws SQLException {
 		
 		if(isClosed())
-			throw new SQLException("closed statement");
+			throw CLOSED_STATEMENT;
 	}
 	
 	/**
@@ -90,10 +100,11 @@ public abstract class PSQLStatement implements Statement {
 	void closeResultSets() throws SQLException {
 		
 		for(PSQLResultSet rs : activeResultSets) {
-			
-			rs.internalClose();
-			
+			rs.internalClose();			
 		}
+		
+		activeResultSets.clear();
+		generatedKeysResultSet = null;
 		
 	}
 	
@@ -249,7 +260,7 @@ public abstract class PSQLStatement implements Statement {
 		checkClosed();
 		
 		if(max < 0)
-			throw new SQLException("illegal argument");
+			throw ILLEGAL_ARGUMENT;
 		
 		maxFieldSize = max;
 	}
@@ -265,7 +276,7 @@ public abstract class PSQLStatement implements Statement {
 		checkClosed();
 
 		if(max < 0)
-			throw new SQLException("illegal argument");
+			throw ILLEGAL_ARGUMENT;
 		
 		maxRows = max;
 	}
@@ -284,7 +295,7 @@ public abstract class PSQLStatement implements Statement {
 		if (direction != ResultSet.FETCH_FORWARD ||
 				direction != ResultSet.FETCH_REVERSE ||
 				direction != ResultSet.FETCH_UNKNOWN)
-			throw new SQLException("illegal argument");
+			throw ILLEGAL_ARGUMENT;
 			
 		fetchDirection = direction;
 	}
@@ -301,7 +312,7 @@ public abstract class PSQLStatement implements Statement {
 		checkClosed();
 		
 		if(rows < 0)
-			throw new SQLException("illegal argument");
+			throw ILLEGAL_ARGUMENT;
 		
 		fetchSize = rows;
 	}
@@ -309,8 +320,8 @@ public abstract class PSQLStatement implements Statement {
 	@Override
 	public void setEscapeProcessing(boolean enable) throws SQLException {
 		checkClosed();
-		
-		throw new UnsupportedOperationException();
+
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -334,15 +345,19 @@ public abstract class PSQLStatement implements Statement {
 	}
 
 	@Override
-	public ResultSet getResultSet() throws SQLException {
+	public PSQLResultSet getResultSet() throws SQLException {
 		checkClosed();
 
-		if (command.getResultFields().isEmpty()) {
-			throw new SQLException("no result set available");
+		if (generatedKeysResultSet != null ||
+				command == null || 
+				command.getResultFields().isEmpty()) {
+			throw NO_RESULT_SET_AVAILABLE;
 		}
 
 		PSQLResultSet rs = new PSQLResultSet(this, command);
+		
 		this.activeResultSets.add(rs);
+		
 		return rs;
 	}
 
@@ -350,11 +365,13 @@ public abstract class PSQLStatement implements Statement {
 	public int getUpdateCount() throws SQLException {
 		checkClosed();
 
-		if (command.getResultRowsAffected() == null) {
-			throw new SQLException("no update count available");
+		if (command == null || command.getResultRowsAffected() == null) {
+			throw NO_RESULT_COUNT_AVAILABLE;
 		}
-
-		return (int) (long) command.getResultRowsAffected();
+		
+		int res = (int) (long) command.getResultRowsAffected();
+		
+		return res;
 	}
 
 	@Override
@@ -372,8 +389,12 @@ public abstract class PSQLStatement implements Statement {
 	@Override
 	public ResultSet getGeneratedKeys() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
-		return null;
+		
+		if(generatedKeysResultSet == null) {
+			throw NO_RESULT_SET_AVAILABLE;
+		}
+		
+		return generatedKeysResultSet;
 	}
 
 	@Override

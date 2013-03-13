@@ -1,5 +1,8 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_ALLOWED_ON_PREP_STMT;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -40,8 +43,10 @@ import com.impossibl.postgres.types.Type;
 public class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
 
 	
+	
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
+	boolean wantsGeneratedKeys;
 	
 	
 	
@@ -49,6 +54,14 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 		super(connection, type, concurrency, holdability, name, resultFields);
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
+	}
+
+	public boolean getWantsGeneratedKeys() {
+		return wantsGeneratedKeys;
+	}
+
+	public void setWantsGeneratedKeys(boolean wantsGeneratedKeys) {
+		this.wantsGeneratedKeys = wantsGeneratedKeys;
 	}
 
 	/**
@@ -60,7 +73,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	void checkParameterIndex(int idx) throws SQLException {
 		
 		if(idx < 1 && idx > parameterValues.size())
-			throw new SQLException("parameter index out of bounds");
+			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 	}
 
 	void internalClose() throws SQLException {
@@ -74,7 +87,13 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	@Override
 	public boolean execute() throws SQLException {
 		
-		return super.executeStatement(name, parameterTypes, parameterValues);
+		boolean res = super.executeStatement(name, parameterTypes, parameterValues);
+		
+		if(wantsGeneratedKeys) {
+			generatedKeysResultSet = getResultSet();
+		}
+
+		return res;
 	}
 
 	@Override
@@ -90,26 +109,29 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 
 		execute();
 
+		if(wantsGeneratedKeys) {
+			generatedKeysResultSet = getResultSet();
+		}
+
 		return getUpdateCount();
 	}
 
 	@Override
 	public void clearBatch() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void addBatch() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -127,7 +149,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	@Override
 	public ParameterMetaData getParameterMetaData() throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -328,7 +350,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	@Override
 	public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -342,189 +364,189 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	@Override
 	public void setRef(int parameterIndex, Ref x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Clob x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setURL(int parameterIndex, URL x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setRowId(int parameterIndex, RowId x) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNString(int parameterIndex, String value) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, NClob value) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
 		checkClosed();
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public int executeUpdate(String sql, String[] columnNames) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public boolean execute(String sql, int[] columnIndexes) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public boolean execute(String sql, String[] columnNames) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public boolean execute(String sql) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 	@Override
 	public void addBatch(String sql) throws SQLException {
-		throw new SQLException("method not valid for PreparedStatement");
+		throw NOT_ALLOWED_ON_PREP_STMT;
 	}
 
 }

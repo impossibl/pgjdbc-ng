@@ -2,6 +2,10 @@ package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLWarningChain;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.PSQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getCommitText;
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionIsolationLevelText;
@@ -20,9 +24,11 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
+import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.sql.Array;
 import java.sql.Blob;
@@ -38,11 +44,11 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
-import java.sql.Statement;
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -67,13 +73,17 @@ public class PSQLConnection extends BasicContext implements Connection {
 	boolean readOnly = false;
 	int networkTimeout;
 	SQLWarning warningChain;
-	List<PSQLStatement> activeStatements;
+	List<WeakReference<PSQLStatement>> activeStatements;
 
 	
 	
 	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();
+	}
+	
+	public void finalize() throws SQLException {
+		close();
 	}
 
 	/**
@@ -137,7 +147,17 @@ public class PSQLConnection extends BasicContext implements Connection {
 	 */
 	void handleStatementClosure(PSQLStatement statement) {
 
-		activeStatements.remove(statement);
+		Iterator<WeakReference<PSQLStatement>> stmtRefIter = activeStatements.iterator();
+		while(stmtRefIter.hasNext()) {
+			
+			PSQLStatement stmt = stmtRefIter.next().get();
+			if(stmt == null || stmt == statement) {
+				
+				stmtRefIter.remove();
+			}
+			
+		}
+		
 	}
 
 	/**
@@ -147,9 +167,10 @@ public class PSQLConnection extends BasicContext implements Connection {
 	 */
 	void closeStatements() throws SQLException {
 
-		for(PSQLStatement statement : activeStatements) {
+		for(WeakReference<PSQLStatement> stmtRef : activeStatements) {
 
-			statement.internalClose();
+			if(stmtRef.get() != null)
+				stmtRef.get().internalClose();
 		}
 	}
 
@@ -230,6 +251,18 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 		}
 
+	}
+
+	/**
+	 * Closes all statemens and shuts down the protocol
+	 * 
+	 * @throws SQLException If an error occurs closing any of the statements
+	 */
+	void internalClose() throws SQLException {
+
+		closeStatements();
+
+		shutdown();
 	}
 
 	@Override
@@ -487,38 +520,42 @@ public class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public Statement createStatement() throws SQLException {
+	public PSQLStatement createStatement() throws SQLException {
 
 		return createStatement(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+	public PSQLStatement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
 
 		return createStatement(resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+	public PSQLStatement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
 
-		return new PSQLSimpleStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+		PSQLSimpleStatement statement = new PSQLSimpleStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+		
+		activeStatements.add(new WeakReference<PSQLStatement>(statement));
+		
+		return statement;
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String sql) throws SQLException {
+	public PSQLPreparedStatement prepareStatement(String sql) throws SQLException {
 
 		return prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+	public PSQLPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
 
 		return prepareStatement(sql, resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+	public PSQLPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
 
 		sql = nativeSQL(sql);
@@ -533,7 +570,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 				new PSQLPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
 						statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 		
-		activeStatements.add(statement);
+		activeStatements.add(new WeakReference<PSQLStatement>(statement));
 		
 		return statement;
 	}
@@ -541,71 +578,85 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
 		checkClosed();
+		
+		if(autoGeneratedKeys != RETURN_GENERATED_KEYS) {
+			return prepareStatement(sql);
+		}
+		
+		sql = appendReturningClause(sql);
+		if(sql == null) {
+			throw INVALID_COMMAND_FOR_GENERATED_KEYS;
+		}
 
-		return null;
+		PSQLPreparedStatement statement = prepareStatement(sql);
+		
+		statement.setWantsGeneratedKeys(true);
+		
+		return statement;
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_SUPPORTED;
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		
+		sql = appendReturningClause(sql);
+		if(sql == null) {
+			throw INVALID_COMMAND_FOR_GENERATED_KEYS;
+		}
+
+		PSQLPreparedStatement statement = prepareStatement(sql);
+		
+		statement.setWantsGeneratedKeys(true);
+		
+		return statement;
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public Clob createClob() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public Blob createBlob() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public NClob createNClob() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public SQLXML createSQLXML() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -623,29 +674,25 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public String getClientInfo(String name) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public Properties getClientInfo() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -663,31 +710,21 @@ public class PSQLConnection extends BasicContext implements Connection {
 		internalClose();
 	}
 
-	void internalClose() throws SQLException {
-
-		closeStatements();
-
-		shutdown();
-	}
-
 	@Override
 	public void abort(Executor executor) throws SQLException {
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		return warningChain;
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
 		checkClosed();
-		// TODO: implement
-		throw new UnsupportedOperationException();
+		warningChain = null;
 	}
 
 	@Override
