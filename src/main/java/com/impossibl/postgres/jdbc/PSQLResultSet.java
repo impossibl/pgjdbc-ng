@@ -5,6 +5,19 @@ import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOU
 import static com.impossibl.postgres.jdbc.PSQLExceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.PSQLExceptions.INVALID_COLUMN_NAME;
 import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToBigDecimal;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToBoolean;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToByte;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToDate;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToDouble;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToFloat;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToInt;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToShort;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToTime;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToTimestamp;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.createCoercionException;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
@@ -408,8 +421,12 @@ public class PSQLResultSet implements ResultSet {
 	public String getString(int columnIndex) throws SQLException {
 		checkClosed();
 		checkColumnIndex(columnIndex);
-				
-		return (String) get(columnIndex);
+		
+		Object res = get(columnIndex);
+		if(res == null)
+			return null;
+		
+		return res.toString();
 	}
 
 	@Override
@@ -417,7 +434,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Boolean) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Boolean) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToBoolean(val);
+		}
 	}
 
 	@Override
@@ -425,7 +448,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Byte) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Byte) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToByte(val);
+		}
 	}
 
 	@Override
@@ -433,7 +462,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Short) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Short) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToShort(val);
+		}
 	}
 
 	@Override
@@ -441,7 +476,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Integer) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Integer) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToInt(val);
+		}
 	}
 
 	@Override
@@ -449,7 +490,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Long) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Long) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToLong(val);
+		}
 	}
 
 	@Override
@@ -457,7 +504,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Float) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Float) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToFloat(val);
+		}
 	}
 
 	@Override
@@ -465,7 +518,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Double) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Double) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToDouble(val);
+		}
 	}
 
 	@Override
@@ -473,7 +532,15 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (BigDecimal) get(columnIndex);
+		//TODO respect scale param
+		
+		Object val = get(columnIndex);
+		try {
+			return (BigDecimal) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToBigDecimal(val);
+		}
 	}
 
 	@Override
@@ -481,7 +548,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (BigDecimal) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (BigDecimal) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToBigDecimal(val);
+		}
 	}
 
 	@Override
@@ -489,7 +562,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (byte[]) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (byte[]) val;
+		}
+		catch(ClassCastException e) {
+			throw createCoercionException(val.getClass(), byte[].class);
+		}
 	}
 
 	@Override
@@ -497,7 +576,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Date) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Date) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToDate(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -505,7 +590,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Time) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Time) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToTime(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -513,7 +604,13 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Timestamp) get(columnIndex);
+		Object val = get(columnIndex);
+		try {
+			return (Timestamp) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToTimestamp(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -521,7 +618,15 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Date) get(columnIndex);
+		//TODO respect calendar param
+		
+		Object val = get(columnIndex);
+		try {
+			return (Date) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToDate(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -529,7 +634,15 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Time) get(columnIndex);
+		//TODO respect calendar param
+		
+		Object val = get(columnIndex);
+		try {
+			return (Time) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToTime(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -537,7 +650,15 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return (Timestamp) get(columnIndex);
+		//TODO respect calendar param
+		
+		Object val = get(columnIndex);
+		try {
+			return (Timestamp) val;
+		}
+		catch(ClassCastException e) {
+			return coerceToTimestamp(val, statement.connection);
+		}
 	}
 
 	@Override
@@ -590,8 +711,6 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 
-		//TODO respect type-map
-		
 		return get(columnIndex);
 	}
 
@@ -600,7 +719,7 @@ public class PSQLResultSet implements ResultSet {
 		checkClosed();
 		checkColumnIndex(columnIndex);
 		
-		return type.cast(get(columnIndex));
+		return type.cast(coerce(get(columnIndex), type, statement.connection));
 	}
 
 	@Override
@@ -653,6 +772,7 @@ public class PSQLResultSet implements ResultSet {
 
 	@Override
 	public int findColumn(String columnLabel) throws SQLException {
+		checkClosed();
 
 		for (int c = 0; c < resultFields.size(); ++c) {
 

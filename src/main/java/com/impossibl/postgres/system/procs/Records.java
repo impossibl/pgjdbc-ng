@@ -25,6 +25,10 @@ public class Records extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public Class<?> getOutputType() {
+			return Object.class;
+		}
+
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			CompositeType ctype = (CompositeType) type;
@@ -63,6 +67,10 @@ public class Records extends SimpleProcProvider {
 	}
 
 	static class Encoder implements Type.Codec.Encoder {
+
+		public Class<?> getInputType() {
+			return Object.class;
+		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 

@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system;
 
 import java.nio.charset.Charset;
+import java.text.DateFormat;
 import java.util.TimeZone;
 
 import com.impossibl.postgres.protocol.Protocol;
@@ -24,6 +25,21 @@ public class DecoratorContext implements Context {
 	@Override
 	public Charset getCharset() {
 		return base.getCharset();
+	}
+
+	@Override
+	public DateFormat getDateFormat() {
+		return base.getDateFormat();
+	}
+
+	@Override
+	public DateFormat getTimeFormat() {
+		return base.getTimeFormat();
+	}
+
+	@Override
+	public DateFormat getTimestampFormat() {
+		return base.getTimestampFormat();
 	}
 
 	@Override

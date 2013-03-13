@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system;
 
 import java.nio.charset.Charset;
+import java.text.DateFormat;
 import java.util.TimeZone;
 
 import com.impossibl.postgres.protocol.Protocol;
@@ -13,6 +14,9 @@ public interface Context {
 	
 	Charset getCharset();
 	TimeZone getTimeZone();
+	DateFormat getDateFormat();
+	DateFormat getTimeFormat();
+	DateFormat getTimestampFormat();
 
 	Class<?> lookupInstanceType(Type type);
 
@@ -21,5 +25,7 @@ public interface Context {
 	Object getSetting(String name);
 	
 	Protocol getProtocol();
+
+
 
 }

@@ -21,6 +21,10 @@ public class Moneys extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public Class<?> getOutputType() {
+			return BigDecimal.class;
+		}
+
 		public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
@@ -41,6 +45,10 @@ public class Moneys extends SimpleProcProvider {
 	}
 
 	static class Encoder implements Type.Codec.Encoder {
+
+		public Class<?> getInputType() {
+			return BigDecimal.class;
+		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 

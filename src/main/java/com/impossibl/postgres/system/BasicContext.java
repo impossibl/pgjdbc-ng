@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -48,6 +50,9 @@ public class BasicContext implements Context {
 	protected Map<String, Class<?>> targetTypeMap;
 	protected Charset charset;
 	protected TimeZone timeZone;
+	protected DateFormat dateFormat;
+	protected DateFormat timeFormat;
+	protected DateFormat timestampFormat;
 	protected Properties settings;
 	protected Version serverVersion;
 	protected KeyData keyData;
@@ -61,6 +66,9 @@ public class BasicContext implements Context {
 		this.settings = settings;
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
+		this.dateFormat = new SimpleDateFormat();
+		this.timeFormat = new SimpleDateFormat();
+		this.timestampFormat = new SimpleDateFormat();
 		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 		this.notificationListeners = new ConcurrentSkipListSet<>(); 
 	}
@@ -107,6 +115,18 @@ public class BasicContext implements Context {
 
 	public TimeZone getTimeZone() {
 		return timeZone;
+	}
+
+	public DateFormat getDateFormat() {
+		return dateFormat;
+	}
+
+	public DateFormat getTimeFormat() {
+		return timeFormat;
+	}
+
+	public DateFormat getTimestampFormat() {
+		return timestampFormat;
 	}
 
 	public void refreshType(int typeId) {

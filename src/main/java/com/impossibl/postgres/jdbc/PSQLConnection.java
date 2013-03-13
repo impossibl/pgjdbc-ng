@@ -25,6 +25,7 @@ import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
+import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
@@ -605,7 +606,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
 		checkClosed();
 		
-		sql = appendReturningClause(sql);
+		sql = appendReturningClause(sql, asList(columnNames));
 		if(sql == null) {
 			throw INVALID_COMMAND_FOR_GENERATED_KEYS;
 		}

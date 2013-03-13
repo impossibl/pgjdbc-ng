@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -83,13 +84,15 @@ public abstract class Type {
 		 *	Decodes the given data into a Java language object
 		 */
 		public interface Decoder {
-			Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException;
+			Class<?> getOutputType();
+			Object decode(Type type,  ChannelBuffer buffer, Context context) throws IOException;
 		}
 		
 		/**
 		 * Encodes the given Java language as data the server expects.  
 		 */
 		public interface Encoder {
+			Class<?> getInputType();
 			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
 
@@ -255,6 +258,28 @@ public abstract class Type {
 	@Override
 	public String toString() {
 		return name + '(' + id + ')';
+	}
+
+	public Class<?> getInputType(Format format) {
+		
+		switch(format) {
+		case Text:
+			return binaryCodec.encoder.getInputType();
+		case Binary:
+			return binaryCodec.encoder.getInputType();
+		}
+		return null;
+	}
+
+	public Class<?> getOutputType(Format format) {
+		
+		switch(format) {
+		case Text:
+			return binaryCodec.decoder.getOutputType();
+		case Binary:
+			return binaryCodec.decoder.getOutputType();
+		}
+		return null;
 	}
 
 }

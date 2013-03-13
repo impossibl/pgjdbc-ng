@@ -1,9 +1,9 @@
 package com.impossibl.postgres.system.procs;
 
 public abstract class BaseProcProvider implements ProcProvider {
+
 	
 	String[] baseNames;
-	
 	
 
 	public BaseProcProvider(String[] baseNames) {

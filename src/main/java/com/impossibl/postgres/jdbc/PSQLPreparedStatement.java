@@ -3,6 +3,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.PSQLExceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerce;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -36,6 +37,7 @@ import java.util.List;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.Type;
 
 
@@ -74,6 +76,18 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 		
 		if(idx < 1 && idx > parameterValues.size())
 			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
+	}
+	
+	void set(int parameterIdx, Object val) throws SQLException {
+		checkClosed();
+		checkParameterIndex(parameterIdx);
+		
+		parameterIdx -= 1;
+		
+		Type paramType = parameterTypes.get(parameterIdx);
+		Class<?> requiredType = paramType.getInputType(Format.Binary);
+		
+		parameterValues.set(parameterIdx, coerce(val, requiredType, connection));
 	}
 
 	void internalClose() throws SQLException {
@@ -154,114 +168,73 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, null);
+		set(parameterIndex - 1, null);
 	}
 
 	@Override
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+		set(parameterIndex, x);
 	}
 
 	@Override
 	public void setByte(int parameterIndex, byte x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+		set(parameterIndex, x);
 	}
 
 	@Override
 	public void setShort(int parameterIndex, short x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+		set(parameterIndex, x);
 	}
 
 	@Override
 	public void setInt(int parameterIndex, int x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
 		
-		parameterValues.set(parameterIndex - 1, x);
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setLong(int parameterIndex, long x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setLong(int parameterIndex, long x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setFloat(int parameterIndex, float x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setFloat(int parameterIndex, float x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setDouble(int parameterIndex, double x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setDouble(int parameterIndex, double x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setString(int parameterIndex, String x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setString(int parameterIndex, String x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setBytes(int parameterIndex, byte[] x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setDate(int parameterIndex, Date x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setDate(int parameterIndex, Date x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setTime(int parameterIndex, Time x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setTime(int parameterIndex, Time x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
-	public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override
@@ -278,9 +251,6 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
 			ByteStreams.copy(x, out);
@@ -289,7 +259,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 			throw new SQLException(e);
 		}
 
-		parameterValues.set(parameterIndex - 1, out.toByteArray());
+		set(parameterIndex, out.toByteArray());
 	}
 
 	@Override
@@ -302,13 +272,11 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-
 		setAsciiStream(parameterIndex, x, (long) -1);
 	}
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-
 		setAsciiStream(parameterIndex, x, (long) length);
 	}
 
@@ -322,13 +290,11 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-
 		setCharacterStream(parameterIndex, reader, (long) -1);
 	}
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-		
 		setCharacterStream(parameterIndex, reader, (long) length);
 	}
 
@@ -344,7 +310,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 			throw new SQLException(e);
 		}
 		
-		parameterValues.set(parameterIndex - 1, writer.toString());
+		set(parameterIndex, writer.toString());
 	}
 
 	@Override
@@ -354,11 +320,8 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x) throws SQLException {
-		checkClosed();
-		checkParameterIndex(parameterIndex);
-		
-		parameterValues.set(parameterIndex - 1, x);
+	public void setObject(int parameterIndex, Object x) throws SQLException {		
+		set(parameterIndex, x);
 	}
 
 	@Override

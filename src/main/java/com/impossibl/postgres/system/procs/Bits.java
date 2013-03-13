@@ -18,6 +18,10 @@ public class Bits extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public Class<?> getOutputType() {
+			return BitSet.class;
+		}
+
 		public BitSet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
@@ -44,6 +48,10 @@ public class Bits extends SimpleProcProvider {
 	}
 
 	static class Encoder implements Type.Codec.Encoder {
+
+		public Class<?> getInputType() {
+			return BitSet.class;
+		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 

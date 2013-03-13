@@ -17,6 +17,10 @@ public class Float4s extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public Class<?> getOutputType() {
+			return Float.class;
+		}
+
 		public Float decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
@@ -33,6 +37,10 @@ public class Float4s extends SimpleProcProvider {
 	}
 
 	static class Encoder implements Type.Codec.Encoder {
+
+		public Class<?> getInputType() {
+			return Float.class;
+		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 

@@ -22,6 +22,11 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
+		public Class<Void> getOutputType() {
+			return Void.class;
+		}
+
+
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching decoder found for: " + name);
 		}
@@ -34,6 +39,10 @@ public class Unsupporteds implements ProcProvider {
 		
 		Encoder(String name) {
 			this.name = name;
+		}
+
+		public Class<Void> getInputType() {
+			return Void.class;
 		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

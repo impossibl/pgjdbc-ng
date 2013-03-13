@@ -29,6 +29,10 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.Codec.Decoder {
 
+		public Class<?> getOutputType() {
+			return Timestamp.class;
+		}
+
 		public Timestamp decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
@@ -48,6 +52,10 @@ public class Timestamps extends SettingSelectProcProvider {
 	}
 
 	static class BinIntegerEncoder implements Type.Codec.Encoder {
+
+		public Class<?> getInputType() {
+			return Timestamp.class;
+		}
 
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
