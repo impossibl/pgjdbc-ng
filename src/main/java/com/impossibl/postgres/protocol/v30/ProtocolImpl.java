@@ -31,6 +31,7 @@ import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 
@@ -577,6 +578,8 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveRowDescription(ChannelBuffer buffer) throws IOException {
 
+		Registry registry = context.getRegistry();
+		
 		short fieldCount = buffer.readShort();
 
 		ResultField[] fields = new ResultField[fieldCount];
@@ -587,7 +590,7 @@ public class ProtocolImpl implements Protocol {
 			field.name = readCString(buffer);
 			field.relationId = buffer.readInt();
 			field.relationAttributeIndex = buffer.readShort();
-			field.type = context.getRegistry().loadType(buffer.readInt());
+			field.type = registry.loadType(buffer.readInt());
 			field.typeLength = buffer.readShort();
 			field.typeModId = buffer.readInt();
 			field.format = ResultField.Format.values()[buffer.readShort()];

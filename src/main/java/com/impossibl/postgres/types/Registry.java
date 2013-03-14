@@ -75,6 +75,9 @@ public class Registry {
 	 * @return Type object or null, if none found
 	 */
 	public synchronized Type loadType(int typeId) {
+		
+		if(typeId == 0)
+			return null;
 
 		Type type = oidMap.get(typeId);
 		if(type == null) {

@@ -26,6 +26,9 @@ public class CompositeType extends Type {
 
 		public String name;
 		public Type type;
+		public boolean nullable;
+		public boolean autoIncrement;
+		public boolean hasDefault;
 
 		@Override
 		public String toString() {
@@ -73,6 +76,8 @@ public class CompositeType extends Type {
 			Attribute attr = new Attribute();
 			attr.name = pgAttr.name;
 			attr.type = registry.loadType(pgAttr.typeId);
+			attr.nullable = pgAttr.nullable;
+			attr.hasDefault = pgAttr.hasDefault;
 
 			int idx;
 

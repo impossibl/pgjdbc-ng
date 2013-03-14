@@ -404,7 +404,7 @@ public class PSQLResultSet implements ResultSet {
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		return new PSQLResultSetMetaData(statement.connection, resultFields);
 	}
 
 	@Override
