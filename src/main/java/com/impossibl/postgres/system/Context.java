@@ -1,8 +1,9 @@
 package com.impossibl.postgres.system;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.util.TimeZone;
+
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
 
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
@@ -13,10 +14,10 @@ public interface Context {
 	Registry getRegistry();
 	
 	Charset getCharset();
-	TimeZone getTimeZone();
-	DateFormat getDateFormat();
-	DateFormat getTimeFormat();
-	DateFormat getTimestampFormat();
+	DateTimeZone getTimeZone();
+	DateTimeFormatter getDateFormatter();
+	DateTimeFormatter getTimeFormatter();
+	DateTimeFormatter getTimestampFormatter();
 
 	Class<?> lookupInstanceType(Type type);
 

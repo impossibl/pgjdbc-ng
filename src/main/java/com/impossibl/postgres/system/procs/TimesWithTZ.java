@@ -70,7 +70,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 				long millis = time.getTime();
 				
 				long baseMicros = MILLISECONDS.toMicros(millis);
-				int tzOffsetSecs = (int)MILLISECONDS.toSeconds(context.getTimeZone().getRawOffset());
+				int tzOffsetSecs = (int)MILLISECONDS.toSeconds(context.getTimeZone().getStandardOffset(0));
 				
 				buffer.writeInt(12);
 				buffer.writeLong(baseMicros);

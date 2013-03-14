@@ -1,14 +1,13 @@
 package com.impossibl.postgres.system.procs;
 
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.joda.time.DateTimeZone.UTC;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.util.Calendar;
-import java.util.TimeZone;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
@@ -17,7 +16,7 @@ import com.impossibl.postgres.types.Type;
 
 public class Dates extends SimpleProcProvider {
 
-	private static final long PG_JAVA_EPOCH_DIFF_MILLIS = calculateEpochDifferenceMillis();
+	private static final DateTime PG_EPOCH = new DateTime(2000,1,1,0,0, UTC);
 
 
 	public Dates() {
@@ -39,12 +38,12 @@ public class Dates extends SimpleProcProvider {
 			else if (length != 4) {
 				throw new IOException("invalid length");
 			}
-			
+
 			int daysPg = buffer.readInt();
-			long millisPg = DAYS.toMillis(daysPg);
-			long millisJava = millisPg + PG_JAVA_EPOCH_DIFF_MILLIS;
 			
-			return new Date(millisJava);
+			DateTime date = PG_EPOCH.plusDays(daysPg).withZoneRetainFields(context.getTimeZone());
+			
+			return new Date(date.toDate().getTime());
 		}
 
 	}
@@ -62,11 +61,10 @@ public class Dates extends SimpleProcProvider {
 			}
 			else {
 				
-				Date date = (Date) val;
-								
-				long millisJava = date.getTime();				
-				long millisPg = millisJava - PG_JAVA_EPOCH_DIFF_MILLIS;
-				int daysPg = (int) MILLISECONDS.toDays(millisPg);
+				DateTime date = new DateTime((Date) val, context.getTimeZone());
+				date = date.withTimeAtStartOfDay().withZoneRetainFields(UTC);
+				
+				int daysPg = Days.daysBetween(PG_EPOCH, date).getDays();
 				
 				buffer.writeInt(4);
 				buffer.writeInt(daysPg);
@@ -74,16 +72,6 @@ public class Dates extends SimpleProcProvider {
 			
 		}
 
-	}
-	
-	private static long calculateEpochDifferenceMillis() {
-		
-		Calendar pgEpochInJava = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-
-		pgEpochInJava.clear();
-		pgEpochInJava.set(2000, 0, 1);
-		
-		return pgEpochInJava.getTimeInMillis();
 	}
 
 }

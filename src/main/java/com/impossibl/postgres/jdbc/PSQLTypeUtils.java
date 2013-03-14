@@ -5,7 +5,6 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.ParseException;
 
 import com.impossibl.postgres.system.Context;
 
@@ -200,9 +199,9 @@ public class PSQLTypeUtils {
 		
 		if(val instanceof String) {
 			try {
-				return new Date(context.getDateFormat().parse((String) val).getTime());
+				return new Date(context.getDateFormatter().parseDateTime((String) val).toDate().getTime());
 			}
-			catch(ParseException e) {
+			catch(IllegalArgumentException e) {
 				throw new SQLException("Cannot parse date: " + val.toString());
 			}
 		}
@@ -220,9 +219,9 @@ public class PSQLTypeUtils {
 		
 		if(val instanceof String) {
 			try {
-				return new Time(context.getTimeFormat().parse((String) val).getTime());
+				return new Time(context.getTimeFormatter().parseLocalTime((String) val).getMillisOfDay());
 			}
-			catch(ParseException e) {
+			catch(IllegalArgumentException e) {
 				throw new SQLException("Cannot parse date: " + val.toString());
 			}
 		}
@@ -240,7 +239,7 @@ public class PSQLTypeUtils {
 		
 		if(val instanceof String) {
 			try {
-				return Timestamp.valueOf((String) val);
+				return new Timestamp(context.getTimestampFormatter().parseDateTime((String) val).toDate().getTime());
 			}
 			catch(IllegalArgumentException e) {
 				throw new SQLException("Cannot parse date: " + val.toString(), e);
