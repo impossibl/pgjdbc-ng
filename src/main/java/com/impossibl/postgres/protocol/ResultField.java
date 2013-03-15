@@ -14,7 +14,7 @@ public class ResultField {
 	public short relationAttributeIndex;
 	public Type type;
 	public short typeLength;
-	public int typeModId;
+	public int typeModifier;
 	public Format format;
 	
 	@Override

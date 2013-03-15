@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
 
@@ -16,6 +17,7 @@ public class Procs {
 		new Int4s(),
 		new Int8s(),
 		new Numerics(),
+		new NumericMods(),
 		new Names(),
 		new Strings(),
 		new Dates(),
@@ -46,11 +48,13 @@ public class Procs {
 
 	public static Codec.Encoder loadEncoderProc(String name, Context context) {
 		
-		Codec.Encoder h;
-		
-		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findEncoder(name, context)) != null)
-				return h;
+		if(name != "") {
+			Codec.Encoder h;
+			
+			for(ProcProvider pp : Procs.PROVIDERS) {
+				if((h = pp.findEncoder(name, context)) != null)
+					return h;
+			}
 		}
 
 		return UNSUPPORTEDS.findEncoder(name, context);
@@ -58,14 +62,30 @@ public class Procs {
 
 	public static Codec.Decoder loadDecoderProc(String name, Context context) {
 		
-		Codec.Decoder h;
-		
-		for(ProcProvider pp : Procs.PROVIDERS) {
-			if((h = pp.findDecoder(name, context)) != null)
-				return h;
+		if(name != "") {
+			Codec.Decoder h;
+			
+			for(ProcProvider pp : Procs.PROVIDERS) {
+				if((h = pp.findDecoder(name, context)) != null)
+					return h;
+			}
 		}
 
 		return UNSUPPORTEDS.findDecoder(name, context);
+	}
+
+	public static Modifiers.Parser loadModifierParserProc(String name, Context context) {
+
+		if(name != "") {
+			Modifiers.Parser p;
+			
+			for(ProcProvider pp : Procs.PROVIDERS) {
+				if((p = pp.findModifierParser(name, context)) != null)
+					return p;
+			}
+		}
+
+		return UNSUPPORTEDS.findModifierParser(name, context);
 	}
 
 }

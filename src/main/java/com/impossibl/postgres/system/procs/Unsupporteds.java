@@ -1,10 +1,13 @@
 package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 
@@ -50,6 +53,15 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 	}
+	
+	static class ModParser implements Modifiers.Parser {
+
+		@Override
+		public Map<String, Object> parse(long mod) {
+			return Collections.<String,Object>emptyMap();
+		}
+		
+	}
 
 	@Override
 	public Codec.Encoder findEncoder(String name, Context context) {
@@ -60,5 +72,11 @@ public class Unsupporteds implements ProcProvider {
 	public Codec.Decoder findDecoder(String name, Context context) {
 		return new Decoder(name);
 	}
+
+	@Override
+	public Modifiers.Parser findModifierParser(String name, Context context) {
+		return new ModParser();
+	}
+	
 
 }

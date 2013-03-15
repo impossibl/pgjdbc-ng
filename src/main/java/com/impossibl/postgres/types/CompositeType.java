@@ -5,7 +5,9 @@ import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -29,6 +31,7 @@ public class CompositeType extends Type {
 		public boolean nullable;
 		public boolean autoIncrement;
 		public boolean hasDefault;
+		public Map<String, Object> typeModifiers;
 
 		@Override
 		public String toString() {
@@ -78,6 +81,7 @@ public class CompositeType extends Type {
 			attr.type = registry.loadType(pgAttr.typeId);
 			attr.nullable = pgAttr.nullable;
 			attr.hasDefault = pgAttr.hasDefault;
+			attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
 
 			int idx;
 

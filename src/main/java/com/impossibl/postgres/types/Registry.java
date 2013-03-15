@@ -29,6 +29,7 @@ public class Registry {
 	private Map<Character, Class<? extends Type>> kindMap;
 	private Map<Integer, Type> oidMap;
 	private Map<String, Type> nameMap;
+	private Map<Integer, Type> relIdMap;
 
 	private Map<Integer, PgType.Row> pgTypeData;
 	private Map<Integer, Collection<PgAttribute.Row>> pgAttrData;
@@ -65,6 +66,7 @@ public class Registry {
 		oidMap.put(24, new BaseType(24, "regproc", 	(short) 4, 	(byte) 0, Category.Numeric, ',', null, "regproc", 0));
 		oidMap.put(26, new BaseType(26, "oid", 			(short) 4,	(byte) 0, Category.Numeric, ',', null, "oid", 		0));
 
+		relIdMap = new HashMap<>();
 		nameMap = new HashMap<>();
 	}
 
@@ -85,6 +87,20 @@ public class Registry {
 		}
 
 		return type;
+	}
+
+	/**
+	 * Loads a relation (aka table) type by its relation-id
+	 * 
+	 * @param relationId Relation ID of the type to load
+	 * @return Relation type or null
+	 */
+	public CompositeType loadRelationType(int relationId) {
+		
+		if(relationId == 0)
+			return null;
+		
+		return (CompositeType) relIdMap.get(relationId);
 	}
 
 	/**
@@ -147,6 +163,8 @@ public class Registry {
 		for(PgType.Row pgTypeRow : pgTypeRows) {
 			pgTypeData.put(pgTypeRow.oid, pgTypeRow);
 			oidMap.remove(pgTypeRow.oid);
+			nameMap.remove(pgTypeRow.name);
+			relIdMap.remove(pgTypeRow.relationId);
 		}
 
 		for(Integer id : pgTypeData.keySet())
@@ -169,6 +187,7 @@ public class Registry {
 		if(type != null) {
 			oidMap.put(typeId, type);
 			nameMap.put(type.getName(), type);
+			relIdMap.put(type.getRelationId(), type);
 		}
 
 		return type;
@@ -254,7 +273,7 @@ public class Registry {
 
 		String name = lookupProcName(procId);
 		if(name == null) {
-			return null;
+			name = ""; //get the default proc
 		}
 
 		return Procs.loadEncoderProc(name, context);
@@ -267,10 +286,23 @@ public class Registry {
 
 		String name = lookupProcName(procId);
 		if(name == null) {
-			return null;
+			name = ""; //get the default proc
 		}
 
 		return Procs.loadDecoderProc(name, context);
+	}
+
+	/*
+	 * Loads a matching parser given mod-in and mod-out ids
+	 */
+	public Modifiers.Parser loadModifierParser(int modInId, int modOutId) {
+		
+		String name = lookupProcName(modInId);
+		if(name == null) {
+			name = ""; //get the default proc
+		}
+		
+		return Procs.loadModifierParserProc(name, context);
 	}
 
 }

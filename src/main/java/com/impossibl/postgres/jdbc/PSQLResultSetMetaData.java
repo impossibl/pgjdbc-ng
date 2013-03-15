@@ -1,13 +1,20 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.types.Modifiers.LENGTH;
+import static com.impossibl.postgres.types.Modifiers.PRECISION;
+import static com.impossibl.postgres.types.Modifiers.SCALE;
 
+import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Type;
 
 public class PSQLResultSetMetaData implements ResultSetMetaData {
@@ -49,7 +56,7 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 		if(field.relationId == 0)
 			return null;
 					
-		return (CompositeType) connection.getRegistry().loadType(field.relationId);
+		return connection.getRegistry().loadRelationType(field.relationId);
 	}
 
 	/**
@@ -61,9 +68,13 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	 */
 	CompositeType.Attribute getRelAttr(int columnIndex) throws SQLException {
 
-		Type relationType = getRelType(columnIndex);
+		ResultField field = get(columnIndex);
 		
-		return ((CompositeType)relationType).getAttribute(columnIndex);
+		CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+		if(relType == null)
+			return null;
+		
+		return relType.getAttribute(field.relationAttributeIndex-1);
 	}
 
 	@Override
@@ -94,20 +105,29 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public boolean isCaseSensitive(int column) throws SQLException {
-		ResultField field = get(column);
-		return field.type.getInputType(field.format) == String.class;
+		
+		switch(get(column).type.unwrap().getCategory()) {
+		case Enumeration:
+		case String:
+			return true;
+			
+		default:
+			return false;
+		}		
 	}
 
 	@Override
 	public boolean isSearchable(int column) throws SQLException {
+		//TODO is there any case that a column is not searchable
 		return true;
 	}
 
 	@Override
 	public boolean isCurrency(int column) throws SQLException {
 		//TODO this should be determined, somehow, by relating it to the Moneys codecs
+		//or maybe we should parse a special money type that fits in easily
 		
-		switch(get(column).type.getName()) {
+		switch(get(column).type.unwrap().getName()) {
 		case "money":
 		case "cash":
 			return true;
@@ -121,29 +141,37 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public int isNullable(int column) throws SQLException {
 		
+		//Check attributes for nullability
 		CompositeType.Attribute attr = getRelAttr(column);
-		if(attr == null)
-			return columnNullableUnknown;
+		if(attr != null) {		
+			return attr.nullable ? columnNullable : columnNoNulls;
+		}
 		
-		return attr.nullable ? columnNullable : columnNoNulls;
+		//Check domain types for nullability
+		Type type = get(column).type;
+		if(type instanceof DomainType) {
+			return ((DomainType) type).isNullable() ? columnNullable : columnNoNulls;
+		}
+		
+		//Everything else... we just don't know
+		return columnNullableUnknown;
 	}
 
 	@Override
 	public boolean isSigned(int column) throws SQLException {
 		
-		ResultField field = get(column);
-		Class<?> fieldType = field.type.getInputType(field.format);
-		
-		if(Number.class.isAssignableFrom(fieldType)) {
+		switch(get(column).type.unwrap().getCategory()) {
+		case Numeric:
 			return true;
+			
+		default:
+			return false;
 		}
-		
-		return false;
 	}
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-		//TODO determine good display size for column
+		//TODO determine good display size for columns
 		return 0;
 	}
 
@@ -154,19 +182,26 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public String getCatalogName(int column) throws SQLException {
-		//TODO determine catalog names
-		return "";
+		return connection.getSetting(Settings.DATABASE).toString();
 	}
 
 	@Override
 	public String getSchemaName(int column) throws SQLException {
-		//TODO determine schema names
-		return "";
+		
+		Type relType = getRelType(column);
+		if(relType == null)
+			return null;
+		
+		return relType.getNamespace();
 	}
 
 	@Override
 	public String getTableName(int column) throws SQLException {
-		//TODO there seems to be some debate about where this should return query aliases or table names
+		
+		//Note: there seems to be some debate about whether this should return
+		//query aliases or table names. We are returning table names, if 
+		//available, as this is at least more useful than always returning
+		//null since we never have the query table aliases
 		
 		CompositeType relType = getRelType(column);
 		if(relType == null)
@@ -203,21 +238,97 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getPrecision(int column) throws SQLException {
-		//TODO determine precision 
-		return 0;
+
+		ResultField field = get(column);
+		Type type = field.type.unwrap();
+		Class<?> javaType = field.type.getOutputType(field.format);		
+		Map<String, Object> mods = type.getModifierParser().parse(field.typeModifier);
+
+		//Lookup prec & length (if the mods have them)
+		
+		int precMod = 0;
+		if(mods.containsKey(PRECISION)) {
+			precMod = (int) mods.get(PRECISION);
+		}
+		
+		int lenMod = 0;
+		if(mods.containsKey(LENGTH)) {
+			lenMod = (int) mods.get(LENGTH);
+		}
+		else if(field.typeLength != -1) {
+			lenMod = field.typeLength;
+		}
+		
+		//Calculate prec
+		
+		int prec = 0;
+		
+		switch(type.getCategory()) {
+		case Numeric:
+			
+			if(javaType == BigDecimal.class) {
+				if(precMod != 0) {
+					prec = precMod;
+				}
+				else {
+					if(isCurrency(column))
+						prec = 19;
+					else
+						prec = 131072;
+				}
+			}
+			else if(javaType == Short.class) {
+				prec = 5;
+			}
+			else if(javaType == Integer.class) {
+				prec = 10;
+			}
+			else if(javaType == Long.class) {
+				prec = 19;
+			}
+			else if(javaType == Float.class) {
+				prec = 8;
+			}
+			else if(javaType == Double.class) {
+				prec = 17;
+			}
+			break;
+			
+		case DateTime:
+			prec = getColumnDisplaySize(column);
+			break;
+			
+		case String:
+		case Enumeration:
+		case BitString:
+			prec = lenMod;
+			break;
+			
+		default:
+			prec = lenMod;
+		}
+		
+		return prec;
 	}
 
 	@Override
 	public int getScale(int column) throws SQLException {
-		//TODO determine scale 
-		return 0;
+
+		ResultField field = get(column);
+		Map<String, Object> mods = field.type.unwrap().getModifierParser().parse(field.typeModifier);
+		
+		Object scale = mods.get(SCALE);
+		if(scale == null)
+			return 0;
+		
+		return (int) scale;
 	}
 
 	@Override
 	public boolean isReadOnly(int column) throws SQLException {
 		
 		//If it's a computed column we assume it's read only
-		return getRelAttr(column) == null;
+		return get(column).relationAttributeIndex == 0;
 	}
 
 	@Override

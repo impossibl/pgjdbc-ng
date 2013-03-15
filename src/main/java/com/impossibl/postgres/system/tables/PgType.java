@@ -33,6 +33,7 @@ public class PgType implements Table<PgType.Row> {
 		public int baseTypeId;
 		public int modId;
 		public int numberOfDimensions;
+		public String namespace;
 
 		@Override
 		public boolean equals(Object val) {
@@ -68,11 +69,12 @@ public class PgType implements Table<PgType.Row> {
 	public static Object[] SQL = {
 			Version.get(9, 0, 0),
 			" select"	+
-			"		oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
+			"		t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
 			"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\","	+
-			"		typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\"" +
+			"		typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\", n.nspname as \"namespace\" " +
 			" from" +
-			"		pg_catalog.pg_type"
+			"		pg_catalog.pg_type t" +
+			"	left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid)"	
 	};
 
 }

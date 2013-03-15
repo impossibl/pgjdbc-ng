@@ -592,7 +592,7 @@ public class ProtocolImpl implements Protocol {
 			field.relationAttributeIndex = buffer.readShort();
 			field.type = registry.loadType(buffer.readInt());
 			field.typeLength = buffer.readShort();
-			field.typeModId = buffer.readInt();
+			field.typeModifier = buffer.readInt();
 			field.format = ResultField.Format.values()[buffer.readShort()];
 
 			fields[c] = field;

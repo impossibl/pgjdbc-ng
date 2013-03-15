@@ -16,6 +16,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 		public int relationId;
 		public String name;
 		public int typeId;
+		public int typeModifier;
 		public short length;
 		public short number;
 		public boolean nullable;
@@ -69,7 +70,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
 	public static Object[] SQL = {
 			Version.get(9, 0, 0),
-			" select " + "		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", attlen as \"length\", " +
+			" select " + "		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
 			"		attnum as \"number\", not attnotnull as \"nullable\", pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) like '%nextval(%' as \"autoIncrement\", " +
 			"		attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\" " +
 			" from " +

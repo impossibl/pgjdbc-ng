@@ -2,7 +2,9 @@ package com.impossibl.postgres.system;
 
 public class Settings {
 	
-	public static final String CREDENTIALS_USERNAME	= "username";
+	public static final String DATABASE = "database";
+
+	public static final String CREDENTIALS_USERNAME	= "user";
 	public static final String CREDENTIALS_PASSWORD = "password";
 
 	public static final String FIELD_VARYING_LENGTH_MAX 			= "field.varying.length.max";

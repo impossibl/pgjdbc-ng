@@ -1,5 +1,7 @@
 package com.impossibl.postgres.system;
 
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.Settings.DATABASE;
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -140,7 +142,7 @@ public class BasicContext implements Context {
 		loadTypes();
 	}
 
-	private void loadTypes() throws IOException {
+	private void loadTypes() throws IOException, NoticeException {
 		
 		Timer timer = new Timer();
 		
@@ -170,8 +172,8 @@ public class BasicContext implements Context {
 
 		params.put("application_name", "pgjdbc app");
 		params.put("client_encoding", "UTF8");
-		params.put("database", settings.get("database"));
-		params.put("user", settings.get("username"));
+		params.put("database", settings.getProperty(DATABASE, ""));
+		params.put("user", settings.getProperty(CREDENTIALS_USERNAME, ""));
 		
 		StartupCommand startup = protocol.createStartup(params);
 
@@ -183,37 +185,53 @@ public class BasicContext implements Context {
 		}
 	}
 	
-	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException {
+	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
 		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 		
 		protocol.execute(prepare);
 		
+		if(prepare.getError() != null) {
+			throw new NoticeException("Error preparing query", prepare.getError());
+		}
+		
 		BindExecCommand query = protocol.createBindExec(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
 		
 		protocol.execute(query);
 		
+		if(query.getError() != null) {
+			throw new NoticeException("Error executing query", prepare.getError());
+		}
+		
 		return query.getResults(rowType);
 	}
 
-	public List<Object[]> execQuery(String queryTxt) throws IOException {
+	public List<Object[]> execQuery(String queryTxt) throws IOException, NoticeException {
 
 		QueryCommand query = protocol.createQuery(queryTxt);
 		
 		protocol.execute(query);
 		
+		if(query.getError() != null) {
+			throw new NoticeException("Error querying", query.getError());
+		}
+
 		@SuppressWarnings("unchecked")
 		List<Object[]> res = (List<Object[]>) query.getResults();
 		
 		return res;
 	}
 
-	public Object execQueryForResult(String queryTxt) throws IOException {
+	public Object execQueryForResult(String queryTxt) throws IOException, NoticeException {
 		
 		QueryCommand query = protocol.createQuery(queryTxt);
 		
 		protocol.execute(query);
 		
+		if(query.getError() != null) {
+			throw new NoticeException("Error preparing query", query.getError());
+		}
+
 		@SuppressWarnings("unchecked")
 		List<Object[]> res = (List<Object[]>) query.getResults();
 		if(res.isEmpty()) {
@@ -227,7 +245,7 @@ public class BasicContext implements Context {
 		return firstRow[0];
 	}
 	
-	public String execQueryForString(String queryTxt) throws IOException {
+	public String execQueryForString(String queryTxt) throws IOException, NoticeException {
 
 		List<Object[]> res = execQuery(queryTxt);
 		if(res.isEmpty()) {

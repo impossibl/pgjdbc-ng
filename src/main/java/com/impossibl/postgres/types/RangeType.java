@@ -8,4 +8,18 @@ package com.impossibl.postgres.types;
  */
 public class RangeType extends Type {
 
+	Type base;
+	
+	public Type getBase() {
+		return base;
+	}
+	
+	public void setBase(Type base) {
+		this.base = base;
+	}
+
+	public Type unwrap() {
+		return base.unwrap();
+	}
+
 }

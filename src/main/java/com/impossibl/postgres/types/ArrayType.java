@@ -18,4 +18,8 @@ public class ArrayType extends Type {
 		this.elementType = elementType;
 	}
 
+	public Type unwrap() {
+		return elementType;
+	}
+
 }

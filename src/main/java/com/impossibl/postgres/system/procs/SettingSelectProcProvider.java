@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
 public class SettingSelectProcProvider extends BaseProcProvider {
@@ -63,6 +64,11 @@ public class SettingSelectProcProvider extends BaseProcProvider {
 			else
 				return unmatchedTxtDecoder;
 		}
+		return null;
+	}
+
+	@Override
+	public Modifiers.Parser findModifierParser(String name, Context context) {
 		return null;
 	}
 	

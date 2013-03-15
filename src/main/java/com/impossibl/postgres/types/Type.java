@@ -99,16 +99,19 @@ public abstract class Type {
 		public Decoder decoder;
 		public Encoder encoder;
 	}
-
+	
 	private int id;
 	private String name;
+	private String namespace;
 	private Short length;
 	private Byte alignment;
 	private Category category;
 	private Character delimeter;
 	private Type arrayType;
+	private int relationId;
 	private Codec binaryCodec;
 	private Codec textCodec;
+	private Modifiers.Parser modifierParser;
 	private int sqlType;
 	
 	
@@ -145,6 +148,14 @@ public abstract class Type {
 		this.name = name;
 	}
 	
+	public String getNamespace() {
+		return namespace;
+	}
+
+	public void setNamespace(String namespace) {
+		this.namespace = namespace;
+	}
+
 	public Short getLength() {
 		return length;
 	}
@@ -201,12 +212,38 @@ public abstract class Type {
 		this.textCodec = textCodec;
 	}
 
+	public Modifiers.Parser getModifierParser() {
+		return modifierParser;
+	}
+
+	public void setModifierParser(Modifiers.Parser modifierParser) {
+		this.modifierParser = modifierParser;
+	}
+
 	public int getSqlType() {
 		return sqlType;
 	}
 
 	public void setSqlType(int sqlType) {
 		this.sqlType = sqlType;
+	}
+	
+	public int getRelationId() {
+		return relationId;
+	}
+	
+	public void setRelationId(int relationId) {
+		this.relationId = relationId;
+	}
+
+	/**
+	 * Strips all "wrapping" type (e.g. arrays, domains) and returns
+	 * the base type
+	 * 
+	 * @return Base type after all unwrapping
+	 */
+	public Type unwrap() {
+		return this;
 	}
 
 	/**
@@ -221,13 +258,16 @@ public abstract class Type {
 		
 		id = source.oid;
 		name = source.name;
+		namespace = source.namespace;
 		length = source.length != -1 ? source.length : null;
 		alignment = getAlignment(source.alignment != null ? source.alignment.charAt(0) : null); 
 		category = Category.findValue(source.category);
 		delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
 		arrayType = registry.loadType(source.arrayTypeId);
+		relationId = source.relationId;
 		textCodec = registry.loadCodec(source.inputId, source.outputId);
 		binaryCodec = registry.loadCodec(source.receiveId, source.sendId);
+		modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);
 	}
 	
 	/**

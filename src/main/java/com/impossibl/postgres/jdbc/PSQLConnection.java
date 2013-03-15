@@ -58,6 +58,7 @@ import java.util.concurrent.Executor;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
 
 
@@ -226,6 +227,11 @@ public class PSQLConnection extends BasicContext implements Connection {
 			throw new SQLException(e);
 
 		}
+		catch(NoticeException e) {
+
+			throw makeSQLException(e.getNotice());
+		
+		}
 
 	}
 
@@ -250,6 +256,11 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 			throw new SQLException(e);
 
+		}
+		catch(NoticeException e) {
+
+			throw makeSQLException(e.getNotice());
+		
 		}
 
 	}

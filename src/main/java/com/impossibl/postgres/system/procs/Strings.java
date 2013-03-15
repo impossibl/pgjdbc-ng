@@ -1,20 +1,24 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
 
 
 public class Strings extends SimpleProcProvider {
 
 	public Strings() {
-		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
+		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
@@ -71,6 +75,25 @@ public class Strings extends SimpleProcProvider {
 			
 		}
 
+	}
+
+	static class ModParser implements Modifiers.Parser {
+
+		@Override
+		public Map<String, Object> parse(long mod) {
+			
+			Map<String, Object> mods = new HashMap<String, Object>();
+			
+			if(mod > 4) {
+				mods.put(LENGTH, (int)(mod - 4));
+			}
+			else {
+				mods.put(LENGTH, (int)0);
+			}
+			
+			return mods;
+		}
+		
 	}
 
 }
