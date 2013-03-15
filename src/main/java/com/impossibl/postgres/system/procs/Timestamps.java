@@ -6,6 +6,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -29,6 +30,10 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.TIMESTAMP;
+		}
+		
 		public Class<?> getOutputType() {
 			return Timestamp.class;
 		}
@@ -57,6 +62,10 @@ public class Timestamps extends SettingSelectProcProvider {
 			return Timestamp.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.TIMESTAMP;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 

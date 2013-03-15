@@ -4,6 +4,7 @@ import static org.joda.time.DateTimeZone.UTC;
 
 import java.io.IOException;
 import java.sql.Date;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.joda.time.DateTime;
@@ -25,6 +26,10 @@ public class Dates extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.DATE;
+		}
+		
 		public Class<?> getOutputType() {
 			return Date.class;
 		}
@@ -54,6 +59,10 @@ public class Dates extends SimpleProcProvider {
 			return Date.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.DATE;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 				

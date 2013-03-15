@@ -6,6 +6,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.sql.Time;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -25,6 +26,10 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.TIME;
+		}
+		
 		public Class<?> getOutputType() {
 			return Time.class;
 		}
@@ -54,6 +59,10 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 			return Time.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.TIME;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 

@@ -1,6 +1,10 @@
 package com.impossibl.postgres.types;
 
+import java.util.Collection;
 import java.util.Map;
+
+import com.impossibl.postgres.system.tables.PgAttribute;
+import com.impossibl.postgres.system.tables.PgType;
 
 /**
  * A database domain type.
@@ -13,6 +17,7 @@ public class DomainType extends Type {
 	private Type base;
 	private boolean nullable;
 	private Map<String, Object> modifiers;
+	private int numberOfDimensions;
 
 	public Type getBase() {
 		return base;
@@ -35,8 +40,26 @@ public class DomainType extends Type {
 		this.modifiers = modifiers;
 	}
 	
+	public int getNumberOfDimensions() {
+		return numberOfDimensions;
+	}
+	public void setNumberOfDimensions(int numberOfDimensions) {
+		this.numberOfDimensions = numberOfDimensions;
+	}
 	public Type unwrap() {
 		return base.unwrap();
 	}
+	
+	@Override
+	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
+		
+		super.load(source, attrs, registry);
+		
+		base = registry.loadType(source.domainBaseTypeId);
+		nullable = source.domainNotNull;
+		modifiers = base.getModifierParser().parse(source.domainTypeMod);
+		numberOfDimensions = source.domainDimensions;
+	}
 
+	
 }

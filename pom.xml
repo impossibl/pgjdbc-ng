@@ -4,7 +4,10 @@
 	<groupId>com.impossibl</groupId>
 	<artifactId>pgjdbc-ng</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<dependencies>
+	<properties>
+    	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  	</properties>
+  	<dependencies>
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils-core</artifactId>

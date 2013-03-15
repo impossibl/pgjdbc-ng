@@ -2,6 +2,7 @@ package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -22,6 +23,10 @@ public class Numerics extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.NUMERIC;
+		}
+		
 		public Class<?> getOutputType() {
 			return BigDecimal.class;
 		}
@@ -60,6 +65,10 @@ public class Numerics extends SimpleProcProvider {
 			return BigDecimal.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.NUMERIC;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			if (val == null) {
 

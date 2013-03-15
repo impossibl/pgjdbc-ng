@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.Map;
 
@@ -25,6 +26,10 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
+		public int getInputSQLType() {
+			return Types.NULL;
+		}
+		
 		public Class<Void> getOutputType() {
 			return Void.class;
 		}
@@ -48,6 +53,10 @@ public class Unsupporteds implements ProcProvider {
 			return Void.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.NULL;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			throw new UnssupportedFormatException("No matching encoder found for: " + name);
 		}

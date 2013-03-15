@@ -5,6 +5,7 @@ import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +24,10 @@ public class Strings extends SimpleProcProvider {
 	
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.VARCHAR;
+		}
+		
 		public Class<?> getOutputType() {
 			return String.class;
 		}
@@ -58,6 +63,10 @@ public class Strings extends SimpleProcProvider {
 			return String.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.VARCHAR;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
 			if (val == null) {

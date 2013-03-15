@@ -3,6 +3,7 @@ package com.impossibl.postgres.system.procs;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,10 @@ public class Arrays extends SimpleProcProvider {
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
+		
+		public int getInputSQLType() {
+			return Types.ARRAY;
+		}
 		
 		public Class<?> getOutputType() {
 			return Object[].class;
@@ -100,6 +105,10 @@ public class Arrays extends SimpleProcProvider {
 			return Object[].class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.ARRAY;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
 			if(val == null) {

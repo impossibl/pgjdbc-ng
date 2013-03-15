@@ -84,6 +84,7 @@ public abstract class Type {
 		 *	Decodes the given data into a Java language object
 		 */
 		public interface Decoder {
+			int getInputSQLType();
 			Class<?> getOutputType();
 			Object decode(Type type,  ChannelBuffer buffer, Context context) throws IOException;
 		}
@@ -93,6 +94,7 @@ public abstract class Type {
 		 */
 		public interface Encoder {
 			Class<?> getInputType();
+			int getOutputSQLType();
 			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
 
@@ -111,14 +113,12 @@ public abstract class Type {
 	private int relationId;
 	private Codec binaryCodec;
 	private Codec textCodec;
-	private Modifiers.Parser modifierParser;
-	private int sqlType;
-	
+	private Modifiers.Parser modifierParser;	
 	
 	public Type() {
 	}
 
-	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, Codec binaryCodec, Codec textCodec, int sqlType) {
+	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, Codec binaryCodec, Codec textCodec) {
 		super();
 		this.id = id;
 		this.name = name;
@@ -129,7 +129,6 @@ public abstract class Type {
 		this.arrayType = arrayType;
 		this.binaryCodec = binaryCodec;
 		this.textCodec = textCodec;
-		this.sqlType = sqlType;
 	}
 
 	public int getId() {
@@ -220,14 +219,6 @@ public abstract class Type {
 		this.modifierParser = modifierParser;
 	}
 
-	public int getSqlType() {
-		return sqlType;
-	}
-
-	public void setSqlType(int sqlType) {
-		this.sqlType = sqlType;
-	}
-	
 	public int getRelationId() {
 		return relationId;
 	}
@@ -267,7 +258,7 @@ public abstract class Type {
 		relationId = source.relationId;
 		textCodec = registry.loadCodec(source.inputId, source.outputId);
 		binaryCodec = registry.loadCodec(source.receiveId, source.sendId);
-		modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);
+		modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);		
 	}
 	
 	/**
@@ -304,7 +295,7 @@ public abstract class Type {
 		
 		switch(format) {
 		case Text:
-			return binaryCodec.encoder.getInputType();
+			return textCodec.encoder.getInputType();
 		case Binary:
 			return binaryCodec.encoder.getInputType();
 		}
@@ -315,11 +306,33 @@ public abstract class Type {
 		
 		switch(format) {
 		case Text:
-			return binaryCodec.decoder.getOutputType();
+			return textCodec.decoder.getOutputType();
 		case Binary:
 			return binaryCodec.decoder.getOutputType();
 		}
 		return null;
+	}
+
+	public int getInputSQLType(Format format) {
+		
+		switch(format) {
+		case Text:
+			return textCodec.decoder.getInputSQLType();
+		case Binary:
+			return binaryCodec.decoder.getInputSQLType();
+		}
+		return 0;
+	}
+
+	public int getOutputSQLType(Format format) {
+		
+		switch(format) {
+		case Text:
+			return textCodec.encoder.getOutputSQLType();
+		case Binary:
+			return binaryCodec.encoder.getOutputSQLType();
+		}
+		return 0;
 	}
 
 }

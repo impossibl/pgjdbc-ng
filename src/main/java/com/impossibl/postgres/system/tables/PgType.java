@@ -30,9 +30,10 @@ public class PgType implements Table<PgType.Row> {
 		public int modOutId;
 		public int analyzeId;
 		public String alignment;
-		public int baseTypeId;
-		public int modId;
-		public int numberOfDimensions;
+		public int domainBaseTypeId;
+		public int domainTypeMod;
+		public boolean domainNotNull;
+		public int domainDimensions;
 		public String namespace;
 
 		@Override
@@ -71,7 +72,8 @@ public class PgType implements Table<PgType.Row> {
 			" select"	+
 			"		t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
 			"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\","	+
-			"		typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\", n.nspname as \"namespace\" " +
+			"		typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, typbasetype as \"baseTypeId\", typndims as \"numberOfDimensions\", n.nspname as \"namespace\", " +
+			"		typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\" " +	
 			" from" +
 			"		pg_catalog.pg_type t" +
 			"	left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid)"	

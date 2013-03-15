@@ -5,6 +5,7 @@ import static org.apache.commons.beanutils.BeanUtils.getProperty;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
 
@@ -25,6 +26,10 @@ public class Records extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.STRUCT;
+		}
+		
 		public Class<?> getOutputType() {
 			return Object.class;
 		}
@@ -72,6 +77,10 @@ public class Records extends SimpleProcProvider {
 			return Object.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.STRUCT;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {

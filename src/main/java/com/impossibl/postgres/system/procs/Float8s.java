@@ -1,6 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -17,6 +18,10 @@ public class Float8s extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.DOUBLE;
+		}
+		
 		public Class<?> getOutputType() {
 			return Double.class;
 		}
@@ -42,6 +47,10 @@ public class Float8s extends SimpleProcProvider {
 			return Double.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.DOUBLE;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {

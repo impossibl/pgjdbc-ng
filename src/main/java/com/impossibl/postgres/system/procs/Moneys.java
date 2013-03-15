@@ -6,6 +6,7 @@ import static java.math.RoundingMode.HALF_UP;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -21,6 +22,10 @@ public class Moneys extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.OTHER;
+		}
+		
 		public Class<?> getOutputType() {
 			return BigDecimal.class;
 		}
@@ -50,6 +55,10 @@ public class Moneys extends SimpleProcProvider {
 			return BigDecimal.class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.OTHER;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {

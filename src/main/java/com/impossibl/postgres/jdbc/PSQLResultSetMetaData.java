@@ -4,10 +4,14 @@ import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOU
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.Modifiers.PRECISION;
 import static com.impossibl.postgres.types.Modifiers.SCALE;
+import static java.sql.Types.NUMERIC;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +79,32 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 			return null;
 		
 		return relType.getAttribute(field.relationAttributeIndex-1);
+	}
+
+	/**
+	 * Calculates the display size for Dates, Times and Timestamps
+	 * 
+	 * NOTE: Values unceremoniously copied from previous JDBC driver
+	 * 
+	 * @param javaType Type to determine the display size of
+	 * @param precision Precision modifier of type
+	 * @return Suggested display size
+	 */
+	private int calculateDateTimeDisplaySize(Class<?> javaType, int precision) {
+
+		int size = 0;
+		
+		if(javaType == Date.class) {
+			size = 13;
+		}
+		else if(javaType == Time.class) {
+			size = 8 + precision + 6;
+		}
+		else if(javaType == Timestamp.class) {
+			size = 13 + 1 + 8 + precision + 6;
+		}
+		
+		return size;
 	}
 
 	@Override
@@ -170,12 +200,6 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	}
 
 	@Override
-	public int getColumnDisplaySize(int column) throws SQLException {
-		//TODO determine good display size for columns
-		return 0;
-	}
-
-	@Override
 	public String getColumnLabel(int column) throws SQLException {
 		return get(column).name;
 	}
@@ -222,7 +246,8 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnType(int column) throws SQLException {
-		return get(column).type.getSqlType();
+		ResultField field = get(column);
+		return field.type.getInputSQLType(field.format);
 	}
 
 	@Override
@@ -241,6 +266,7 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 		ResultField field = get(column);
 		Type type = field.type.unwrap();
+		int sqlType = field.type.getInputSQLType(field.format);
 		Class<?> javaType = field.type.getOutputType(field.format);		
 		Map<String, Object> mods = type.getModifierParser().parse(field.typeModifier);
 
@@ -271,10 +297,13 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 					prec = precMod;
 				}
 				else {
-					if(isCurrency(column))
+					if(sqlType != NUMERIC) {
+						//Must be a money/cash type
 						prec = 19;
-					else
+					}
+					else {
 						prec = 131072;
+					}
 				}
 			}
 			else if(javaType == Short.class) {
@@ -295,7 +324,7 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 			break;
 			
 		case DateTime:
-			prec = getColumnDisplaySize(column);
+			prec = calculateDateTimeDisplaySize(javaType, precMod);
 			break;
 			
 		case String:
@@ -322,6 +351,60 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 			return 0;
 		
 		return (int) scale;
+	}
+
+	@Override
+	public int getColumnDisplaySize(int column) throws SQLException {
+
+		ResultField field = get(column);
+		Type type = field.type.unwrap();
+		Class<?> javaType = field.type.getOutputType(field.format);		
+		Map<String, Object> mods = type.getModifierParser().parse(field.typeModifier);
+		
+		int precMod = 0;
+		if(mods.containsKey(PRECISION)) {
+			precMod = (int) mods.get(PRECISION);
+		}
+
+		int lenMod = 0;
+		if(mods.containsKey(LENGTH)) {
+			lenMod = (int) mods.get(LENGTH);
+		}
+		else if(field.typeLength != -1) {
+			lenMod = field.typeLength;
+		}
+
+		int size = 0;
+		
+		switch(field.type.getCategory()) {
+		case Numeric:
+			size = getPrecision(column) + 1;
+			break;
+			
+		case Boolean:
+			size = 5; // true/false? 
+			break;
+			
+		case String:
+		case Enumeration:
+		case BitString:
+			size = lenMod;
+			break;
+			
+		case DateTime:
+			size = calculateDateTimeDisplaySize(javaType, precMod);
+			break;
+			
+		case Timespan:
+			size = 49;
+			break;
+			
+		default:
+			size = 0;
+			break;
+		}
+		
+		return size;
 	}
 
 	@Override

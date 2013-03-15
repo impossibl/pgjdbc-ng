@@ -42,12 +42,12 @@ public class CompositeType extends Type {
 
 	private List<Attribute> attributes;
 
-	public CompositeType(int id, String name, Type arrayType, String procName, int sqlType) {
-		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null), 0);
+	public CompositeType(int id, String name, Type arrayType, String procName) {
+		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null));
 	}
 
-	public CompositeType(int id, String name, Type arrayType, int sqlType) {
-		this(id, name, arrayType, "record_", sqlType);
+	public CompositeType(int id, String name, Type arrayType) {
+		this(id, name, arrayType, "record_");
 	}
 
 	public CompositeType() {

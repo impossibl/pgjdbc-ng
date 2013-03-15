@@ -4,6 +4,7 @@ import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static java.lang.Math.min;
 
 import java.io.IOException;
+import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -20,6 +21,10 @@ public class Bytes extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
+		public int getInputSQLType() {
+			return Types.VARBINARY;
+		}
+		
 		public Class<?> getOutputType() {
 			return byte[].class;
 		}
@@ -55,6 +60,10 @@ public class Bytes extends SimpleProcProvider {
 			return byte[].class;
 		}
 
+		public int getOutputSQLType() {
+			return Types.VARBINARY;
+		}
+		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
 			if (val == null) {
