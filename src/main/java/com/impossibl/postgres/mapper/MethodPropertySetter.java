@@ -17,6 +17,7 @@ public class MethodPropertySetter implements PropertySetter {
 	public MethodPropertySetter(Method method) {
 		super();
 		this.method = method;
+		this.method.setAccessible(true);
 	}
 
 	@Override

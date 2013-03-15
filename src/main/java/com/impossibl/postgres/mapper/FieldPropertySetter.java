@@ -16,6 +16,7 @@ public class FieldPropertySetter implements PropertySetter {
 	public FieldPropertySetter(Field field) {
 		super();
 		this.field = field;
+		this.field.setAccessible(true);
 	}
 
 	@Override
