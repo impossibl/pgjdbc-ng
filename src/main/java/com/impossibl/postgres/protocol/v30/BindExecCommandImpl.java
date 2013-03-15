@@ -15,6 +15,8 @@ import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.mapper.Mapper;
+import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
@@ -83,7 +85,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 					break;
 				}
 
-				setField(rowInstance, c, field.name, fieldVal);
+				resultSetters.get(c).set(rowInstance, fieldVal);
 			}
 
 			results.add(rowInstance);
@@ -131,6 +133,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private List<ResultField> resultFields;
 	private Class<?> rowType;
 	private List<Object> results;
+	private List<PropertySetter> resultSetters;
 	private String resultCommand;
 	private Long resultRowsAffected;
 	private Long resultInsertedOid;
@@ -151,6 +154,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.results = new ArrayList<>();
 		this.maxRows = 0;
 		this.maxFieldLength = Integer.MAX_VALUE;
+		this.resultSetters = Mapper.buildMapping(rowType, resultFields);
 	}
 
 	public void reset() {
@@ -302,3 +306,4 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	}
 
 }
+
