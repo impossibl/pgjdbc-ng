@@ -3,6 +3,9 @@ package com.impossibl.postgres.system;
 public class Settings {
 	
 	public static final String DATABASE = "database";
+	
+	public static final String CLIENT_ENCODING = "client_encoding";
+	public static final String APPLICATION_NAME = "application_name";
 
 	public static final String CREDENTIALS_USERNAME	= "user";
 	public static final String CREDENTIALS_PASSWORD = "password";

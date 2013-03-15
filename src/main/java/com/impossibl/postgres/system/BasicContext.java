@@ -1,5 +1,7 @@
 package com.impossibl.postgres.system;
 
+import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE;
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
@@ -170,10 +172,10 @@ public class BasicContext implements Context {
 		
 		Map<String, Object> params = new HashMap<String, Object>();
 
-		params.put("application_name", "pgjdbc app");
-		params.put("client_encoding", "UTF8");
-		params.put("database", settings.getProperty(DATABASE, ""));
-		params.put("user", settings.getProperty(CREDENTIALS_USERNAME, ""));
+		params.put(APPLICATION_NAME, "pgjdbc app");
+		params.put(CLIENT_ENCODING, "UTF8");
+		params.put(DATABASE, settings.getProperty(DATABASE, ""));
+		params.put(CREDENTIALS_USERNAME, settings.getProperty(CREDENTIALS_USERNAME, ""));
 		
 		StartupCommand startup = protocol.createStartup(params);
 
