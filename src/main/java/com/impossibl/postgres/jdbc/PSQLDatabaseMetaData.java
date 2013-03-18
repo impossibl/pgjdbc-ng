@@ -59,11 +59,12 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 	
   }
 
-  private ResultSet execForResultSet(String sql, Object... params) throws SQLException {
+  private PSQLResultSet execForResultSet(String sql, Object... params) throws SQLException {
+  	
   	return execForResultSet(sql, Arrays.asList(params));
   }
   
-  private ResultSet execForResultSet(String sql, List<Object> params) throws SQLException {
+  private PSQLResultSet execForResultSet(String sql, List<Object> params) throws SQLException {
   	
     PSQLPreparedStatement ps = connection.prepareStatement(sql);
     ps.closeOnCompletion();
@@ -73,6 +74,13 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     }
     
     return ps.executeQuery();  	
+  }
+  
+  private PSQLResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+  	
+		PSQLStatement stmt = connection.createStatement();
+		stmt.closeOnCompletion();
+		return stmt.createResultSet(resultFields, results);
   }
   
   private int getMaxNameLength() throws SQLException {
@@ -100,14 +108,15 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-		// TODO Auto-generated method stub
+		if(iface.isAssignableFrom(getClass())) {
+			return iface.cast(this);
+		}
 		return null;
 	}
 
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return iface.isAssignableFrom(getClass());
 	}
 
 	@Override
@@ -750,7 +759,184 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
-		throw PSQLExceptions.NOT_IMPLEMENTED;
+		
+		Registry reg = connection.getRegistry();
+		
+		ResultField[] resultFields = new ResultField[20];
+		List<Object[]> results = new ArrayList<>();
+
+		resultFields[0] = 	new ResultField("PROCEDURE_CAT", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[1] = 	new ResultField("PROCEDURE_SCHEM", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[2] = 	new ResultField("PROCEDURE_NAME", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[3] = 	new ResultField("COLUMN_NAME", 				0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[4] = 	new ResultField("COLUMN_TYPE", 				0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		resultFields[5] = 	new ResultField("DATA_TYPE", 					0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		resultFields[6] = 	new ResultField("TYPE_NAME", 					0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[7] = 	new ResultField("PRECISION", 					0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[8] = 	new ResultField("LENGTH",							0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[9] = 	new ResultField("SCALE", 							0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		resultFields[10] = 	new ResultField("RADIX", 							0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		resultFields[11] = 	new ResultField("NULLABLE", 					0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		resultFields[12] = 	new ResultField("REMARKS", 						0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[13] = 	new ResultField("COLUMN_DEF", 				0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[14] = 	new ResultField("SQL_DATA_TYPE", 			0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[15] = 	new ResultField("SQL_DATETIME_SUB", 	0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[16] = 	new ResultField("CHAR_OCTECT_LENGTH",	0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[17] = 	new ResultField("ORDINAL_POSITION", 	0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+		resultFields[18] = 	new ResultField("IS_NULLABLE", 				0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		resultFields[19] = 	new ResultField("SPECIFIC_NAME", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+
+		StringBuilder sql = new StringBuilder();
+		List<Object> params = new ArrayList<>();
+		
+		sql.append(
+				"SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, p.proargnames, " +
+				"	p.proargmodes, p.proallargtypes, p.oid " +
+				" FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
+				" WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
+		
+		if(!isNullOrEmpty(schemaPattern)) {
+			sql.append(" AND n.nspname LIKE ?");
+			params.add(schemaPattern);
+		}
+		if(!isNullOrEmpty(procedureNamePattern)) {
+			sql.append(" AND p.proname LIKE ?");
+			params.add(procedureNamePattern);
+		}
+		
+		sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
+
+		try(PSQLResultSet rs = execForResultSet(sql.toString(), params)) {
+			while (rs.next()) {
+				
+				String schema = rs.getString("nspname");
+				String procedureName = rs.getString("proname");
+				String specificName = rs.getString("proname") + "_" + rs.getString("oid");
+				Type returnType = reg.loadType(rs.getInt("prorettype"));
+				String returnTypeType = rs.getString("typtype");
+				int returnTypeRelId = rs.getInt("typrelid");
+	
+				Integer[] argTypeIds = rs.getObject("proargtypes", Integer[].class);
+				String[] argNames = rs.getObject("proargnames", String[].class);
+				String[] argModes = rs.getObject("proargmodes", String[].class);
+				Integer[] allArgTypeIds = rs.getObject("proallargtypes", Integer[].class);
+	
+	      int numArgs = allArgTypeIds != null ? allArgTypeIds.length : argTypeIds.length;
+	
+	      // decide if we are returning a single column result.
+				if (returnTypeType.equals("b") || 
+						returnTypeType.equals("d") || 
+						(returnTypeType.equals("p") && argModes == null) || 
+						(returnTypeType.equals("p") && argModes != null && returnTypeRelId == 0)) {
+					
+					Object[] row = new Object[resultFields.length];
+					row[0] = null;
+					row[1] = schema;
+					row[2] = procedureName;
+					row[3] = "returnValue";
+					row[4] = DatabaseMetaData.procedureColumnReturn;
+					row[5] = PSQLTypeMetaData.getSQLType(returnType);
+					row[6] = returnType.getOutputType(Format.Binary).getName();
+					row[7] = null;
+					row[8] = null;
+					row[9] = null;
+					row[10] = null;
+					row[11] = DatabaseMetaData.procedureNullableUnknown;
+					row[12] = null;
+					row[17] = 0;
+					row[18] = "";
+					row[19] = specificName;
+					
+					results.add(row);
+				}
+	
+				// if we are returning a multi-column result.
+				if(returnTypeType.equals("c") || (returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
+					
+					String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
+					try(ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
+						while (columnrs.next()) {
+							
+							Type columnType = reg.loadType(columnrs.getInt("atttypid"));
+							
+							Object[] row = new Object[resultFields.length];
+							row[0] = null;
+							row[1] = schema;
+							row[2] = procedureName;
+							row[3] = columnrs.getString("attname");
+							row[4] = DatabaseMetaData.procedureColumnResult;
+							row[5] = PSQLTypeMetaData.getSQLType(columnType);
+							row[6] = columnType.getOutputType(Format.Binary);
+							row[7] = null;
+							row[8] = null;
+							row[9] = null;
+							row[10] = null;
+							row[11] = DatabaseMetaData.procedureNullableUnknown;
+							row[12] = null;
+							row[17] = 0;
+							row[18] = "";
+							row[19] = specificName;
+							
+							results.add(row);
+						}
+					}
+				}
+
+				// Add a row for each argument.
+				for (int i = 0; i < numArgs; i++) {
+					
+					Object[] row = new Object[resultFields.length];
+					row[0] = null;
+					row[1] = schema;
+					row[2] = procedureName;
+	
+					if(argNames != null) {
+						row[3] = argNames[i];
+					}
+					else {
+						row[3] = "$" + (i + 1);
+					}
+	
+					int columnMode = DatabaseMetaData.procedureColumnIn;
+					if(argModes != null) {
+						
+						if(argModes[i].equals("o")) {
+							columnMode = DatabaseMetaData.procedureColumnOut;
+						}
+						else if (argModes[i].equals("b")) {
+							columnMode = DatabaseMetaData.procedureColumnInOut;
+						}
+					}
+	
+					row[4] = columnMode;
+	
+					Type argType;
+					if (allArgTypeIds != null) {
+						argType = reg.loadType(allArgTypeIds[i].intValue());
+					}
+					else {
+						argType = reg.loadType(argTypeIds[i].intValue());
+					}
+	
+					row[5] = PSQLTypeMetaData.getSQLType(argType);
+					row[6] = argType.getOutputType(Format.Binary).getName();
+					row[7] = null;
+					row[8] = null;
+					row[9] = null;
+					row[10] = null;
+					row[11] = DatabaseMetaData.procedureNullableUnknown;
+					row[12] = null;
+					row[17] = i + 1;
+					row[18] = "";
+					row[19] = specificName;
+	
+					results.add(row);
+				}
+	
+			}
+		}
+		
+		return createResultSet(Arrays.asList(resultFields), results);
 	}
 
 	@Override
@@ -855,16 +1041,17 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		StringBuilder sql = new StringBuilder();
 		List<Object> params = new ArrayList<>();
 		
-		sql.append("SELECT nspname AS TABLE_SCHEM,  NULL AS TABLE_CATALOG");
-		sql.append(" FROM pg_catalog.pg_namespace ");
-		sql.append(" WHERE ");
-		sql.append("	(");
-		sql.append("	nspname <> 'pg_toast'");
-		sql.append("	AND");
-		sql.append("	(nspname !~ '^pg_temp_\\d+' OR nspname = (pg_catalog.current_schemas(true))[1])");
-		sql.append("	AND");
-		sql.append("	(nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))");		
-		sql.append("	)");
+		sql.append(
+				"SELECT nspname AS TABLE_SCHEM,  NULL AS TABLE_CATALOG" +
+				" FROM pg_catalog.pg_namespace " +
+				" WHERE " +
+				"	(" +
+				"	nspname <> 'pg_toast'" +
+				"	AND" +
+				"	(nspname !~ '^pg_temp_\\d+' OR nspname = (pg_catalog.current_schemas(true))[1])" +
+				"	AND" +
+				"	(nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))" +		
+				"	)");
 		
 		if(!isNullOrEmpty(schemaPattern)) {
 			sql.append(" AND nspname LIKE ?");
@@ -890,9 +1077,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		List<Object[]> results = new ArrayList<>();
 		results.add(new Object[] {connection.getCatalog()});
 		
-		PSQLStatement stmt = connection.createStatement();
-		stmt.closeOnCompletion();
-		return stmt.createResultSet(Arrays.asList(resultFields),results);
+		return createResultSet(Arrays.asList(resultFields),results);
 	}
 
 	@Override
@@ -908,9 +1093,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		}
 			
 		
-		PSQLStatement stmt = connection.createStatement();
-		stmt.closeOnCompletion();
-		return stmt.createResultSet(Arrays.asList(resultFields),results);
+		return createResultSet(Arrays.asList(resultFields),results);
 	}
 
 	static class ColumnData {
@@ -1060,7 +1243,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     	
     	String nullable = null;
     	if(columnData.nullable == null) {
-    		nullable = null;
+    		nullable = "";
     	}
     	else if(columnData.nullable == true) {
 				nullable = "YES";
@@ -1089,9 +1272,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     	results.add(row);
     }
 
-    PSQLStatement stmt = connection.createStatement();
-    stmt.closeOnCompletion();
-    return stmt.createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(Arrays.asList(resultFields), results);
 	}
 
 	@Override
@@ -1112,14 +1293,15 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		StringBuilder sql = new StringBuilder();
 		List<Object> params = new ArrayList<>();
 		
-    sql.append("SELECT a.attname, a.atttypid, atttypmod ");
-    sql.append("FROM pg_catalog.pg_class ct ");
-    sql.append("  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) ");
-    sql.append("  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) ");
-    sql.append("  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, ");
-    sql.append("             information_schema._pg_expandarray(i.indkey) AS keys ");
-    sql.append("        FROM pg_catalog.pg_index i) i ");
-    sql.append("    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) ");
+    sql.append(
+    		"SELECT a.attname, a.atttypid, atttypmod " +
+    		"FROM pg_catalog.pg_class ct " +
+    		"  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) " +
+    		"  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
+    		"  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, " +
+    		"             information_schema._pg_expandarray(i.indkey) AS keys " +
+    		"        FROM pg_catalog.pg_index i) i " +
+    		"    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) ");
     
     if(!isNullOrEmpty(schema)) {
     	sql.append(" WHERE n.nspname = ?");
@@ -1141,17 +1323,18 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		StringBuilder sql = new StringBuilder();
 		List<Object> params = new ArrayList<>();
 		
-    sql.append("SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ");
-    sql.append("  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, ");
-    sql.append("  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME ");
-    sql.append("FROM pg_catalog.pg_class ct ");
-    sql.append("  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) ");
-    sql.append("  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) ");
-    sql.append("  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, ");
-    sql.append("             information_schema._pg_expandarray(i.indkey) AS keys ");
-    sql.append("        FROM pg_catalog.pg_index i) i ");
-    sql.append("    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) ");
-    sql.append("  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) ");
+    sql.append(
+    		"SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, " +
+    		"  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, " +
+    		"  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME " +
+    		"FROM pg_catalog.pg_class ct " +
+    		"  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) " +
+    		"  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
+    		"  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, " +
+    		"             information_schema._pg_expandarray(i.indkey) AS keys " +
+    		"        FROM pg_catalog.pg_index i) i " +
+    		"    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) " +
+    		"  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) ");
 
     if(!isNullOrEmpty(schema)) {
         sql.append(" WHERE n.nspname = ?");
@@ -1308,9 +1491,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     }
     rs.close();
 
-    PSQLStatement stmt = connection.createStatement();
-    stmt.closeOnCompletion();
-    return stmt.createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(Arrays.asList(resultFields), results);
 	}
 
 	@Override

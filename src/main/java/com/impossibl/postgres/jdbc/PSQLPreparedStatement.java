@@ -111,7 +111,7 @@ class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
 	}
 
 	@Override
-	public ResultSet executeQuery() throws SQLException {
+	public PSQLResultSet executeQuery() throws SQLException {
 
 		execute();
 

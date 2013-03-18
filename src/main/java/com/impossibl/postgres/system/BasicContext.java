@@ -33,12 +33,14 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Timer;
 
 public class BasicContext implements Context {
@@ -132,8 +134,12 @@ public class BasicContext implements Context {
 	public Class<?> lookupInstanceType(Type type) {
 		
 		Class<?> cls = targetTypeMap.get(type.getName());
-		if(cls == null)
-			cls = HashMap.class;
+		if(cls == null) {
+			if(type.getCategory() == Category.Array)
+				return Object[].class;
+			else
+				cls = HashMap.class;
+		}
 		
 		return cls;
 	}

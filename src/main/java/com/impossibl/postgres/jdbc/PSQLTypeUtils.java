@@ -1,10 +1,12 @@
 package com.impossibl.postgres.jdbc;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Map;
 
 import com.impossibl.postgres.system.Context;
 
@@ -50,6 +52,9 @@ class PSQLTypeUtils {
 		}
 		else if(targetType == Timestamp.class) {
 			return coerceToTimestamp(val, context);
+		}
+		else if(targetType.isArray()) {
+			return coerceToArray(val, targetType, context);
 		}
 		
 		throw createCoercionException(val.getClass(), targetType);
@@ -289,6 +294,39 @@ class PSQLTypeUtils {
 		}
 		
 		throw createCoercionException(val.getClass(), Timestamp.class);
+	}
+	
+	public static Object coerceToArray(Object val, Class<?> arrayType, Context context) throws SQLException {
+		
+		if(val == null) {
+			return null;
+		}
+		else if(val.getClass().isArray()) {
+			
+			if(val.getClass().getComponentType() == arrayType.getComponentType()) {
+				return val;
+			}
+			else {
+				//Copy to correct array type
+				int arrayLength = Array.getLength(val);
+				Object newArray = Array.newInstance(arrayType.getComponentType(), arrayLength);
+				System.arraycopy(val, 0, newArray, 0, arrayLength);
+				return newArray;
+			}
+		}
+		else if(Map.class.isAssignableFrom(val.getClass())) {
+						
+			int arrayLength = Array.getLength(val);
+			Object newArray = Array.newInstance(arrayType.getComponentType(), arrayLength);
+			
+			for(int c=0; c < arrayLength; ++c) {
+				Array.set(newArray, c, ((Map<?,?>)val).get(c));
+			}
+			System.arraycopy(val, 0, newArray, 0, arrayLength);
+			return newArray;
+		}
+		
+		throw createCoercionException(val.getClass(), arrayType);
 	}
 	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {

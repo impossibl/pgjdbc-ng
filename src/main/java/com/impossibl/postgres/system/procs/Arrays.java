@@ -23,7 +23,7 @@ import com.impossibl.postgres.types.Type;
 public class Arrays extends SimpleProcProvider {
 
 	public Arrays() {
-		super(null, null, new Encoder(), new Decoder(), "array_");
+		super(null, null, new Encoder(), new Decoder(), "array_", "oidvector");
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
@@ -91,7 +91,7 @@ public class Arrays extends SimpleProcProvider {
 				
 			}
 			
-			if(lengthGiven != buffer.readerIndex() - readStart) {
+			if(lengthGiven != -1 && lengthGiven != buffer.readerIndex() - readStart) {
 				throw new IOException("invalid length");
 			}
 
