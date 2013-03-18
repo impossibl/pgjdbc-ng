@@ -1314,7 +1314,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     List<Object[]> results = new ArrayList<>();
 
     resultFields[0] = new ResultField("SCOPE", 					0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("COLUMN_NAME", 		0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[1] = new ResultField("COLUMN_NAME", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     resultFields[2] = new ResultField("DATA_TYPE", 			0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
     resultFields[3] = new ResultField("TYPE_NAME", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     resultFields[4] = new ResultField("COLUMN_SIZE", 		0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
@@ -1352,8 +1352,47 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+
+		Registry reg = connection.getRegistry();
+		
+    ResultField resultFields[] = new ResultField[8];
+    List<Object[]> results = new ArrayList<>();
+
+    resultFields[0] = new ResultField("SCOPE", 					0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[1] = new ResultField("COLUMN_NAME", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[2] = new ResultField("DATA_TYPE", 			0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[3] = new ResultField("TYPE_NAME", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[4] = new ResultField("COLUMN_SIZE", 		0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[5] = new ResultField("BUFFER_LENGTH", 	0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS",	0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[7] = new ResultField("PSEUDO_COLUMN", 	0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+
+    Object[] row = new Object[8];
+
+    /* Postgresql does not have any column types that are
+     * automatically updated like some databases' timestamp type.
+     * We can't tell what rules or triggers might be doing, so we
+     * are left with the system columns that change on an update.
+     * An update may change all of the following system columns:
+     * ctid, xmax, xmin, cmax, and cmin.  Depending on if we are
+     * in a transaction and wether we roll it back or not the
+     * only guaranteed change is to ctid. -KJ
+     */
+
+    Type type = reg.loadType("tid");
+    
+    row[0] = null;
+    row[1] = "ctid";
+    row[2] = PSQLTypeMetaData.getSQLType(type);
+    row[3] = type.getOutputType(Format.Binary);
+    row[4] = null;
+    row[5] = null;
+    row[6] = null;
+    row[7] = DatabaseMetaData.versionColumnPseudo;
+    
+    results.add(row);
+
+    return createResultSet(Arrays.asList(resultFields), results);
 	}
 
 	@Override
@@ -1535,8 +1574,51 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+
+		StringBuilder sql = new StringBuilder();
+		List<Object> params = new ArrayList<>();
+		
+    sql.append(
+    		"SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, " +
+    		"  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, " +
+    		"  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, " +
+        "  CASE i.indisclustered " +
+        "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered +
+        "    ELSE CASE am.amname " +
+        "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed +
+        "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther +
+        "    END " +
+        "  END AS TYPE, " +
+        "  (i.keys).n AS ORDINAL_POSITION, " +
+        "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, " +
+        "  CASE am.amcanorder " +
+        "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
+        "      WHEN 1 THEN 'D' " +
+        "      ELSE 'A' " +
+        "    END " +
+        "    ELSE NULL " +
+        "  END AS ASC_OR_DESC, " +
+        "  ci.reltuples AS CARDINALITY, " +
+        "  ci.relpages AS PAGES, " +
+        "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION " +
+        "FROM pg_catalog.pg_class ct " +
+        "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
+        "  JOIN (SELECT i.indexrelid, i.indrelid, i.indoption, " +
+        "          i.indisunique, i.indisclustered, i.indpred, " +
+        "          i.indexprs, " +
+        "          information_schema._pg_expandarray(i.indkey) AS keys " +
+        "        FROM pg_catalog.pg_index i) i " +
+        "    ON (ct.oid = i.indrelid) " +
+        "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) " +
+        "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) " +
+        "WHERE true ");
+
+    if(!isNullOrEmpty(schema)) {
+        sql.append(" AND n.nspname = ?");
+        params.add(schema);
+    }
+    
+		return execForResultSet(sql.toString(), params);
 	}
 
 	@Override
