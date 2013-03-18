@@ -1290,11 +1290,13 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 	@Override
 	public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
 		
+		Registry reg = connection.getRegistry();
+		
 		StringBuilder sql = new StringBuilder();
 		List<Object> params = new ArrayList<>();
 		
     sql.append(
-    		"SELECT a.attname, a.atttypid, atttypmod " +
+    		"SELECT a.attname, a.atttypid, attlen, atttypmod " +
     		"FROM pg_catalog.pg_class ct " +
     		"  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) " +
     		"  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
@@ -1307,8 +1309,45 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     	sql.append(" WHERE n.nspname = ?");
     	params.add(schema);
     }
+
+    ResultField[] resultFields = new ResultField[8];
+    List<Object[]> results = new ArrayList<>();
+
+    resultFields[0] = new ResultField("SCOPE", 					0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[1] = new ResultField("COLUMN_NAME", 		0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[2] = new ResultField("DATA_TYPE", 			0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[3] = new ResultField("TYPE_NAME", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[4] = new ResultField("COLUMN_SIZE", 		0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[5] = new ResultField("BUFFER_LENGTH", 	0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS",	0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[7] = new ResultField("PSEUDO_COLUMN", 	0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
     
-    return execForResultSet(sql.toString(), params);
+		try (ResultSet rs = execForResultSet(sql.toString(), params)) {
+			while (rs.next()) {
+				
+				Object[] row = new Object[8];
+				Type type= reg.loadType(rs.getInt("atttypid"));
+				int typeLen = rs.getInt("attlen");
+				int typeMod = rs.getInt("atttypmod");
+				int decimalDigits = PSQLTypeMetaData.getScale(type, typeLen, typeMod);
+				int columnSize = PSQLTypeMetaData.getPrecision(type, typeLen, typeMod);
+				if (columnSize == 0) {
+					columnSize = PSQLTypeMetaData.getDisplaySize(type, typeLen, typeMod);
+				}
+				row[0] = scope;
+				row[1] = rs.getString("attname");
+				row[2] = PSQLTypeMetaData.getSQLType(type);
+				row[3] = type.getOutputType(Format.Binary).getName();
+				row[4] = columnSize;
+				row[5] = null; // unused
+				row[6] = decimalDigits;
+				row[7] = DatabaseMetaData.bestRowNotPseudo;
+				
+				results.add(row);
+			}
+		}
+
+    return createResultSet(Arrays.asList(resultFields), results);
 	}
 
 	@Override
