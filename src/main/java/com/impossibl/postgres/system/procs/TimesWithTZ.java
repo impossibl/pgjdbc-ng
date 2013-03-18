@@ -1,17 +1,19 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
+import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.sql.Time;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -27,8 +29,8 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
 	static class BinIntegerDecoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.TIME;
+		public PrimitiveType getInputPrimitiveType() {
+			return TimeTZ;
 		}
 		
 		public Class<?> getOutputType() {
@@ -63,8 +65,8 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 			return Time.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.TIME;
+		public PrimitiveType getOutputPrimitiveType() {
+			return TimestampTZ;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

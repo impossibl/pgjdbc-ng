@@ -1,12 +1,14 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.UUID;
+
 import java.io.IOException;
-import java.sql.Types;
 import java.util.UUID;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -18,8 +20,8 @@ public class UUIDs extends SimpleProcProvider {
 	
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.OTHER;
+		public PrimitiveType getInputPrimitiveType() {
+			return UUID;
 		}
 		
 		public Class<?> getOutputType() {
@@ -47,8 +49,8 @@ public class UUIDs extends SimpleProcProvider {
 			return UUID.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.OTHER;
+		public PrimitiveType getOutputPrimitiveType() {
+			return UUID;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

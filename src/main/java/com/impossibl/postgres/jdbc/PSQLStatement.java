@@ -23,7 +23,7 @@ import com.impossibl.postgres.types.Type;
 
 
 
-public abstract class PSQLStatement implements Statement {
+abstract class PSQLStatement implements Statement {
 
 	
 	
@@ -51,7 +51,7 @@ public abstract class PSQLStatement implements Statement {
 		this.concurrency = concurrency;
 		this.holdability = holdability;
 		this.name = name;
-		this.resultFields = resultFields;
+		this.resultFields = null;
 		this.activeResultSets = new ArrayList<>();
 	}
 
@@ -191,6 +191,13 @@ public abstract class PSQLStatement implements Statement {
 
 		return !command.getResultFields().isEmpty();
 		
+	}
+	
+	PSQLResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) {
+		
+		PSQLResultSet resultSet = new PSQLResultSet(this, resultFields, results);
+		activeResultSets.add(resultSet);
+		return resultSet;
 	}
 	
 	@Override

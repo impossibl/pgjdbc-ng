@@ -52,6 +52,18 @@ public class Version {
 		this.revision = revision;
 	}
 
+	public int getMajor() {
+		return major;
+	}
+
+	public Integer getMinor() {
+		return minor;
+	}
+
+	public Integer getRevision() {
+		return revision;
+	}
+
 	public boolean compatible(Version current) {
 		return compatible(current.major, current.minor, current.revision);
 	}

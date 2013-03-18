@@ -103,6 +103,8 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 		protocol.setListener(listener);
 
+		protocol.sendSync();
+
 		protocol.sendParse(statementName, query, parseParameterTypes);
 
 		protocol.sendDescribe(Statement, statementName);
@@ -110,7 +112,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 		protocol.sendFlush();
 
 		waitFor(listener);
-
+		
 	}
 
 }

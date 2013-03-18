@@ -42,7 +42,7 @@ import com.impossibl.postgres.types.Type;
 
 
 
-public class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
+class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
 
 	
 	
@@ -74,7 +74,7 @@ public class PSQLPreparedStatement extends PSQLStatement implements PreparedStat
 	 */
 	void checkParameterIndex(int idx) throws SQLException {
 		
-		if(idx < 1 && idx > parameterValues.size())
+		if(idx < 1 || idx > parameterValues.size())
 			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 	}
 	

@@ -1,12 +1,14 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Numeric;
+
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -23,8 +25,8 @@ public class Numerics extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.NUMERIC;
+		public PrimitiveType getInputPrimitiveType() {
+			return Numeric;
 		}
 		
 		public Class<?> getOutputType() {
@@ -65,8 +67,8 @@ public class Numerics extends SimpleProcProvider {
 			return BigDecimal.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.NUMERIC;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Numeric;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

@@ -1,5 +1,7 @@
 package com.impossibl.postgres.types;
 
+import static com.impossibl.postgres.types.PrimitiveType.Range;
+
 /**
  * A database range type.
  * 
@@ -19,7 +21,13 @@ public class RangeType extends Type {
 	}
 
 	public Type unwrap() {
-		return base.unwrap();
+		//TODO implement as return base.unwrap();
+		return this;
+	}
+
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return Range;
 	}
 
 }

@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * @author kdubb
  *
  */
-public class PSQLTextUtils {
+class PSQLTextUtils {
 
 	/**
 	 * Tests the given value for equality to "true"

@@ -63,7 +63,7 @@ import com.impossibl.postgres.types.Type;
 
 
 
-public class PSQLConnection extends BasicContext implements Connection {
+class PSQLConnection extends BasicContext implements Connection {
 
 	
 	
@@ -79,7 +79,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 
 	
 	
-	public PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+	PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();
 	}
@@ -323,7 +323,7 @@ public class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
 		checkClosed();
-		throw new SQLException("not supported");
+		return new PSQLDatabaseMetaData(this);
 	}
 
 	@Override

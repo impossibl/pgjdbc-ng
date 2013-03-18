@@ -1,7 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
 import java.io.IOException;
-import java.sql.Types;
 import java.util.Collections;
 import java.util.Map;
 
@@ -9,6 +8,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 
@@ -26,8 +26,8 @@ public class Unsupporteds implements ProcProvider {
 			this.name = name;
 		}
 
-		public int getInputSQLType() {
-			return Types.NULL;
+		public PrimitiveType getInputPrimitiveType() {
+			return null;
 		}
 		
 		public Class<Void> getOutputType() {
@@ -53,8 +53,8 @@ public class Unsupporteds implements ProcProvider {
 			return Void.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.NULL;
+		public PrimitiveType getOutputPrimitiveType() {
+			return null;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

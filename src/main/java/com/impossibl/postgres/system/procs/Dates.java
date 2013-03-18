@@ -1,16 +1,17 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Date;
 import static org.joda.time.DateTimeZone.UTC;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -26,8 +27,8 @@ public class Dates extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.DATE;
+		public PrimitiveType getInputPrimitiveType() {
+			return Date;
 		}
 		
 		public Class<?> getOutputType() {
@@ -59,8 +60,8 @@ public class Dates extends SimpleProcProvider {
 			return Date.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.DATE;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Date;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

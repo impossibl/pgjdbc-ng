@@ -5,6 +5,7 @@ import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE;
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 
@@ -91,6 +92,14 @@ public class BasicContext implements Context {
 		keyData = null;
 	}
 
+	public Version getServerVersion() {
+		return serverVersion;
+	}
+
+	public void setServerVersion(Version serverVersion) {
+		this.serverVersion = serverVersion;
+	}
+
 	@Override
 	public Registry getRegistry() {
 		return registry;
@@ -103,6 +112,21 @@ public class BasicContext implements Context {
 	@Override
 	public Object getSetting(String name) {
 		return settings.get(name);
+	}
+
+	@Override
+	public <T> T getSetting(String name, Class<T> type) {
+		return type.cast(settings.get(name));
+	}
+	
+	@Override
+	public boolean isSettingEnabled(String name) {
+		Object val = getSetting(name, Boolean.class);
+		if(val instanceof String)
+			return ((String)val).toLowerCase().equals("on");
+		if(val instanceof Boolean)
+			return (Boolean) val;
+		return false;
 	}
 
 	public Class<?> lookupInstanceType(Type type) {
@@ -187,7 +211,7 @@ public class BasicContext implements Context {
 		}
 	}
 	
-	public <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+	protected <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
 		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 		
@@ -204,11 +228,11 @@ public class BasicContext implements Context {
 		if(query.getError() != null) {
 			throw new NoticeException("Error executing query", prepare.getError());
 		}
-		
+
 		return query.getResults(rowType);
 	}
 
-	public List<Object[]> execQuery(String queryTxt) throws IOException, NoticeException {
+	protected List<Object[]> execQuery(String queryTxt) throws IOException, NoticeException {
 
 		QueryCommand query = protocol.createQuery(queryTxt);
 		
@@ -224,7 +248,7 @@ public class BasicContext implements Context {
 		return res;
 	}
 
-	public Object execQueryForResult(String queryTxt) throws IOException, NoticeException {
+	protected Object execQueryForResult(String queryTxt) throws IOException, NoticeException {
 		
 		QueryCommand query = protocol.createQuery(queryTxt);
 		
@@ -247,7 +271,7 @@ public class BasicContext implements Context {
 		return firstRow[0];
 	}
 	
-	public String execQueryForString(String queryTxt) throws IOException, NoticeException {
+	protected String execQueryForString(String queryTxt) throws IOException, NoticeException {
 
 		List<Object[]> res = execQuery(queryTxt);
 		if(res.isEmpty()) {
@@ -330,6 +354,14 @@ public class BasicContext implements Context {
 		case "client_encoding":
 			
 			charset = Charset.forName(value);
+			break;
+			
+		case STANDARD_CONFORMING_STRINGS:
+			
+			settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
+			break;
+			
+		default:
 			break;
 		}
 		

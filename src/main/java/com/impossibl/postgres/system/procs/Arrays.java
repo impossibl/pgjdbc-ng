@@ -1,9 +1,9 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Array;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
-import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +11,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -27,8 +28,8 @@ public class Arrays extends SimpleProcProvider {
 	
 	static class Decoder implements Type.Codec.Decoder {
 		
-		public int getInputSQLType() {
-			return Types.ARRAY;
+		public PrimitiveType getInputPrimitiveType() {
+			return Array;
 		}
 		
 		public Class<?> getOutputType() {
@@ -85,7 +86,7 @@ public class Arrays extends SimpleProcProvider {
 					
 					Object elementVal = elementType.getBinaryCodec().decoder.decode(elementType, buffer, context);
 					
-					Arrays.set(instance, e, elementVal);
+					set(instance, e, elementVal);
 				}				
 				
 			}
@@ -105,8 +106,8 @@ public class Arrays extends SimpleProcProvider {
 			return Object[].class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.ARRAY;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Array;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
@@ -156,7 +157,7 @@ public class Arrays extends SimpleProcProvider {
 
 				for(int e=0; e < elementCount; ++e) {
 					
-					Object elementVal = Arrays.get(val, e);
+					Object elementVal = get(val, e);
 					
 					elementType.getBinaryCodec().encoder.encode(elementType, buffer, elementVal, context);
 				}

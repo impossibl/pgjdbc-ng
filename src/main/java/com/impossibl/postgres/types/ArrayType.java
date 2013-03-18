@@ -1,5 +1,7 @@
 package com.impossibl.postgres.types;
 
+import static com.impossibl.postgres.types.PrimitiveType.Array;
+
 /**
  * A database array type.
  * 
@@ -20,6 +22,11 @@ public class ArrayType extends Type {
 
 	public Type unwrap() {
 		return elementType;
+	}
+
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return Array;
 	}
 
 }

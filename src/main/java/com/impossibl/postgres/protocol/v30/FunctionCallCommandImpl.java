@@ -73,6 +73,8 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 		if(procId == 0)
 			throw new IOException("invalid function name");
 
+		protocol.sendSync();
+
 		protocol.sendFunctionCall(procId, parameterTypes, parameterValues);
 
 		waitFor(listener);

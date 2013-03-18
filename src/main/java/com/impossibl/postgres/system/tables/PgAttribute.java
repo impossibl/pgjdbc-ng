@@ -77,7 +77,9 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 			" from " +
 			"		pg_catalog.pg_attribute a " +
 			"	left join pg_attrdef ad " +
-			"		on (a.attrelid = ad.adrelid and a.attnum = ad.adnum)"
+			"		on (a.attrelid = ad.adrelid and a.attnum = ad.adnum)" +
+			" where " +
+			" 	not a.attisdropped"
 	};
 
 }

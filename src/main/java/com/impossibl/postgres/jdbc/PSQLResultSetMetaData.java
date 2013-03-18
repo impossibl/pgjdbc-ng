@@ -1,32 +1,23 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.types.Modifiers.LENGTH;
-import static com.impossibl.postgres.types.Modifiers.PRECISION;
-import static com.impossibl.postgres.types.Modifiers.SCALE;
-import static java.sql.Types.NUMERIC;
+import static com.impossibl.postgres.jdbc.PSQLTypeMetaData.getSQLType;
 
-import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.List;
-import java.util.Map;
 
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Type;
 
-public class PSQLResultSetMetaData implements ResultSetMetaData {
+class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	PSQLConnection connection;
 	List<ResultField> resultFields;
 	
-	public PSQLResultSetMetaData(PSQLConnection connection, List<ResultField> resultFields) {
+	PSQLResultSetMetaData(PSQLConnection connection, List<ResultField> resultFields) {
 		this.connection = connection;
 		this.resultFields = resultFields;
 	}
@@ -78,33 +69,7 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 		if(relType == null)
 			return null;
 		
-		return relType.getAttribute(field.relationAttributeIndex-1);
-	}
-
-	/**
-	 * Calculates the display size for Dates, Times and Timestamps
-	 * 
-	 * NOTE: Values unceremoniously copied from previous JDBC driver
-	 * 
-	 * @param javaType Type to determine the display size of
-	 * @param precision Precision modifier of type
-	 * @return Suggested display size
-	 */
-	private int calculateDateTimeDisplaySize(Class<?> javaType, int precision) {
-
-		int size = 0;
-		
-		if(javaType == Date.class) {
-			size = 13;
-		}
-		else if(javaType == Time.class) {
-			size = 8 + precision + 6;
-		}
-		else if(javaType == Timestamp.class) {
-			size = 13 + 1 + 8 + precision + 6;
-		}
-		
-		return size;
+		return relType.getAttribute(field.relationAttributeNumber);
 	}
 
 	@Override
@@ -136,14 +101,7 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public boolean isCaseSensitive(int column) throws SQLException {
 		
-		switch(get(column).type.unwrap().getCategory()) {
-		case Enumeration:
-		case String:
-			return true;
-			
-		default:
-			return false;
-		}		
+		return PSQLTypeMetaData.isCaseSensitive(get(column).type);
 	}
 
 	@Override
@@ -154,58 +112,34 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public boolean isCurrency(int column) throws SQLException {
-		//TODO this should be determined, somehow, by relating it to the Moneys codecs
-		//or maybe we should parse a special money type that fits in easily
-		
-		switch(get(column).type.unwrap().getName()) {
-		case "money":
-		case "cash":
-			return true;
-			
-		default:
-			return false;
-		}
-		
+
+		return PSQLTypeMetaData.isCurrency(get(column).type);
 	}
 
 	@Override
 	public int isNullable(int column) throws SQLException {
 		
-		//Check attributes for nullability
-		CompositeType.Attribute attr = getRelAttr(column);
-		if(attr != null) {		
-			return attr.nullable ? columnNullable : columnNoNulls;
-		}
+		ResultField field = get(column);
+		CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
 		
-		//Check domain types for nullability
-		Type type = get(column).type;
-		if(type instanceof DomainType) {
-			return ((DomainType) type).isNullable() ? columnNullable : columnNoNulls;
-		}
-		
-		//Everything else... we just don't know
-		return columnNullableUnknown;
+		return PSQLTypeMetaData.isNullable(field.type, relType, field.relationAttributeNumber);
 	}
 
 	@Override
 	public boolean isSigned(int column) throws SQLException {
 		
-		switch(get(column).type.unwrap().getCategory()) {
-		case Numeric:
-			return true;
-			
-		default:
-			return false;
-		}
+		return PSQLTypeMetaData.isSigned(get(column).type);
 	}
 
 	@Override
 	public String getColumnLabel(int column) throws SQLException {
+
 		return get(column).name;
 	}
 
 	@Override
 	public String getCatalogName(int column) throws SQLException {
+		
 		return connection.getSetting(Settings.DATABASE).toString();
 	}
 
@@ -247,16 +181,18 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public int getColumnType(int column) throws SQLException {
 		ResultField field = get(column);
-		return field.type.getInputSQLType(field.format);
+		return getSQLType(field.type);
 	}
 
 	@Override
 	public String getColumnTypeName(int column) throws SQLException {
+		
 		return get(column).type.getName();
 	}
 
 	@Override
 	public String getColumnClassName(int column) throws SQLException {
+		
 		ResultField field = get(column);
 		return field.type.getOutputType(field.format).toString();
 	}
@@ -265,153 +201,28 @@ public class PSQLResultSetMetaData implements ResultSetMetaData {
 	public int getPrecision(int column) throws SQLException {
 
 		ResultField field = get(column);
-		Type type = field.type.unwrap();
-		int sqlType = field.type.getInputSQLType(field.format);
-		Class<?> javaType = field.type.getOutputType(field.format);		
-		Map<String, Object> mods = type.getModifierParser().parse(field.typeModifier);
-
-		//Lookup prec & length (if the mods have them)
-		
-		int precMod = 0;
-		if(mods.containsKey(PRECISION)) {
-			precMod = (int) mods.get(PRECISION);
-		}
-		
-		int lenMod = 0;
-		if(mods.containsKey(LENGTH)) {
-			lenMod = (int) mods.get(LENGTH);
-		}
-		else if(field.typeLength != -1) {
-			lenMod = field.typeLength;
-		}
-		
-		//Calculate prec
-		
-		int prec = 0;
-		
-		switch(type.getCategory()) {
-		case Numeric:
-			
-			if(javaType == BigDecimal.class) {
-				if(precMod != 0) {
-					prec = precMod;
-				}
-				else {
-					if(sqlType != NUMERIC) {
-						//Must be a money/cash type
-						prec = 19;
-					}
-					else {
-						prec = 131072;
-					}
-				}
-			}
-			else if(javaType == Short.class) {
-				prec = 5;
-			}
-			else if(javaType == Integer.class) {
-				prec = 10;
-			}
-			else if(javaType == Long.class) {
-				prec = 19;
-			}
-			else if(javaType == Float.class) {
-				prec = 8;
-			}
-			else if(javaType == Double.class) {
-				prec = 17;
-			}
-			break;
-			
-		case DateTime:
-			prec = calculateDateTimeDisplaySize(javaType, precMod);
-			break;
-			
-		case String:
-		case Enumeration:
-		case BitString:
-			prec = lenMod;
-			break;
-			
-		default:
-			prec = lenMod;
-		}
-		
-		return prec;
+		return PSQLTypeMetaData.getPrecision(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override
 	public int getScale(int column) throws SQLException {
 
 		ResultField field = get(column);
-		Map<String, Object> mods = field.type.unwrap().getModifierParser().parse(field.typeModifier);
-		
-		Object scale = mods.get(SCALE);
-		if(scale == null)
-			return 0;
-		
-		return (int) scale;
+		return PSQLTypeMetaData.getScale(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
 
 		ResultField field = get(column);
-		Type type = field.type.unwrap();
-		Class<?> javaType = field.type.getOutputType(field.format);		
-		Map<String, Object> mods = type.getModifierParser().parse(field.typeModifier);
-		
-		int precMod = 0;
-		if(mods.containsKey(PRECISION)) {
-			precMod = (int) mods.get(PRECISION);
-		}
-
-		int lenMod = 0;
-		if(mods.containsKey(LENGTH)) {
-			lenMod = (int) mods.get(LENGTH);
-		}
-		else if(field.typeLength != -1) {
-			lenMod = field.typeLength;
-		}
-
-		int size = 0;
-		
-		switch(field.type.getCategory()) {
-		case Numeric:
-			size = getPrecision(column) + 1;
-			break;
-			
-		case Boolean:
-			size = 5; // true/false? 
-			break;
-			
-		case String:
-		case Enumeration:
-		case BitString:
-			size = lenMod;
-			break;
-			
-		case DateTime:
-			size = calculateDateTimeDisplaySize(javaType, precMod);
-			break;
-			
-		case Timespan:
-			size = 49;
-			break;
-			
-		default:
-			size = 0;
-			break;
-		}
-		
-		return size;
+		return PSQLTypeMetaData.getDisplaySize(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override
 	public boolean isReadOnly(int column) throws SQLException {
 		
 		//If it's a computed column we assume it's read only
-		return get(column).relationAttributeIndex == 0;
+		return get(column).relationAttributeNumber == 0;
 	}
 
 	@Override

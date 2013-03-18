@@ -2,10 +2,10 @@ package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
+import static com.impossibl.postgres.types.PrimitiveType.String;
 import static java.lang.Math.min;
 
 import java.io.IOException;
-import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,19 +13,20 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
 public class Strings extends SimpleProcProvider {
 
 	public Strings() {
-		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_");
+		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_", "cstring_", "unknown");
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.VARCHAR;
+		public PrimitiveType getInputPrimitiveType() {
+			return String;
 		}
 		
 		public Class<?> getOutputType() {
@@ -63,8 +64,8 @@ public class Strings extends SimpleProcProvider {
 			return String.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.VARCHAR;
+		public PrimitiveType getOutputPrimitiveType() {
+			return String;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

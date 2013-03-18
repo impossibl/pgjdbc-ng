@@ -1,11 +1,13 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Int8;
+
 import java.io.IOException;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -17,8 +19,8 @@ public class Int8s extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.BIGINT;
+		public PrimitiveType getInputPrimitiveType() {
+			return Int8;
 		}
 		
 		public Class<?> getOutputType() {
@@ -46,8 +48,8 @@ public class Int8s extends SimpleProcProvider {
 			return Long.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.BIGINT;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Int8;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

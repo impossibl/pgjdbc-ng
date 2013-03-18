@@ -1,11 +1,11 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Record;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 import static org.apache.commons.beanutils.BeanUtils.getProperty;
 import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
-import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
 
@@ -14,6 +14,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -26,8 +27,8 @@ public class Records extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.STRUCT;
+		public PrimitiveType getInputPrimitiveType() {
+			return Record;
 		}
 		
 		public Class<?> getOutputType() {
@@ -48,7 +49,7 @@ public class Records extends SimpleProcProvider {
 
 			for (int c = 0; c < itemCount; ++c) {
 
-				Attribute attribute = ctype.getAttribute(c);
+				Attribute attribute = ctype.getAttribute(c+1);
 
 				Type attributeType = context.getRegistry().loadType(buffer.readInt());
 
@@ -77,8 +78,8 @@ public class Records extends SimpleProcProvider {
 			return Object.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.STRUCT;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Record;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

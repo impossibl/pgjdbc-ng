@@ -18,6 +18,7 @@ public class DomainType extends Type {
 	private boolean nullable;
 	private Map<String, Object> modifiers;
 	private int numberOfDimensions;
+	private String defaultValue;
 
 	public Type getBase() {
 		return base;
@@ -43,11 +44,26 @@ public class DomainType extends Type {
 	public int getNumberOfDimensions() {
 		return numberOfDimensions;
 	}
+	
 	public void setNumberOfDimensions(int numberOfDimensions) {
 		this.numberOfDimensions = numberOfDimensions;
 	}
+	
+	public String getDefaultValue() {
+		return defaultValue;
+	}
+	
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
+	}
+
 	public Type unwrap() {
 		return base.unwrap();
+	}
+	
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return base.getPrimitiveType();
 	}
 	
 	@Override
@@ -59,7 +75,7 @@ public class DomainType extends Type {
 		nullable = source.domainNotNull;
 		modifiers = base.getModifierParser().parse(source.domainTypeMod);
 		numberOfDimensions = source.domainDimensions;
+		defaultValue = source.domainDefault != null ? source.domainDefault : "";
 	}
-
 	
 }

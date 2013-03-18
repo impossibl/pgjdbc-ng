@@ -24,9 +24,9 @@ public interface Context {
 	void refreshType(int typeId);
 
 	Object getSetting(String name);
+	<T> T getSetting(String name, Class<T> type);
+	boolean isSettingEnabled(String name);
 	
 	Protocol getProtocol();
-
-
-
+	
 }

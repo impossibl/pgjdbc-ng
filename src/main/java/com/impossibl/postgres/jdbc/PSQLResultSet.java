@@ -55,7 +55,7 @@ import com.impossibl.postgres.protocol.ResultField;
 
 
 
-public class PSQLResultSet implements ResultSet {
+class PSQLResultSet implements ResultSet {
 
 	
 	
@@ -73,12 +73,12 @@ public class PSQLResultSet implements ResultSet {
 
 	
 	
-	public PSQLResultSet(PSQLStatement statement, BindExecCommand command) {
+	PSQLResultSet(PSQLStatement statement, BindExecCommand command) {
 		this(statement, command.getResultFields(), command.getResults(Object[].class));
 		this.command = command;
 	}
 	
-	public PSQLResultSet(PSQLStatement statement, List<ResultField> resultFields, List<Object[]> results) {
+	PSQLResultSet(PSQLStatement statement, List<ResultField> resultFields, List<Object[]> results) {
 		super();
 		this.statement = statement;
 		this.fetchSize = statement.fetchSize;
@@ -777,7 +777,7 @@ public class PSQLResultSet implements ResultSet {
 		for (int c = 0; c < resultFields.size(); ++c) {
 
 			if (resultFields.get(c).name.equals(columnLabel))
-				return c;
+				return c+1;
 		}
 
 		throw INVALID_COLUMN_NAME;

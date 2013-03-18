@@ -54,6 +54,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		@Override
 		public void rowDescription(List<ResultField> resultFields) {
 			BindExecCommandImpl.this.resultFields = resultFields;
+			BindExecCommandImpl.this.resultSetters = Mapper.buildMapping(rowType, resultFields);
 		}
 
 		@Override
@@ -154,7 +155,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.results = new ArrayList<>();
 		this.maxRows = 0;
 		this.maxFieldLength = Integer.MAX_VALUE;
-		this.resultSetters = Mapper.buildMapping(rowType, resultFields);
+		
+		if(resultFields != null)
+			this.resultSetters = Mapper.buildMapping(rowType, resultFields);
 	}
 
 	public void reset() {
@@ -243,7 +246,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		}
 
-		if(resultFields == null) {
+		if(resultFields == null || !parameterTypes.isEmpty()) {
 
 			protocol.sendDescribe(Portal, portalName);
 

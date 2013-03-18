@@ -6,13 +6,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Calendar;
 import java.util.TimeZone;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -20,18 +20,22 @@ import com.impossibl.postgres.types.Type;
 public class Timestamps extends SettingSelectProcProvider {
 
 	private static long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
+	
+	private PrimitiveType primitiveType;
 
-	public Timestamps() {
+	public Timestamps(PrimitiveType primitiveType, String... baseNames) {
 		super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
-				null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
 				null, null, null, null,
-				"timestamp_", "timestamptz_");
+				null, null, null, null, baseNames);
+		this.primitiveType = primitiveType;
+		this.matchedBinEncoder = new BinIntegerEncoder();
+		this.matchedBinDecoder = new BinIntegerDecoder();
 	}
 
-	static class BinIntegerDecoder implements Type.Codec.Decoder {
+	class BinIntegerDecoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.TIMESTAMP;
+		public PrimitiveType getInputPrimitiveType() {
+			return primitiveType;
 		}
 		
 		public Class<?> getOutputType() {
@@ -56,14 +60,14 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	}
 
-	static class BinIntegerEncoder implements Type.Codec.Encoder {
+	class BinIntegerEncoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
 			return Timestamp.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.TIMESTAMP;
+		public PrimitiveType getOutputPrimitiveType() {
+			return primitiveType;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

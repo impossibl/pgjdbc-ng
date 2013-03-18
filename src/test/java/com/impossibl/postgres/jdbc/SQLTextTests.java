@@ -1,4 +1,4 @@
-package com.impossibl.postgres.tests;
+package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.PSQLTextUtils.getProtocolSQLText;
 import static org.hamcrest.CoreMatchers.equalTo;

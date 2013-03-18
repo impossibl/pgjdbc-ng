@@ -1,5 +1,8 @@
 package com.impossibl.postgres.system.procs;
 
+import static com.impossibl.postgres.types.PrimitiveType.Timestamp;
+import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
+
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
@@ -23,7 +26,8 @@ public class Procs {
 		new Dates(),
 		new TimesWithoutTZ(),
 		new TimesWithTZ(),
-		new Timestamps(),
+		new Timestamps(Timestamp, "timestamp_"),
+		new Timestamps(TimestampTZ, "timestamptz_"),
 		new UUIDs(),
 		new Moneys(),
 		new Arrays(),

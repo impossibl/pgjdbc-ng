@@ -84,7 +84,7 @@ public abstract class Type {
 		 *	Decodes the given data into a Java language object
 		 */
 		public interface Decoder {
-			int getInputSQLType();
+			PrimitiveType getInputPrimitiveType();
 			Class<?> getOutputType();
 			Object decode(Type type,  ChannelBuffer buffer, Context context) throws IOException;
 		}
@@ -94,7 +94,7 @@ public abstract class Type {
 		 */
 		public interface Encoder {
 			Class<?> getInputType();
-			int getOutputSQLType();
+			PrimitiveType getOutputPrimitiveType();
 			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
 		}
 
@@ -236,7 +236,9 @@ public abstract class Type {
 	public Type unwrap() {
 		return this;
 	}
-
+	
+	public abstract PrimitiveType getPrimitiveType(); 
+	
 	/**
 	 * Load this type from a "pg_type" table entry and, if available, a
 	 * collection of "pg_attribute" table entries.
@@ -313,26 +315,26 @@ public abstract class Type {
 		return null;
 	}
 
-	public int getInputSQLType(Format format) {
+	public PrimitiveType getInputSQLType(Format format) {
 		
 		switch(format) {
 		case Text:
-			return textCodec.decoder.getInputSQLType();
+			return textCodec.decoder.getInputPrimitiveType();
 		case Binary:
-			return binaryCodec.decoder.getInputSQLType();
+			return binaryCodec.decoder.getInputPrimitiveType();
 		}
-		return 0;
+		return null;
 	}
 
-	public int getOutputSQLType(Format format) {
+	public PrimitiveType getOutputPrimitiveType(Format format) {
 		
 		switch(format) {
 		case Text:
-			return textCodec.encoder.getOutputSQLType();
+			return textCodec.encoder.getOutputPrimitiveType();
 		case Binary:
-			return binaryCodec.encoder.getOutputSQLType();
+			return binaryCodec.encoder.getOutputPrimitiveType();
 		}
-		return 0;
+		return null;
 	}
 
 }

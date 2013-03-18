@@ -60,6 +60,8 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 		protocol.setListener(listener);
 		
+		protocol.sendSync();
+
 		protocol.sendClose(objectType, objectName);
 		
 		protocol.sendFlush();

@@ -64,6 +64,16 @@ public class DecoratorContext implements Context {
 	}
 
 	@Override
+	public <T> T getSetting(String name, Class<T> type) {
+		return base.getSetting(name, type);
+	}
+
+	@Override
+	public boolean isSettingEnabled(String name) {
+		return base.isSettingEnabled(name);
+	}
+	
+	@Override
 	public Protocol getProtocol() {
 		return base.getProtocol();
 	}

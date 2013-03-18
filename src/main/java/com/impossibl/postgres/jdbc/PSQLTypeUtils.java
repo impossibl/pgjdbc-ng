@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 
 import com.impossibl.postgres.system.Context;
 
-public class PSQLTypeUtils {
+class PSQLTypeUtils {
 	
 	public static Object coerce(Object val, Class<?> targetType, Context context) throws SQLException {
 		
@@ -57,7 +57,10 @@ public class PSQLTypeUtils {
 	
 	public static byte coerceToByte(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).byteValue();
 		}
 		else if(val instanceof String) {
@@ -72,7 +75,10 @@ public class PSQLTypeUtils {
 
 	public static short coerceToShort(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).shortValue();
 		}
 		else if(val instanceof String) {
@@ -87,7 +93,10 @@ public class PSQLTypeUtils {
 
 	public static int coerceToInt(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).intValue();
 		}
 		else if(val instanceof String) {
@@ -102,7 +111,10 @@ public class PSQLTypeUtils {
 
 	public static long coerceToLong(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).longValue();
 		}
 		else if(val instanceof String) {
@@ -117,7 +129,10 @@ public class PSQLTypeUtils {
 
 	public static float coerceToFloat(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).floatValue();
 		}
 		else if(val instanceof String) {
@@ -132,7 +147,10 @@ public class PSQLTypeUtils {
 
 	public static double coerceToDouble(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return 0;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).doubleValue();
 		}
 		else if(val instanceof String) {
@@ -147,7 +165,10 @@ public class PSQLTypeUtils {
 
 	public static BigDecimal coerceToBigDecimal(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof Number) {
 			return new BigDecimal(val.toString());
 		}
 		else if(val instanceof String) {
@@ -159,7 +180,10 @@ public class PSQLTypeUtils {
 
 	public static boolean coerceToBoolean(Object val) throws SQLException {
 		
-		if(val instanceof Number) {
+		if(val == null) {
+			return false;
+		}
+		else if(val instanceof Number) {
 			return ((Number)val).byteValue() != 0;
 		}
 		else if(val instanceof String) {
@@ -182,7 +206,10 @@ public class PSQLTypeUtils {
 	
 	public static String coerceToString(Object val) throws SQLException {
 		
-		if(val instanceof  Number) {
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof  Number) {
 			return ((Number)val).toString();
 		}
 		else if(val instanceof String) {
@@ -197,7 +224,10 @@ public class PSQLTypeUtils {
 	
 	public static Date coerceToDate(Object val, Context context) throws SQLException {
 		
-		if(val instanceof String) {
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof String) {
 			try {
 				return new Date(context.getDateFormatter().parseDateTime((String) val).toDate().getTime());
 			}
@@ -217,7 +247,10 @@ public class PSQLTypeUtils {
 	
 	public static Time coerceToTime(Object val, Context context) throws SQLException {
 		
-		if(val instanceof String) {
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof String) {
 			try {
 				return new Time(context.getTimeFormatter().parseLocalTime((String) val).getMillisOfDay());
 			}
@@ -237,7 +270,10 @@ public class PSQLTypeUtils {
 	
 	public static Timestamp coerceToTimestamp(Object val, Context context) throws SQLException {
 		
-		if(val instanceof String) {
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof String) {
 			try {
 				return new Timestamp(context.getTimestampFormatter().parseDateTime((String) val).toDate().getTime());
 			}

@@ -2,8 +2,9 @@ package com.impossibl.postgres.types;
 
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
+import static com.impossibl.postgres.types.PrimitiveType.Record;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +27,7 @@ public class CompositeType extends Type {
 	 */
 	public static class Attribute {
 
+		public int number;
 		public String name;
 		public Type type;
 		public boolean nullable;
@@ -53,8 +55,22 @@ public class CompositeType extends Type {
 	public CompositeType() {
 	}
 
-	public Attribute getAttribute(int idx) {
-		return attributes.get(idx);
+	public Attribute getAttribute(int number) {
+		
+		//First try the obvious
+		if(attributes.get(number-1).number == number) {
+			return attributes.get(number-1);
+		}
+		
+		//Now search all
+		for(int c=0, sz=attributes.size(); c < sz; ++c) {
+			Attribute attr = attributes.get(c);
+			if(attr.number == number) {
+				return attr;
+			}
+		}
+		
+		return null;
 	}
 
 	public List<Attribute> getAttributes() {
@@ -70,36 +86,27 @@ public class CompositeType extends Type {
 
 		super.load(pgType, pgAttrs, registry);
 
-		Attribute[] attributes = new Attribute[pgAttrs.size()];
+		attributes = new ArrayList<>(pgAttrs.size());
 
-		int lastFreeIdx = attributes.length - 1;
-
+		
 		for (PgAttribute.Row pgAttr : pgAttrs) {
 
 			Attribute attr = new Attribute();
+			attr.number = pgAttr.number;
 			attr.name = pgAttr.name;
 			attr.type = registry.loadType(pgAttr.typeId);
 			attr.nullable = pgAttr.nullable;
 			attr.hasDefault = pgAttr.hasDefault;
 			attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
 
-			int idx;
-
-			// System columns have arbitrary
-			// negative numbers. We assign
-			// them a free slot from the
-			// end of the list
-			if (pgAttr.number < 1) {
-				idx = lastFreeIdx--;
-			}
-			else {
-				idx = pgAttr.number - 1;
-			}
-
-			attributes[idx] = attr;
+			attributes.add(attr);
 		}
 
-		this.attributes = Arrays.asList(attributes);
+	}
+
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return Record;
 	}
 
 }

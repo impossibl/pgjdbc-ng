@@ -3,6 +3,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,9 +23,12 @@ import java.util.regex.Pattern;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Version;
 
 
 public class PSQLDriver implements Driver {
+	
+	public static final Version VERSION = Version.get(0, 1, 0);
 	
 	private static final String JDBC_USERNAME_PARAM = "user";
 	private static final String JDBC_PASSWORD_PARAM = "password";
@@ -105,6 +109,8 @@ public class PSQLDriver implements Driver {
 		//Translate JDBC parameters to PostgreSQL parameters
 		settings.put(CREDENTIALS_USERNAME, connSpec.parameters.getProperty(JDBC_USERNAME_PARAM, ""));
 		settings.put(CREDENTIALS_PASSWORD, connSpec.parameters.getProperty(JDBC_PASSWORD_PARAM, ""));
+		
+		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.hostname + "/" + connSpec.database);		
 		
 		return settings;
 	}

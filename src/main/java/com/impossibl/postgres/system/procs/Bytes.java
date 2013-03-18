@@ -1,14 +1,15 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.types.PrimitiveType.Binary;
 import static java.lang.Math.min;
 
 import java.io.IOException;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -21,8 +22,8 @@ public class Bytes extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.VARBINARY;
+		public PrimitiveType getInputPrimitiveType() {
+			return Binary;
 		}
 		
 		public Class<?> getOutputType() {
@@ -60,8 +61,8 @@ public class Bytes extends SimpleProcProvider {
 			return byte[].class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.VARBINARY;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Binary;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

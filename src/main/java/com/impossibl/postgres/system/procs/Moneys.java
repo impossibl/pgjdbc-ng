@@ -1,16 +1,17 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_MONEY_FRACTIONAL_DIGITS;
+import static com.impossibl.postgres.types.PrimitiveType.Money;
 import static java.math.RoundingMode.HALF_UP;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Types;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -22,8 +23,8 @@ public class Moneys extends SimpleProcProvider {
 
 	static class Decoder implements Type.Codec.Decoder {
 
-		public int getInputSQLType() {
-			return Types.OTHER;
+		public PrimitiveType getInputPrimitiveType() {
+			return Money;
 		}
 		
 		public Class<?> getOutputType() {
@@ -55,8 +56,8 @@ public class Moneys extends SimpleProcProvider {
 			return BigDecimal.class;
 		}
 
-		public int getOutputSQLType() {
-			return Types.OTHER;
+		public PrimitiveType getOutputPrimitiveType() {
+			return Money;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
