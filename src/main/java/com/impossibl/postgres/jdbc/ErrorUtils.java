@@ -15,7 +15,7 @@ import com.impossibl.postgres.protocol.Notice;
  * @author kdubb
  *
  */
-public class PSQLErrorUtils {
+public class ErrorUtils {
 
 	/**
 	 * Converts the given list of notices into a chained list of SQLWarnings

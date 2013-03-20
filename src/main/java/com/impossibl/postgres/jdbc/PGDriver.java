@@ -1,6 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
@@ -26,7 +26,7 @@ import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
 
 
-public class PSQLDriver implements Driver {
+public class PGDriver implements Driver {
 	
 	public static final Version VERSION = Version.get(0, 1, 0);
 	
@@ -43,12 +43,12 @@ public class PSQLDriver implements Driver {
 	
 	
 	
-	public PSQLDriver() throws SQLException {
+	public PGDriver() throws SQLException {
 		DriverManager.registerDriver(this);
 	}
 
 	@Override
-	public PSQLConnection connect(String url, Properties info) throws SQLException {
+	public PGConnection connect(String url, Properties info) throws SQLException {
 		
 		ConnectionSpecifier connSpec = parseURL(url);
 		if(connSpec == null) {
@@ -61,7 +61,7 @@ public class PSQLDriver implements Driver {
 			
 			SocketAddress address = new InetSocketAddress(connSpec.hostname, connSpec.port);
 			
-			PSQLConnection conn = new PSQLConnection(address, settings, Collections.<String, Class<?>>emptyMap());
+			PGConnection conn = new PGConnection(address, settings, Collections.<String, Class<?>>emptyMap());
 			
 			conn.init();
 			

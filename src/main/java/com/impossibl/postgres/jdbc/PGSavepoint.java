@@ -10,16 +10,16 @@ import java.sql.Savepoint;
  * @author kdubb
  *
  */
-class PSQLSavepoint implements Savepoint {
+class PGSavepoint implements Savepoint {
 
 	Integer id;
 	String name;
 
-	PSQLSavepoint(int id) {
+	PGSavepoint(int id) {
 		this.id = id;
 	}
 
-	public PSQLSavepoint(String name) {
+	public PGSavepoint(String name) {
 		this.name = name;
 	}
 

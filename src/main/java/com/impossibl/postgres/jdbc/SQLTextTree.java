@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-public class PSQLTextTree {
+public class SQLTextTree {
 
 	public static abstract class Node {
 		

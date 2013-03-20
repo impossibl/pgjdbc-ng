@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * @author kdubb
  *
  */
-class PSQLTextUtils {
+class SQLTextUtils {
 
 	/**
 	 * Tests the given value for equality to "true"
@@ -164,7 +164,7 @@ class PSQLTextUtils {
 	 * @param savepoint Name of savepoint to rollback to
 	 * @return SQL text
 	 */
-	public static String getRollbackToText(PSQLSavepoint savepoint) {
+	public static String getRollbackToText(PGSavepoint savepoint) {
 		return "ROLLBACK TO SAVEPOINT " + savepoint;
 	}
 
@@ -174,7 +174,7 @@ class PSQLTextUtils {
 	 * @return SQL text
 	 * @return
 	 */
-	public static String getSetSavepointText(PSQLSavepoint savepoint) {
+	public static String getSetSavepointText(PGSavepoint savepoint) {
 		return "SAVEPOINT " + savepoint;
 	}
 
@@ -184,7 +184,7 @@ class PSQLTextUtils {
 	 * @param savepoint
 	 * @return
 	 */
-	public static String getReleaseSavepointText(PSQLSavepoint savepoint) {
+	public static String getReleaseSavepointText(PGSavepoint savepoint) {
 		return "RELEASE SAVEPOINT " + savepoint;
 	}
 

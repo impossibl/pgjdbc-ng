@@ -1,10 +1,10 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLExceptions.CLOSED_STATEMENT;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.ILLEGAL_ARGUMENT;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NO_RESULT_COUNT_AVAILABLE;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NO_RESULT_SET_AVAILABLE;
+import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
+import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
+import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.sql.Connection;
@@ -23,11 +23,11 @@ import com.impossibl.postgres.types.Type;
 
 
 
-abstract class PSQLStatement implements Statement {
+abstract class PGStatement implements Statement {
 
 	
 	
-	PSQLConnection connection;
+	PGConnection connection;
 	int type;
 	int concurrency;
 	int holdability;
@@ -39,13 +39,13 @@ abstract class PSQLStatement implements Statement {
 	Integer maxFieldSize;
 	BindExecCommand command;
 	boolean autoClose;
-	List<PSQLResultSet> activeResultSets;
-	PSQLResultSet generatedKeysResultSet;
+	List<PGResultSet> activeResultSets;
+	PGResultSet generatedKeysResultSet;
 	SQLWarning warningChain;
 
 	
 	
-	PSQLStatement(PSQLConnection connection, int type, int concurrency, int holdability, String name, List<ResultField> resultFields) {
+	PGStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<ResultField> resultFields) {
 		this.connection = connection;
 		this.type = type;
 		this.concurrency = concurrency;
@@ -99,7 +99,7 @@ abstract class PSQLStatement implements Statement {
 	 */
 	void closeResultSets() throws SQLException {
 		
-		for(PSQLResultSet rs : activeResultSets) {
+		for(PGResultSet rs : activeResultSets) {
 			rs.internalClose();			
 		}
 		
@@ -118,7 +118,7 @@ abstract class PSQLStatement implements Statement {
 	 * @throws SQLException
 	 * 					If an error occurs closing a result set
 	 */
-	void handleResultSetClosure(PSQLResultSet resultSet) throws SQLException {
+	void handleResultSetClosure(PGResultSet resultSet) throws SQLException {
 		
 		activeResultSets.remove(resultSet);
 		
@@ -193,9 +193,9 @@ abstract class PSQLStatement implements Statement {
 		
 	}
 	
-	PSQLResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) {
+	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) {
 		
-		PSQLResultSet resultSet = new PSQLResultSet(this, resultFields, results);
+		PGResultSet resultSet = new PGResultSet(this, resultFields, results);
 		activeResultSets.add(resultSet);
 		return resultSet;
 	}
@@ -352,7 +352,7 @@ abstract class PSQLStatement implements Statement {
 	}
 
 	@Override
-	public PSQLResultSet getResultSet() throws SQLException {
+	public PGResultSet getResultSet() throws SQLException {
 		checkClosed();
 
 		if (generatedKeysResultSet != null ||
@@ -361,7 +361,7 @@ abstract class PSQLStatement implements Statement {
 			throw NO_RESULT_SET_AVAILABLE;
 		}
 
-		PSQLResultSet rs = new PSQLResultSet(this, command);
+		PGResultSet rs = new PGResultSet(this, command);
 		
 		this.activeResultSets.add(rs);
 		

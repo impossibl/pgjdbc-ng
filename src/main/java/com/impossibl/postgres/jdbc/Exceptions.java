@@ -2,7 +2,7 @@ package com.impossibl.postgres.jdbc;
 
 import java.sql.SQLException;
 
-public class PSQLExceptions {
+public class Exceptions {
 	
 	public static final SQLException NOT_SUPPORTED = new SQLException("Operation not supported"); 
 	public static final SQLException NOT_IMPLEMENTED = new SQLException("Operation not implemented"); 

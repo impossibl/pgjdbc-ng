@@ -1,7 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.SERVER_VERSION_NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 
@@ -23,7 +23,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
-class PSQLDatabaseMetaData implements DatabaseMetaData {
+class PGDatabaseMetaData implements DatabaseMetaData {
 		
   private static final String EXTRA_KEYWORDS =
   		"abort,acl,add,aggregate,append,archive," +
@@ -35,11 +35,11 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
       "returns,rule,recipe,setof,stdin,stdout,store," +
       "vacuum,verbose,version";
   
-  PSQLConnection connection;
+  PGConnection connection;
   int maxNameLength;
   int maxIndexKeys;
   
-  PSQLDatabaseMetaData(PSQLConnection connection) {
+  PGDatabaseMetaData(PGConnection connection) {
   	this.connection = connection;
   }
   
@@ -59,14 +59,14 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 	
   }
 
-  private PSQLResultSet execForResultSet(String sql, Object... params) throws SQLException {
+  private PGResultSet execForResultSet(String sql, Object... params) throws SQLException {
   	
   	return execForResultSet(sql, Arrays.asList(params));
   }
   
-  private PSQLResultSet execForResultSet(String sql, List<Object> params) throws SQLException {
+  private PGResultSet execForResultSet(String sql, List<Object> params) throws SQLException {
   	
-    PSQLPreparedStatement ps = connection.prepareStatement(sql);
+    PGPreparedStatement ps = connection.prepareStatement(sql);
     ps.closeOnCompletion();
     
     for(int c=0; c < params.size(); ++c) {
@@ -76,9 +76,9 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     return ps.executeQuery();  	
   }
   
-  private PSQLResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+  private PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
   	
-		PSQLStatement stmt = connection.createStatement();
+		PGStatement stmt = connection.createStatement();
 		stmt.closeOnCompletion();
 		return stmt.createResultSet(resultFields, results);
   }
@@ -187,17 +187,17 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getDriverVersion() throws SQLException {
-		return PSQLDriver.VERSION.toString();
+		return PGDriver.VERSION.toString();
 	}
 
 	@Override
 	public int getDriverMajorVersion() {
-		return PSQLDriver.VERSION.getMajor();
+		return PGDriver.VERSION.getMajor();
 	}
 
 	@Override
 	public int getDriverMinorVersion() {
-		return PSQLDriver.VERSION.getMinor();
+		return PGDriver.VERSION.getMinor();
 	}
 
 	@Override
@@ -262,22 +262,22 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getNumericFunctions() throws SQLException {
-		return Joiner.on(',').join(PSQLEscapedFunctions.ALL_NUMERIC);
+		return Joiner.on(',').join(EscapedFunctions.ALL_NUMERIC);
 	}
 
 	@Override
 	public String getStringFunctions() throws SQLException {
-		return Joiner.on(',').join(PSQLEscapedFunctions.ALL_STRING);
+		return Joiner.on(',').join(EscapedFunctions.ALL_STRING);
 	}
 
 	@Override
 	public String getSystemFunctions() throws SQLException {
-		return Joiner.on(',').join(PSQLEscapedFunctions.ALL_SYSTEM);
+		return Joiner.on(',').join(EscapedFunctions.ALL_SYSTEM);
 	}
 
 	@Override
 	public String getTimeDateFunctions() throws SQLException {
-		return Joiner.on(',').join(PSQLEscapedFunctions.ALL_DATE_TIME);
+		return Joiner.on(',').join(EscapedFunctions.ALL_DATE_TIME);
 	}
 
 	@Override
@@ -806,7 +806,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 		
 		sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
 
-		try(PSQLResultSet rs = execForResultSet(sql.toString(), params)) {
+		try(PGResultSet rs = execForResultSet(sql.toString(), params)) {
 			while (rs.next()) {
 				
 				String schema = rs.getString("nspname");
@@ -835,7 +835,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 					row[2] = procedureName;
 					row[3] = "returnValue";
 					row[4] = DatabaseMetaData.procedureColumnReturn;
-					row[5] = PSQLTypeMetaData.getSQLType(returnType);
+					row[5] = SQLTypeMetaData.getSQLType(returnType);
 					row[6] = returnType.getOutputType(Format.Binary).getName();
 					row[7] = null;
 					row[8] = null;
@@ -865,7 +865,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 							row[2] = procedureName;
 							row[3] = columnrs.getString("attname");
 							row[4] = DatabaseMetaData.procedureColumnResult;
-							row[5] = PSQLTypeMetaData.getSQLType(columnType);
+							row[5] = SQLTypeMetaData.getSQLType(columnType);
 							row[6] = columnType.getOutputType(Format.Binary);
 							row[7] = null;
 							row[8] = null;
@@ -918,7 +918,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 						argType = reg.loadType(argTypeIds[i].intValue());
 					}
 	
-					row[5] = PSQLTypeMetaData.getSQLType(argType);
+					row[5] = SQLTypeMetaData.getSQLType(argType);
 					row[6] = argType.getOutputType(Format.Binary).getName();
 					row[7] = null;
 					row[8] = null;
@@ -1220,20 +1220,20 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     	row[1] = columnData.tableSchemaName;
     	row[2] = columnData.tableName;
     	row[3] = columnData.columnName;
-    	row[4] = PSQLTypeMetaData.getSQLType(columnData.type);
+    	row[4] = SQLTypeMetaData.getSQLType(columnData.type);
     	row[5] = columnData.type.getOutputType(Format.Binary).getName();
     	
-    	int size = PSQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
+    	int size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
     	if(size == 0) {
-    		size = PSQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
+    		size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
     	}
     	
     	row[6] = size;
     	row[7] = null;
-    	row[8] = PSQLTypeMetaData.getScale(columnData.type, columnData.typeLength, columnData.typeModifier);
+    	row[8] = SQLTypeMetaData.getScale(columnData.type, columnData.typeLength, columnData.typeModifier);
     	
-    	row[9] = PSQLTypeMetaData.getPrecisionRadix(columnData.type);
-    	row[10] = PSQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
+    	row[9] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
+    	row[10] = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
     	row[11] = columnData.description;
     	row[12] = columnData.defaultValue;
     	row[13] = null;
@@ -1256,7 +1256,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     	row[18] = null;
     	row[19] = null;
     	row[20] = null;
-    	row[21] = columnData.baseType != null ? PSQLTypeMetaData.getSQLType(columnData.baseType) : null;
+    	row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;
     	
     	boolean autoIncrment = false;
     	if(columnData.relationType != null && columnData.relationAttrNum != 0) {
@@ -1329,14 +1329,14 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 				Type type= reg.loadType(rs.getInt("atttypid"));
 				int typeLen = rs.getInt("attlen");
 				int typeMod = rs.getInt("atttypmod");
-				int decimalDigits = PSQLTypeMetaData.getScale(type, typeLen, typeMod);
-				int columnSize = PSQLTypeMetaData.getPrecision(type, typeLen, typeMod);
+				int decimalDigits = SQLTypeMetaData.getScale(type, typeLen, typeMod);
+				int columnSize = SQLTypeMetaData.getPrecision(type, typeLen, typeMod);
 				if (columnSize == 0) {
-					columnSize = PSQLTypeMetaData.getDisplaySize(type, typeLen, typeMod);
+					columnSize = SQLTypeMetaData.getDisplaySize(type, typeLen, typeMod);
 				}
 				row[0] = scope;
 				row[1] = rs.getString("attname");
-				row[2] = PSQLTypeMetaData.getSQLType(type);
+				row[2] = SQLTypeMetaData.getSQLType(type);
 				row[3] = type.getOutputType(Format.Binary).getName();
 				row[4] = columnSize;
 				row[5] = null; // unused
@@ -1383,7 +1383,7 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
     
     row[0] = null;
     row[1] = "ctid";
-    row[2] = PSQLTypeMetaData.getSQLType(type);
+    row[2] = SQLTypeMetaData.getSQLType(type);
     row[3] = type.getOutputType(Format.Binary);
     row[4] = null;
     row[5] = null;
@@ -1544,25 +1544,25 @@ class PSQLDatabaseMetaData implements DatabaseMetaData {
 	    Type type = registry.loadType(typeOid);
 	
 	    row[0] = typname;
-	    row[1] = PSQLTypeMetaData.getSQLType(type);
-	    row[2] = PSQLTypeMetaData.getMaxPrecision(type);
+	    row[1] = SQLTypeMetaData.getSQLType(type);
+	    row[2] = SQLTypeMetaData.getMaxPrecision(type);
 	    
-	    if (PSQLTypeMetaData.requiresQuoting(type)) {
+	    if (SQLTypeMetaData.requiresQuoting(type)) {
 	        row[3] = "\'";
 	        row[4] = "\'";
 	    }
 	
-	    row[6] = PSQLTypeMetaData.isNullable(type, null, 0);
-	    row[7] = PSQLTypeMetaData.isCaseSensitive(type);
+	    row[6] = SQLTypeMetaData.isNullable(type, null, 0);
+	    row[7] = SQLTypeMetaData.isCaseSensitive(type);
 	    row[8] = true;
-	    row[9] = PSQLTypeMetaData.isSigned(type);
-	    row[10] = PSQLTypeMetaData.isCurrency(type);
-	    row[11] = PSQLTypeMetaData.isAutoIncrement(type);
-	    row[13] = PSQLTypeMetaData.getMinScale(type);
-	    row[14] = PSQLTypeMetaData.getMaxScale(type);
+	    row[9] = SQLTypeMetaData.isSigned(type);
+	    row[10] = SQLTypeMetaData.isCurrency(type);
+	    row[11] = SQLTypeMetaData.isAutoIncrement(type);
+	    row[13] = SQLTypeMetaData.getMinScale(type);
+	    row[14] = SQLTypeMetaData.getMaxScale(type);
 	    row[15] = null; //Unused
 	    row[16] = null; //Unused
-	    row[17] = PSQLTypeMetaData.getPrecisionRadix(type);
+	    row[17] = SQLTypeMetaData.getPrecisionRadix(type);
 	    
 	    results.add(row);
 	    

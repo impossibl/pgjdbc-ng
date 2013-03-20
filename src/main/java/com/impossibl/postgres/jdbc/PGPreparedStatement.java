@@ -1,9 +1,9 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_ALLOWED_ON_PREP_STMT;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -42,7 +42,7 @@ import com.impossibl.postgres.types.Type;
 
 
 
-class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
+class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	
 	
@@ -52,7 +52,7 @@ class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
 	
 	
 	
-	PSQLPreparedStatement(PSQLConnection connection, int type, int concurrency, int holdability, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
+	PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
 		super(connection, type, concurrency, holdability, name, resultFields);
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
@@ -111,7 +111,7 @@ class PSQLPreparedStatement extends PSQLStatement implements PreparedStatement {
 	}
 
 	@Override
-	public PSQLResultSet executeQuery() throws SQLException {
+	public PGResultSet executeQuery() throws SQLException {
 
 		execute();
 

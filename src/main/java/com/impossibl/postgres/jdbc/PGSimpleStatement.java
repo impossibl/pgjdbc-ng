@@ -1,10 +1,10 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLErrorUtils.chainWarnings;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_SUPPORTED;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.appendReturningClause;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getProtocolSQLText;
+import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getProtocolSQLText;
 import static java.util.Arrays.asList;
 
 import java.sql.ResultSet;
@@ -16,9 +16,9 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
 
-class PSQLSimpleStatement extends PSQLStatement {
+class PGSimpleStatement extends PGStatement {
 
-	public PSQLSimpleStatement(PSQLConnection connection, int type, int concurrency, int holdability) {
+	public PGSimpleStatement(PGConnection connection, int type, int concurrency, int holdability) {
 		super(connection, type, concurrency, holdability, null, Collections.<ResultField>emptyList());
 	}
 

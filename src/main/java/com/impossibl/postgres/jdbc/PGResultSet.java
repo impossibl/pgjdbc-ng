@@ -1,23 +1,23 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLExceptions.CLOSED_RESULT_SET;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.ILLEGAL_ARGUMENT;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.INVALID_COLUMN_NAME;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerce;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToBigDecimal;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToBoolean;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToDate;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToDouble;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToFloat;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToInt;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToLong;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToShort;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToTime;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.coerceToTimestamp;
-import static com.impossibl.postgres.jdbc.PSQLTypeUtils.createCoercionException;
+import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
+import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
+import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COLUMN_NAME;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.createCoercionException;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
@@ -55,11 +55,11 @@ import com.impossibl.postgres.protocol.ResultField;
 
 
 
-class PSQLResultSet implements ResultSet {
+class PGResultSet implements ResultSet {
 
 	
 	
-	PSQLStatement statement;
+	PGStatement statement;
 	int type;
 	int concurrency;
 	int holdability;
@@ -73,12 +73,12 @@ class PSQLResultSet implements ResultSet {
 
 	
 	
-	PSQLResultSet(PSQLStatement statement, BindExecCommand command) {
+	PGResultSet(PGStatement statement, BindExecCommand command) {
 		this(statement, command.getResultFields(), command.getResults(Object[].class));
 		this.command = command;
 	}
 	
-	PSQLResultSet(PSQLStatement statement, List<ResultField> resultFields, List<Object[]> results) {
+	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results) {
 		super();
 		this.statement = statement;
 		this.fetchSize = statement.fetchSize;
@@ -404,7 +404,7 @@ class PSQLResultSet implements ResultSet {
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
-		return new PSQLResultSetMetaData(statement.connection, resultFields);
+		return new PGResultSetMetaData(statement.connection, resultFields);
 	}
 
 	@Override

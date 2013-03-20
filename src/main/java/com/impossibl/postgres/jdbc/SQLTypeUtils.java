@@ -10,7 +10,7 @@ import java.util.Map;
 
 import com.impossibl.postgres.system.Context;
 
-class PSQLTypeUtils {
+class SQLTypeUtils {
 	
 	public static Object coerce(Object val, Class<?> targetType, Context context) throws SQLException {
 		

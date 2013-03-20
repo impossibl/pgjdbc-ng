@@ -1,24 +1,24 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLException;
-import static com.impossibl.postgres.jdbc.PSQLErrorUtils.makeSQLWarningChain;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.PSQLExceptions.NOT_SUPPORTED;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.appendReturningClause;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getBeginText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getCommitText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionIsolationLevelText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getGetSessionReadabilityText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getIsolationLevel;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getProtocolSQLText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getReleaseSavepointText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getRollbackToText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSavepointText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSessionIsolationLevelText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.getSetSessionReadabilityText;
-import static com.impossibl.postgres.jdbc.PSQLTextUtils.isTrue;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
+import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getBeginText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getGetSessionIsolationLevelText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getGetSessionReadabilityText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getIsolationLevel;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getProtocolSQLText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getReleaseSavepointText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getRollbackToText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSavepointText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLevelText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityText;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -63,7 +63,7 @@ import com.impossibl.postgres.types.Type;
 
 
 
-class PSQLConnection extends BasicContext implements Connection {
+class PGConnection extends BasicContext implements Connection {
 
 	
 	
@@ -75,11 +75,11 @@ class PSQLConnection extends BasicContext implements Connection {
 	boolean readOnly = false;
 	int networkTimeout;
 	SQLWarning warningChain;
-	List<WeakReference<PSQLStatement>> activeStatements;
+	List<WeakReference<PGStatement>> activeStatements;
 
 	
 	
-	PSQLConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+	PGConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
 		super(address, settings, targetTypeMap);
 		activeStatements = new ArrayList<>();
 	}
@@ -147,12 +147,12 @@ class PSQLConnection extends BasicContext implements Connection {
 	 * 
 	 * @param statement
 	 */
-	void handleStatementClosure(PSQLStatement statement) {
+	void handleStatementClosure(PGStatement statement) {
 
-		Iterator<WeakReference<PSQLStatement>> stmtRefIter = activeStatements.iterator();
+		Iterator<WeakReference<PGStatement>> stmtRefIter = activeStatements.iterator();
 		while(stmtRefIter.hasNext()) {
 			
-			PSQLStatement stmt = stmtRefIter.next().get();
+			PGStatement stmt = stmtRefIter.next().get();
 			if(stmt == null || stmt == statement) {
 				
 				stmtRefIter.remove();
@@ -169,7 +169,7 @@ class PSQLConnection extends BasicContext implements Connection {
 	 */
 	void closeStatements() throws SQLException {
 
-		for(WeakReference<PSQLStatement> stmtRef : activeStatements) {
+		for(WeakReference<PGStatement> stmtRef : activeStatements) {
 
 			if(stmtRef.get() != null)
 				stmtRef.get().internalClose();
@@ -323,7 +323,7 @@ class PSQLConnection extends BasicContext implements Connection {
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
 		checkClosed();
-		return new PSQLDatabaseMetaData(this);
+		return new PGDatabaseMetaData(this);
 	}
 
 	@Override
@@ -433,7 +433,7 @@ class PSQLConnection extends BasicContext implements Connection {
 		}
 
 		// Allocate new save-point name & wrapper
-		PSQLSavepoint savepoint = new PSQLSavepoint(++savepointId);
+		PGSavepoint savepoint = new PGSavepoint(++savepointId);
 
 		// Mark save-point
 		execute(getSetSavepointText(savepoint));
@@ -452,7 +452,7 @@ class PSQLConnection extends BasicContext implements Connection {
 		}
 
 		// Allocate new save-point wrapper
-		PSQLSavepoint savepoint = new PSQLSavepoint(name);
+		PGSavepoint savepoint = new PGSavepoint(name);
 
 		// Mark save-point
 		execute(getSetSavepointText(savepoint));
@@ -465,7 +465,7 @@ class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
+		PGSavepoint savepoint = (PGSavepoint) savepointParam;
 
 		if(!savepoint.isValid()) {
 			throw new SQLException("invalid savepoint");
@@ -486,7 +486,7 @@ class PSQLConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		PSQLSavepoint savepoint = (PSQLSavepoint) savepointParam;
+		PGSavepoint savepoint = (PGSavepoint) savepointParam;
 
 		if(!savepoint.isValid()) {
 			throw new SQLException("invalid savepoint");
@@ -497,7 +497,7 @@ class PSQLConnection extends BasicContext implements Connection {
 
 		// Release the save-point (if in a transaction)
 		if(protocol.getTransactionStatus() != Idle) {
-			execute(getReleaseSavepointText((PSQLSavepoint) savepoint));
+			execute(getReleaseSavepointText((PGSavepoint) savepoint));
 		}
 
 	}
@@ -532,42 +532,42 @@ class PSQLConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public PSQLStatement createStatement() throws SQLException {
+	public PGStatement createStatement() throws SQLException {
 
 		return createStatement(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PSQLStatement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+	public PGStatement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
 
 		return createStatement(resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PSQLStatement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+	public PGStatement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
 
-		PSQLSimpleStatement statement = new PSQLSimpleStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+		PGSimpleStatement statement = new PGSimpleStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
 		
-		activeStatements.add(new WeakReference<PSQLStatement>(statement));
+		activeStatements.add(new WeakReference<PGStatement>(statement));
 		
 		return statement;
 	}
 
 	@Override
-	public PSQLPreparedStatement prepareStatement(String sql) throws SQLException {
+	public PGPreparedStatement prepareStatement(String sql) throws SQLException {
 
 		return prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PSQLPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+	public PGPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
 
 		return prepareStatement(sql, resultSetType, resultSetConcurrency, CLOSE_CURSORS_AT_COMMIT);
 	}
 
 	@Override
-	public PSQLPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+	public PGPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		checkClosed();
 
 		sql = nativeSQL(sql);
@@ -578,11 +578,11 @@ class PSQLConnection extends BasicContext implements Connection {
 
 		warningChain = execute(prepare);
 
-		PSQLPreparedStatement statement =
-				new PSQLPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
+		PGPreparedStatement statement =
+				new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
 						statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 		
-		activeStatements.add(new WeakReference<PSQLStatement>(statement));
+		activeStatements.add(new WeakReference<PGStatement>(statement));
 		
 		return statement;
 	}
@@ -600,7 +600,7 @@ class PSQLConnection extends BasicContext implements Connection {
 			throw INVALID_COMMAND_FOR_GENERATED_KEYS;
 		}
 
-		PSQLPreparedStatement statement = prepareStatement(sql);
+		PGPreparedStatement statement = prepareStatement(sql);
 		
 		statement.setWantsGeneratedKeys(true);
 		
@@ -622,7 +622,7 @@ class PSQLConnection extends BasicContext implements Connection {
 			throw INVALID_COMMAND_FOR_GENERATED_KEYS;
 		}
 
-		PSQLPreparedStatement statement = prepareStatement(sql);
+		PGPreparedStatement statement = prepareStatement(sql);
 		
 		statement.setWantsGeneratedKeys(true);
 		

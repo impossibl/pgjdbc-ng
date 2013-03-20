@@ -7,24 +7,24 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.impossibl.postgres.jdbc.PSQLTextTree.CommentPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.CompositeNode;
-import com.impossibl.postgres.jdbc.PSQLTextTree.EscapeNode;
-import com.impossibl.postgres.jdbc.PSQLTextTree.GrammarPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.MultiStatementNode;
-import com.impossibl.postgres.jdbc.PSQLTextTree.Node;
-import com.impossibl.postgres.jdbc.PSQLTextTree.ParameterPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.QuotedIdentifierPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.StatementNode;
-import com.impossibl.postgres.jdbc.PSQLTextTree.StringLiteralPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.UnquotedIdentifierPiece;
-import com.impossibl.postgres.jdbc.PSQLTextTree.WhitespacePiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.CommentPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.MultiStatementNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.QuotedIdentifierPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
-public class PSQLText {
+public class SQLText {
 	
 	Node root;	
 	
-	public PSQLText(String sqlText) {
+	public SQLText(String sqlText) {
 		root = parse(sqlText);
 	}
 	

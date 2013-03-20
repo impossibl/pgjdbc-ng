@@ -25,7 +25,7 @@ import java.util.Map;
  * @author Xavier Poinsard
  * @author kdubb
  */
-class PSQLEscapedFunctions {
+class EscapedFunctions {
 	// numeric functions names
 	public final static String ABS = "abs";
 	public final static String ACOS = "acos";
@@ -135,7 +135,7 @@ class PSQLEscapedFunctions {
 
 	private static Map<String,Method> createFunctionMap() {
 		
-		Method[] arrayMeths = PSQLEscapedFunctions.class.getDeclaredMethods();
+		Method[] arrayMeths = EscapedFunctions.class.getDeclaredMethods();
 		Map<String,Method> functionMap = new HashMap<>(arrayMeths.length * 2);
 		
 		for(int i = 0; i < arrayMeths.length; i++) {
@@ -484,7 +484,7 @@ class PSQLEscapedFunctions {
 		if(parsedArgs.size() != 3) {
 			throw new SQLException(GT.tr("{0} function takes three and only three arguments.", "timestampadd"), PSQLState.SYNTAX_ERROR);
 		}
-		String interval = PSQLEscapedFunctions.constantToInterval(parsedArgs.get(0).toString(), parsedArgs.get(1).toString());
+		String interval = EscapedFunctions.constantToInterval(parsedArgs.get(0).toString(), parsedArgs.get(1).toString());
 		StringBuffer buf = new StringBuffer();
 		buf.append("(").append(interval).append("+");
 		buf.append(parsedArgs.get(2)).append(")");
@@ -522,7 +522,7 @@ class PSQLEscapedFunctions {
 		if(parsedArgs.size() != 3) {
 			throw new SQLException(GT.tr("{0} function takes three and only three arguments.", "timestampdiff"), PSQLState.SYNTAX_ERROR);
 		}
-		String datePart = PSQLEscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
+		String datePart = EscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
 		StringBuffer buf = new StringBuffer();
 		buf.append("extract( ").append(datePart).append(" from (").append(parsedArgs.get(2)).append("-").append(parsedArgs.get(1)).append("))");
 		return buf.toString();

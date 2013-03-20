@@ -1,7 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.PSQLExceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.jdbc.PSQLTypeMetaData.getSQLType;
+import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -12,12 +12,12 @@ import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 
-class PSQLResultSetMetaData implements ResultSetMetaData {
+class PGResultSetMetaData implements ResultSetMetaData {
 
-	PSQLConnection connection;
+	PGConnection connection;
 	List<ResultField> resultFields;
 	
-	PSQLResultSetMetaData(PSQLConnection connection, List<ResultField> resultFields) {
+	PGResultSetMetaData(PGConnection connection, List<ResultField> resultFields) {
 		this.connection = connection;
 		this.resultFields = resultFields;
 	}
@@ -101,7 +101,7 @@ class PSQLResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public boolean isCaseSensitive(int column) throws SQLException {
 		
-		return PSQLTypeMetaData.isCaseSensitive(get(column).type);
+		return SQLTypeMetaData.isCaseSensitive(get(column).type);
 	}
 
 	@Override
@@ -113,7 +113,7 @@ class PSQLResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public boolean isCurrency(int column) throws SQLException {
 
-		return PSQLTypeMetaData.isCurrency(get(column).type);
+		return SQLTypeMetaData.isCurrency(get(column).type);
 	}
 
 	@Override
@@ -122,13 +122,13 @@ class PSQLResultSetMetaData implements ResultSetMetaData {
 		ResultField field = get(column);
 		CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
 		
-		return PSQLTypeMetaData.isNullable(field.type, relType, field.relationAttributeNumber);
+		return SQLTypeMetaData.isNullable(field.type, relType, field.relationAttributeNumber);
 	}
 
 	@Override
 	public boolean isSigned(int column) throws SQLException {
 		
-		return PSQLTypeMetaData.isSigned(get(column).type);
+		return SQLTypeMetaData.isSigned(get(column).type);
 	}
 
 	@Override
@@ -201,21 +201,21 @@ class PSQLResultSetMetaData implements ResultSetMetaData {
 	public int getPrecision(int column) throws SQLException {
 
 		ResultField field = get(column);
-		return PSQLTypeMetaData.getPrecision(field.type, field.typeLength, field.typeModifier);
+		return SQLTypeMetaData.getPrecision(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override
 	public int getScale(int column) throws SQLException {
 
 		ResultField field = get(column);
-		return PSQLTypeMetaData.getScale(field.type, field.typeLength, field.typeModifier);
+		return SQLTypeMetaData.getScale(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
 
 		ResultField field = get(column);
-		return PSQLTypeMetaData.getDisplaySize(field.type, field.typeLength, field.typeModifier);
+		return SQLTypeMetaData.getDisplaySize(field.type, field.typeLength, field.typeModifier);
 	}
 
 	@Override

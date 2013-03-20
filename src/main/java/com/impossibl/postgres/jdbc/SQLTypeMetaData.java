@@ -25,7 +25,7 @@ import com.impossibl.postgres.types.Type;
  * @author kdubb
  *
  */
-class PSQLTypeMetaData {
+class SQLTypeMetaData {
 	
 	public static boolean requiresQuoting(Type type) {
 		
