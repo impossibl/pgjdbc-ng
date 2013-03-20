@@ -107,8 +107,8 @@ public class PSQLDriver implements Driver {
 		settings.put("database", connSpec.database);
 		
 		//Translate JDBC parameters to PostgreSQL parameters
-		settings.put(CREDENTIALS_USERNAME, connSpec.parameters.getProperty(JDBC_USERNAME_PARAM, ""));
-		settings.put(CREDENTIALS_PASSWORD, connSpec.parameters.getProperty(JDBC_PASSWORD_PARAM, ""));
+		settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
+		settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
 		
 		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.hostname + "/" + connSpec.database);		
 		
