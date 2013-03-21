@@ -55,7 +55,7 @@ public class PgType implements Table<PgType.Row> {
 
 	}
 
-	public static PgType INSTANCE = new PgType();
+	public static final PgType INSTANCE = new PgType();
 
 	private PgType() {
 	}
