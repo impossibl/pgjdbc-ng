@@ -4,7 +4,9 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
+import static com.impossibl.postgres.utils.ChannelBuffers.readCStringUtf8;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
+import static com.impossibl.postgres.utils.ChannelBuffers.writeCStringUtf8;
 import static java.util.Arrays.asList;
 import static java.util.logging.Level.FINEST;
 
@@ -206,7 +208,7 @@ public class ProtocolImpl implements Protocol {
 		ChannelBuffer msg = newMessage(PARSE_MSG_ID);
 
 		writeCString(msg, stmtName != null ? stmtName : "");
-		writeCString(msg, query);
+		writeCStringUtf8(msg, query);
 
 		msg.writeShort(paramTypes.size());
 		for (Type paramType : paramTypes) {
@@ -590,7 +592,7 @@ public class ProtocolImpl implements Protocol {
 		for (int c = 0; c < fieldCount; ++c) {
 
 			ResultField field = new ResultField();
-			field.name = readCString(buffer);
+			field.name = readCStringUtf8(buffer);
 			field.relationId = buffer.readInt();
 			field.relationAttributeNumber = buffer.readShort();
 			field.type = registry.loadType(buffer.readInt());
