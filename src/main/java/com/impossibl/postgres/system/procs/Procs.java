@@ -52,7 +52,7 @@ public class Procs {
 
 	public static Codec.Encoder loadEncoderProc(String name, Context context) {
 		
-		if(name != "") {
+		if(!name.isEmpty()) {
 			Codec.Encoder h;
 			
 			for(ProcProvider pp : Procs.PROVIDERS) {
@@ -66,7 +66,7 @@ public class Procs {
 
 	public static Codec.Decoder loadDecoderProc(String name, Context context) {
 		
-		if(name != "") {
+		if(!name.isEmpty()) {
 			Codec.Decoder h;
 			
 			for(ProcProvider pp : Procs.PROVIDERS) {
@@ -80,7 +80,7 @@ public class Procs {
 
 	public static Modifiers.Parser loadModifierParserProc(String name, Context context) {
 
-		if(name != "") {
+		if(!name.isEmpty()) {
 			Modifiers.Parser p;
 			
 			for(ProcProvider pp : Procs.PROVIDERS) {
