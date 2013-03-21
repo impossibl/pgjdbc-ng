@@ -68,7 +68,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 		return new Row();
 	}
 
-	public static final Object[] SQL = {
+	private static final Object[] SQL = {
 			Version.get(9, 0, 0),
 			" select " +
 			"		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +

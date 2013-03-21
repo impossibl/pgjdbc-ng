@@ -31,6 +31,6 @@ public class PgProc implements Table<PgProc.Row> {
 		return new Row();
 	}
 
-	public static final Object[] SQL = { Version.get(9, 0, 0), " select " + "		\"oid\", proname as \"name\"" + " from" + "		pg_proc" };
+	private static final Object[] SQL = { Version.get(9, 0, 0), " select " + "		\"oid\", proname as \"name\"" + " from" + "		pg_proc" };
 
 }
