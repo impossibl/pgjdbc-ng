@@ -68,7 +68,7 @@ public class PgType implements Table<PgType.Row> {
 		return new Row();
 	}
 
-	public static Object[] SQL = {
+	public static final Object[] SQL = {
 			Version.get(9, 0, 0),
 			" select"	+
 			"		t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +

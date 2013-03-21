@@ -55,7 +55,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
 	}
 
-	public static PgAttribute INSTANCE = new PgAttribute();
+	public static final PgAttribute INSTANCE = new PgAttribute();
 
 	private PgAttribute() {
 	}
@@ -68,7 +68,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 		return new Row();
 	}
 
-	public static Object[] SQL = {
+	public static final Object[] SQL = {
 			Version.get(9, 0, 0),
 			" select " +
 			"		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
