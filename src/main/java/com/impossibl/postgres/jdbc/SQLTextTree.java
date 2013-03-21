@@ -1,14 +1,20 @@
 package com.impossibl.postgres.jdbc;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 
 
 public class SQLTextTree {
+	
+	public interface Processor {
+		
+		public Node process(Node node) throws SQLException;
+		
+	}
 
 	public static abstract class Node {
 
@@ -35,19 +41,27 @@ public class SQLTextTree {
 		public void setEndPos(int end) {
 			this.endPos = end;
 		}
-
+		
 		abstract void build(StringBuilder builder);
+		
+		public Node process(Processor processor) throws SQLException {
+			return processor.process(this);
+		}
 
-		<T extends Node> void gather(Class<T> nodeType, List<T> nodes) {
-			if(nodeType.isInstance(this)) {
-				nodes.add(nodeType.cast(this));
+		void removeAll(final Class<? extends Node> nodeType) {
+			try {
+				process(new Processor() {
+
+					@Override
+					public Node process(Node node) throws SQLException {
+						if(nodeType.isInstance(node))
+							return null;
+						return node;
+					}
+				});
 			}
-		}
-
-		void replace(Map<Node, Node> nodes) {
-		}
-
-		void removeAll(Class<? extends Node> nodeType) {
+			catch(SQLException e) {
+			}
 		}
 
 		@Override
@@ -59,7 +73,7 @@ public class SQLTextTree {
 
 	}
 
-	public static abstract class CompositeNode extends Node {
+	public static class CompositeNode extends Node {
 
 		private List<Node> nodes = new ArrayList<>();
 
@@ -87,6 +101,10 @@ public class SQLTextTree {
 			nodes.set(idx, node);
 		}
 		
+		Iterator<Node> iterator() {
+			return nodes.iterator();
+		}
+		
 		List<Node> subList(int fromIndex) {
 			return subList(fromIndex, nodes.size());
 		}
@@ -94,40 +112,22 @@ public class SQLTextTree {
 		List<Node> subList(int fromIndex, int toIndex) {
 			return nodes.subList(fromIndex, toIndex);
 		}
-
-		<T extends Node> void gather(Class<T> nodeType, List<T> nodes) {
-			super.gather(nodeType, nodes);
-			for(Node node : this.nodes) {
-				node.gather(nodeType, nodes);
-			}
-		}
-
-		void replace(Map<Node, Node> nodes) {
-
-			ListIterator<Node> nodeIter = this.nodes.listIterator();
+		
+		public Node process(Processor processor) throws SQLException {
+			
+			//Process each child node...
+			ListIterator<Node> nodeIter = nodes.listIterator();
 			while(nodeIter.hasNext()) {
-
-				Node node = nodeIter.next();
-				Node replacement = nodes.get(node);
-				if(replacement != null) {
-					nodeIter.set(replacement);
+				Node res = nodeIter.next().process(processor);
+				if(res != null) {
+					nodeIter.set(res);
 				}
 				else {
-					node.replace(nodes);
-				}
-			}
-
-		}
-
-		void removeAll(Class<? extends Node> nodeType) {
-
-			Iterator<Node> nodeIter = nodes.iterator();
-			while(nodeIter.hasNext()) {
-				if(nodeType.isInstance(nodeIter.next())) {
 					nodeIter.remove();
 				}
 			}
-
+			
+			return processor.process(this);
 		}
 
 		void add(Node node) {
@@ -179,6 +179,24 @@ public class SQLTextTree {
 
 	}
 
+	public static class ParenGroupNode extends CompositeNode {
+
+		public ParenGroupNode(int startPos) {
+			super(startPos);
+		}
+		
+		@Override
+		void build(StringBuilder builder) {
+
+			builder.append('(');
+
+			super.build(builder);
+
+			builder.append(')');
+		}
+
+	}
+
 	public static class PieceNode extends Node {
 
 		private String text;
@@ -206,7 +224,7 @@ public class SQLTextTree {
 		}
 
 	}
-
+	
 	public static class GrammarPiece extends PieceNode {
 
 		GrammarPiece(String val, int startPos) {
@@ -248,8 +266,16 @@ public class SQLTextTree {
 		}
 
 	}
+	
+	public static class LiteralPiece extends PieceNode {
 
-	public static class StringLiteralPiece extends PieceNode {
+		public LiteralPiece(String val, int startPos) {
+			super(val, startPos);
+		}
+		
+	}
+
+	public static class StringLiteralPiece extends LiteralPiece {
 
 		StringLiteralPiece(String val, int startPos) {
 			super(val, startPos);
@@ -257,9 +283,17 @@ public class SQLTextTree {
 
 	}
 
-	public static class NumericLiteralPiece extends PieceNode {
+	public static class NumericLiteralPiece extends LiteralPiece {
 
 		NumericLiteralPiece(String val, int startPos) {
+			super(val, startPos);
+		}
+
+	}
+
+	public static class ReplacementPiece extends PieceNode {
+
+		ReplacementPiece(String val, int startPos) {
 			super(val, startPos);
 		}
 

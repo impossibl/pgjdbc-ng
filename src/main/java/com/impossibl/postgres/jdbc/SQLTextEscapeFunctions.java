@@ -14,11 +14,11 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.google.common.base.Joiner;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 
 
@@ -215,7 +215,15 @@ class SQLTextEscapeFunctions {
     // by default the function name is kept unchanged
     StringBuilder sb = new StringBuilder();
     sb.append(name).append('(');
-		Joiner.on(",").appendTo(sb, args);
+    
+    Iterator<Node> argsIter = args.iterator();
+    while(argsIter.hasNext()) {
+    	argsIter.next().build(sb);
+    	if(argsIter.hasNext()) {
+    		sb.append(',');
+    	}
+    }
+    
     sb.append(')');
     return sb.toString();    
 	}
@@ -303,7 +311,15 @@ class SQLTextEscapeFunctions {
 	public static String sqlconcat(String name, List<Node> args) {
 		StringBuilder sb = new StringBuilder();
 		sb.append('(');
-		Joiner.on(" || ").appendTo(sb, args);
+
+		Iterator<Node> argsIter = args.iterator();
+    while(argsIter.hasNext()) {
+    	argsIter.next().build(sb);
+    	if(argsIter.hasNext()) {
+    		sb.append(" || ");
+    	}
+    }
+    
 		return sb.append(')').toString();
 	}
 
@@ -384,7 +400,15 @@ class SQLTextEscapeFunctions {
 		if(args.size() != 3 && args.size() != 4) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "length"), PSQLState.SYNTAX_ERROR);
 		}
-		Joiner.on(' ').appendTo(sb, args.subList(0, 3));
+
+		Iterator<Node> argsIter = args.subList(0, 3).iterator();
+    while(argsIter.hasNext()) {
+    	argsIter.next().build(sb);
+    	if(argsIter.hasNext()) {
+    		sb.append(' ');
+    	}
+    }
+    
 		return sb.append(")").toString();
 	}
 

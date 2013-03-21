@@ -8,17 +8,20 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.ListIterator;
 
-import com.google.common.base.Joiner;
 import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
-import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.IdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.PieceNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
+import com.impossibl.postgres.jdbc.SQLTextTree.ReplacementPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
@@ -26,17 +29,21 @@ import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 public class SQLTextEscapes {
 	
 	static void processEscapes(SQLText text) throws SQLException {
-		
-		Map<Node,Node> replacements = new HashMap<>();
-		
-		for(EscapeNode escape : text.gather(SQLTextTree.EscapeNode.class)) {
+
+		text.process(new Processor() {
+
+			@Override
+			public Node process(Node node) throws SQLException {
+				
+				if(node instanceof EscapeNode == false) {
+					return node;
+				}
+
+				return processEscape((EscapeNode) node);
+			}
 			
-			SQLTextTree.PieceNode replacement = processEscape(escape);
-			
-			replacements.put(escape, replacement);
-		}
+		});
 		
-		text.replace(replacements);
 	}
 
 	private static PieceNode processEscape(EscapeNode escape) throws SQLException {
@@ -69,8 +76,11 @@ public class SQLTextEscapes {
 			break;
 			
 		case "call":
-		case "?":
 			result = processCallEscape(escape);
+			break;
+			
+		case "?":
+			result = processCallAssignEscape(escape);
 			break;
 			
 		case "limit":
@@ -85,21 +95,15 @@ public class SQLTextEscapes {
 		if(result == null)
 			throw new SQLException("Invalid escape (" + escape.getStartPos() + ")", "Syntax Error");
 		
-		return new GrammarPiece(result, escape.getStartPos());
+		return new ReplacementPiece(result, escape.getStartPos());
 	}
 	
 	private static String processFunctionEscape(EscapeNode escape) throws SQLException {
 
-		checkMinSize(escape, 4);
-		checkLiteralNode(escape, 2, "(");
-		checkLiteralNode(escape, escape.getNodeCount()-1, ")");
-		
-		escape.removeAll(GrammarPiece.class);
-		
-		checkMinSize(escape, 2);
+		checkSize(escape, 3);
 		
 		UnquotedIdentifierPiece name = getNode(escape, 1, UnquotedIdentifierPiece.class);
-		List<Node> args = escape.subList(2);
+		List<Node> args = split(getNode(escape, 2, ParenGroupNode.class), ",");
 		
 		Method method = getEscapeMethod(name.toString());
 		if(method == null) {
@@ -111,7 +115,7 @@ public class SQLTextEscapes {
 
 	private static String processDateEscape(EscapeNode escape) throws SQLException {
 		
-		checkMinSize(escape, 2);
+		checkSize(escape, 2);
 		
 		StringLiteralPiece dateLit = getNode(escape, 1, StringLiteralPiece.class);
 		
@@ -122,7 +126,7 @@ public class SQLTextEscapes {
 
 	private static String processTimeEscape(EscapeNode escape) throws SQLException {
 
-		checkMinSize(escape, 2);
+		checkSize(escape, 2);
 		
 		StringLiteralPiece timeLit = getNode(escape, 1, StringLiteralPiece.class);
 		
@@ -133,7 +137,7 @@ public class SQLTextEscapes {
 
 	private static String processTimestampEscape(EscapeNode escape) throws SQLException {
 
-		checkMinSize(escape, 2);
+		checkSize(escape, 2);
 		
 		StringLiteralPiece tsLit = getNode(escape, 1, StringLiteralPiece.class);
 		
@@ -157,7 +161,35 @@ public class SQLTextEscapes {
 			.append(getNode(escape, 5, IdentifierPiece.class))
 			.append(" ON (");
 		
-		Joiner.on(' ').appendTo(sb, escape.subList(7));
+		ListIterator<Node> argsIter = escape.subList(7).listIterator();
+		while(argsIter.hasNext()) {
+			
+			argsIter.next().build(sb);
+			
+			if(argsIter.hasNext()) {
+				sb.append(' ');
+			}
+		}
+		
+		
+		sb.append(")");
+		
+		return sb.toString();
+	}
+
+	private static String processCallAssignEscape(EscapeNode escape) throws SQLException {
+
+		checkSize(escape, 4, 5);
+		
+		checkLiteralNode(escape, 1, "=");
+		checkLiteralNode(escape, 2, "call");
+		
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("(SELECT * FROM ")
+			.append(getNode(escape, 1, UnquotedIdentifierPiece.class));
+		
+		getNode(escape, 3, ParenGroupNode.class).build(sb);
 		
 		sb.append(")");
 		
@@ -166,31 +198,57 @@ public class SQLTextEscapes {
 
 	private static String processCallEscape(EscapeNode escape) throws SQLException {
 
-		escape.removeAll(GrammarPiece.class);
-		
-		checkMinSize(escape, 2);
+		checkSize(escape, 2, 3);
 		
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append("(SELECT * FROM ")
-			.append(getNode(escape, 1, UnquotedIdentifierPiece.class))
-			.append("(");
-
-		Joiner.on(",").appendTo(sb, escape.subList(2));
+			.append(getNode(escape, 1, UnquotedIdentifierPiece.class));
 		
-		sb.append("))");
+		getNode(escape, 2, ParenGroupNode.class).build(sb);
+		
+		sb.append(')');
 		
 		return sb.toString();
 	}
 
-	private static String processLimitEscape(EscapeNode escape) {
-		// TODO Auto-generated method stub
-		return "";
+	private static String processLimitEscape(EscapeNode escape) throws SQLException {
+
+		checkSize(escape, 2, 4);
+		
+		Node rows = getNode(escape, 1, Node.class);
+		
+		Node offset = null;
+		if(escape.getNodeCount() == 4) {
+			checkLiteralNode(escape, 2, "OFFSET");
+			offset = getNode(escape, 3, Node.class);;
+		}
+		
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("LIMIT ");
+		
+		rows.build(sb);
+		
+		if(offset != null) {
+			sb.append(" OFFSET ");
+			offset.build(sb);
+		}
+		
+		return sb.toString();
 	}
 
-	private static String processLikeEscape(EscapeNode escape) {
-		// TODO Auto-generated method stub
-		return "";		
+	private static String processLikeEscape(EscapeNode escape) throws SQLException {
+		
+		if(escape.getNodeCount() != 2) {
+			throw new SQLException("Invalid like escape (" + escape.getStartPos() + ")");
+		}
+
+		StringBuilder sb = new StringBuilder();
+		
+		getNode(escape, 1, Node.class).build(sb);
+		
+		return sb.toString();		
 	}
 
 	private static void checkMinSize(CompositeNode comp, int size) throws SQLException {
@@ -199,6 +257,17 @@ public class SQLTextEscapes {
 			throw new SQLException("Invalid escape syntax (" + comp.getStartPos() + ")", "Syntax Error");
 		}
 		
+	}
+	
+	private static void checkSize(CompositeNode comp, int... sizes) throws SQLException {
+
+		for(int size : sizes) {
+			if(comp.getNodeCount() == size) {
+				return;
+			}
+		}
+		
+		throw new SQLException("Invalid escape syntax (" + comp.getStartPos() + ")", "Syntax Error");
 	}
 	
 	private static void checkLiteralNode(CompositeNode comp, int index, String text) throws SQLException {
@@ -216,6 +285,37 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid escape (" + comp.getStartPos() + ")", "Syntax Error");
 		
 		return nodeType.cast(node);
+	}
+
+	private static List<Node> split(CompositeNode group, String text) {
+		
+		if(group.getNodeCount() == 0) {
+			return Collections.emptyList();
+		}
+		
+		CompositeNode current = new CompositeNode(group.getStartPos());
+
+		List<Node> comps = new ArrayList<>();
+		comps.add(current);
+		
+		Iterator<Node> nodeIter = group.iterator();
+		while(nodeIter.hasNext()) {
+			
+			Node node = nodeIter.next();
+			
+			if(node instanceof PieceNode && ((PieceNode) node).getText().equals(text)) {
+				
+				current = new CompositeNode(node.getEndPos());
+				comps.add(current);
+			}
+			else {
+				
+				current.add(node);
+			}
+			
+		}
+		
+		return comps;
 	}
 
 }

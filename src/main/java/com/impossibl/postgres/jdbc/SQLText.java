@@ -1,8 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,6 +13,8 @@ import com.impossibl.postgres.jdbc.SQLTextTree.MultiStatementNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.NumericLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.jdbc.SQLTextTree.QuotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
@@ -29,14 +29,8 @@ public class SQLText {
 		root = parse(sqlText);
 	}
 	
-	public <N extends Node> List<N> gather(Class<N> nodeType) {
-		List<N> nodes = new ArrayList<>();
-		root.gather(nodeType, nodes);
-		return nodes;
-	}
-	
-	public void replace(Map<Node, Node> nodes) {
-		root.replace(nodes);
+	public void process(Processor processor) throws SQLException {
+		root.process(processor);
 	}
 	
 	@Override
@@ -64,7 +58,8 @@ public class SQLText {
 					"(\\{|\\})|" +																			/* Escape open/close */
 					"([a-zA-Z_][\\w_]*)|" +															/* Unquoted identifier */
 					"((?:[+-]?(?:\\d+)?(?:\\.\\d+(?:[eE][+-]?\\d+)?))|(?:[+-]?\\d+))|" + /* Numeric literal */
-					"(,|\\(|\\))|" +																		/* General required grammar */
+					"(\\(|\\))|" +																			/* Parens (grouping) */
+					"(,)|" +																						/* Comma (breaking) */
 					"(\\s+)",																						/* Whitespace */
 					Pattern.MULTILINE);
 
@@ -124,7 +119,7 @@ public class SQLText {
 					parents.push(new EscapeNode(matcher.start()));
 				}
 				else {
-					CompositeNode tmp = parents.pop();
+					EscapeNode tmp = (EscapeNode) parents.pop();
 					tmp.setEndPos(matcher.end());
 					parents.peek().add(tmp);
 				}
@@ -139,9 +134,20 @@ public class SQLText {
 			}
 			else if((val = matcher.group(9)) != null) {
 
-				parents.peek().add(new GrammarPiece(val, matcher.start()));
+				if(val.equals("(")) {
+					parents.push(new ParenGroupNode(matcher.start()));
+				}
+				else {
+					ParenGroupNode tmp = (ParenGroupNode) parents.pop();
+					tmp.setEndPos(matcher.end());
+					parents.peek().add(tmp);
+				}
 			}
 			else if((val = matcher.group(10)) != null) {
+
+				parents.peek().add(new GrammarPiece(",", matcher.start()));
+			}
+			else if((val = matcher.group(11)) != null) {
 
 				parents.peek().add(new WhitespacePiece(val, matcher.start()));
 			}
