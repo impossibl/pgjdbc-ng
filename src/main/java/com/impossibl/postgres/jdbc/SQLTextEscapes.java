@@ -90,10 +90,10 @@ public class SQLTextEscapes {
 		case "escape":
 			result = processLikeEscape(escape);
 			break;
-		}
-		
-		if(result == null)
+
+		default:
 			throw new SQLException("Invalid escape (" + escape.getStartPos() + ")", "Syntax Error");
+		}
 		
 		return new ReplacementPiece(result, escape.getStartPos());
 	}
