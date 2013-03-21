@@ -84,7 +84,7 @@ class PGConnection extends BasicContext implements Connection {
 		activeStatements = new ArrayList<>();
 	}
 	
-	public void finalize() throws SQLException {
+	protected void finalize() throws SQLException {
 		close();
 	}
 
