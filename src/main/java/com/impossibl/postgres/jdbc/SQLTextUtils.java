@@ -1,10 +1,12 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.SQLTextEscapes.processEscapes;
 import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
 import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -188,48 +190,25 @@ class SQLTextUtils {
 		return "RELEASE SAVEPOINT " + savepoint;
 	}
 
-	/*
-	 * Pattern that finds these things:
-	 * 	> Double quoted strings (ignoring escaped double quotes)
-	 * 	> Single quoted strings (ignoring escaped single quotes)
-	 * 	> SQL comments... from "--" to end of line
-	 *  > C-Style comments (including nested sections)
-	 *  > ? Parameter Placements 
-	 */
-	private static final Pattern PARAM_SEARCH_PATTERN = Pattern
-			.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|(?:\\-\\-.*$)|(?:/\\*.*\\*/)|\\?", Pattern.MULTILINE);
-
 	/**
 	 * Transforms JDBC SQL text into text suitable for use with PostgreSQL's
-	 * native protocol.
-	 * 
-	 * Uses the PARAM_SEARCH_PATTERN to find, and ignore, string and comment
-	 * sections and replaces ? placeholders with index based ones like $0,$1..$n
+	 * native protocol.  Processes parameter placeholders (aka ?) as well as,
+	 * optionally, processing JDBC escape clauses.
 	 * 
 	 * @param sql SQL text to transform
+	 * @param processEscapes Should it process JDBC escape clauses
 	 * @return PostgreSQL native SQL text
+	 * @throws SQLException 
 	 */
-	public static String getProtocolSQLText(String sql) {
-
-		Matcher matcher = PARAM_SEARCH_PATTERN.matcher(sql);
-
-		StringBuffer newSql = new StringBuffer();
-
-		int paramId = 1;
-
-		while (matcher.find()) {
-			if (matcher.group().equals("?")) {
-				matcher.appendReplacement(newSql, "");
-				newSql.append("$" + paramId++);
-			}
-			else {
-				matcher.appendReplacement(newSql, "$0");
-			}
+	public static String getProtocolSQLText(String sql, boolean processEscapes, PGConnection conn) throws SQLException {
+		
+		SQLText sqlText = new SQLText(sql);
+		
+		if(processEscapes) {
+			processEscapes(sqlText, conn);
 		}
-
-		matcher.appendTail(newSql);
-
-		return newSql.toString();
+			
+		return sqlText.toString();
 	}
 
 	/*

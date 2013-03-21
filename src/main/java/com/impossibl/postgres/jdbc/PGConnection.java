@@ -529,7 +529,7 @@ class PGConnection extends BasicContext implements Connection {
 	public String nativeSQL(String sql) throws SQLException {
 		checkClosed();
 
-		return getProtocolSQLText(sql);
+		return getProtocolSQLText(sql, true, this);
 	}
 
 	@Override

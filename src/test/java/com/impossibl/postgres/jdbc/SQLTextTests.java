@@ -70,16 +70,17 @@ public class SQLTextTests {
 	/**
 	 * Tests transforming JDBC SQL input into PostgreSQL's wire
 	 * protocol format. 
+	 * @throws SQLException 
 	 * 
 	 * @see SQLTextUtils.getProtocolSQLText 
 	 */
 	@Test
-	public void testPostgreSQLText() {
+	public void testPostgreSQLText() throws SQLException {
 
 		for(String[] test : sqlTransformTests) {
 			
 			String expected = test[1];
-			String output = getProtocolSQLText(test[0]);
+			String output = getProtocolSQLText(test[0], true, null);
 			
 			assertThat(output, is(equalTo(expected)));
 		}

@@ -2,7 +2,6 @@ package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
-import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
@@ -33,6 +32,7 @@ abstract class PGStatement implements Statement {
 	int holdability;
 	int fetchDirection;
 	String name;
+	boolean processEscapes;
 	List<ResultField> resultFields;
 	Integer maxRows;
 	Integer fetchSize;
@@ -51,6 +51,7 @@ abstract class PGStatement implements Statement {
 		this.concurrency = concurrency;
 		this.holdability = holdability;
 		this.name = name;
+		this.processEscapes = true;
 		this.resultFields = null;
 		this.activeResultSets = new ArrayList<>();
 	}
@@ -328,7 +329,7 @@ abstract class PGStatement implements Statement {
 	public void setEscapeProcessing(boolean enable) throws SQLException {
 		checkClosed();
 
-		throw NOT_IMPLEMENTED;
+		this.processEscapes = enable;
 	}
 
 	@Override

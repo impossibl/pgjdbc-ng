@@ -24,7 +24,7 @@ class PGSimpleStatement extends PGStatement {
 
 	SQLWarning prepare(String sql) throws SQLException {
 		
-		sql = getProtocolSQLText(sql);
+		sql = getProtocolSQLText(sql, processEscapes, connection);
 
 		PrepareCommand prep = connection.getProtocol().createPrepare(null, sql, Collections.<Type>emptyList());
 		
