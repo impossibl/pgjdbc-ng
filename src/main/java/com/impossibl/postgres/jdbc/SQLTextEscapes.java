@@ -3,6 +3,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.getEscapeMethod;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.invokeEscape;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -25,10 +26,11 @@ import com.impossibl.postgres.jdbc.SQLTextTree.ReplacementPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
+import com.impossibl.postgres.system.Context;
 
 public class SQLTextEscapes {
 	
-	static void processEscapes(SQLText text) throws SQLException {
+	static void processEscapes(SQLText text, final Context context) throws SQLException {
 
 		text.process(new Processor() {
 
@@ -39,14 +41,14 @@ public class SQLTextEscapes {
 					return node;
 				}
 
-				return processEscape((EscapeNode) node);
+				return processEscape((EscapeNode) node, context);
 			}
 			
 		});
 		
 	}
 
-	private static PieceNode processEscape(EscapeNode escape) throws SQLException {
+	private static PieceNode processEscape(EscapeNode escape, Context context) throws SQLException {
 		
 		escape.removeAll(WhitespacePiece.class);
 		
@@ -60,15 +62,15 @@ public class SQLTextEscapes {
 			break;
 			
 		case "d":
-			result = processDateEscape(escape);
+			result = processDateEscape(escape, context);
 			break;
 			
 		case "t":
-			result = processTimeEscape(escape);
+			result = processTimeEscape(escape, context);
 			break;
 			
 		case "ts":
-			result = processTimestampEscape(escape);
+			result = processTimestampEscape(escape, context);
 			break;
 			
 		case "oj":
@@ -113,37 +115,81 @@ public class SQLTextEscapes {
 		return invokeEscape(method, name.toString(), args);
 	}
 
-	private static String processDateEscape(EscapeNode escape) throws SQLException {
+	private static String processDateEscape(EscapeNode escape, Context context) throws SQLException {
 		
 		checkSize(escape, 2);
 		
 		StringLiteralPiece dateLit = getNode(escape, 1, StringLiteralPiece.class);
 		
-		Date date = Date.valueOf(dateLit.toString());
-
-		return "'" + date.toString() + "'";
+		Date date;
+		try {
+			date = Date.valueOf(dateLit.toString());
+		}
+		catch(Exception e1) {
+			throw new SQLException("invalid date format in escape (" + escape.getStartPos() + ")");
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("'");
+		
+		try {
+			context.getTimeFormatter().printTo(sb, date.getTime());
+		}
+		catch(IOException e) {
+			sb.append(date.toString());
+		}
+		
+		sb.append("'");
+		return sb.toString();
 	}
 
-	private static String processTimeEscape(EscapeNode escape) throws SQLException {
+	private static String processTimeEscape(EscapeNode escape, Context context) throws SQLException {
 
 		checkSize(escape, 2);
 		
 		StringLiteralPiece timeLit = getNode(escape, 1, StringLiteralPiece.class);
 		
-		Time time = Time.valueOf(timeLit.toString());
+		Time time;
+		try {
+			time = Time.valueOf(timeLit.toString());
+		}
+		catch(Exception e1) {
+			throw new SQLException("invalid time format in escape (" + escape.getStartPos() + ")");
+		}
 		
-		return "'" + time.toString() + "'";
+		StringBuilder sb = new StringBuilder();
+		sb.append("'");
+		
+		try {
+			context.getTimeFormatter().printTo(sb, time.getTime());
+		}
+		catch(IOException e) {
+			sb.append(time.toString());
+		}
+		
+		sb.append("'");
+		return sb.toString();
 	}
 
-	private static String processTimestampEscape(EscapeNode escape) throws SQLException {
+	private static String processTimestampEscape(EscapeNode escape, Context context) throws SQLException {
 
 		checkSize(escape, 2);
 		
 		StringLiteralPiece tsLit = getNode(escape, 1, StringLiteralPiece.class);
 		
-		Timestamp timestamp = Timestamp.valueOf(tsLit.toString());
+		Timestamp timestamp;
+		try {
+			timestamp = Timestamp.valueOf(tsLit.toString());
+		}
+		catch(Exception e) {
+			throw new SQLException("invalid timestamp format in escape (" + escape.getStartPos() + ")");
+		}
 		
-		return "'" + timestamp.toString() + "'";
+		StringBuilder sb = new StringBuilder();
+		sb.append("'");
+		sb.append(timestamp);
+		sb.append("'");
+		return sb.toString();
 	}
 
 	private static String processOuterJoinEscape(EscapeNode escape) throws SQLException {

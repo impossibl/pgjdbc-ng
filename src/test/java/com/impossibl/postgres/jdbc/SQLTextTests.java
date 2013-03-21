@@ -62,7 +62,7 @@ public class SQLTextTests {
 				"	($1,'a string with a ?', \"another \"\" ?\", concat('{fn '' some()}', insert($2)), $3), $4)",
 		},
 		new String[] {
-				"select {fn abs(-10)} as absval, {fn concat(x,y)} as val from {oj tblA left outer join tblB on x=y}",
+				"select {fn abs(-10)} as absval, {fn user()}, {fn concat(x,y)} as val from {oj tblA left outer join tblB on x=y}",
 				"select abs(-10) as absval, concat(x,y) as val from tblA left outer join tblB ON (x=y)",
 		}
 	};
@@ -93,9 +93,9 @@ public class SQLTextTests {
 			
 			SQLText text = new SQLText(test[0]);
 			
-			SQLTextEscapes.processEscapes(text);
+			SQLTextEscapes.processEscapes(text, null);
 			
-			System.out.print(text);
+			System.out.println(text);
 		}
 	}
 
