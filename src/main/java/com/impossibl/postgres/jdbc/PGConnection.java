@@ -171,8 +171,9 @@ class PGConnection extends BasicContext implements Connection {
 
 		for(WeakReference<PGStatement> stmtRef : activeStatements) {
 
-			if(stmtRef.get() != null)
-				stmtRef.get().internalClose();
+			PGStatement statement = stmtRef.get();
+			if(statement != null)
+				statement.internalClose();
 		}
 	}
 
