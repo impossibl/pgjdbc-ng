@@ -72,7 +72,7 @@ public class Moneys extends SimpleProcProvider {
 				
 				BigDecimal dec = (BigDecimal) val;
 				
-				dec.setScale(fracDigits, HALF_UP);
+				dec = dec.setScale(fracDigits, HALF_UP);
 				
 				buffer.writeInt(8);
 				buffer.writeLong(dec.unscaledValue().longValue());
