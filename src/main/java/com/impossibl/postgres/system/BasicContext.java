@@ -33,7 +33,6 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;

@@ -5,16 +5,9 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
 
 import org.junit.Test;
-
-import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
-import com.impossibl.postgres.jdbc.SQLTextTree.Node;
-import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
-import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 
 public class SQLTextTests {
@@ -59,14 +52,18 @@ public class SQLTextTests {
 				"	(a, \"b\", \"c\", \"d\")\n" +
 				"	values /* a nested\n" +
 				" /* comment with  */ a ? */" +
-				"	(?,'a string with a ?', \"another  \"\" ?\", {fn some('{fn '' some()}', {fn thing(?)}}, ?)",
+				"	(?,'a string with a ?', \"another  \"\" ?\", {fn concat('{fn '' some()}', {fn char(?)})}, ?)",
 			
 				//Output
 				"insert into \"somthing\" -- This is a SQL comment ?WTF?\n" +
 				"	(a, \"b\", \"c\", \"d\")\n" +
 				"	values /* a nested\n" +
 				" /* comment with  */ a ? */" +
-				"	($1,'a string with a ?', \"another \"\" ?\", {fn some('{fn '' some()}', {fn thing($2)}}, $3), $4)",
+				"	($1,'a string with a ?', \"another \"\" ?\", concat('{fn '' some()}', insert($2)), $3), $4)",
+		},
+		new String[] {
+				"select {fn abs(-10)} as absval, {fn concat(x,y)} as val from {oj tblA left outer join tblB on x=y}",
+				"select abs(-10) as absval, concat(x,y) as val from tblA left outer join tblB ON (x=y)",
 		}
 	};
 
@@ -89,20 +86,17 @@ public class SQLTextTests {
 	}
 	
 	@Test
-	public void testParse() {
+	public void testParse() throws SQLException {
 		
-		SQLText text = new SQLText(sqlTransformTests[2][0]);
 		
-		List<EscapeNode> escapes = text.gather(SQLTextTree.EscapeNode.class);
-		
-		escapes.get(0).removeAll(WhitespacePiece.class);
-		
-		Map<Node,Node> map = new HashMap<Node,Node>();
-		map.put(escapes.get(0), new StringLiteralPiece("#### REPLACED ####"));
-		
-		text.replace(map);
-				
-		System.out.print(escapes);
+		for(String[] test : sqlTransformTests) {
+			
+			SQLText text = new SQLText(test[0]);
+			
+			SQLTextEscapes.processEscapes(text);
+			
+			System.out.print(text);
+		}
 	}
 
 }

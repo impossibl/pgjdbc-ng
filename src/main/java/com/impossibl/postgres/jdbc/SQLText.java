@@ -13,6 +13,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.MultiStatementNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.NumericLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.QuotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
@@ -22,7 +23,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 public class SQLText {
 	
-	Node root;	
+	private Node root;	
 	
 	public SQLText(String sqlText) {
 		root = parse(sqlText);
@@ -54,74 +55,109 @@ public class SQLText {
 	 *  > ; Statement breaks
 	 */
 	private static final Pattern LEXER = Pattern
-			.compile("(\"(?:[^\"\"]|\\\\.)*\")|('(?:[^\'\']|\\\\.)*')|((?:\\-\\-.*$)|(?:/\\*(?:(?:.|\\n)*)\\*/))|(\\?)|(;)|(\\{|\\})|([a-zA-Z_][\\w_]*)|(\\s+)", Pattern.MULTILINE);
+			.compile(
+					"(\"(?:[^\"\"]|\\\\.)*\")|" +												/* Quoted identifier */
+					"('(?:[^\'\']|\\\\.)*')|" +													/* String literal */
+					"((?:\\-\\-.*$)|(?:/\\*(?:(?:.|\\n)*)\\*/))|" +			/* Comments */
+					"(\\?)|" +																					/* Parameter marker */
+					"(;)|" +																						/* Statement break */
+					"(\\{|\\})|" +																			/* Escape open/close */
+					"([a-zA-Z_][\\w_]*)|" +															/* Unquoted identifier */
+					"((?:[+-]?(?:\\d+)?(?:\\.\\d+(?:[eE][+-]?\\d+)?))|(?:[+-]?\\d+))|" + /* Numeric literal */
+					"(,|\\(|\\))|" +																		/* General required grammar */
+					"(\\s+)",																						/* Whitespace */
+					Pattern.MULTILINE);
 
 	public static Node parse(String sql) {
 		
 		Stack<CompositeNode> parents = new Stack<CompositeNode>();
 		
-		parents.push(new MultiStatementNode());
-		parents.push(new StatementNode());
+		parents.push(new MultiStatementNode(0));
+		parents.push(new StatementNode(0));
 
 		Matcher matcher = LEXER.matcher(sql);
 
 		int paramId = 1;
 		int startIdx = 0;
 
-		while (matcher.find()) {
+		while(matcher.find()) {
 			
 			//Add the unmatched region as grammar...
 			if(startIdx != matcher.start()) {
 				String txt = sql.substring(startIdx, matcher.start()).trim();
-				parents.peek().add(new GrammarPiece(txt));
+				parents.peek().add(new GrammarPiece(txt, matcher.start()));
 			}
-			startIdx = matcher.end();
-			
+
 			//Add whatever we matched...
 			String val;
 			if((val = matcher.group(1)) != null) {
-				parents.peek().add(new QuotedIdentifierPiece(val));
+				
+				parents.peek().add(new QuotedIdentifierPiece(val, matcher.start()));
 			}
 			else if((val = matcher.group(2)) != null) {
-				parents.peek().add(new StringLiteralPiece(val));
+				
+				parents.peek().add(new StringLiteralPiece(val, matcher.start()));
 			}
 			else if((val = matcher.group(3)) != null) {
-				parents.peek().add(new CommentPiece(val));
+				
+				parents.peek().add(new CommentPiece(val, matcher.start()));
 			}
 			else if((val = matcher.group(4)) != null) {
-				parents.peek().add(new ParameterPiece(paramId++));
+				
+				parents.peek().add(new ParameterPiece(paramId++, matcher.start()));
 			}
 			else if((val = matcher.group(5)) != null) {
-				CompositeNode comp = parents.pop();
-				parents.peek().add(comp);
-				parents.push(new StatementNode());
+				
+				//Pop & add everything until the top node
+				while(parents.size() > 1) {
+					
+					CompositeNode comp = parents.pop();
+					comp.setEndPos(matcher.end());
+					parents.peek().add(comp);
+				}
+				
+				parents.push(new StatementNode(matcher.start()));
 			}
 			else if((val = matcher.group(6)) != null) {
+				
 				if(val.equals("{")) {
-					parents.push(new EscapeNode());
+					parents.push(new EscapeNode(matcher.start()));
 				}
 				else {
 					CompositeNode tmp = parents.pop();
+					tmp.setEndPos(matcher.end());
 					parents.peek().add(tmp);
 				}
 			}
 			else if((val = matcher.group(7)) != null) {
-				parents.peek().add(new UnquotedIdentifierPiece(val));
+
+				parents.peek().add(new UnquotedIdentifierPiece(val, matcher.start()));
 			}
 			else if((val = matcher.group(8)) != null) {
-				parents.peek().add(new WhitespacePiece(val));
+
+				parents.peek().add(new NumericLiteralPiece(val, matcher.start()));
+			}
+			else if((val = matcher.group(9)) != null) {
+
+				parents.peek().add(new GrammarPiece(val, matcher.start()));
+			}
+			else if((val = matcher.group(10)) != null) {
+
+				parents.peek().add(new WhitespacePiece(val, matcher.start()));
 			}
 			
+			startIdx = matcher.end();			
 		}
 		
 		//Add last grammar node
 		if(startIdx != sql.length()) {
-			parents.peek().add(new GrammarPiece(sql.substring(startIdx)));
+			parents.peek().add(new GrammarPiece(sql.substring(startIdx), startIdx));
 		}
 		
-		//Aut close last staement
+		//Auto close last statement
 		if(parents.peek() instanceof StatementNode) {
 			CompositeNode tmp = parents.pop();
+			tmp.setEndPos(startIdx);
 			parents.peek().add(tmp);
 		}
 		

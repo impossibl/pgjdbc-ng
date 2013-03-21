@@ -262,22 +262,22 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getNumericFunctions() throws SQLException {
-		return Joiner.on(',').join(EscapedFunctions.ALL_NUMERIC);
+		return Joiner.on(',').join(SQLTextEscapeFunctions.ALL_NUMERIC);
 	}
 
 	@Override
 	public String getStringFunctions() throws SQLException {
-		return Joiner.on(',').join(EscapedFunctions.ALL_STRING);
+		return Joiner.on(',').join(SQLTextEscapeFunctions.ALL_STRING);
 	}
 
 	@Override
 	public String getSystemFunctions() throws SQLException {
-		return Joiner.on(',').join(EscapedFunctions.ALL_SYSTEM);
+		return Joiner.on(',').join(SQLTextEscapeFunctions.ALL_SYSTEM);
 	}
 
 	@Override
 	public String getTimeDateFunctions() throws SQLException {
-		return Joiner.on(',').join(EscapedFunctions.ALL_DATE_TIME);
+		return Joiner.on(',').join(SQLTextEscapeFunctions.ALL_DATE_TIME);
 	}
 
 	@Override
