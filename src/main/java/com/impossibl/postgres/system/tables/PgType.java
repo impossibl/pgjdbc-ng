@@ -43,7 +43,7 @@ public class PgType implements Table<PgType.Row> {
 				return false;
 			if(val instanceof Integer)
 				return oid == (Integer) val;
-			if(val instanceof PgType)
+			if(val instanceof Row)
 				return oid == ((Row) val).oid;
 			return false;
 		}
