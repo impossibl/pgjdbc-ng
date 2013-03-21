@@ -79,7 +79,7 @@ public class Version {
 	}
 	
 	public boolean equals(int major, Integer minor, Integer revision) {
-		return this.major == major && (minor == null || minor == this.minor) && (revision == null || revision == this.revision);
+		return this.major == major && (minor == null || minor.equals(this.minor)) && (revision == null || revision.equals(this.revision));
 	}
 
 	@Override
