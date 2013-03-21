@@ -43,7 +43,7 @@ public class PgType implements Table<PgType.Row> {
 				return false;
 			if(val instanceof Integer)
 				return oid == (Integer) val;
-			if(val instanceof PgType)
+			if(val instanceof Row)
 				return oid == ((Row) val).oid;
 			return false;
 		}
@@ -55,7 +55,7 @@ public class PgType implements Table<PgType.Row> {
 
 	}
 
-	public static PgType INSTANCE = new PgType();
+	public static final PgType INSTANCE = new PgType();
 
 	private PgType() {
 	}
@@ -68,7 +68,7 @@ public class PgType implements Table<PgType.Row> {
 		return new Row();
 	}
 
-	public static Object[] SQL = {
+	private static final Object[] SQL = {
 			Version.get(9, 0, 0),
 			" select"	+
 			"		t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +

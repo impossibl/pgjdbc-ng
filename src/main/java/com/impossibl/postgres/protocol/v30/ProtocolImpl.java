@@ -462,6 +462,9 @@ public class ProtocolImpl implements Protocol {
 		case READY_FOR_QUERY_MSG_ID:
 			receiveReadyForQuery(msg.data);
 			break;
+
+		default:
+				logger.fine("unsupported message type: " + (msg.id & 0xff));
 		}
 
 	}
@@ -528,9 +531,9 @@ public class ProtocolImpl implements Protocol {
 			listener.authenticateSSPI(this);
 			break;
 
+		default:
+			throw new UnsupportedOperationException("invalid authentication type");
 		}
-
-		throw new UnsupportedOperationException("invalid authentication type");
 	}
 
 	private void receiveBackendKeyData(ChannelBuffer buffer) throws IOException {

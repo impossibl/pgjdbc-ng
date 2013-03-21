@@ -79,7 +79,7 @@ public class Version {
 	}
 	
 	public boolean equals(int major, Integer minor, Integer revision) {
-		return this.major == major && (minor == null || minor == this.minor) && (revision == null || revision == this.revision);
+		return this.major == major && (minor == null || minor.equals(this.minor)) && (revision == null || revision.equals(this.revision));
 	}
 
 	@Override
@@ -87,9 +87,9 @@ public class Version {
 		StringBuilder sb = new StringBuilder();
 		sb.append(major);
 		if(minor != null)
-			sb.append( "." + minor);
+			sb.append('.').append(minor);
 		if(revision != null)
-			sb.append("." + revision);
+			sb.append('.').append(revision);
 		return sb.toString();
 	}
 

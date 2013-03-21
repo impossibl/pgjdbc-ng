@@ -87,7 +87,7 @@ class PGResultSet implements ResultSet {
 		this.results = results;
 	}
 	
-	public void finalize() throws SQLException {
+	protected void finalize() throws SQLException {
 		close();
 	}
 
