@@ -87,9 +87,9 @@ public class Version {
 		StringBuilder sb = new StringBuilder();
 		sb.append(major);
 		if(minor != null)
-			sb.append( "." + minor);
+			sb.append('.').append(minor);
 		if(revision != null)
-			sb.append("." + revision);
+			sb.append('.').append(revision);
 		return sb.toString();
 	}
 
