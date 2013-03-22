@@ -163,7 +163,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public ParameterMetaData getParameterMetaData() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		return new PGParameterMetaData(parameterTypes);
 	}
 
 	@Override
