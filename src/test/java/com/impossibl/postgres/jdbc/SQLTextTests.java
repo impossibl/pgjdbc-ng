@@ -27,7 +27,7 @@ public class SQLTextTests {
 				"	from\n" +
 				"		test\n" +
 				"	where\n" +
-				"		'a string with a ?' =  $1"
+				"		'a string with a ?' =  $1;"
 		},			
 		new String[] {
 	
@@ -43,7 +43,7 @@ public class SQLTextTests {
 				"	(a, \"b\", \"c\", \"d\")\n" +
 				"	values /* a nested\n" +
 				" /* comment with  */ a ? */" +
-				"	($1,'a string with a ?', \"another ?\", $2, $3)",
+				"	($1,'a string with a ?', \"another ?\", $2, $3);",
 		},
 		new String[] {
 				
@@ -52,18 +52,18 @@ public class SQLTextTests {
 				"	(a, \"b\", \"c\", \"d\")\n" +
 				"	values /* a nested\n" +
 				" /* comment with  */ a ? */" +
-				"	(?,'a string with a ?', \"another  \"\" ?\", {fn concat('{fn '' some()}', {fn char(?)})}, ?)",
+				"	(?,'a string with a ?', \"another \"\" ?\", {fn concat('{fn '' some()}', {fn char(?)})}, ?)",
 			
 				//Output
 				"insert into \"somthing\" -- This is a SQL comment ?WTF?\n" +
 				"	(a, \"b\", \"c\", \"d\")\n" +
 				"	values /* a nested\n" +
 				" /* comment with  */ a ? */" +
-				"	($1,'a string with a ?', \"another \"\" ?\", concat('{fn '' some()}', insert($2)), $3), $4)",
+				"	($1,'a string with a ?', \"another \"\" ?\", ('{fn '' some()}' || chr($2)), $3);",
 		},
 		new String[] {
 				"select {fn abs(-10)} as absval, {fn user()}, {fn concat(x,y)} as val from {oj tblA left outer join tblB on x=y}",
-				"select abs(-10) as absval, concat(x,y) as val from tblA left outer join tblB ON (x=y)",
+				"select abs(-10) as absval, user, (x || y) as val from tblA left OUTER JOIN tblB ON (x = y);",
 		}
 	};
 
@@ -83,20 +83,6 @@ public class SQLTextTests {
 			String output = getProtocolSQLText(test[0], true, null);
 			
 			assertThat(output, is(equalTo(expected)));
-		}
-	}
-	
-	@Test
-	public void testParse() throws SQLException {
-		
-		
-		for(String[] test : sqlTransformTests) {
-			
-			SQLText text = new SQLText(test[0]);
-			
-			SQLTextEscapes.processEscapes(text, null);
-			
-			System.out.println(text);
 		}
 	}
 
