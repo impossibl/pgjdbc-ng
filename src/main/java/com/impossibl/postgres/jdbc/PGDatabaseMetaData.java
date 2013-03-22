@@ -2,6 +2,7 @@ package com.impossibl.postgres.jdbc;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 
@@ -108,10 +109,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-		if(iface.isAssignableFrom(getClass())) {
-			return iface.cast(this);
+		if(!iface.isAssignableFrom(getClass())) {
+			throw UNWRAP_ERROR;
 		}
-		return null;
+
+		return iface.cast(this);
 	}
 
 	@Override

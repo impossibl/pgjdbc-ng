@@ -5,6 +5,7 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
@@ -754,6 +755,10 @@ class PGConnection extends BasicContext implements Connection {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
+		if(!iface.isAssignableFrom(getClass())) {
+			throw UNWRAP_ERROR;
+		}
+
 		return iface.cast(this);
 	}
 

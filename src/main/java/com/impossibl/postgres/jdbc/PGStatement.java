@@ -4,6 +4,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.sql.Connection;
@@ -444,6 +445,10 @@ abstract class PGStatement implements Statement {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
+		if(!iface.isAssignableFrom(getClass())) {
+			throw UNWRAP_ERROR;
+		}
+
 		return iface.cast(this);
 	}
 

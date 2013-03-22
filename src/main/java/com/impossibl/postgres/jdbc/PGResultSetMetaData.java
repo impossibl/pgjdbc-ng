@@ -1,6 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 
 import java.sql.ResultSetMetaData;
@@ -74,6 +75,10 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
+		if(!iface.isAssignableFrom(getClass())) {
+			throw UNWRAP_ERROR;
+		}
+
 		return iface.cast(this);
 	}
 

@@ -5,6 +5,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COLUMN_NAME;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
@@ -1379,6 +1380,10 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
+		if(!iface.isAssignableFrom(getClass())) {
+			throw UNWRAP_ERROR;
+		}
+
 		return iface.cast(this);
 	}
 
