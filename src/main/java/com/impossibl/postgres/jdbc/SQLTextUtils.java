@@ -1,17 +1,15 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.SQLTextEscapes.processEscapes;
 import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
 import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
 
 
 /**
@@ -191,99 +189,22 @@ class SQLTextUtils {
 	}
 
 	/**
-	 * Transforms JDBC SQL text into text suitable for use with PostgreSQL's
-	 * native protocol.  Processes parameter placeholders (aka ?) as well as,
-	 * optionally, processing JDBC escape clauses.
-	 * 
-	 * @param sql SQL text to transform
-	 * @param processEscapes Should it process JDBC escape clauses
-	 * @return PostgreSQL native SQL text
-	 * @throws SQLException 
-	 */
-	public static String getProtocolSQLText(String sql, boolean processEscapes, PGConnection conn) throws SQLException {
-		
-		SQLText sqlText = new SQLText(sql);
-		
-		if(processEscapes) {
-			processEscapes(sqlText, conn);
-		}
-			
-		return sqlText.toString();
-	}
-
-	/*
-	 * Pattern that finds these things:
-	 * 	> Double quoted strings (ignoring escaped double quotes)
-	 * 	> Single quoted strings (ignoring escaped single quotes)
-	 * 	> SQL comments... from "--" to end of line
-	 *  > C-Style comments (including nested sections)
-	 *  > ? Parameter Placements 
-	 */
-	private static final Pattern STMT_END_SEARCH_PATTERN = Pattern
-			.compile("(?:\"(?:[^\"\\\\]|\\\\.)*\")|(?:'(?:[^\"\\\\]|\\\\.)*')|(?:\\-\\-.*$)|(?:/\\*.*\\*/)|;", Pattern.MULTILINE);
-
-	/**
-	 * Splits an SQL text block into multiple statements.
-	 * 
-	 * Uses the STMT_END_SEARCH_PATTERN to find, and ignore, string and comment
-	 * sections and replaces ';' and the gathered text to the list of statements
-	 * 
-	 * @param sqlText SQL text block
-	 * @return List of SQL statements in the text block
-	 */
-	public static List<String> splitStatements(String sqlText) {
-		
-		List<String> statements = new ArrayList<>();
-		
-		Matcher matcher = STMT_END_SEARCH_PATTERN.matcher(sqlText);
-
-		StringBuffer current = new StringBuffer();
-		
-		while (matcher.find()) {
-			
-			if (matcher.group().equals(";")) {
-				
-				//Break it into a separate the statement
-				
-				matcher.appendReplacement(current, "");
-				
-				String statement = current.toString().trim();
-				if(!statement.isEmpty())
-					statements.add(statement);
-				
-				current = new StringBuffer();
-			}
-			else {
-				
-				matcher.appendReplacement(current, "$0");
-			}
-		}
-
-		matcher.appendTail(current);
-
-		String lastStatement = current.toString().trim();
-		if(!lastStatement.isEmpty())
-			statements.add(lastStatement);
-
-		return statements;
-	}
-	
-	/**
 	 * Appends a clause, provided as text, to the given SQL text.
 	 * 
 	 * @param sqlText Input SQL text
 	 * @return SQL text with appended clause or null if sqlText cannot be
 	 * 					appended to
 	 */
-	public static String appendClause(String sqlText, String clause) {
-		
-		List<String> statements = splitStatements(sqlText);
-		if(statements.size() > 1)
-			return null;
-		
-		String statement = statements.get(0);
+	public static boolean appendClause(SQLText sqlText, String clause) {
 
-		return statement + " " + clause;
+		if(sqlText.getStatementCount() > 1)
+			return false;
+		
+		StatementNode statement = sqlText.getLastStatement();
+		
+		statement.add(new GrammarPiece(clause, -1));
+		
+		return true;
 	}
 	
 	/**
@@ -294,7 +215,7 @@ class SQLTextUtils {
 	 * @return SQL text with appended clause or null if sqlText cannot be
 	 * 					appended to
 	 */
-	public static String appendReturningClause(String sqlText, List<String> columns) {
+	public static boolean appendReturningClause(SQLText sqlText, List<String> columns) {
 		
 		return appendClause(sqlText, " RETURNING " + joinColumns(columns, " , "));
 	}
@@ -306,7 +227,7 @@ class SQLTextUtils {
 	 * @return SQL text with appended clause or null if sqlText cannot be
 	 * 					appended to
 	 */
-	public static String appendReturningClause(String sqlText) {
+	public static boolean appendReturningClause(SQLText sqlText) {
 		
 		return appendClause(sqlText, " RETURNING *");
 	}

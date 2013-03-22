@@ -10,7 +10,6 @@ import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.MultiStatementNode;
-import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.NumericLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
@@ -23,10 +22,18 @@ import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 public class SQLText {
 	
-	private Node root;	
+	private MultiStatementNode root;	
 	
 	public SQLText(String sqlText) {
 		root = parse(sqlText);
+	}
+	
+	public int getStatementCount() {
+		return root.getNodeCount();
+	}
+	
+	public StatementNode getLastStatement() {
+		return (StatementNode) root.get(root.getNodeCount()-1);
 	}
 	
 	public void process(Processor processor) throws SQLException {
@@ -63,7 +70,7 @@ public class SQLText {
 					"(\\s+)",																						/* Whitespace */
 					Pattern.MULTILINE);
 
-	public static Node parse(String sql) {
+	public static MultiStatementNode parse(String sql) {
 		
 		Stack<CompositeNode> parents = new Stack<CompositeNode>();
 		
@@ -167,7 +174,7 @@ public class SQLText {
 			parents.peek().add(tmp);
 		}
 		
-		return parents.get(0);
+		return (MultiStatementNode)parents.get(0);
 	}
 
 }

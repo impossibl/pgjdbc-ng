@@ -1,6 +1,5 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getProtocolSQLText;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -80,9 +79,12 @@ public class SQLTextTests {
 		for(String[] test : sqlTransformTests) {
 			
 			String expected = test[1];
-			String output = getProtocolSQLText(test[0], true, null);
 			
-			assertThat(output, is(equalTo(expected)));
+			SQLText sqlText = new SQLText(test[0]);
+			
+			SQLTextEscapes.processEscapes(sqlText, null);
+			
+			assertThat(sqlText.toString(), is(equalTo(expected)));
 		}
 	}
 
