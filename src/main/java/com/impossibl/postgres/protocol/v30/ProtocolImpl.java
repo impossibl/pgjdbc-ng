@@ -165,8 +165,8 @@ public class ProtocolImpl implements Protocol {
 
 		// Name=Value pairs
 		for (Map.Entry<String, Object> paramEntry : params.entrySet()) {
-			writeCString(msg, paramEntry.getKey());
-			writeCString(msg, paramEntry.getValue().toString());
+			writeCString(msg, paramEntry.getKey(), context.getCharset());
+			writeCString(msg, paramEntry.getValue().toString(), context.getCharset());
 		}
 
 		msg.writeByte(0);
@@ -181,7 +181,7 @@ public class ProtocolImpl implements Protocol {
 			
 		ChannelBuffer msg = newMessage(PASSWORD_MSG_ID);
 
-		writeCString(msg, password);
+		writeCString(msg, password, context.getCharset());
 
 		sendMessage(msg);
 	}
@@ -193,7 +193,7 @@ public class ProtocolImpl implements Protocol {
 			
 		ChannelBuffer msg = newMessage(QUERY_MSG_ID);
 
-		writeCString(msg, query);
+		writeCString(msg, query, context.getCharset());
 
 		sendMessage(msg);
 	}
@@ -205,8 +205,8 @@ public class ProtocolImpl implements Protocol {
 
 		ChannelBuffer msg = newMessage(PARSE_MSG_ID);
 
-		writeCString(msg, stmtName != null ? stmtName : "");
-		writeCString(msg, query);
+		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
+		writeCString(msg, query, context.getCharset());
 
 		msg.writeShort(paramTypes.size());
 		for (Type paramType : paramTypes) {
@@ -223,8 +223,8 @@ public class ProtocolImpl implements Protocol {
 
 		ChannelBuffer msg = newMessage(BIND_MSG_ID);
 
-		writeCString(msg, portalName != null ? portalName : "");
-		writeCString(msg, stmtName != null ? stmtName : "");
+		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
+		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
 
 		loadParams(msg, parameterTypes, parameterValues);
 
@@ -243,7 +243,7 @@ public class ProtocolImpl implements Protocol {
 		ChannelBuffer msg = newMessage(DESCRIBE_MSG_ID);
 
 		msg.writeByte(target.getId());
-		writeCString(msg, targetName != null ? targetName : "");
+		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
 
 		sendMessage(msg);
 	}
@@ -255,7 +255,7 @@ public class ProtocolImpl implements Protocol {
 
 		ChannelBuffer msg = newMessage(EXECUTE_MSG_ID);
 
-		writeCString(msg, portalName != null ? portalName : "");
+		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
 		msg.writeInt(maxRows);
 
 		sendMessage(msg);
@@ -293,7 +293,7 @@ public class ProtocolImpl implements Protocol {
 		ChannelBuffer msg = newMessage(CLOSE_MSG_ID);
 
 		msg.writeByte(target.getId());
-		writeCString(msg, targetName != null ? targetName : "");
+		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
 
 		sendMessage(msg);
 	}
@@ -590,7 +590,7 @@ public class ProtocolImpl implements Protocol {
 		for (int c = 0; c < fieldCount; ++c) {
 
 			ResultField field = new ResultField();
-			field.name = readCString(buffer);
+			field.name = readCString(buffer, context.getCharset());
 			field.relationId = buffer.readInt();
 			field.relationAttributeNumber = buffer.readShort();
 			field.type = registry.loadType(buffer.readInt());
@@ -650,7 +650,7 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveCommandComplete(ChannelBuffer buffer) throws IOException {
 
-		String commandTag = readCString(buffer);
+		String commandTag = readCString(buffer, context.getCharset());
 
 		String[] parts = commandTag.split(" ");
 
@@ -719,8 +719,8 @@ public class ProtocolImpl implements Protocol {
 	protected void receiveNotification(ChannelBuffer buffer) throws IOException {
 
 		int processId = buffer.readInt();
-		String channelName = readCString(buffer);
-		String payload = readCString(buffer);
+		String channelName = readCString(buffer, context.getCharset());
+		String payload = readCString(buffer, context.getCharset());
 
 		logger.finest("NOTIFY: " + processId + " - " + channelName + " - " + payload);
 
@@ -729,8 +729,8 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {
 
-		String name = readCString(buffer);
-		String value = readCString(buffer);
+		String name = readCString(buffer, context.getCharset());
+		String value = readCString(buffer, context.getCharset());
 
 		context.updateSystemParameter(name, value);
 	}
@@ -769,48 +769,48 @@ public class ProtocolImpl implements Protocol {
 
 			switch (msgId) {
 			case 'S':
-				notice.severity = readCString(buffer);
+				notice.severity = readCString(buffer, context.getCharset());
 				break;
 
 			case 'C':
-				notice.code = readCString(buffer);
+				notice.code = readCString(buffer, context.getCharset());
 				break;
 
 			case 'M':
-				notice.message = readCString(buffer);
+				notice.message = readCString(buffer, context.getCharset());
 				break;
 
 			case 'D':
-				notice.detail = readCString(buffer);
+				notice.detail = readCString(buffer, context.getCharset());
 				break;
 
 			case 'H':
-				notice.hint = readCString(buffer);
+				notice.hint = readCString(buffer, context.getCharset());
 				break;
 
 			case 'P':
-				notice.position = readCString(buffer);
+				notice.position = readCString(buffer, context.getCharset());
 				break;
 				
 			case 'W':
-				notice.where = readCString(buffer);
+				notice.where = readCString(buffer, context.getCharset());
 				break;
 
 			case 'F':
-				notice.file = readCString(buffer);
+				notice.file = readCString(buffer, context.getCharset());
 				break;
 
 			case 'L':
-				notice.line = readCString(buffer);
+				notice.line = readCString(buffer, context.getCharset());
 				break;
 
 			case 'R':
-				notice.routine = readCString(buffer);
+				notice.routine = readCString(buffer, context.getCharset());
 				break;
 
 			default:
 				// Read and ignore
-				readCString(buffer);
+				readCString(buffer, context.getCharset());
 				break;
 			}
 
