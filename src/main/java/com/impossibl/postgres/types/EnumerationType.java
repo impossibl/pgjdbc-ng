@@ -20,11 +20,6 @@ public class EnumerationType extends Type {
 	}
 
 	@Override
-	public PrimitiveType getPrimitiveType() {
-		return textType.getPrimitiveType();
-	}
-	
-	@Override
 	public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Registry registry) {
 		super.load(source, attrs, registry);
 		textType = registry.loadType("text");

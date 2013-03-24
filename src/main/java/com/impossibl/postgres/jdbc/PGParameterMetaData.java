@@ -7,7 +7,6 @@ import java.sql.ParameterMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.Type;
 
 public class PGParameterMetaData implements ParameterMetaData {
@@ -111,7 +110,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
 		Type paramType = getType(param);
 		
-		return paramType.getOutputType(Format.Binary).getName();
+		return paramType.getJavaType().getName();
 	}
 
 	@Override

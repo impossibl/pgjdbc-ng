@@ -838,7 +838,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					row[3] = "returnValue";
 					row[4] = DatabaseMetaData.procedureColumnReturn;
 					row[5] = SQLTypeMetaData.getSQLType(returnType);
-					row[6] = returnType.getOutputType(Format.Binary).getName();
+					row[6] = returnType.getJavaType().getName();
 					row[7] = null;
 					row[8] = null;
 					row[9] = null;
@@ -868,7 +868,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 							row[3] = columnrs.getString("attname");
 							row[4] = DatabaseMetaData.procedureColumnResult;
 							row[5] = SQLTypeMetaData.getSQLType(columnType);
-							row[6] = columnType.getOutputType(Format.Binary);
+							row[6] = columnType.getJavaType().getName();
 							row[7] = null;
 							row[8] = null;
 							row[9] = null;
@@ -921,7 +921,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					}
 	
 					row[5] = SQLTypeMetaData.getSQLType(argType);
-					row[6] = argType.getOutputType(Format.Binary).getName();
+					row[6] = argType.getJavaType().getName();
 					row[7] = null;
 					row[8] = null;
 					row[9] = null;
@@ -1223,7 +1223,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[2] = columnData.tableName;
     	row[3] = columnData.columnName;
     	row[4] = SQLTypeMetaData.getSQLType(columnData.type);
-    	row[5] = columnData.type.getOutputType(Format.Binary).getName();
+    	row[5] = columnData.type.getJavaType().getName();
     	
     	int size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
     	if(size == 0) {
@@ -1339,7 +1339,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 				row[0] = scope;
 				row[1] = rs.getString("attname");
 				row[2] = SQLTypeMetaData.getSQLType(type);
-				row[3] = type.getOutputType(Format.Binary).getName();
+				row[3] = type.getJavaType().getName();
 				row[4] = columnSize;
 				row[5] = null; // unused
 				row[6] = decimalDigits;
@@ -1386,7 +1386,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     row[0] = null;
     row[1] = "ctid";
     row[2] = SQLTypeMetaData.getSQLType(type);
-    row[3] = type.getOutputType(Format.Binary);
+    row[3] = type.getJavaType().getName();
     row[4] = null;
     row[5] = null;
     row[6] = null;

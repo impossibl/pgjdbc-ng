@@ -5,7 +5,6 @@ import java.util.Collection;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -237,7 +236,37 @@ public abstract class Type {
 		return this;
 	}
 	
-	public abstract PrimitiveType getPrimitiveType(); 
+	public PrimitiveType getPrimitiveType() {
+		Codec codec;
+		
+		codec = getBinaryCodec();
+		if(codec != null && codec.decoder.getInputPrimitiveType() != null) {
+			return codec.decoder.getInputPrimitiveType();
+		}
+		
+		codec = getTextCodec();
+		if(codec != null && codec.decoder.getInputPrimitiveType() != null) {
+			return codec.decoder.getInputPrimitiveType();
+		}
+		
+		return null;
+	}
+	
+	public Class<?> getJavaType() {
+		Codec codec;
+		
+		codec = getBinaryCodec();
+		if(codec != null) {
+			return codec.decoder.getOutputType();
+		}
+		
+		codec = getTextCodec();
+		if(codec != null) {
+			return codec.decoder.getOutputType();
+		}
+		
+		return null;
+	}
 	
 	/**
 	 * Load this type from a "pg_type" table entry and, if available, a
@@ -291,50 +320,6 @@ public abstract class Type {
 	@Override
 	public String toString() {
 		return name + '(' + id + ')';
-	}
-
-	public Class<?> getInputType(Format format) {
-		
-		switch(format) {
-		case Text:
-			return textCodec.encoder.getInputType();
-		case Binary:
-			return binaryCodec.encoder.getInputType();
-		}
-		return null;
-	}
-
-	public Class<?> getOutputType(Format format) {
-		
-		switch(format) {
-		case Text:
-			return textCodec.decoder.getOutputType();
-		case Binary:
-			return binaryCodec.decoder.getOutputType();
-		}
-		return null;
-	}
-
-	public PrimitiveType getInputSQLType(Format format) {
-		
-		switch(format) {
-		case Text:
-			return textCodec.decoder.getInputPrimitiveType();
-		case Binary:
-			return binaryCodec.decoder.getInputPrimitiveType();
-		}
-		return null;
-	}
-
-	public PrimitiveType getOutputPrimitiveType(Format format) {
-		
-		switch(format) {
-		case Text:
-			return textCodec.encoder.getOutputPrimitiveType();
-		case Binary:
-			return binaryCodec.encoder.getOutputPrimitiveType();
-		}
-		return null;
 	}
 
 }

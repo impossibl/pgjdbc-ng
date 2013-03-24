@@ -1,6 +1,10 @@
 package com.impossibl.postgres.types;
 
-import static com.impossibl.postgres.types.PrimitiveType.Range;
+import java.util.Collection;
+
+import com.impossibl.postgres.system.tables.PgAttribute;
+import com.impossibl.postgres.system.tables.PgType;
+
 
 /**
  * A database range type.
@@ -21,13 +25,15 @@ public class RangeType extends Type {
 	}
 
 	public Type unwrap() {
-		//TODO implement as return base.unwrap();
 		return this;
 	}
 
 	@Override
-	public PrimitiveType getPrimitiveType() {
-		return Range;
+	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
+		
+		super.load(source, attrs, registry);
+		
+		base = registry.loadType(source.arrayTypeId);
 	}
-
+	
 }

@@ -2,7 +2,6 @@ package com.impossibl.postgres.types;
 
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
-import static com.impossibl.postgres.types.PrimitiveType.Record;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -102,11 +101,6 @@ public class CompositeType extends Type {
 			attributes.add(attr);
 		}
 
-	}
-
-	@Override
-	public PrimitiveType getPrimitiveType() {
-		return Record;
 	}
 
 }

@@ -39,32 +39,38 @@ public class Records extends SimpleProcProvider {
 
 			CompositeType ctype = (CompositeType) type;
 
-			Object instance = createInstance(context.lookupInstanceType(type), 0);
+			Object instance = null;
 
 			int lengthGiven = buffer.readInt();
+			
+			if(lengthGiven != -1) {
+				
+				instance = createInstance(context.lookupInstanceType(type), 0);
 
-			long readStart = buffer.readerIndex();
-
-			int itemCount = buffer.readInt();
-
-			for (int c = 0; c < itemCount; ++c) {
-
-				Attribute attribute = ctype.getAttribute(c+1);
-
-				Type attributeType = context.getRegistry().loadType(buffer.readInt());
-
-				if (attributeType.getId() != attribute.type.getId()) {
-
-					context.refreshType(attributeType.getId());
+				long readStart = buffer.readerIndex();
+	
+				int itemCount = buffer.readInt();
+	
+				for (int c = 0; c < itemCount; ++c) {
+	
+					Attribute attribute = ctype.getAttribute(c+1);
+	
+					Type attributeType = context.getRegistry().loadType(buffer.readInt());
+	
+					if (attributeType.getId() != attribute.type.getId()) {
+	
+						context.refreshType(attributeType.getId());
+					}
+	
+					Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
+	
+					Records.set(instance, attribute.name, attributeVal);
 				}
-
-				Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
-
-				Records.set(instance, attribute.name, attributeVal);
-			}
-
-			if (lengthGiven != buffer.readerIndex() - readStart) {
-				throw new IllegalStateException();
+	
+				if (lengthGiven != buffer.readerIndex() - readStart) {
+					throw new IllegalStateException();
+				}
+				
 			}
 
 			return instance;

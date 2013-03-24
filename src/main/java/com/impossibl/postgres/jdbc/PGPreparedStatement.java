@@ -37,7 +37,6 @@ import java.util.List;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.Type;
 
 
@@ -85,7 +84,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		parameterIdx -= 1;
 		
 		Type paramType = parameterTypes.get(parameterIdx);
-		Class<?> requiredType = paramType.getInputType(Format.Binary);
+		Class<?> requiredType = paramType.getJavaType();
 		
 		parameterValues.set(parameterIdx, coerce(val, requiredType, connection));
 	}

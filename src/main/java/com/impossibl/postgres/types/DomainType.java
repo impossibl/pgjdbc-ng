@@ -60,12 +60,7 @@ public class DomainType extends Type {
 	public Type unwrap() {
 		return base.unwrap();
 	}
-	
-	@Override
-	public PrimitiveType getPrimitiveType() {
-		return base.getPrimitiveType();
-	}
-	
+
 	@Override
 	public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
 		
