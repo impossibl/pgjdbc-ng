@@ -54,6 +54,7 @@ import java.util.Map;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.types.Type;
 
 
 
@@ -131,6 +132,10 @@ class PGResultSet implements ResultSet {
 		return val;
 	}
 
+	Type getType(int columnIndex) {
+		return resultFields.get(columnIndex-1).type;
+	}
+	
 	@Override
 	public Statement getStatement() throws SQLException {
 		checkClosed();
@@ -710,18 +715,15 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public Object getObject(int columnIndex) throws SQLException {
-		checkClosed();
-		checkColumnIndex(columnIndex);
-
-		return get(columnIndex);
+		return getObject(columnIndex, statement.connection.getTypeMap());
 	}
 
 	@Override
 	public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
 		checkClosed();
 		checkColumnIndex(columnIndex);
-
-		return get(columnIndex);
+		
+		return SQLTypeUtils.coerceToCustomType(get(columnIndex), getType(columnIndex), map, statement.connection);
 	}
 
 	@Override

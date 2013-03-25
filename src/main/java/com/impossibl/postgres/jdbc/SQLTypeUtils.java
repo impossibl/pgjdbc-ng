@@ -1,6 +1,11 @@
 package com.impossibl.postgres.jdbc;
 
+import static java.lang.Character.toUpperCase;
+
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -12,6 +17,9 @@ import java.sql.Timestamp;
 import java.util.Map;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.Factory;
 
 class SQLTypeUtils {
 	
@@ -379,12 +387,72 @@ class SQLTypeUtils {
 		throw createCoercionException(val.getClass(), Blob.class);
 	}
 	
+	public static Object coerceToCustomType(Object val, Type type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+	
+		if(type instanceof CompositeType) {
+			return coerceToCustomType(val, (CompositeType)type, typeMap, connection);
+		}
+		
+		return coerce(val, type.getJavaType(), connection);
+	}
+	
+	public static Object coerceToCustomType(Object val, CompositeType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		Class<?> targetType = typeMap.get(type.getName());
+		if(targetType == null)
+			return val;
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> src = (Map<String, Object>) val;
+		
+		Object dst = Factory.createInstance(targetType, 0);
+		
+		for(CompositeType.Attribute attr : type.getAttributes()) {
+			
+			String name = attr.name;
+			Object value = src.get(name);
+
+			//Attempt to set via property method (setXXXX);
+			try {
+				Method method = targetType.getMethod("set" + toUpperCase(name.charAt(0)) + name.substring(1));
+				if(method.getParameterTypes().length == 1) {
+					try {
+						method.invoke(dst, coerceToCustomType(value, attr.type, typeMap, connection));
+						continue;
+					}
+					catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+						throw createCoercionException(value.getClass(), method.getParameterTypes()[0], e);
+					}
+				}
+			}
+			catch(NoSuchMethodException e) {
+			}
+			
+			//Attempt to set via field
+			try {
+				Field field = targetType.getField(name);
+				try {
+					field.set(dst, coerceToCustomType(value, attr.type, typeMap, connection));
+					continue;
+				}
+				catch(IllegalArgumentException | IllegalAccessException e) {
+					throw createCoercionException(value.getClass(), field.getType(), e);
+				}
+			}
+			catch(NoSuchFieldException e) {
+			}
+
+		}
+		
+		return dst;
+	}
+	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {
-		return new SQLException("Coercion from '" + srcType.getClass().getName() + "' to '" + dstType.getClass().getName() + "' is not supported");
+		return new SQLException("Coercion from '" + srcType.getName() + "' to '" + dstType.getName() + "' is not supported");
 	}
 	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Exception cause) {
-		return new SQLException("Coercion from '" + srcType.getClass().getName() + "' to '" + dstType.getClass().getName() + "' failed", cause);
+		return new SQLException("Coercion from '" + srcType.getName() + "' to '" + dstType.getName() + "' failed", cause);
 	}
 	
 }

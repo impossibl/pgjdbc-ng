@@ -47,7 +47,6 @@ import java.sql.Savepoint;
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -358,14 +357,14 @@ class PGConnection extends BasicContext implements Connection {
 	public Map<String, Class<?>> getTypeMap() throws SQLException {
 		checkClosed();
 		
-		return unmodifiableMap(targetTypeMap);
+		return targetTypeMap;
 	}
 
 	@Override
 	public void setTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
 		checkClosed();
 		
-		targetTypeMap = new HashMap<>(typeMap);
+		targetTypeMap = unmodifiableMap(typeMap);
 	}
 
 	@Override
