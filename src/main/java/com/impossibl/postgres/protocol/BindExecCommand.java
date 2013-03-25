@@ -15,8 +15,8 @@ public interface BindExecCommand extends QueryCommand {
 	int getMaxFieldLength();
 	public void setMaxFieldLength(int maxFieldLength);
 	
-	String getStatementName();
-	String getPortalName();
+	long getStatementId();
+	long getPortalId();
 	
 	List<Type> getParameterTypes();
 	List<Object> getParameterValues();

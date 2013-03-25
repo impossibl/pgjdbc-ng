@@ -5,6 +5,8 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
+import static com.impossibl.postgres.utils.ChannelBuffers.writeLongAsCString;
+import static java.lang.Long.toHexString;
 import static java.util.Arrays.asList;
 import static java.util.logging.Level.FINEST;
 
@@ -106,13 +108,13 @@ public class ProtocolImpl implements Protocol {
 	}
 
 	@Override
-	public PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes) {
-		return new PrepareCommandImpl(statementName, sqlText, parameterTypes);
+	public PrepareCommand createPrepare(long statementId, String sqlText, List<Type> parameterTypes) {
+		return new PrepareCommandImpl(statementId, sqlText, parameterTypes);
 	}
 
 	@Override
-	public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
-		return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields, rowType);
+	public BindExecCommand createBindExec(long portalId, long statementId, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+		return new BindExecCommandImpl(portalId, statementId, parameterTypes, parameterValues, resultFields, rowType);
 	}
 
 	@Override
@@ -126,8 +128,8 @@ public class ProtocolImpl implements Protocol {
 	}
 
 	@Override
-	public CloseCommand createClose(ServerObjectType objectType, String objectName) {
-		return new CloseCommandImpl(objectType, objectName);
+	public CloseCommand createClose(ServerObjectType objectType, long objectId) {
+		return new CloseCommandImpl(objectType, objectId);
 	}
 
 	public synchronized void execute(Command cmd) throws IOException {
@@ -198,14 +200,14 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
+	public void sendParse(long stmtId, String query, List<Type> paramTypes) throws IOException {
 		
 		if(logger.isLoggable(FINEST))
-			logger.finest("PARSE (" + stmtName + "): " + query);
+			logger.finest("PARSE (" + toHexString(stmtId) + "): " + query);
 
 		ChannelBuffer msg = newMessage(PARSE_MSG_ID);
 
-		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
+		writeLongAsCString(msg, stmtId);
 		writeCString(msg, query, context.getCharset());
 
 		msg.writeShort(paramTypes.size());
@@ -216,15 +218,15 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
+	public void sendBind(long portalId, long stmtId, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
 
 		if(logger.isLoggable(FINEST))
-			logger.finest("BIND (" + portalName + "): " + parameterValues.size());
+			logger.finest("BIND (" + toHexString(portalId) + "," + toHexString(stmtId) + "): " + parameterValues.size());
 
 		ChannelBuffer msg = newMessage(BIND_MSG_ID);
 
-		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
-		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
+		writeLongAsCString(msg, portalId);
+		writeLongAsCString(msg, stmtId);
 
 		loadParams(msg, parameterTypes, parameterValues);
 
@@ -235,27 +237,27 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendDescribe(ServerObjectType target, String targetName) throws IOException {
+	public void sendDescribe(ServerObjectType target, long targetId) throws IOException {
 
 		if(logger.isLoggable(FINEST))
-			logger.finest("DESCRIBE " + target + " (" + targetName + ")");
+			logger.finest("DESCRIBE " + target + " (" + toHexString(targetId) + ")");
 
 		ChannelBuffer msg = newMessage(DESCRIBE_MSG_ID);
 
 		msg.writeByte(target.getId());
-		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
+		writeLongAsCString(msg, targetId);
 
 		sendMessage(msg);
 	}
 
-	public void sendExecute(String portalName, int maxRows) throws IOException {
+	public void sendExecute(long portalId, int maxRows) throws IOException {
 
 		if(logger.isLoggable(FINEST))
-			logger.finest("EXECUTE (" + portalName + "): " + maxRows);
+			logger.finest("EXECUTE (" + toHexString(portalId) + "): " + maxRows);
 
 		ChannelBuffer msg = newMessage(EXECUTE_MSG_ID);
 
-		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
+		writeLongAsCString(msg, portalId);
 		msg.writeInt(maxRows);
 
 		sendMessage(msg);
@@ -285,15 +287,15 @@ public class ProtocolImpl implements Protocol {
 		return msg;
 	}
 
-	public void sendClose(ServerObjectType target, String targetName) throws IOException {
+	public void sendClose(ServerObjectType target, long targetId) throws IOException {
 
 		if(logger.isLoggable(FINEST))
-			logger.finest("CLOSE " + target + ": " + targetName);
+			logger.finest("CLOSE " + target + ": " + toHexString(targetId));
 			
 		ChannelBuffer msg = newMessage(CLOSE_MSG_ID);
 
 		msg.writeByte(target.getId());
-		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
+		writeLongAsCString(msg, targetId);
 
 		sendMessage(msg);
 	}

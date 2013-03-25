@@ -32,7 +32,7 @@ abstract class PGStatement implements Statement {
 	int concurrency;
 	int holdability;
 	int fetchDirection;
-	String name;
+	long id;
 	boolean processEscapes;
 	List<ResultField> resultFields;
 	Integer maxRows;
@@ -46,12 +46,12 @@ abstract class PGStatement implements Statement {
 
 	
 	
-	PGStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<ResultField> resultFields) {
+	PGStatement(PGConnection connection, int type, int concurrency, int holdability, long id, List<ResultField> resultFields) {
 		this.connection = connection;
 		this.type = type;
 		this.concurrency = concurrency;
 		this.holdability = holdability;
-		this.name = name;
+		this.id = id;
 		this.processEscapes = true;
 		this.resultFields = null;
 		this.activeResultSets = new ArrayList<>();
@@ -78,17 +78,17 @@ abstract class PGStatement implements Statement {
 	 * 
 	 * @param objectType
 	 * 					Type of object to dispose of
-	 * @param objectName
-	 * 					Name of the object to dispose of
+	 * @param objectId
+	 * 					Id of the object to dispose of
 	 * @throws SQLException
 	 * 					If an error occurs during disposal
 	 */
-	void dispose(ServerObjectType objectType, String objectName) throws SQLException {
+	void dispose(ServerObjectType objectType, long objectId) throws SQLException {
 		
-		if(objectName == null)
+		if(objectId == 0)
 			return;
 	
-		CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
+		CloseCommand close = connection.getProtocol().createClose(objectType, objectId);
 		
 		connection.execute(close);		
 	}
@@ -153,7 +153,7 @@ abstract class PGStatement implements Statement {
 
 		closeResultSets();
 		
-		dispose(Statement, name);
+		dispose(Statement, id);
 		
 		connection = null;
 		command = null;
@@ -164,24 +164,24 @@ abstract class PGStatement implements Statement {
 	 * Execute the named statement. It must have previously been parsed and
 	 * ready to be bound and executed.
 	 * 
-	 * @param statementName Name of backend statement to execute or null
+	 * @param statementId Id of backend statement to execute or null
 	 * @param parameterTypes List of parameter types
 	 * @param parameterValues List of parmaeter values
 	 * @return true if command returned results or false if not
 	 * @throws SQLException
 	 * 					If an error occurred durring statement execution
 	 */
-	public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
+	public boolean executeStatement(long statementId, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
 		
 		closeResultSets();
 
-		String portalName = null;
+		long portalId = 0;
 		
 		if (needsNamedPortal()) {
-			portalName = connection.getNextPortalName();
+			portalId = connection.getNextPortalId();
 		}
 
-		command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
+		command = connection.getProtocol().createBindExec(portalId, statementId, parameterTypes, parameterValues, resultFields, Object[].class);
 
 		if(fetchSize != null)
 			command.setMaxRows(fetchSize);

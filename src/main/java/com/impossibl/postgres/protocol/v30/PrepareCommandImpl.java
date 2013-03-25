@@ -16,7 +16,7 @@ import com.impossibl.postgres.types.Type;
 
 public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
-	private String statementName;
+	private long statementId;
 	private String query;
 	private List<Type> parseParameterTypes;
 	private List<Type> describedParameterTypes;
@@ -68,8 +68,8 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 	};
 
-	public PrepareCommandImpl(String statementName, String query, List<Type> parseParameterTypes) {
-		this.statementName = statementName;
+	public PrepareCommandImpl(long statementId, String query, List<Type> parseParameterTypes) {
+		this.statementId = statementId;
 		this.query = query;
 		this.parseParameterTypes = parseParameterTypes;
 	}
@@ -79,8 +79,8 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 	}
 
 	@Override
-	public String getStatementName() {
-		return statementName;
+	public long getStatementId() {
+		return statementId;
 	}
 
 	@Override
@@ -103,9 +103,9 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 		protocol.setListener(listener);
 
-		protocol.sendParse(statementName, query, parseParameterTypes);
+		protocol.sendParse(statementId, query, parseParameterTypes);
 
-		protocol.sendDescribe(Statement, statementName);
+		protocol.sendDescribe(Statement, statementId);
 
 		protocol.sendFlush();
 

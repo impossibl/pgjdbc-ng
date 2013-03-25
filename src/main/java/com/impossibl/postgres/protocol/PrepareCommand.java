@@ -6,7 +6,7 @@ import com.impossibl.postgres.types.Type;
 
 public interface PrepareCommand extends Command {
 
-	String getStatementName();
+	long getStatementId();
 	List<Type> getParseParameterTypes();
 	List<Type> getDescribedParameterTypes();
 	List<ResultField> getDescribedResultFields();

@@ -18,7 +18,7 @@ import com.impossibl.postgres.types.Type;
 class PGSimpleStatement extends PGStatement {
 
 	public PGSimpleStatement(PGConnection connection, int type, int concurrency, int holdability) {
-		super(connection, type, concurrency, holdability, null, Collections.<ResultField>emptyList());
+		super(connection, type, concurrency, holdability, 0, Collections.<ResultField>emptyList());
 	}
 
 	SQLWarning prepare(SQLText sqlText) throws SQLException {
@@ -27,7 +27,7 @@ class PGSimpleStatement extends PGStatement {
 			SQLTextEscapes.processEscapes(sqlText, connection);
 		}
 		
-		PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText.toString(), Collections.<Type>emptyList());
+		PrepareCommand prep = connection.getProtocol().createPrepare(0, sqlText.toString(), Collections.<Type>emptyList());
 		
 		SQLWarning warningChain = connection.execute(prep);
 		
@@ -40,7 +40,7 @@ class PGSimpleStatement extends PGStatement {
 		
 		SQLWarning prepWarningChain = prepare(sqlText);
 				
-		boolean res = super.executeStatement(null, Collections.<Type>emptyList(), Collections.<Object>emptyList());
+		boolean res = super.executeStatement(0, Collections.<Type>emptyList(), Collections.<Object>emptyList());
 		
 		warningChain = chainWarnings(prepWarningChain, warningChain);
 		

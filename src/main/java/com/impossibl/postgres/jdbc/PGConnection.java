@@ -146,21 +146,21 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	/**
-	 * Generates and returns the next unique statement name for this connection
+	 * Generates and returns the next unique statement id for this connection
 	 * 
-	 * @return New unique statement name
+	 * @return New unique statement id
 	 */
-	String getNextStatementName() {
-		return String.format("%016X", ++statementId);
+	long getNextStatementId() {
+		return ++statementId;
 	}
 
 	/**
-	 * Generates and returns the next unique portal name for this connection
+	 * Generates and returns the next unique portal id for this connection
 	 * 
-	 * @return New unique portal name
+	 * @return New unique portal id
 	 */
-	String getNextPortalName() {
-		return String.format("%016X", ++portalId);
+	long getNextPortalId() {
+		return ++portalId;
 	}
 
 	/**
@@ -637,15 +637,15 @@ class PGConnection extends BasicContext implements Connection {
 		
 		SQLTextEscapes.processEscapes(sqlText, this);
 		
-		String statementName = getNextStatementName();
+		long statementId = getNextStatementId();
 
-		PrepareCommand prepare = protocol.createPrepare(statementName, sqlText.toString(), Collections.<Type> emptyList());
+		PrepareCommand prepare = protocol.createPrepare(statementId, sqlText.toString(), Collections.<Type> emptyList());
 
 		warningChain = execute(prepare);
 
 		PGPreparedStatement statement =
 				new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
-						statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+						statementId, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
 		
 		activeStatements.add(new WeakReference<PGStatement>(statement));
 		

@@ -51,8 +51,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	
 	
 	
-	PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
-		super(connection, type, concurrency, holdability, name, resultFields);
+	PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, long id, List<Type> parameterTypes, List<ResultField> resultFields) {
+		super(connection, type, concurrency, holdability, id, resultFields);
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
 	}
@@ -99,7 +99,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public boolean execute() throws SQLException {
 		
-		boolean res = super.executeStatement(name, parameterTypes, parameterValues);
+		boolean res = super.executeStatement(id, parameterTypes, parameterValues);
 		
 		if(wantsGeneratedKeys) {
 			generatedKeysResultSet = getResultSet();
