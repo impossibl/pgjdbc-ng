@@ -196,7 +196,7 @@ class PGConnection extends BasicContext implements Connection {
 				statement.internalClose();
 		}
 	}
-
+	
 	/**
 	 * Executes the given command and throws a SQLException if an error was
 	 * encountered and returns a chain of SQLWarnings if any were generated.
@@ -212,7 +212,7 @@ class PGConnection extends BasicContext implements Connection {
 		checkTransaction();
 		
 		try {
-
+			
 			protocol.execute(cmd);
 
 			if(cmd.getError() != null) {
@@ -277,6 +277,46 @@ class PGConnection extends BasicContext implements Connection {
 		try {
 
 			return execQueryForString(sql);
+
+		}
+		catch(IOException e) {
+
+			throw new SQLException(e);
+
+		}
+		catch(NoticeException e) {
+
+			throw makeSQLException(e.getNotice());
+		
+		}
+
+	}
+
+	/**
+	 * Executes the given SQL text returning the first column of the first row
+	 * 
+	 * @param sql
+	 *          SQL text to execute
+	 * @return String String value of the 1st column of the 1st row or empty
+	 *         string if no results are available
+	 * @throws SQLException
+	 *           If an error was encountered during execution
+	 */
+	<T> T executeForResult(String sql, Class<T> returnType, Object... params) throws SQLException {
+
+		checkTransaction();
+		
+		try {
+
+			List<Object[]> res = execQuery(sql, Object[].class, params);
+			if(res.isEmpty())
+				return null;
+			
+			Object[] resRow = res.get(0);
+			if(resRow.length == 0)
+				return null;
+			
+			return returnType.cast(resRow[0]);
 
 		}
 		catch(IOException e) {
@@ -682,7 +722,10 @@ class PGConnection extends BasicContext implements Connection {
 	@Override
 	public Blob createBlob() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+
+		int loOid = LargeObject.creat(this, 0);
+		
+		return new PGBlob(this, loOid);
 	}
 
 	@Override
