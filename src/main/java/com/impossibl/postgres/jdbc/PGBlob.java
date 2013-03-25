@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.io.ByteStreams;
+
 public class PGBlob implements Blob {
 	
   private class LOByteIterator
@@ -92,7 +94,7 @@ public class PGBlob implements Blob {
 		LargeObject streamLo = lo.dup();
 		streamLos.add(streamLo);
 		streamLo.lseek(pos, LargeObject.SEEK_SET);
-		return new BlobInputStream(streamLo, length);
+		return ByteStreams.limit(new BlobInputStream(streamLo), length); 
 	}
 
 	@Override

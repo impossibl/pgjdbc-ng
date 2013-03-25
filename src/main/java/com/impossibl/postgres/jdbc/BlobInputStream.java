@@ -13,16 +13,9 @@ public class BlobInputStream extends InputStream {
 	LargeObject lo;
 	byte[] buf = {};
 	int pos = 0;
-	long totalRead;
-	long maxRead;
 	
 	public BlobInputStream(LargeObject lo) {
-		this(lo, Long.MAX_VALUE);
-	}
-
-	public BlobInputStream(LargeObject lo, long maxRead) {
 		this.lo = lo;
-		this.maxRead = maxRead;
 	}
 
 	@Override
@@ -65,10 +58,7 @@ public class BlobInputStream extends InputStream {
 	
 	public void readNextRegion() throws IOException {
 		try {
-			long amt = min(MAX_BUF_SIZE, maxRead - totalRead);
-			if(amt > 0) {
-				buf = lo.read(amt);
-			}
+			buf = lo.read(MAX_BUF_SIZE);
 			pos = 0;
 		}
 		catch(SQLException e) {

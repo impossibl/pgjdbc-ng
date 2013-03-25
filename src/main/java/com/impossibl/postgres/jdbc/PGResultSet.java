@@ -18,6 +18,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.createCoercionException;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
@@ -30,7 +31,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
@@ -669,11 +669,15 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public URL getURL(int columnIndex) throws SQLException {
+		checkClosed();
+		checkColumnIndex(columnIndex);
+		
+		Object val = get(columnIndex);
 		try {
-			return new URL(getString(columnIndex));
+			return (URL) val;
 		}
-		catch(MalformedURLException e) {
-			throw new SQLException("Column contains an invalid URL", e);
+		catch(ClassCastException e) {
+			return coerceToURL(val);
 		}
 	}
 

@@ -2,6 +2,8 @@ package com.impossibl.postgres.jdbc;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -55,6 +57,9 @@ class SQLTypeUtils {
 		}
 		else if(targetType.isArray()) {
 			return coerceToArray(val, targetType, context);
+		}
+		else if(URL.class.isAssignableFrom(targetType)) {
+			return coerceToURL(val);
 		}
 		
 		throw createCoercionException(val.getClass(), targetType);
@@ -110,6 +115,9 @@ class SQLTypeUtils {
 		else if(val instanceof Boolean) {
 			return ((Boolean)val) ? 1 : 0;
 		}
+		else if(val instanceof PGBlob) {
+			return ((PGBlob)val).lo.oid;
+		}
 		
 		throw createCoercionException(val.getClass(), int.class);
 	}
@@ -127,6 +135,9 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof Boolean) {
 			return ((Boolean)val) ? 1 : 0;
+		}
+		else if(val instanceof PGBlob) {
+			return ((PGBlob)val).lo.oid;
 		}
 		
 		throw createCoercionException(val.getClass(), long.class);
@@ -221,6 +232,9 @@ class SQLTypeUtils {
 			return (String) val;
 		}
 		else if(val instanceof Boolean) {
+			return val.toString();
+		}
+		else if(val instanceof URL) {
 			return val.toString();
 		}
 		
@@ -329,8 +343,29 @@ class SQLTypeUtils {
 		throw createCoercionException(val.getClass(), arrayType);
 	}
 	
+	public static URL coerceToURL(Object val) throws SQLException {
+		
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof String) {
+			try {
+				return new URL((String) val);
+			}
+			catch(MalformedURLException e) {
+				throw createCoercionException(val.getClass(), URL.class, e);
+			}
+		}
+		
+		throw createCoercionException(val.getClass(), URL.class);
+	}
+	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {
 		return new SQLException("Coercion from '" + srcType.getClass().getName() + "' to '" + dstType.getClass().getName() + "' is not supported");
+	}
+	
+	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Exception cause) {
+		return new SQLException("Coercion from '" + srcType.getClass().getName() + "' to '" + dstType.getClass().getName() + "' failed", cause);
 	}
 	
 }
