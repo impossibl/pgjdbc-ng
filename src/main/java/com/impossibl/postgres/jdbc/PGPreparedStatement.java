@@ -333,7 +333,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		if(x instanceof PGBlob == false) {
+			throw new SQLException("Unsupported Blob subclass");
+		}
+		
+		set(parameterIndex, ((PGBlob)x).lo.oid);
 	}
 
 	@Override

@@ -738,7 +738,8 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Blob getBlob(int columnIndex) throws SQLException {
 		checkClosed();		
-		throw NOT_IMPLEMENTED;
+		
+		return new PGBlob(statement.connection, getInt(columnIndex));
 	}
 
 	@Override
