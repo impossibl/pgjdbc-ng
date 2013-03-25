@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.protocol.TransactionStatus;
 
 
 
@@ -22,20 +23,23 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 		}
 
 		@Override
-		public synchronized void closeComplete() {
+		public void closeComplete() {
 			complete = true;
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void error(Notice error) {
+		public void error(Notice error) {
 			CloseCommandImpl.this.error = error;
-			notifyAll();
 		}
 
 		@Override
 		public void notice(Notice notice) {
 			addNotice(notice);
+		}
+
+		@Override
+		public synchronized void ready(TransactionStatus txStatus) {
+			notifyAll();
 		}
 
 	};
@@ -60,11 +64,9 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 		protocol.setListener(listener);
 		
-		protocol.sendSync();
-
 		protocol.sendClose(objectType, objectName);
 		
-		protocol.sendFlush();
+		protocol.sendSync();
 
 		waitFor(listener);
 		

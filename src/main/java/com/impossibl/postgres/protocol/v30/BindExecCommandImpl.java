@@ -4,14 +4,11 @@ import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 import static java.util.Arrays.asList;
-import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -20,9 +17,9 @@ import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
-import com.impossibl.postgres.system.procs.Arrays;
 import com.impossibl.postgres.types.Type;
 
 
@@ -93,9 +90,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public synchronized void emptyQuery() {
+		public void emptyQuery() {
 			status = Status.Completed;
-			notifyAll();
 		}
 
 		@Override
@@ -105,23 +101,26 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
+		public void commandComplete(String command, Long rowsAffected, Long oid) {
 			status = Status.Completed;
 			BindExecCommandImpl.this.resultCommand = command;
 			BindExecCommandImpl.this.resultRowsAffected = rowsAffected;
 			BindExecCommandImpl.this.resultInsertedOid = oid;
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void error(Notice error) {
+		public void error(Notice error) {
 			BindExecCommandImpl.this.error = error;
-			notifyAll();
 		}
 
 		@Override
 		public void notice(Notice notice) {
 			addNotice(notice);
+		}
+
+		@Override
+		public synchronized void ready(TransactionStatus txStatus) {
+			notifyAll();
 		}
 
 	};
@@ -254,59 +253,17 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		protocol.sendExecute(portalName, maxRows);
 
-		protocol.sendFlush();
+		if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+			protocol.sendFlush();			
+		}
+		else {
+			protocol.sendSync();			
+		}
 
 		reset();
 
 		waitFor(listener);
-
-		if(status == Status.Completed) {
-
-			protocol.sendSync();
-
-		}
-
-	}
-
-	@SuppressWarnings("unchecked")
-	protected void setField(Object instance, int idx, String name, Object value) throws IOException {
-
-		if (Arrays.is(instance)) {
-
-			Arrays.set(instance, idx, value);
-			return;
-		}
-		else if (instance instanceof Map) {
-
-			((Map<Object, Object>) instance).put(name, value);
-			return;
-		}
-		else {
-
-			try {
-
-				java.lang.reflect.Field field;
-
-				if ((field = instance.getClass().getField(name)) != null) {
-					field.set(instance, value);
-					return;
-				}
-
-			}
-			catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e1) {
-
-				try {
-					setProperty(instance, name.toString(), value);
-					return;
-				}
-				catch (IllegalAccessException | InvocationTargetException e) {
-				}
-
-			}
-		}
-
-		throw new IllegalStateException("invalid poperty name/index");
+		
 	}
 
 }
-

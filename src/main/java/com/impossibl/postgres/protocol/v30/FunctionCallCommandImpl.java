@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 
 
@@ -28,14 +29,18 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 		}
 
 		@Override
-		public synchronized void error(Notice error) {
+		public void error(Notice error) {
 			FunctionCallCommandImpl.this.error = error;
-			notifyAll();
 		}
 
 		@Override
 		public void notice(Notice notice) {
 			addNotice(notice);
+		}
+
+		@Override
+		public synchronized void ready(TransactionStatus txStatus) {
+			notifyAll();
 		}
 
 	};
@@ -73,9 +78,9 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 		if(procId == 0)
 			throw new IOException("invalid function name");
 
-		protocol.sendSync();
-
 		protocol.sendFunctionCall(procId, parameterTypes, parameterValues);
+		
+		protocol.sendSync();
 
 		waitFor(listener);
 

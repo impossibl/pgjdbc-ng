@@ -10,6 +10,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
@@ -66,22 +67,25 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		}
 
 		@Override
-		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
+		public void commandComplete(String command, Long rowsAffected, Long oid) {
 			QueryCommandImpl.this.resultCommand = command;
 			QueryCommandImpl.this.resultRowsAffected = rowsAffected;
 			QueryCommandImpl.this.resultInsertedOid = oid;
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void error(Notice error) {
+		public void error(Notice error) {
 			QueryCommandImpl.this.error = error;
-			notifyAll();
 		}
 
 		@Override
 		public void notice(Notice notice) {
 			addNotice(notice);
+		}
+
+		@Override
+		public synchronized void ready(TransactionStatus txStatus) {
+			notifyAll();
 		}
 
 	};
@@ -126,8 +130,6 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		QueryListener listener = new QueryListener(protocol.getContext());
 		
 		protocol.setListener(listener);
-
-		protocol.sendSync();
 
 		protocol.sendQuery(command);
 
