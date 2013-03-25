@@ -1,12 +1,11 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.types.PrimitiveType.Record;
-import static com.impossibl.postgres.utils.Factory.createInstance;
 import static org.apache.commons.beanutils.BeanUtils.getProperty;
-import static org.apache.commons.beanutils.BeanUtils.setProperty;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -39,13 +38,13 @@ public class Records extends SimpleProcProvider {
 
 			CompositeType ctype = (CompositeType) type;
 
-			Object instance = null;
+			Map<String, Object> instance = null;
 
 			int lengthGiven = buffer.readInt();
 			
 			if(lengthGiven != -1) {
 				
-				instance = createInstance(context.lookupInstanceType(type), 0);
+				instance = new HashMap<>();
 
 				long readStart = buffer.readerIndex();
 	
@@ -64,7 +63,7 @@ public class Records extends SimpleProcProvider {
 	
 					Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
 	
-					Records.set(instance, attribute.name, attributeVal);
+					instance.put(attribute.name, attributeVal);
 				}
 	
 				if (lengthGiven != buffer.readerIndex() - readStart) {
@@ -99,7 +98,7 @@ public class Records extends SimpleProcProvider {
 				buffer.writeInt(-1);
 
 				int writeStart = buffer.writerIndex();
-
+				
 				CompositeType ctype = (CompositeType) type;
 				
 				Collection<Attribute> attributes = ctype.getAttributes();
@@ -147,43 +146,6 @@ public class Records extends SimpleProcProvider {
 
 				try {
 					return getProperty(instance, name.toString());
-				}
-				catch (ReflectiveOperationException e1) {
-				}
-
-			}
-		}
-
-		throw new IllegalStateException("invalid poperty name/index");
-	}
-
-	@SuppressWarnings("unchecked")
-	protected static void set(Object instance, String name, Object value) {
-
-		if (instance instanceof Map) {
-
-			((Map<Object, Object>) instance).put(name, value);
-			return;
-		}
-		else {
-
-			try {
-
-				java.lang.reflect.Field field;
-
-				if ((field = instance.getClass().getField(name)) != null) {
-
-					field.set(instance, value);
-					return;
-				}
-
-			}
-			catch (ReflectiveOperationException | IllegalArgumentException e) {
-
-				try {
-
-					setProperty(instance, name.toString(), value);
-					return;
 				}
 				catch (ReflectiveOperationException e1) {
 				}

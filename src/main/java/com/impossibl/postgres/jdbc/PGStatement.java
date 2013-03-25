@@ -195,7 +195,7 @@ abstract class PGStatement implements Statement {
 		
 	}
 	
-	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) {
+	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
 		
 		PGResultSet resultSet = new PGResultSet(this, resultFields, results);
 		activeResultSets.add(resultSet);

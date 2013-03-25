@@ -5,6 +5,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COLUMN_NAME;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.ROW_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
@@ -54,6 +55,8 @@ import java.util.Map;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.Type;
 
 
 
@@ -72,21 +75,27 @@ class PGResultSet implements ResultSet {
 	List<ResultField> resultFields;
 	List<Object[]> results;
 	Boolean nullFlag;
+	Map<String, Class<?>> typeMap;
 
 	
 	
-	PGResultSet(PGStatement statement, BindExecCommand command) {
+	PGResultSet(PGStatement statement, BindExecCommand command) throws SQLException {
 		this(statement, command.getResultFields(), command.getResults(Object[].class));
 		this.command = command;
 	}
 	
-	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results) {
+	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+		this(statement, resultFields, results, statement.connection.getTypeMap());
+	}
+	
+	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) {
 		super();
 		this.statement = statement;
 		this.fetchSize = statement.fetchSize;
 		this.currentRow = -1;
 		this.resultFields = resultFields;
 		this.results = results;
+		this.typeMap = typeMap;
 	}
 	
 	protected void finalize() throws SQLException {
@@ -119,6 +128,18 @@ class PGResultSet implements ResultSet {
 	}
 	
 	/**
+	 * Ensure the current row index is in a valid range for this result set
+	 * 
+	 * @throws SQLException If the current row index is out of the range
+	 */
+	void checkRow() throws SQLException {
+		
+		if(currentRow < 0 || currentRow >= results.size())
+			throw ROW_INDEX_OUT_OF_BOUNDS;
+		
+	}
+	
+	/**
 	 * Retrieves the column using the correct index and properly sets the 
 	 * null flag for subsequent operations
 	 * 
@@ -131,6 +152,10 @@ class PGResultSet implements ResultSet {
 		return val;
 	}
 
+	Type getType(int columnIndex) {
+		return resultFields.get(columnIndex-1).type;
+	}
+	
 	@Override
 	public Statement getStatement() throws SQLException {
 		checkClosed();
@@ -422,6 +447,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public String getString(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object res = get(columnIndex);
@@ -434,6 +460,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public boolean getBoolean(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -448,6 +475,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public byte getByte(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -462,6 +490,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public short getShort(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -476,6 +505,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public int getInt(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -490,6 +520,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public long getLong(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -504,6 +535,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public float getFloat(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -518,6 +550,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public double getDouble(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -543,6 +576,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -557,6 +591,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public byte[] getBytes(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -571,6 +606,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Date getDate(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -585,6 +621,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Time getTime(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -599,6 +636,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Timestamp getTimestamp(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -613,6 +651,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Date getDate(int columnIndex, Calendar cal) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		//TODO respect calendar param
@@ -629,6 +668,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Time getTime(int columnIndex, Calendar cal) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		//TODO respect calendar param
@@ -645,6 +685,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		//TODO respect calendar param
@@ -660,12 +701,24 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public Array getArray(int columnIndex) throws SQLException {
-		throw NOT_IMPLEMENTED;
+		checkClosed();
+		checkRow();
+		checkColumnIndex(columnIndex);
+		
+		Object value = get(columnIndex);
+		Type type = getType(columnIndex);
+		
+		if(type instanceof ArrayType == false) {
+			throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
+		}
+		
+		return new PGArray(statement.connection, (ArrayType)type, (Object[])value); 
 	}
 
 	@Override
 	public URL getURL(int columnIndex) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		Object val = get(columnIndex);
@@ -710,23 +763,22 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public Object getObject(int columnIndex) throws SQLException {
-		checkClosed();
-		checkColumnIndex(columnIndex);
-
-		return get(columnIndex);
+		return getObject(columnIndex, typeMap);
 	}
 
 	@Override
 	public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
-
-		return get(columnIndex);
+		
+		return SQLTypeUtils.coerceToType(get(columnIndex), getType(columnIndex), map, statement.connection);
 	}
 
 	@Override
 	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
 		checkClosed();
+		checkRow();
 		checkColumnIndex(columnIndex);
 		
 		return type.cast(coerce(get(columnIndex), type, statement.connection));
