@@ -19,7 +19,6 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSavepointText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLevelText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
-import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
@@ -125,6 +124,27 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	/**
+	 * Ensures that a transaction is active when in manual commit mode
+	 * 
+	 * @throws SQLException
+	 */
+	void checkTransaction() throws SQLException {
+		
+		if(!autoCommit && protocol.getTransactionStatus() == Idle) {
+			try {
+				execQuery(getBeginText());
+			}
+			catch(IOException e) {
+				throw new SQLException(e);
+			}
+			catch(NoticeException e) {
+				throw makeSQLException(e.getNotice());
+			}
+		}
+
+	}
+
+	/**
 	 * Generates and returns the next unique statement name for this connection
 	 * 
 	 * @return New unique statement name
@@ -189,6 +209,8 @@ class PGConnection extends BasicContext implements Connection {
 	 */
 	SQLWarning execute(Command cmd) throws SQLException {
 
+		checkTransaction();
+		
 		try {
 
 			protocol.execute(cmd);
@@ -218,6 +240,8 @@ class PGConnection extends BasicContext implements Connection {
 	 */
 	void execute(String sql) throws SQLException {
 
+		checkTransaction();
+		
 		try {
 
 			execQuery(sql);
@@ -248,6 +272,8 @@ class PGConnection extends BasicContext implements Connection {
 	 */
 	String executeForString(String sql) throws SQLException {
 
+		checkTransaction();
+		
 		try {
 
 			return execQueryForString(sql);
@@ -405,8 +431,6 @@ class PGConnection extends BasicContext implements Connection {
 			execute(getCommitText());
 		}
 
-		// Start new transaction
-		execute(getBeginText());
 	}
 
 	@Override
@@ -419,8 +443,6 @@ class PGConnection extends BasicContext implements Connection {
 			execute(getRollbackText());
 		}
 
-		// Start new transaction
-		execute(getBeginText());
 	}
 
 	@Override
@@ -428,15 +450,10 @@ class PGConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		// Start transaction if none available
-		if(protocol.getTransactionStatus() != Active) {
-			execute(getBeginText());
-		}
-
 		// Allocate new save-point name & wrapper
 		PGSavepoint savepoint = new PGSavepoint(++savepointId);
 
-		// Mark save-point
+		// Mark save-point (will auto start txn if needed)
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
@@ -447,15 +464,10 @@ class PGConnection extends BasicContext implements Connection {
 		checkClosed();
 		checkManualCommit();
 
-		// Start transaction if none available
-		if(protocol.getTransactionStatus() != Active) {
-			execute(getBeginText());
-		}
-
 		// Allocate new save-point wrapper
 		PGSavepoint savepoint = new PGSavepoint(name);
 
-		// Mark save-point
+		// Mark save-point (will auto start txn if needed)
 		execute(getSetSavepointText(savepoint));
 
 		return savepoint;
