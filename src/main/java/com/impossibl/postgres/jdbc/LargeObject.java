@@ -2,7 +2,7 @@ package com.impossibl.postgres.jdbc;
 
 import java.sql.SQLException;
 
-public class LargeObject {
+class LargeObject {
 	
 	protected static final int INV_READ 	= 0x00040000;
 	protected static final int INV_WRITE 	= 0x00020000;
@@ -15,7 +15,7 @@ public class LargeObject {
 	int fd;
 	PGConnection connection;
 	
-	public static LargeObject open(PGConnection connection, int oid) throws SQLException {
+	static LargeObject open(PGConnection connection, int oid) throws SQLException {
 		int fd = open(connection, oid, INV_READ|INV_WRITE);
 		if(fd == -1) {
 			throw new SQLException("Unable to open large object");
@@ -23,14 +23,14 @@ public class LargeObject {
 		return new LargeObject(connection, oid, fd);
 	}
 	
-	public LargeObject(PGConnection connection, int oid, int fd) {
+	LargeObject(PGConnection connection, int oid, int fd) {
 		super();
 		this.oid = oid;
 		this.fd = fd;
 		this.connection = connection;
 	}
 
-	public LargeObject dup() throws SQLException {
+	LargeObject dup() throws SQLException {
 		return open(connection, oid);
 	}
 

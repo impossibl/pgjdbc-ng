@@ -45,7 +45,12 @@ public class PGBlob implements Blob {
   LargeObject lo;
 	List<LargeObject> streamLos;
 
-	public PGBlob(PGConnection connection, int oid) throws SQLException {
+	PGBlob(PGConnection connection, int oid) throws SQLException {
+		
+		if(connection.getAutoCommit() == true) {
+			throw new SQLException("Blobs require connection to be in manual-commit mode... setAutoCommit(false)");
+		}
+		
 		lo = LargeObject.open(connection, oid);
 		streamLos = new ArrayList<>();
 	}
