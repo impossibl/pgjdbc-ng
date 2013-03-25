@@ -737,8 +737,6 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveReadyForQuery(ChannelBuffer buffer) throws IOException {
 
-		TransactionStatus txStatus;
-
 		switch (buffer.readByte()) {
 		case 'T':
 			txStatus = Active;
@@ -754,7 +752,7 @@ public class ProtocolImpl implements Protocol {
 		}
 
 		logger.finest("READY: " + txStatus);
-
+		
 		if(listener != null)
 			listener.ready(txStatus);
 	}
