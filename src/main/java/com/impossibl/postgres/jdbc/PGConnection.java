@@ -57,6 +57,7 @@ import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -713,12 +714,6 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public Clob createClob() throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
 	public Blob createBlob() throws SQLException {
 		checkClosed();
 
@@ -728,13 +723,25 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public NClob createNClob() throws SQLException {
+	public SQLXML createSQLXML() throws SQLException {
 		checkClosed();
 		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
-	public SQLXML createSQLXML() throws SQLException {
+	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+		checkClosed();
+		
+		Type type = getRegistry().loadType("_" + typeName);
+		if(type == null) {
+			throw new SQLException("Array type not found");
+		}
+		
+		return new PGArray(this, (ArrayType)type, elements);
+	}
+
+	@Override
+	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
 		checkClosed();
 		throw NOT_IMPLEMENTED;
 	}
@@ -764,13 +771,13 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+	public Clob createClob() throws SQLException {
 		checkClosed();
 		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
-	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+	public NClob createNClob() throws SQLException {
 		checkClosed();
 		throw NOT_IMPLEMENTED;
 	}
