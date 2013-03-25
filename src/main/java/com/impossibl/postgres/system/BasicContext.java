@@ -231,7 +231,7 @@ public class BasicContext implements Context {
 		protocol.execute(query);
 		
 		if(query.getError() != null) {
-			throw new NoticeException("Error executing query", prepare.getError());
+			throw new NoticeException("Error executing query", query.getError());
 		}
 
 		return query.getResults(rowType);
