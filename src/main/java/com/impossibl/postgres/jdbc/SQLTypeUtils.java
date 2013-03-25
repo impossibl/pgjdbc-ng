@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.Blob;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -14,7 +15,7 @@ import com.impossibl.postgres.system.Context;
 
 class SQLTypeUtils {
 	
-	public static Object coerce(Object val, Class<?> targetType, Context context) throws SQLException {
+	public static Object coerce(Object val, Class<?> targetType, PGConnection connection) throws SQLException {
 		
 		if(targetType.isInstance(val)) {
 			return val;
@@ -47,19 +48,22 @@ class SQLTypeUtils {
 			return coerceToString(val);
 		}
 		else if(targetType == Date.class) {
-			return coerceToDate(val, context);
+			return coerceToDate(val, connection);
 		}
 		else if(targetType == Time.class) {
-			return coerceToTime(val, context);
+			return coerceToTime(val, connection);
 		}
 		else if(targetType == Timestamp.class) {
-			return coerceToTimestamp(val, context);
+			return coerceToTimestamp(val, connection);
 		}
 		else if(targetType.isArray()) {
-			return coerceToArray(val, targetType, context);
+			return coerceToArray(val, targetType, connection);
 		}
-		else if(URL.class.isAssignableFrom(targetType)) {
+		else if(URL.class == targetType) {
 			return coerceToURL(val);
+		}
+		else if(Blob.class == targetType) {
+			return coerceToBlob(val, connection);
 		}
 		
 		throw createCoercionException(val.getClass(), targetType);
@@ -358,6 +362,21 @@ class SQLTypeUtils {
 		}
 		
 		throw createCoercionException(val.getClass(), URL.class);
+	}
+	
+	public static Blob coerceToBlob(Object val, PGConnection connection) throws SQLException {
+		
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof Integer) {
+			return new PGBlob(connection, (int)val);
+		}
+		else if(val instanceof Long) {
+			return new PGBlob(connection, (int)(long)val);
+		}
+		
+		throw createCoercionException(val.getClass(), Blob.class);
 	}
 	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {

@@ -23,6 +23,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.createCoercionException;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
+import static java.math.RoundingMode.HALF_UP;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -530,18 +531,13 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-		checkClosed();
-		checkColumnIndex(columnIndex);
 		
-		//TODO respect scale param
+		BigDecimal val = coerceToBigDecimal(columnIndex);
+		if(val == null) {
+			return null;
+		}
 		
-		Object val = get(columnIndex);
-		try {
-			return (BigDecimal) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToBigDecimal(val);
-		}
+		return val.setScale(scale, HALF_UP);
 	}
 
 	@Override
@@ -693,14 +689,23 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-		checkClosed();
-		checkColumnIndex(columnIndex);
 		return new ByteArrayInputStream(getString(columnIndex).getBytes(UTF_8));
 	}
 
 	@Override
 	public InputStream getBinaryStream(int columnIndex) throws SQLException {
 		return new ByteArrayInputStream(getBytes(columnIndex));
+	}
+
+	@Override
+	public Blob getBlob(int columnIndex) throws SQLException {
+		return new PGBlob(statement.connection, getInt(columnIndex));
+	}
+
+	@Override
+	public SQLXML getSQLXML(int columnIndex) throws SQLException {
+		checkClosed();		
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -740,20 +745,7 @@ class PGResultSet implements ResultSet {
 	}
 
 	@Override
-	public Blob getBlob(int columnIndex) throws SQLException {
-		checkClosed();		
-		
-		return new PGBlob(statement.connection, getInt(columnIndex));
-	}
-
-	@Override
 	public Clob getClob(int columnIndex) throws SQLException {
-		checkClosed();		
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
-	public SQLXML getSQLXML(int columnIndex) throws SQLException {
 		checkClosed();		
 		throw NOT_IMPLEMENTED;
 	}
