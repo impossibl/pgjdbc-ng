@@ -17,6 +17,7 @@ import java.sql.Timestamp;
 import java.util.Map;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.Factory;
@@ -327,6 +328,10 @@ class SQLTypeUtils {
 		if(val == null) {
 			return null;
 		}
+		else if(val instanceof PGArray) {
+			
+			return ((PGArray) val).getValue();			
+		}
 		else if(val.getClass().isArray()) {
 			
 			if(val.getClass().getComponentType() == arrayType.getComponentType()) {
@@ -387,13 +392,39 @@ class SQLTypeUtils {
 		throw createCoercionException(val.getClass(), Blob.class);
 	}
 	
-	public static Object coerceToCustomType(Object val, Type type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+	public static Object coerceToType(Object val, Type type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 	
 		if(type instanceof CompositeType) {
 			return coerceToCustomType(val, (CompositeType)type, typeMap, connection);
 		}
+		else if(type instanceof ArrayType) {
+			return coerceToArrayType(val, (ArrayType)type, typeMap, connection);
+		}
 		
 		return coerce(val, type.getJavaType(), connection);
+	}
+	
+	public static Object coerceToArrayType(Object val, ArrayType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		return coerceToArrayType(val, 0, Array.getLength(val), type, typeMap, connection);
+	}
+	
+	public static Object coerceToArrayType(Object val, int index, int count, ArrayType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {	
+		
+		Class<?> elementType = typeMap.get(type.getElementType().getName());
+		if(elementType == null) {
+			elementType = type.getElementType().getJavaType();
+		}
+		
+		Object dst = Array.newInstance(elementType, count);
+		
+		for(int c=index, end=index+count; c < end; ++c) {
+			
+			Array.set(dst, c, coerceToType(Array.get(val, c), type.getElementType(), typeMap, connection));
+			
+		}
+		
+		return dst;
 	}
 	
 	public static Object coerceToCustomType(Object val, CompositeType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
@@ -417,7 +448,7 @@ class SQLTypeUtils {
 				Method method = targetType.getMethod("set" + toUpperCase(name.charAt(0)) + name.substring(1));
 				if(method.getParameterTypes().length == 1) {
 					try {
-						method.invoke(dst, coerceToCustomType(value, attr.type, typeMap, connection));
+						method.invoke(dst, coerceToType(value, attr.type, typeMap, connection));
 						continue;
 					}
 					catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -432,7 +463,7 @@ class SQLTypeUtils {
 			try {
 				Field field = targetType.getField(name);
 				try {
-					field.set(dst, coerceToCustomType(value, attr.type, typeMap, connection));
+					field.set(dst, coerceToType(value, attr.type, typeMap, connection));
 					continue;
 				}
 				catch(IllegalArgumentException | IllegalAccessException e) {

@@ -342,18 +342,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	}
 
 	@Override
-	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
-	public void setRef(int parameterIndex, Ref x) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {
 		set(parameterIndex, x); 
 	}
@@ -365,7 +353,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-		checkClosed();
 		
 		Blob blob = connection.createBlob();
 		
@@ -381,8 +368,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
+		set(parameterIndex, x);
 	}
 
 	@Override
@@ -414,7 +400,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	}
 
 	@Override
+	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+		checkClosed();
+		throw NOT_IMPLEMENTED;
+	}
+
+	@Override
 	public void setRowId(int parameterIndex, RowId x) throws SQLException {
+		checkClosed();
+		throw NOT_IMPLEMENTED;
+	}
+
+	@Override
+	public void setRef(int parameterIndex, Ref x) throws SQLException {
 		checkClosed();
 		throw NOT_IMPLEMENTED;
 	}
