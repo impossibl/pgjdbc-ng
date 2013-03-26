@@ -61,6 +61,12 @@ public class Notice {
 	public Notice() {
 	}
 	
+	public Notice(String severity, String code, String message) {
+		this.severity = severity;
+		this.code = code;
+		this.message = message;
+	}
+	
 	public boolean isSuccess() {
 		return code != null && code.startsWith(SUCCESS_CLASS);
 	}

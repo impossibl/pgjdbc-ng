@@ -469,6 +469,13 @@ public class ProtocolImpl implements Protocol {
 
 	}
 
+	public void dispatchException(Throwable cause) throws IOException {
+		
+		if(listener != null) {
+			listener.error(new Notice("ERROR", Notice.CONNECTION_EXC_CLASS, cause.getMessage()));
+		}
+	}
+
 	private void receiveAuthentication(ChannelBuffer buffer) throws IOException {
 
 		int code = buffer.readInt();
