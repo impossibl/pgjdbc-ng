@@ -10,7 +10,6 @@ package com.impossibl.postgres.jdbc;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Arrays;
 
 import junit.framework.TestCase;
 
