@@ -229,9 +229,11 @@ class PGConnection extends BasicContext implements Connection {
 	 * @throws SQLException
 	 *           If an error was encountered
 	 */
-	SQLWarning execute(Command cmd) throws SQLException {
+	SQLWarning execute(Command cmd, boolean checkTxn) throws SQLException {
 
-		checkTransaction();
+		if(checkTxn) {
+			checkTransaction();
+		}
 		
 		try {
 			
@@ -260,10 +262,12 @@ class PGConnection extends BasicContext implements Connection {
 	 * @throws SQLException
 	 *           If an error was encountered during execution
 	 */
-	void execute(String sql) throws SQLException {
+	void execute(String sql, boolean checkTxn) throws SQLException {
 
-		checkTransaction();
-		
+		if(checkTxn) {
+			checkTransaction();
+		}
+				
 		try {
 
 			execQuery(sql);
@@ -292,9 +296,11 @@ class PGConnection extends BasicContext implements Connection {
 	 * @throws SQLException
 	 *           If an error was encountered during execution
 	 */
-	String executeForString(String sql) throws SQLException {
+	String executeForString(String sql, boolean checkTxn) throws SQLException {
 
-		checkTransaction();
+		if(checkTxn) {
+			checkTransaction();
+		}		
 		
 		try {
 
@@ -324,10 +330,12 @@ class PGConnection extends BasicContext implements Connection {
 	 * @throws SQLException
 	 *           If an error was encountered during execution
 	 */
-	<T> T executeForResult(String sql, Class<T> returnType, Object... params) throws SQLException {
+	<T> T executeForResult(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
 
-		checkTransaction();
-		
+		if(checkTxn) {
+			checkTransaction();
+		}
+				
 		try {
 
 			List<Object[]> res = execQuery(sql, Object[].class, params);
@@ -373,7 +381,7 @@ class PGConnection extends BasicContext implements Connection {
 		if(isClosed())
 			return false;
 		
-		return executeForString("SELECT '1'::char").equals("1");
+		return executeForString("SELECT '1'::char", false).equals("1");
 	}
 
 	@Override
@@ -433,7 +441,7 @@ class PGConnection extends BasicContext implements Connection {
 		// Commit any in-flight transaction (cannot call commit as it will start a
 		// new transaction since we would still be in manual commit mode)
 		if(!this.autoCommit && protocol.getTransactionStatus() != Idle) {
-			execute(getCommitText());
+			execute(getCommitText(), false);
 		}
 
 		this.autoCommit = autoCommit;
@@ -443,7 +451,7 @@ class PGConnection extends BasicContext implements Connection {
 	public boolean isReadOnly() throws SQLException {
 		checkClosed();
 
-		String readability = executeForString(getGetSessionReadabilityText());
+		String readability = executeForString(getGetSessionReadabilityText(), false);
 
 		return isTrue(readability);
 	}
@@ -456,14 +464,14 @@ class PGConnection extends BasicContext implements Connection {
 			throw new SQLException("cannot set read only during a transaction");
 		}
 
-		execute(getSetSessionReadabilityText(readOnly));
+		execute(getSetSessionReadabilityText(readOnly), false);
 	}
 
 	@Override
 	public int getTransactionIsolation() throws SQLException {
 		checkClosed();
 
-		String isolLevel = executeForString(getGetSessionIsolationLevelText());
+		String isolLevel = executeForString(getGetSessionIsolationLevelText(), false);
 
 		return getIsolationLevel(isolLevel);
 	}
@@ -480,7 +488,7 @@ class PGConnection extends BasicContext implements Connection {
 			throw new SQLException("illegal argument");
 		}
 
-		execute(getSetSessionIsolationLevelText(level));
+		execute(getSetSessionIsolationLevelText(level), false);
 	}
 
 	@Override
@@ -490,7 +498,7 @@ class PGConnection extends BasicContext implements Connection {
 
 		// Commit the current transaction
 		if(protocol.getTransactionStatus() != Idle) {
-			execute(getCommitText());
+			execute(getCommitText(), false);
 		}
 
 	}
@@ -502,7 +510,7 @@ class PGConnection extends BasicContext implements Connection {
 
 		// Roll back the current transaction
 		if(protocol.getTransactionStatus() != Idle) {
-			execute(getRollbackText());
+			execute(getRollbackText(), false);
 		}
 
 	}
@@ -515,8 +523,8 @@ class PGConnection extends BasicContext implements Connection {
 		// Allocate new save-point name & wrapper
 		PGSavepoint savepoint = new PGSavepoint(++savepointId);
 
-		// Mark save-point (will auto start txn if needed)
-		execute(getSetSavepointText(savepoint));
+		// Mark save-point
+		execute(getSetSavepointText(savepoint), true);
 
 		return savepoint;
 	}
@@ -529,8 +537,8 @@ class PGConnection extends BasicContext implements Connection {
 		// Allocate new save-point wrapper
 		PGSavepoint savepoint = new PGSavepoint(name);
 
-		// Mark save-point (will auto start txn if needed)
-		execute(getSetSavepointText(savepoint));
+		// Mark save-point
+		execute(getSetSavepointText(savepoint), true);
 
 		return savepoint;
 	}
@@ -551,7 +559,7 @@ class PGConnection extends BasicContext implements Connection {
 
 		// Rollback to save-point (if in transaction)
 		if(protocol.getTransactionStatus() != Idle) {
-			execute(getRollbackToText(savepoint));
+			execute(getRollbackToText(savepoint), false);
 		}
 
 	}
@@ -572,7 +580,7 @@ class PGConnection extends BasicContext implements Connection {
 
 		// Release the save-point (if in a transaction)
 		if(protocol.getTransactionStatus() != Idle) {
-			execute(getReleaseSavepointText((PGSavepoint) savepoint));
+			execute(getReleaseSavepointText((PGSavepoint) savepoint), false);
 		}
 
 	}
@@ -662,7 +670,7 @@ class PGConnection extends BasicContext implements Connection {
 
 		PrepareCommand prepare = protocol.createPrepare(statementName, sqlText.toString(), Collections.<Type> emptyList());
 
-		warningChain = execute(prepare);
+		warningChain = execute(prepare, true);
 
 		PGPreparedStatement statement =
 				new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,

@@ -225,7 +225,7 @@ class PGResultSet implements ResultSet {
 				if(fetchSize != null)
 					command.setMaxRows(fetchSize);
 				
-				warningChain = statement.connection.execute(command);
+				warningChain = statement.connection.execute(command, true);
 				
 				resultFields = command.getResultFields();
 				results = (List<Object[]>) command.getResults(Object[].class);

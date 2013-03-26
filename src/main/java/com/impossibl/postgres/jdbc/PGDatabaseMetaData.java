@@ -46,7 +46,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   
   private int execForInteger(String query) throws SQLException {
   	
-  	String res = connection.executeForString(query);
+  	String res = connection.executeForString(query, false);
   	if(res == null) {
   		throw SERVER_VERSION_NOT_SUPPORTED;
   	}

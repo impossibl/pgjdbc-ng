@@ -29,7 +29,7 @@ class PGSimpleStatement extends PGStatement {
 		
 		PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText.toString(), Collections.<Type>emptyList());
 		
-		SQLWarning warningChain = connection.execute(prep);
+		SQLWarning warningChain = connection.execute(prep, true);
 		
 		resultFields = prep.getDescribedResultFields();
 		

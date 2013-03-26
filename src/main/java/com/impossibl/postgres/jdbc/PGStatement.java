@@ -90,7 +90,7 @@ abstract class PGStatement implements Statement {
 	
 		CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
 		
-		connection.execute(close);		
+		connection.execute(close, false);		
 	}
 	
 	/**
@@ -189,7 +189,7 @@ abstract class PGStatement implements Statement {
 		if(maxFieldSize != null)
 			command.setMaxFieldLength(maxFieldSize);
 
-		warningChain = connection.execute(command);
+		warningChain = connection.execute(command, true);
 
 		return !command.getResultFields().isEmpty();
 		
