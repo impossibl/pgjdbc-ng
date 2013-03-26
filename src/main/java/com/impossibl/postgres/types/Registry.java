@@ -212,7 +212,7 @@ public class Registry {
 
 		Type type;
 
-		if(pgType.elementTypeId != 0) {
+		if(pgType.elementTypeId != 0 && pgType.category.equals("A")) {
 
 			ArrayType array = new ArrayType();
 			array.setElementType(loadType(pgType.elementTypeId));

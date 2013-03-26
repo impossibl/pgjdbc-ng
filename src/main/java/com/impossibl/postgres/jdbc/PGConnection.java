@@ -58,6 +58,7 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -78,8 +79,8 @@ class PGConnection extends BasicContext implements Connection {
 
 	
 	
-	PGConnection(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
-		super(address, settings, targetTypeMap);
+	PGConnection(SocketAddress address, Properties settings) throws IOException {
+		super(address, settings, Collections.<String, Class<?>>emptyMap());
 		activeStatements = new ArrayList<>();
 	}
 	
@@ -743,7 +744,13 @@ class PGConnection extends BasicContext implements Connection {
 	@Override
 	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		Type type = getRegistry().loadType(typeName);
+		if(type instanceof CompositeType == false) {
+			throw new SQLException("Invalid type for struct");
+		}
+		
+		return new PGStruct(this, (CompositeType)type, attributes);
 	}
 
 	@Override

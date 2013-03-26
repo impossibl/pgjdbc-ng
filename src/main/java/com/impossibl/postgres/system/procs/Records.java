@@ -1,15 +1,13 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.types.PrimitiveType.Record;
-import static org.apache.commons.beanutils.BeanUtils.getProperty;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.data.Record;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
@@ -31,28 +29,28 @@ public class Records extends SimpleProcProvider {
 		}
 		
 		public Class<?> getOutputType() {
-			return Object.class;
+			return Record.class;
 		}
 
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			CompositeType ctype = (CompositeType) type;
+			CompositeType compType = (CompositeType) type;
 
-			Map<String, Object> instance = null;
+			Record record = null;
 
 			int lengthGiven = buffer.readInt();
 			
 			if(lengthGiven != -1) {
 				
-				instance = new HashMap<>();
-
 				long readStart = buffer.readerIndex();
 	
 				int itemCount = buffer.readInt();
+
+				Object[] attributeVals = new Object[itemCount];
 	
 				for (int c = 0; c < itemCount; ++c) {
 	
-					Attribute attribute = ctype.getAttribute(c+1);
+					Attribute attribute = compType.getAttribute(c+1);
 	
 					Type attributeType = context.getRegistry().loadType(buffer.readInt());
 	
@@ -63,16 +61,17 @@ public class Records extends SimpleProcProvider {
 	
 					Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
 	
-					instance.put(attribute.name, attributeVal);
+					attributeVals[c] = attributeVal;
 				}
 	
 				if (lengthGiven != buffer.readerIndex() - readStart) {
 					throw new IllegalStateException();
 				}
 				
+				record = new Record(compType, attributeVals);
 			}
 
-			return instance;
+			return record;
 		}
 
 	}
@@ -80,7 +79,7 @@ public class Records extends SimpleProcProvider {
 	static class Encoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
-			return Object.class;
+			return Record.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
@@ -99,19 +98,23 @@ public class Records extends SimpleProcProvider {
 
 				int writeStart = buffer.writerIndex();
 				
-				CompositeType ctype = (CompositeType) type;
+				Record record = (Record) val;
 				
-				Collection<Attribute> attributes = ctype.getAttributes();
+				Object[] attributeVals = record.getValues();
+				
+				CompositeType compType = (CompositeType) type;
+				
+				Collection<Attribute> attributes = compType.getAttributes();
 
 				buffer.writeInt(attributes.size());
 
-				for (Attribute attribute : attributes) {
+				for(Attribute attribute : attributes) {
 
 					Type attributeType = attribute.type;
 
 					buffer.writeInt(attributeType.getId());
 
-					Object attributeVal = Records.get(val, attribute.name);
+					Object attributeVal = attributeVals[attribute.number-1];
 
 					attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
 				}
@@ -122,38 +125,6 @@ public class Records extends SimpleProcProvider {
 
 		}
 
-	}
-
-	@SuppressWarnings("unchecked")
-	protected static Object get(Object instance, String name) {
-
-		if (instance instanceof Map) {
-
-			return ((Map<Object, Object>) instance).get(name);
-		}
-		else {
-
-			try {
-
-				java.lang.reflect.Field field;
-
-				if ((field = instance.getClass().getField(name)) != null) {
-					return field.get(instance);
-				}
-
-			}
-			catch (ReflectiveOperationException | IllegalArgumentException e) {
-
-				try {
-					return getProperty(instance, name.toString());
-				}
-				catch (ReflectiveOperationException e1) {
-				}
-
-			}
-		}
-
-		throw new IllegalStateException("invalid poperty name/index");
 	}
 
 }

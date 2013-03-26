@@ -5,12 +5,14 @@ import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COLUMN_NAME;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.ROW_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
@@ -20,7 +22,6 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.createCoercionException;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
 import static java.lang.Math.min;
@@ -599,7 +600,7 @@ class PGResultSet implements ResultSet {
 			return (byte[]) val;
 		}
 		catch(ClassCastException e) {
-			throw createCoercionException(val.getClass(), byte[].class);
+			return coerceToBytes(val, getType(columnIndex), statement.connection);
 		}
 	}
 
@@ -772,7 +773,9 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		return SQLTypeUtils.coerceToType(get(columnIndex), getType(columnIndex), map, statement.connection);
+		Type type = getType(columnIndex);
+		
+		return coerce(get(columnIndex), type, map, statement.connection);
 	}
 
 	@Override
@@ -781,7 +784,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		return type.cast(coerce(get(columnIndex), type, statement.connection));
+		return type.cast(coerce(get(columnIndex), getType(columnIndex), type, typeMap, statement.connection));
 	}
 
 	@Override
@@ -805,19 +808,19 @@ class PGResultSet implements ResultSet {
 	@Override
 	public NClob getNClob(int columnIndex) throws SQLException {
 		checkClosed();		
-		throw NOT_IMPLEMENTED;
+		throw NOT_SUPPORTED;
 	}
 
 	@Override
 	public String getNString(int columnIndex) throws SQLException {
 		checkClosed();		
-		throw NOT_IMPLEMENTED;
+		throw NOT_SUPPORTED;
 	}
 
 	@Override
 	public Reader getNCharacterStream(int columnIndex) throws SQLException {
 		checkClosed();		
-		throw NOT_IMPLEMENTED;
+		throw NOT_SUPPORTED;
 	}
 
 	@Override
@@ -1405,12 +1408,12 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-		throw NOT_IMPLEMENTED;
+		throw NOT_SUPPORTED;
 	}
 
 	@Override
 	public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-		throw NOT_IMPLEMENTED;
+		throw NOT_SUPPORTED;
 	}
 
 	@Override

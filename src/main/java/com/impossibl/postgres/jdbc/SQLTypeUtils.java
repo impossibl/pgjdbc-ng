@@ -1,31 +1,63 @@
 package com.impossibl.postgres.jdbc;
 
-import static java.lang.Character.toUpperCase;
-
+import java.io.IOException;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Blob;
 import java.sql.Date;
+import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Map;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
+import com.impossibl.postgres.data.Record;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.Factory;
 
 class SQLTypeUtils {
 	
-	public static Object coerce(Object val, Class<?> targetType, PGConnection connection) throws SQLException {
+	public static Class<?> mapType(Type sourceType, Map<String, Class<?>> typeMap) {
 		
+		Class<?> targetType;
+		
+		if(sourceType instanceof ArrayType) {
+			
+			Class<?> componentType = mapType(((ArrayType) sourceType).getElementType(), typeMap);
+			
+			targetType = Array.newInstance(componentType, 0).getClass();
+		}
+		else {
+			
+			targetType = sourceType.getJavaType();
+
+			Class<?> mappedType = typeMap.get(sourceType.getName());
+			if(mappedType != null) {
+				targetType = mappedType;
+			}
+			
+		}
+		
+		return targetType;
+	}
+	
+	public static Object coerce(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		Class<?> targetType = mapType(sourceType, typeMap);
+		
+		return coerce(val, sourceType, targetType, typeMap, connection);
+	}
+
+	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+			
 		if(targetType.isInstance(val)) {
 			return val;
 		}
@@ -65,14 +97,26 @@ class SQLTypeUtils {
 		else if(targetType == Timestamp.class) {
 			return coerceToTimestamp(val, connection);
 		}
-		else if(targetType.isArray()) {
-			return coerceToArray(val, targetType, connection);
-		}
-		else if(URL.class == targetType) {
+		else if(targetType == URL.class) {
 			return coerceToURL(val);
 		}
-		else if(Blob.class == targetType) {
+		else if(targetType == Blob.class) {
 			return coerceToBlob(val, connection);
+		}
+		else if(targetType == byte[].class) {
+			return coerceToBytes(val, sourceType, connection);
+		}
+		else if(targetType.isArray()) {
+			return coerceToArray(val, sourceType, targetType, typeMap, connection);
+		}
+		else if(targetType == Struct.class) {
+			return coerceToStruct(val, sourceType, typeMap, connection);
+		}
+		else if(targetType == Record.class) {
+			return coerceToRecord(val, sourceType, typeMap, connection);
+		}
+		else if(SQLData.class.isAssignableFrom(targetType)) {
+			return coerceToCustomType(val, sourceType, targetType, typeMap, connection);
 		}
 		
 		throw createCoercionException(val.getClass(), targetType);
@@ -323,43 +367,6 @@ class SQLTypeUtils {
 		throw createCoercionException(val.getClass(), Timestamp.class);
 	}
 	
-	public static Object coerceToArray(Object val, Class<?> arrayType, Context context) throws SQLException {
-		
-		if(val == null) {
-			return null;
-		}
-		else if(val instanceof PGArray) {
-			
-			return ((PGArray) val).getValue();			
-		}
-		else if(val.getClass().isArray()) {
-			
-			if(val.getClass().getComponentType() == arrayType.getComponentType()) {
-				return val;
-			}
-			else {
-				//Copy to correct array type
-				int arrayLength = Array.getLength(val);
-				Object newArray = Array.newInstance(arrayType.getComponentType(), arrayLength);
-				System.arraycopy(val, 0, newArray, 0, arrayLength);
-				return newArray;
-			}
-		}
-		else if(Map.class.isAssignableFrom(val.getClass())) {
-						
-			int arrayLength = Array.getLength(val);
-			Object newArray = Array.newInstance(arrayType.getComponentType(), arrayLength);
-			
-			for(int c=0; c < arrayLength; ++c) {
-				Array.set(newArray, c, ((Map<?,?>)val).get(c));
-			}
-			System.arraycopy(val, 0, newArray, 0, arrayLength);
-			return newArray;
-		}
-		
-		throw createCoercionException(val.getClass(), arrayType);
-	}
-	
 	public static URL coerceToURL(Object val) throws SQLException {
 		
 		if(val == null) {
@@ -372,6 +379,9 @@ class SQLTypeUtils {
 			catch(MalformedURLException e) {
 				throw createCoercionException(val.getClass(), URL.class, e);
 			}
+		}
+		else if(val instanceof URL) {
+			return (URL) val;
 		}
 		
 		throw createCoercionException(val.getClass(), URL.class);
@@ -388,94 +398,205 @@ class SQLTypeUtils {
 		else if(val instanceof Long) {
 			return new PGBlob(connection, (int)(long)val);
 		}
+		else if(val instanceof Blob) {
+			return (Blob) val;
+		}
 		
 		throw createCoercionException(val.getClass(), Blob.class);
 	}
 	
-	public static Object coerceToType(Object val, Type type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
-	
-		if(type instanceof CompositeType) {
-			return coerceToCustomType(val, (CompositeType)type, typeMap, connection);
+	public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+		
+		if(val == null) {
+			return null;
 		}
-		else if(type instanceof ArrayType) {
-			return coerceToArrayType(val, (ArrayType)type, typeMap, connection);
+		else if(val instanceof byte[]) {
+			return (byte[]) val;
 		}
-		
-		return coerce(val, type.getJavaType(), connection);
-	}
-	
-	public static Object coerceToArrayType(Object val, ArrayType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
-		
-		return coerceToArrayType(val, 0, Array.getLength(val), type, typeMap, connection);
-	}
-	
-	public static Object coerceToArrayType(Object val, int index, int count, ArrayType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {	
-		
-		Class<?> elementType = typeMap.get(type.getElementType().getName());
-		if(elementType == null) {
-			elementType = type.getElementType().getJavaType();
-		}
-		
-		Object dst = Array.newInstance(elementType, count);
-		
-		for(int c=index, end=index+count; c < end; ++c) {
+		else if(sourceType.getJavaType().isInstance(val)) {
 			
-			Array.set(dst, c, coerceToType(Array.get(val, c), type.getElementType(), typeMap, connection));
+			ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
 			
-		}
-		
-		return dst;
-	}
-	
-	public static Object coerceToCustomType(Object val, CompositeType type, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
-		
-		Class<?> targetType = typeMap.get(type.getName());
-		if(targetType == null)
-			return val;
-		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> src = (Map<String, Object>) val;
-		
-		Object dst = Factory.createInstance(targetType, 0);
-		
-		for(CompositeType.Attribute attr : type.getAttributes()) {
-			
-			String name = attr.name;
-			Object value = src.get(name);
-
-			//Attempt to set via property method (setXXXX);
 			try {
-				Method method = targetType.getMethod("set" + toUpperCase(name.charAt(0)) + name.substring(1));
-				if(method.getParameterTypes().length == 1) {
-					try {
-						method.invoke(dst, coerceToType(value, attr.type, typeMap, connection));
-						continue;
-					}
-					catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						throw createCoercionException(value.getClass(), method.getParameterTypes()[0], e);
-					}
-				}
+				sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
 			}
-			catch(NoSuchMethodException e) {
+			catch(IOException e) {
+				throw createCoercionException(val.getClass(), byte[].class);
 			}
 			
-			//Attempt to set via field
-			try {
-				Field field = targetType.getField(name);
-				try {
-					field.set(dst, coerceToType(value, attr.type, typeMap, connection));
-					continue;
-				}
-				catch(IllegalArgumentException | IllegalAccessException e) {
-					throw createCoercionException(value.getClass(), field.getType(), e);
-				}
-			}
-			catch(NoSuchFieldException e) {
-			}
+			buffer.skipBytes(4);
+			return buffer.readBytes(buffer.readableBytes()).array();
+		}
 
+		throw createCoercionException(val.getClass(), byte[].class);
+	}
+
+	public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		if(val == null) {
+			return null;
 		}
 		
-		return dst;
+		return coerceToArray(val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+	}
+	
+	public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {	
+		
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof PGArray) {
+			coerceToArray(((PGArray) val).getValue(), type, targetType, typeMap, connection);
+		}
+		else if(val.getClass().isArray() && type instanceof ArrayType) {
+			
+			ArrayType arrayType = (ArrayType) type;
+			Type elementType = arrayType.getElementType();
+			Class<?> elementClass = targetType.getComponentType();
+			
+			Object dst;
+			
+			if(count == 0) {
+				dst = Array.newInstance(targetType.getComponentType(), count);
+			}
+			else if(val.getClass().getComponentType() == targetType.getComponentType()) {
+				
+				dst = val;
+			}
+			else if(elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
+
+				dst = Array.newInstance(targetType.getComponentType(), count);
+				System.arraycopy(val, (int)index, dst, 0, count);
+			}
+			else {
+
+				dst = Array.newInstance(targetType.getComponentType(), count);
+
+				for(int c=index, end=index+count; c < end; ++c) {
+					
+					Array.set(dst, c, coerce(Array.get(val, c), elementType, elementClass, typeMap, connection));
+					
+				}
+				
+			}
+			
+			return dst;
+		}
+		
+		throw createCoercionException(val.getClass(), targetType);
+	}
+	
+	public static Struct coerceToStruct(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		if(val == null) {
+			
+			return null;
+		}
+		else if(val instanceof Struct) {
+			
+			return (Struct) val;
+		}
+		else if(val instanceof Record) {
+
+			return new PGStruct(connection, ((Record) val).getType(), ((Record) val).getValues());
+		}
+		else if(SQLData.class.isInstance(val) && sourceType instanceof CompositeType) {
+			
+			CompositeType compType = (CompositeType) sourceType;
+			
+			PGSQLOutput out = new PGSQLOutput(connection, compType, typeMap);
+			
+			((SQLData)val).writeSQL(out);
+			
+			return new PGStruct(connection, compType, out.getAttributeValues());
+		}
+		
+		throw createCoercionException(val.getClass(), Struct.class);
+	}
+
+	public static Record coerceToRecord(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		if(val == null) {
+			
+			return null;
+		}
+		else if(val instanceof Record) {
+			
+			return (Record) val;
+		}
+		else if(sourceType instanceof CompositeType) {
+			
+			CompositeType compType = (CompositeType) sourceType;
+			
+			Object[] attributeVals;
+			
+			if(val instanceof Struct) {
+			
+				Struct struct = (Struct) val;
+				attributeVals = struct.getAttributes();
+			}
+			else if(SQLData.class.isInstance(val)) {
+				
+				PGSQLOutput out = new PGSQLOutput(connection, compType, typeMap);
+				
+				((SQLData)val).writeSQL(out);
+				
+				attributeVals = out.getAttributeValues();
+			}
+			else {
+				
+				throw createCoercionException(val.getClass(), Record.class);
+			}
+			
+			return new Record(compType, attributeVals);
+		}
+		
+		throw createCoercionException(val.getClass(), Struct.class);
+	}
+
+	public static Object coerceToCustomType(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+		
+		if(val == null) {
+			
+			return null;
+		}
+		else if(sourceType instanceof CompositeType) {
+			
+			CompositeType compType = (CompositeType) sourceType;
+			
+			Object[] attributeVals;
+			
+			if(val instanceof Struct) {
+			
+				Struct struct = (Struct) val;
+				attributeVals = struct.getAttributes();
+			}
+			else if(val instanceof Record) {
+				
+				Record record = (Record) val;
+				attributeVals = record.getValues();
+			}
+			else {
+				
+				throw createCoercionException(val.getClass(), targetType);
+			}
+			
+			Object dst;
+			try {
+				dst = targetType.newInstance();
+			}
+			catch(InstantiationException | IllegalAccessException e) {
+				throw createCoercionException(val.getClass(), targetType, e);
+			}
+			
+			PGSQLInput in = new PGSQLInput(connection, compType, typeMap, attributeVals);
+			
+			((SQLData) dst).readSQL(in, compType.getName());
+			
+			return dst;
+		}
+		
+		throw createCoercionException(val.getClass(), targetType);
 	}
 	
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {

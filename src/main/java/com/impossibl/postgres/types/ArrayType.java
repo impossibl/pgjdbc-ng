@@ -1,6 +1,7 @@
 package com.impossibl.postgres.types;
 
 
+
 /**
  * A database array type.
  * 

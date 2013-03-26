@@ -1,5 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
+
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -48,7 +50,12 @@ public class PGArray implements Array {
 	@Override
 	public Object getArray(Map<String, Class<?>> map) throws SQLException {
 		
-		return SQLTypeUtils.coerceToArrayType(value, type, map, connection);
+		Class<?> targetType = map.get(type.getName());
+		if(targetType == null) {
+			targetType = Object[].class;
+		}
+
+		return coerceToArray(value, type, targetType, map, connection);
 	}
 
 	@Override
@@ -62,8 +69,13 @@ public class PGArray implements Array {
 		if(index < 1 || index > value.length || (index + count) > (value.length + 1)) {
 			 throw new SQLException("Invalid array slice");
 		}
+		
+		Class<?> targetType = map.get(type.getName());
+		if(targetType == null) {
+			targetType = Object[].class;
+		}
 
-		return SQLTypeUtils.coerceToArrayType(value, (int)index-1, count, type, map, connection);
+		return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
 	}
 
 	@Override

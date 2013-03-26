@@ -84,16 +84,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		parameterIdx -= 1;
 		
 		Type paramType = parameterTypes.get(parameterIdx);
-		Class<?> requiredType = paramType.getJavaType();
 		
-		if(requiredType == Object.class) {
-			Class<?> mappedType = connection.getTypeMap().get(paramType.getName());
-			if(mappedType != null) {
-				requiredType = mappedType;
-			}
-		}
-		
-		parameterValues.set(parameterIdx, coerce(val, requiredType, connection));
+		parameterValues.set(parameterIdx, coerce(val, paramType, connection.getTypeMap(), connection));
 	}
 
 	void internalClose() throws SQLException {
