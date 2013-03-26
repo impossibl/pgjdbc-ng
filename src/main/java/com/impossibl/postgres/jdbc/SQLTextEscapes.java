@@ -3,7 +3,6 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.getEscapeMethod;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.invokeEscape;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -123,22 +122,15 @@ public class SQLTextEscapes {
 		
 		Date date;
 		try {
-			date = Date.valueOf(dateLit.toString());
+			date = Date.valueOf(dateLit.getText());
 		}
 		catch(Exception e1) {
 			throw new SQLException("invalid date format in escape (" + escape.getStartPos() + ")");
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("'");
-		
-		try {
-			context.getTimeFormatter().printTo(sb, date.getTime());
-		}
-		catch(IOException e) {
-			sb.append(date.toString());
-		}
-		
+		sb.append("DATE '");
+		sb.append(date);
 		sb.append("'");
 		return sb.toString();
 	}
@@ -158,15 +150,8 @@ public class SQLTextEscapes {
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("'");
-		
-		try {
-			context.getTimeFormatter().printTo(sb, time.getTime());
-		}
-		catch(IOException e) {
-			sb.append(time.toString());
-		}
-		
+		sb.append("TIME '");
+		sb.append(time);
 		sb.append("'");
 		return sb.toString();
 	}
@@ -186,7 +171,7 @@ public class SQLTextEscapes {
 		}
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("'");
+		sb.append("TIMESTAMP '");
 		sb.append(timestamp);
 		sb.append("'");
 		return sb.toString();
