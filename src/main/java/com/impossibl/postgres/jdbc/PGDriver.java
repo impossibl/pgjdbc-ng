@@ -7,7 +7,6 @@ import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -33,8 +32,7 @@ public class PGDriver implements Driver {
 	private static final String JDBC_PASSWORD_PARAM = "password";
 
 	static class ConnectionSpecifier {
-		public String hostname;
-		public Integer port;
+		public List<InetSocketAddress> addresses = new ArrayList<>();
 		public String database;
 		public Properties parameters = new Properties();
 	}
@@ -54,27 +52,36 @@ public class PGDriver implements Driver {
 			return null;
 		}
 
-		try {
-
-			Properties settings = buildSettings(connSpec, info);
+		SQLException lastException = null;
+		
+		Properties settings = buildSettings(connSpec, info);
+		
+		//Try to connect to each provided address in turn returning the first
+		//successful connection
+		for(InetSocketAddress address : connSpec.addresses) {
 			
-			SocketAddress address = new InetSocketAddress(connSpec.hostname, connSpec.port);
-			
-			PGConnection conn = new PGConnection(address, settings);
-			
-			conn.init();
-			
-			return conn;
+			try {
+				
+				PGConnection conn = new PGConnection(address, settings);
+		
+				conn.init();
+		
+				return conn;
+				
+			}
+			catch (IOException e) {
+				
+				lastException = new SQLException("Connection Error", e);
+			}
+			catch (NoticeException e) {
+				
+				lastException = makeSQLException(e.getNotice());
+			}
 			
 		}
-		catch (IOException e) {
-			
-			throw new SQLException("Connection Error", e);
-		}
-		catch (NoticeException e) {
-			
-			throw makeSQLException(e.getNotice());
-		}
+		
+		//Couldn't connect so report that last exception we saw
+		throw lastException;
 		
 	}
 
@@ -109,20 +116,23 @@ public class PGDriver implements Driver {
 		settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
 		settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
 		
-		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.hostname + "/" + connSpec.database);		
+		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.addresses.toString() + "/" + connSpec.database);		
 		
 		return settings;
 	}
 
 	/*
-	 * URL Pattern jdbc:postgresql:(?://(?:([a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(\d+))?)/)?(\w+)(?:\?(.*))?
+	 * URL Pattern jdbc:postgresql:(?://((?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?(?:,(?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?)*)/)?(\w+)(?:\?(.*))?
 	 * 	Capturing Groups:
-	 * 		1 = host name, IPv4, IPv6	(optional)
-	 * 		2 = port 									(optional)
-	 * 		3 = database name					(required)
-	 * 		4 = parameters						(optional)
+	 * 		1 = (host name, IPv4, IPv6 : port) pairs	(optional)
+	 * 		2 = database name					(required)
+	 * 		3 = parameters						(optional)
 	 */
-	private static final Pattern URL_PATTERN = Pattern.compile("jdbc:postgresql:(?://(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)/)?(\\w+)(?:\\?(.*))?");
+	private static final Pattern URL_PATTERN =
+			Pattern.compile("jdbc:postgresql:(?://((?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?)*)/)?(\\w+)(?:[\\?\\&](.*))?");
+	
+	private static final Pattern ADDRESS_PATTERN = Pattern.compile("(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)");
+	
 	
 	/**
 	 * Parses a URL connection string.
@@ -134,7 +144,7 @@ public class PGDriver implements Driver {
 	 * @param url
 	 * @return
 	 */
-	private ConnectionSpecifier parseURL(String url) {
+	ConnectionSpecifier parseURL(String url) {
 		
 		try {
 			
@@ -151,31 +161,38 @@ public class PGDriver implements Driver {
 			
 			ConnectionSpecifier spec = new ConnectionSpecifier();
 			
-			//Assign hostname, if provided, or use the default "localhost"
+			//Get hosts, if provided, or use the default "localhost:5432"
 			
-			spec.hostname = urlMatcher.group(1);
-			if(spec.hostname == null || spec.hostname.isEmpty()) {
-				spec.hostname = "localhost";
+			String hosts = urlMatcher.group(1);
+			if(hosts == null || hosts.isEmpty()) {
+				hosts = "localhost";
 			}
 			
-			//Assign port, if provided, or use the default "5432"
+			//Parse hosts into list of addresses
+			Matcher hostsMatcher = ADDRESS_PATTERN.matcher(hosts);
+			while(hostsMatcher.find()) {
+				
+				String name = hostsMatcher.group(1);
+
+				String port = hostsMatcher.group(2);
+				if(port == null || port.isEmpty()) {
+					port = "5432";
+				}
+				
+				InetSocketAddress address = new InetSocketAddress(name, Integer.parseInt(port));
+				
+				spec.addresses.add(address);
+			}
 			
-			String port = urlMatcher.group(2);
-			if(port != null && !port.isEmpty()) {
-				spec.port = Integer.parseInt(port);
-			}
-			else {
-				spec.port = 5432;
-			}
 			
 			//Assign the database
 			
-			spec.database = urlMatcher.group(3);
+			spec.database = urlMatcher.group(2);
 			
 			//Parse the query string as a list of name=value pairs separated by '&'
 			//then assign them as extra parameters
 			
-			String params = urlMatcher.group(4);
+			String params = urlMatcher.group(3);
 			if(params != null && !params.isEmpty()) {
 				
 				for(String nameValue : params.split("&")) {

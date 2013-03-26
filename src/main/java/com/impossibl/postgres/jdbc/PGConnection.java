@@ -20,6 +20,8 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLev
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
+import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
+import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -72,7 +74,6 @@ class PGConnection extends BasicContext implements Connection {
 	int savepointId;
 	private int holdability;
 	boolean autoCommit = true;
-	boolean readOnly = false;
 	int networkTimeout;
 	SQLWarning warningChain;
 	List<WeakReference<PGStatement>> activeStatements;
@@ -82,6 +83,26 @@ class PGConnection extends BasicContext implements Connection {
 	PGConnection(SocketAddress address, Properties settings) throws IOException {
 		super(address, settings, Collections.<String, Class<?>>emptyMap());
 		activeStatements = new ArrayList<>();
+	}
+
+	@Override
+	public void init() throws IOException, NoticeException {
+		
+		super.init();
+	
+		applySettings(settings);
+	}
+
+	void applySettings(Properties settings) throws IOException {
+		
+		if(parseBoolean(settings.getProperty(CONNECTION_READONLY, "false"))) {
+			try {
+				setReadOnly(true);
+			}
+			catch(SQLException e) {
+				throw new IOException(e);
+			}
+		}
 	}
 	
 	protected void finalize() throws SQLException {

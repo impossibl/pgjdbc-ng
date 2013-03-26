@@ -5,6 +5,8 @@ public class Settings {
 	public static final String DATABASE = "database";
 	public static final String DATABASE_URL = "databaseUrl";
 	
+	public static final String CONNECTION_READONLY = "readOnly";
+
 	public static final String CLIENT_ENCODING = "client_encoding";
 	public static final String APPLICATION_NAME = "application_name";
 
