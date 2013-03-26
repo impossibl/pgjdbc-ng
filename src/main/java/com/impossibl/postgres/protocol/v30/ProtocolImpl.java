@@ -711,6 +711,20 @@ public class ProtocolImpl implements Protocol {
 			}
 
 			break;
+			
+		case "CREATE":
+		case "DROP":
+			
+			if(parts.length == 2) {
+
+				command += " " + parts[1];
+				rowsAffected = 1l;
+			}
+			else {
+				throw new IOException("error parsing command tag");
+			}
+			
+			break;
 
 		default:
 			
