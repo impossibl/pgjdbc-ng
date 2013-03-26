@@ -57,8 +57,8 @@ public class SQLText {
 	 */
 	private static final Pattern LEXER = Pattern
 			.compile(
-					"(\"(?:[^\"\"]|\\\\.)*\")|" +												/* Quoted identifier */
-					"('(?:[^\'\']|\\\\.)*')|" +													/* String literal */
+					"(?:\"((?:[^\"\"]|\\\\.)*)\")|" +										/* Quoted identifier */
+					"(?:'((?:[^\'\']|\\\\.)*)')|" +											/* String literal */
 					"((?:\\-\\-.*$)|(?:/\\*(?:(?:.|\\n)*)\\*/))|" +			/* Comments */
 					"(\\?)|" +																					/* Parameter marker */
 					"(;)|" +																						/* Statement break */

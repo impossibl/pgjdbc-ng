@@ -75,7 +75,7 @@ public class SQLTextTree {
 
 	public static class CompositeNode extends Node {
 
-		private List<Node> nodes = new ArrayList<>();
+		protected List<Node> nodes = new ArrayList<>();
 
 		public CompositeNode(int startPos) {
 			super(startPos, -1);
@@ -143,20 +143,23 @@ public class SQLTextTree {
 			super(startPos);
 		}
 
+		@Override
+		void build(StringBuilder builder) {
+
+			Iterator<Node> nodeIter = iterator();
+			while(nodeIter.hasNext()) {
+				nodeIter.next().build(builder);
+				if(nodeIter.hasNext())
+					builder.append(';');
+			}
+		}
+
 	}
 
 	public static class StatementNode extends CompositeNode {
 
 		public StatementNode(int startPos) {
 			super(startPos);
-		}
-
-		@Override
-		void build(StringBuilder builder) {
-
-			super.build(builder);
-
-			builder.append(';');
 		}
 
 	}
@@ -265,6 +268,16 @@ public class SQLTextTree {
 			super(val, startPos);
 		}
 
+		@Override
+		void build(StringBuilder builder) {
+
+			builder.append('"');
+
+			super.build(builder);
+
+			builder.append('"');
+		}
+
 	}
 	
 	public static class LiteralPiece extends PieceNode {
@@ -279,6 +292,16 @@ public class SQLTextTree {
 
 		StringLiteralPiece(String val, int startPos) {
 			super(val, startPos);
+		}
+
+		@Override
+		void build(StringBuilder builder) {
+
+			builder.append('\'');
+
+			super.build(builder);
+
+			builder.append('\'');
 		}
 
 	}
