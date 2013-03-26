@@ -12,12 +12,12 @@ public interface Protocol {
 	TransactionStatus getTransactionStatus();
 
 	StartupCommand createStartup(Map<String,Object> parameters);
-	PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
-	BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
+	PrepareCommand createPrepare(long statementId, String sqlText, List<Type> parameterTypes);
+	BindExecCommand createBindExec(long portalId, long statementUd, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
 	QueryCommand createQuery(String sqlText);
 	FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues);
 	
-	CloseCommand createClose(ServerObjectType objectType, String objectName);
+	CloseCommand createClose(ServerObjectType objectType, long objectId);
 	
 	void execute(Command cmd) throws IOException;
 	

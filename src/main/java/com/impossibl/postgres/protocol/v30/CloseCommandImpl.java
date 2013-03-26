@@ -12,7 +12,7 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 	
 	ServerObjectType objectType;
-	String objectName;
+	long objectId;
 	boolean complete;
 
 	private ProtocolListener listener = new BaseProtocolListener() {
@@ -44,9 +44,9 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 	};
 
-	public CloseCommandImpl(ServerObjectType objectType, String objectName) {
+	public CloseCommandImpl(ServerObjectType objectType, long objectId) {
 		this.objectType = objectType;
-		this.objectName = objectName;
+		this.objectId = objectId;
 	}
 
 	@Override
@@ -55,8 +55,8 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 	}
 	
 	@Override
-	public String getObjectName() {
-		return objectName;
+	public long getObjectId() {
+		return objectId;
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
 		protocol.setListener(listener);
 		
-		protocol.sendClose(objectType, objectName);
+		protocol.sendClose(objectType, objectId);
 		
 		protocol.sendSync();
 

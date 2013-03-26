@@ -413,7 +413,7 @@ class PGResultSet implements ResultSet {
 		
 		if(command != null) {
 			
-			statement.dispose(Portal, command.getPortalName());
+			statement.dispose(Portal, command.getPortalId());
 		}
 		
 		//Release resources

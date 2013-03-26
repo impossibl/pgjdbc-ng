@@ -126,8 +126,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	};
 
 
-	private String statementName;
-	private String portalName;
+	private long statementId;
+	private long portalId;
 	private List<Type> parameterTypes;
 	private List<Object> parameterValues;
 	private List<ResultField> resultFields;
@@ -143,10 +143,10 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private SettingsContext parsingContext; 
 
 	
-	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+	public BindExecCommandImpl(long portalId, long statementId, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
 
-		this.statementName = statementName;
-		this.portalName = portalName;
+		this.statementId = statementId;
+		this.portalId = portalId;
 		this.parameterTypes = parameterTypes;
 		this.parameterValues = parameterValues;
 		this.resultFields = resultFields;
@@ -165,13 +165,13 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	}
 
 	@Override
-	public String getStatementName() {
-		return statementName;
+	public long getStatementId() {
+		return statementId;
 	}
 
 	@Override
-	public String getPortalName() {
-		return portalName;
+	public long getPortalId() {
+		return portalId;
 	}
 
 	public Status getStatus() {
@@ -241,17 +241,17 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		if(status != Status.Suspended) {
 
-			protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
+			protocol.sendBind(portalId, statementId, parameterTypes, parameterValues);
 
 		}
 
 		if(resultFields == null || !parameterTypes.isEmpty()) {
 
-			protocol.sendDescribe(Portal, portalName);
+			protocol.sendDescribe(Portal, portalId);
 
 		}
 
-		protocol.sendExecute(portalName, maxRows);
+		protocol.sendExecute(portalId, maxRows);
 
 		if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
 			protocol.sendFlush();			

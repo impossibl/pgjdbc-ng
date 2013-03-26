@@ -218,7 +218,7 @@ public class BasicContext implements Context {
 	
 	protected <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
-		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
+		PrepareCommand prepare = protocol.createPrepare(0, queryTxt, Collections.<Type>emptyList());
 		
 		protocol.execute(prepare);
 		
@@ -226,7 +226,7 @@ public class BasicContext implements Context {
 			throw new NoticeException("Error preparing query", prepare.getError());
 		}
 		
-		BindExecCommand query = protocol.createBindExec(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
+		BindExecCommand query = protocol.createBindExec(0, 0, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
 		
 		protocol.execute(query);
 		
