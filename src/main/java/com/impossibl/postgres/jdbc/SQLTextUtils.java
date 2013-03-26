@@ -128,7 +128,7 @@ class SQLTextUtils {
 	 */
 	public static String getSetSessionIsolationLevelText(int level) {
 
-		return "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLACTION LEVEL " + getIsolationLevelText(level);
+		return "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + getIsolationLevelText(level);
 	}
 
 	/**
