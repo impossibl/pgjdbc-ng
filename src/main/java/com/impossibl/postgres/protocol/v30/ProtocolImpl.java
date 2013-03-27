@@ -7,6 +7,7 @@ import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
 import static java.util.Arrays.asList;
 import static java.util.logging.Level.FINEST;
+import static java.util.logging.Level.SEVERE;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,8 +21,8 @@ import org.jboss.netty.channel.Channel;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -471,8 +472,10 @@ public class ProtocolImpl implements Protocol {
 
 	public void dispatchException(Throwable cause) throws IOException {
 		
+		logger.log(SEVERE, "Error dispatching message", cause);
+		
 		if(listener != null) {
-			listener.error(new Notice("ERROR", Notice.CONNECTION_EXC_CLASS, cause.getMessage()));
+			listener.error(new Notice("EXCEPTION", Notice.CONNECTION_EXC_CLASS, cause.getMessage()));
 		}
 	}
 
