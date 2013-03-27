@@ -829,7 +829,7 @@ class PGResultSet implements ResultSet {
 
 		for (int c = 0; c < resultFields.size(); ++c) {
 
-			if (resultFields.get(c).name.equals(columnLabel))
+			if (resultFields.get(c).name.equalsIgnoreCase(columnLabel))
 				return c+1;
 		}
 
