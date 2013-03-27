@@ -10,6 +10,7 @@ import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
 
 
@@ -33,31 +34,32 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 		}
 
 		@Override
-		public synchronized void parametersDescription(List<Type> parameterTypes) {
+		public void parametersDescription(List<Type> parameterTypes) {
 			PrepareCommandImpl.this.describedParameterTypes = parameterTypes;
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void rowDescription(List<ResultField> resultFields) {
+		public void rowDescription(List<ResultField> resultFields) {
 
 			// Ensure we are working with binary fields
 			for(ResultField field : resultFields)
 				field.format = Format.Binary;
 
 			PrepareCommandImpl.this.describedResultFields = resultFields;
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void noData() {
+		public void noData() {
 			PrepareCommandImpl.this.describedResultFields = Collections.emptyList();
-			notifyAll();
 		}
 
 		@Override
-		public synchronized void error(Notice error) {
+		public void error(Notice error) {
 			PrepareCommandImpl.this.error = error;
+		}
+
+		@Override
+		public synchronized void ready(TransactionStatus txStatus) {
 			notifyAll();
 		}
 
@@ -107,7 +109,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 		protocol.sendDescribe(Statement, statementName);
 
-		protocol.sendFlush();
+		protocol.sendSync();
 
 		waitFor(listener);
 		
