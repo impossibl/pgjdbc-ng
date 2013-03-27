@@ -96,6 +96,7 @@ public class CompositeType extends Type {
 			attr.nullable = pgAttr.nullable;
 			attr.hasDefault = pgAttr.hasDefault;
 			attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
+			attr.autoIncrement = pgAttr.autoIncrement;
 
 			attributes.add(attr);
 		}
