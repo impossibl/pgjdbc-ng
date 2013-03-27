@@ -2,6 +2,7 @@ package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.Exceptions.CURSOR_NOT_SCROLLABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COLUMN_NAME;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
@@ -25,6 +26,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.math.RoundingMode.HALF_UP;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -70,8 +72,10 @@ class PGResultSet implements ResultSet {
 	int type;
 	int concurrency;
 	int holdability;
+	Integer fetchDir;
 	Integer fetchSize;
-	int currentRow;
+	int resultsIndexOffset;
+	int currentRowIndex;
 	BindExecCommand command;
 	SQLWarning warningChain;
 	List<ResultField> resultFields;
@@ -81,20 +85,23 @@ class PGResultSet implements ResultSet {
 
 	
 	
-	PGResultSet(PGStatement statement, BindExecCommand command) throws SQLException {
-		this(statement, command.getResultFields(), command.getResults(Object[].class));
+	PGResultSet(PGStatement statement, int concurrency, BindExecCommand command) throws SQLException {
+		this(statement, command.getStatus() == Completed ? TYPE_SCROLL_INSENSITIVE : TYPE_FORWARD_ONLY, concurrency, command.getResultFields(), command.getResults(Object[].class));
 		this.command = command;
 	}
 	
-	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results) throws SQLException {
-		this(statement, resultFields, results, statement.connection.getTypeMap());
+	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+		this(statement, type, concurrency, resultFields, results, statement.connection.getTypeMap());
 	}
 	
-	PGResultSet(PGStatement statement, List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) {
-		super();
+	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) {
+		this.type = type;
+		this.concurrency = concurrency;
 		this.statement = statement;
+		this.fetchDir = FETCH_FORWARD;
 		this.fetchSize = statement.fetchSize;
-		this.currentRow = -1;
+		this.resultsIndexOffset = 0;
+		this.currentRowIndex = -1;
 		this.resultFields = resultFields;
 		this.results = results;
 		this.typeMap = typeMap;
@@ -105,7 +112,7 @@ class PGResultSet implements ResultSet {
 	}
 
 	/**
-	 * Ensure the connection is not closed
+	 * Ensure the result set is not closed
 	 * 
 	 * @throws SQLException If the connection is closed
 	 */
@@ -128,7 +135,16 @@ class PGResultSet implements ResultSet {
 			throw COLUMN_INDEX_OUT_OF_BOUNDS;
 		
 	}
-	
+
+	/**
+	 * Is the currentRowIndex pointer pointing to a valid row?
+	 * 
+	 * @return True if the currentRowIndex is a valid row, false otherwise
+	 */
+	boolean isValidRow() {
+		return currentRowIndex >= 0 && currentRowIndex < results.size();
+	}
+
 	/**
 	 * Ensure the current row index is in a valid range for this result set
 	 * 
@@ -136,11 +152,23 @@ class PGResultSet implements ResultSet {
 	 */
 	void checkRow() throws SQLException {
 		
-		if(currentRow < 0 || currentRow >= results.size())
+		if(!isValidRow())
 			throw ROW_INDEX_OUT_OF_BOUNDS;
 		
 	}
 	
+	/**
+	 * Ensure the result set is scrollable
+	 * 
+	 * @throws SQLException If the connection is closed
+	 */
+	void checkScroll() throws SQLException {
+		
+		if(type == TYPE_FORWARD_ONLY)
+			throw CURSOR_NOT_SCROLLABLE;
+		
+	}
+
 	/**
 	 * Retrieves the column using the correct index and properly sets the 
 	 * null flag for subsequent operations
@@ -149,7 +177,7 @@ class PGResultSet implements ResultSet {
 	 * @return Column value as Object
 	 */
 	Object get(int columnIndex) {
-		Object val = results.get(currentRow)[columnIndex-1];
+		Object val = results.get(currentRowIndex)[columnIndex-1];
 		nullFlag = val == null;
 		return val;
 	}
@@ -189,13 +217,16 @@ class PGResultSet implements ResultSet {
 	@Override
 	public int getFetchDirection() throws SQLException {
 		checkClosed();
-		return FETCH_FORWARD;
+		return fetchDir != null ? fetchDir : 0;
 	}
 
 	@Override
 	public void setFetchDirection(int direction) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		if(direction != FETCH_FORWARD) {
+			checkScroll();
+		}
+		fetchDir = direction;
 	}
 
 	@Override
@@ -216,10 +247,102 @@ class PGResultSet implements ResultSet {
 	}
 
 	@Override
+	public boolean isBeforeFirst() throws SQLException {
+		checkClosed();
+
+		return !results.isEmpty() && resultsIndexOffset == 0 && currentRowIndex == -1;
+	}
+
+	@Override
+	public boolean isAfterLast() throws SQLException {
+		checkClosed();
+
+		return !results.isEmpty() && command.getStatus() == Completed && currentRowIndex == results.size();
+	}
+
+	@Override
+	public boolean isFirst() throws SQLException {
+		checkClosed();
+
+		return !results.isEmpty() && resultsIndexOffset == 0 && currentRowIndex == 0;
+	}
+
+	@Override
+	public boolean isLast() throws SQLException {
+		checkClosed();
+
+		return !results.isEmpty() && command.getStatus() == Completed && currentRowIndex == results.size() - 1;
+	}
+
+	@Override
+	public void beforeFirst() throws SQLException {
+		checkClosed();
+		checkScroll();
+
+		currentRowIndex = -1;
+	}
+
+	@Override
+	public void afterLast() throws SQLException {
+		checkClosed();
+		checkScroll();
+
+		currentRowIndex = results.size();
+	}
+
+	@Override
+	public boolean first() throws SQLException {
+		checkClosed();
+		checkScroll();
+
+		return absolute(1);
+	}
+
+	@Override
+	public boolean last() throws SQLException {
+		checkClosed();
+		checkScroll();
+
+		return absolute(-1);
+	}
+
+	@Override
+	public int getRow() throws SQLException {
+		checkClosed();
+		
+		if(!isValidRow())
+			return 0;
+
+		return resultsIndexOffset + currentRowIndex + 1;
+	}
+	
+	@Override
+	public boolean absolute(int row) throws SQLException {
+		checkClosed();
+		checkScroll();
+		
+		if(row < 0) {
+			row = results.size() + 1 + row;
+		}
+
+		currentRowIndex = max(-1, min(results.size(), row-1));
+		return isValidRow();
+	}
+
+	@Override
+	public boolean relative(int rows) throws SQLException {
+		checkClosed();
+		checkScroll();
+
+		currentRowIndex = max(-1, min(results.size(), currentRowIndex + rows));
+		return isValidRow();
+	}
+
+	@Override
 	public boolean next() throws SQLException {
 		checkClosed();
 		
-		if (min(++currentRow, results.size()) == results.size()) {
+		if (min(++currentRowIndex, results.size()) == results.size()) {
 
 			if(command != null && command.getStatus() != Completed) {
 				
@@ -230,104 +353,24 @@ class PGResultSet implements ResultSet {
 				
 				resultFields = command.getResultFields();
 				results = (List<Object[]>) command.getResults(Object[].class);
-				currentRow = -1;
+				
+				resultsIndexOffset = currentRowIndex;				
+				currentRowIndex = -1;
 				
 				return next();				
 			}
 			
-			return false;
 		}
 
-		return true;
-	}
-
-	@Override
-	public boolean isBeforeFirst() throws SQLException {
-		checkClosed();
-
-		return currentRow == -1;
-	}
-
-	@Override
-	public boolean isAfterLast() throws SQLException {
-		checkClosed();
-
-		return currentRow == results.size();
-	}
-
-	@Override
-	public boolean isFirst() throws SQLException {
-		checkClosed();
-
-		return currentRow == 0;
-	}
-
-	@Override
-	public boolean isLast() throws SQLException {
-		checkClosed();
-
-		return currentRow == results.size() - 1;
-	}
-
-	@Override
-	public void beforeFirst() throws SQLException {
-		checkClosed();
-
-		currentRow = -1;
-	}
-
-	@Override
-	public void afterLast() throws SQLException {
-		checkClosed();
-
-		currentRow = results.size();
-	}
-
-	@Override
-	public boolean first() throws SQLException {
-		checkClosed();
-
-		currentRow = 0;
-		return true;
-	}
-
-	@Override
-	public boolean last() throws SQLException {
-		checkClosed();
-
-		currentRow = results.size() - 1;
-		return true;
-	}
-
-	@Override
-	public int getRow() throws SQLException {
-		checkClosed();
-
-		return currentRow;
-	}
-
-	@Override
-	public boolean absolute(int row) throws SQLException {
-		checkClosed();
-
-		currentRow = row;
-		return true;
-	}
-
-	@Override
-	public boolean relative(int rows) throws SQLException {
-		checkClosed();
-
-		currentRow += rows;
-		return true;
+		return isValidRow();
 	}
 
 	@Override
 	public boolean previous() throws SQLException {
 		checkClosed();
+		checkScroll();
 
-		currentRow--;
-		return true;
+		return relative(-1);
 	}
 
 	@Override

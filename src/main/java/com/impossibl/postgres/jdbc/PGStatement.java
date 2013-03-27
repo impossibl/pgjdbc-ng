@@ -15,6 +15,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
@@ -29,9 +30,9 @@ abstract class PGStatement implements Statement {
 	
 	
 	PGConnection connection;
-	int type;
-	int concurrency;
-	int holdability;
+	int resultSetType;
+	int resultSetConcurrency;
+	int resultSetHoldability;
 	int fetchDirection;
 	String name;
 	boolean processEscapes;
@@ -47,11 +48,11 @@ abstract class PGStatement implements Statement {
 
 	
 	
-	PGStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<ResultField> resultFields) {
+	PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
 		this.connection = connection;
-		this.type = type;
-		this.concurrency = concurrency;
-		this.holdability = holdability;
+		this.resultSetType = resultSetType;
+		this.resultSetConcurrency = resultSetConcurrency;
+		this.resultSetHoldability = resultSetHoldability;
 		this.name = name;
 		this.processEscapes = true;
 		this.resultFields = resultFields;
@@ -197,8 +198,11 @@ abstract class PGStatement implements Statement {
 	}
 	
 	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+		return createResultSet(resultFields, results, connection.getTypeMap());
+	}
 		
-		PGResultSet resultSet = new PGResultSet(this, resultFields, results);
+	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
+		PGResultSet resultSet = new PGResultSet(this, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, resultFields, results);
 		activeResultSets.add(resultSet);
 		return resultSet;
 	}
@@ -214,21 +218,21 @@ abstract class PGStatement implements Statement {
 	public int getResultSetType() throws SQLException {
 		checkClosed();
 		
-		return type;
+		return resultSetType;
 	}
 
 	@Override
 	public int getResultSetConcurrency() throws SQLException {
 		checkClosed();
 		
-		return concurrency;
+		return resultSetConcurrency;
 	}
 
 	@Override
 	public int getResultSetHoldability() throws SQLException {
 		checkClosed();
 		
-		return holdability;
+		return resultSetHoldability;
 	}
 
 	@Override
@@ -363,7 +367,7 @@ abstract class PGStatement implements Statement {
 			throw NO_RESULT_SET_AVAILABLE;
 		}
 
-		PGResultSet rs = new PGResultSet(this, command);
+		PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command);
 		
 		this.activeResultSets.add(rs);
 		

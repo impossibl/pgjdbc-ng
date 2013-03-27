@@ -21,5 +21,6 @@ public class Exceptions {
 	public static final SQLException PARAMETER_INDEX_OUT_OF_BOUNDS = new SQLException("Parameter index out of bounds");
 	public static final SQLException SERVER_VERSION_NOT_SUPPORTED = new SQLException("Server version not supported");
 	public static final SQLException UNWRAP_ERROR = new SQLException("Unwrap error");
+	public static final SQLException CURSOR_NOT_SCROLLABLE = new SQLException("Cursor not scrollable");
 
 }
