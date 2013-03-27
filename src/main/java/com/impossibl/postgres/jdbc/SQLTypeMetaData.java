@@ -14,6 +14,7 @@ import java.util.Map;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 
@@ -111,6 +112,70 @@ class SQLTypeMetaData {
 	public static boolean isSigned(Type type) {
 		
 		return type.unwrap().getCategory() == Type.Category.Numeric;
+	}
+	
+	public static Type getType(int sqlType, Registry reg) {
+	
+		switch(sqlType) {
+		case Types.NULL:
+			return reg.loadType("any");
+		case Types.BOOLEAN:
+		case Types.BIT:
+			return reg.loadType("bool");
+		case Types.TINYINT:
+			return null;
+		case Types.SMALLINT:
+			return reg.loadType("int2");
+		case Types.INTEGER:
+			return reg.loadType("int4");
+		case Types.BIGINT:
+			return reg.loadType("int8");
+		case Types.FLOAT:
+		case Types.REAL:
+			return reg.loadType("float4");
+		case Types.DOUBLE:
+			return reg.loadType("float8");
+		case Types.NUMERIC:
+		case Types.DECIMAL:
+			return reg.loadType("numeric");
+		case Types.CHAR:
+		case Types.VARCHAR:
+		case Types.LONGVARCHAR:
+			return reg.loadType("text");
+		case Types.TIME:
+			return reg.loadType("time");
+		case Types.DATE:
+			return reg.loadType("date");
+		case Types.TIMESTAMP:
+			return reg.loadType("timestamp");
+		case Types.BINARY:
+		case Types.VARBINARY:
+		case Types.LONGVARBINARY:
+			return reg.loadType("bytea");
+		case Types.ARRAY:
+			return reg.loadType("array");
+		case Types.BLOB:
+		case Types.CLOB:
+			return reg.loadType("oid");
+		case Types.DISTINCT:
+			return null;
+		case Types.STRUCT:
+			return reg.loadType("oid");
+		case Types.ROWID:
+			return reg.loadType("oid");
+		case Types.REF:
+		case Types.OTHER:
+		case Types.DATALINK:
+		case Types.JAVA_OBJECT:
+		case Types.NCHAR:
+		case Types.NVARCHAR:
+		case Types.LONGNVARCHAR:
+		case Types.NCLOB:
+		case Types.SQLXML:
+		default:
+			return null;
+		}
+		
 	}
 	
 	public static int getSQLType(Type type) {
