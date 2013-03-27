@@ -57,15 +57,15 @@ public class Registry {
 
 		// Required initial types for bootstrapping
 		oidMap = new HashMap<>();
-		oidMap.put(16, new BaseType(16, "bool", 		(short) 1, 	(byte) 0, Category.Boolean, ',', null, "bool"));
-		oidMap.put(17, new BaseType(17, "bytea", 		(short) 1, 	(byte) 0, Category.User, 		',', null, "bytea"));
-		oidMap.put(18, new BaseType(18, "char", 		(short) 1, 	(byte) 0, Category.String, 	',', null, "char"));
-		oidMap.put(19, new BaseType(19, "name", 		(short) 64, (byte) 0, Category.String, 	',', null, "name"));
-		oidMap.put(21, new BaseType(21, "int2", 		(short) 2, 	(byte) 0, Category.Numeric, ',', null, "int2"));
-		oidMap.put(23, new BaseType(23, "int4", 		(short) 4, 	(byte) 0, Category.Numeric, ',', null, "int4"));
-		oidMap.put(24, new BaseType(24, "regproc", 	(short) 4, 	(byte) 0, Category.Numeric, ',', null, "regproc"));
-		oidMap.put(25, new BaseType(25, "text", 		(short) 1, 	(byte) 0, Category.String, 	',', null, "text"));
-		oidMap.put(26, new BaseType(26, "oid", 			(short) 4,	(byte) 0, Category.Numeric, ',', null, "oid"));
+		oidMap.put(16, new BaseType(16, "bool", 		(short) 1, 	(byte) 0, Category.Boolean, ',', 0, "bool"));
+		oidMap.put(17, new BaseType(17, "bytea", 		(short) 1, 	(byte) 0, Category.User, 		',', 0, "bytea"));
+		oidMap.put(18, new BaseType(18, "char", 		(short) 1, 	(byte) 0, Category.String, 	',', 0, "char"));
+		oidMap.put(19, new BaseType(19, "name", 		(short) 64, (byte) 0, Category.String, 	',', 0, "name"));
+		oidMap.put(21, new BaseType(21, "int2", 		(short) 2, 	(byte) 0, Category.Numeric, ',', 0, "int2"));
+		oidMap.put(23, new BaseType(23, "int4", 		(short) 4, 	(byte) 0, Category.Numeric, ',', 0, "int4"));
+		oidMap.put(24, new BaseType(24, "regproc", 	(short) 4, 	(byte) 0, Category.Numeric, ',', 0, "regproc"));
+		oidMap.put(25, new BaseType(25, "text", 		(short) 1, 	(byte) 0, Category.String, 	',', 0, "text"));
+		oidMap.put(26, new BaseType(26, "oid", 			(short) 4,	(byte) 0, Category.Numeric, ',', 0, "oid"));
 
 		relIdMap = new HashMap<>();
 		nameMap = new HashMap<>();

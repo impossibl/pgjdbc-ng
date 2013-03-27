@@ -43,12 +43,12 @@ public class CompositeType extends Type {
 
 	private List<Attribute> attributes;
 
-	public CompositeType(int id, String name, Type arrayType, String procName) {
-		super(id, name, null, null, Category.Composite, ',', arrayType, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null));
+	public CompositeType(int id, String name, int arrayTypeId, String procName) {
+		super(id, name, null, null, Category.Composite, ',', arrayTypeId, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null));
 	}
 
-	public CompositeType(int id, String name, Type arrayType) {
-		this(id, name, arrayType, "record_");
+	public CompositeType(int id, String name, int arrayTypeId) {
+		this(id, name, arrayTypeId, "record_");
 	}
 
 	public CompositeType() {
@@ -87,7 +87,6 @@ public class CompositeType extends Type {
 
 		attributes = new ArrayList<>(pgAttrs.size());
 
-		
 		for (PgAttribute.Row pgAttr : pgAttrs) {
 
 			Attribute attr = new Attribute();

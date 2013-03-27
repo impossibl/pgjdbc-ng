@@ -108,7 +108,7 @@ public abstract class Type {
 	private Byte alignment;
 	private Category category;
 	private Character delimeter;
-	private Type arrayType;
+	private int arrayTypeId;
 	private int relationId;
 	private Codec binaryCodec;
 	private Codec textCodec;
@@ -117,7 +117,7 @@ public abstract class Type {
 	public Type() {
 	}
 
-	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, Type arrayType, Codec binaryCodec, Codec textCodec) {
+	public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Codec binaryCodec, Codec textCodec) {
 		super();
 		this.id = id;
 		this.name = name;
@@ -125,7 +125,7 @@ public abstract class Type {
 		this.alignment = alignment;
 		this.category = category;
 		this.delimeter = delimeter;
-		this.arrayType = arrayType;
+		this.arrayTypeId = arrayTypeId;
 		this.binaryCodec = binaryCodec;
 		this.textCodec = textCodec;
 	}
@@ -186,12 +186,12 @@ public abstract class Type {
 		this.delimeter = delimeter;
 	}
 	
-	public Type getArrayType() {
-		return arrayType;
+	public int getArrayTypeId() {
+		return arrayTypeId;
 	}
 	
-	public void setArrayType(Type arrayType) {
-		this.arrayType = arrayType;
+	public void setArrayTypeId(int arrayTypeId) {
+		this.arrayTypeId = arrayTypeId;
 	}
 	
 	public Codec getBinaryCodec() {
@@ -285,7 +285,7 @@ public abstract class Type {
 		alignment = getAlignment(source.alignment != null ? source.alignment.charAt(0) : null); 
 		category = Category.findValue(source.category);
 		delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
-		arrayType = registry.loadType(source.arrayTypeId);
+		arrayTypeId = source.arrayTypeId;
 		relationId = source.relationId;
 		textCodec = registry.loadCodec(source.inputId, source.outputId);
 		binaryCodec = registry.loadCodec(source.receiveId, source.sendId);
