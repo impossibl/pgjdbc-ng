@@ -70,7 +70,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 				ResultField field = resultFields.get(c);
 
-				Type fieldType = field.type;
+				Type fieldType = field.getType();
 				Object fieldVal = null;
 
 				switch (field.format) {

@@ -603,7 +603,7 @@ public class ProtocolImpl implements Protocol {
 			field.name = readCString(buffer, context.getCharset());
 			field.relationId = buffer.readInt();
 			field.relationAttributeNumber = buffer.readShort();
-			field.type = registry.loadType(buffer.readInt());
+			field.typeRef = new ResultField.TypeLocator(buffer.readInt(), registry);
 			field.typeLength = buffer.readShort();
 			field.typeModifier = buffer.readInt();
 			field.format = ResultField.Format.values()[buffer.readShort()];
