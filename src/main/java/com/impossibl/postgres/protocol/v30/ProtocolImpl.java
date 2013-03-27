@@ -714,6 +714,7 @@ public class ProtocolImpl implements Protocol {
 			
 		case "CREATE":
 		case "DROP":
+		case "ALTER":
 			
 			if(parts.length == 2) {
 
