@@ -11,8 +11,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
@@ -280,10 +281,10 @@ public class ConnectionTest extends TestCase
         con = TestUtil.openDB();
 
         // preserve the current map
-        java.util.Map oldmap = con.getTypeMap();
+        Map<String, Class<?>> oldmap = con.getTypeMap();
 
         // now change it for an empty one
-        java.util.Map newmap = new java.util.HashMap();
+        Map<String, Class<?>> newmap = new HashMap<>();
         con.setTypeMap(newmap);
         assertEquals(newmap, con.getTypeMap());
 
