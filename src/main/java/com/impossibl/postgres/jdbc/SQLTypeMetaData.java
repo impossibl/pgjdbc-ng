@@ -159,6 +159,8 @@ class SQLTypeMetaData {
 			return Types.BINARY;
 		case UUID:
 			return Types.OTHER;
+		case Record:
+			return Types.STRUCT;
 		default:
 			return Types.OTHER;
 		}
