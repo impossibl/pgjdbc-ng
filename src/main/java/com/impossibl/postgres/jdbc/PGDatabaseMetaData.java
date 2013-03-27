@@ -14,12 +14,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.system.tables.ACLItem;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -828,8 +830,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 	      // decide if we are returning a single column result.
 				if (returnTypeType.equals("b") || 
 						returnTypeType.equals("d") || 
-						(returnTypeType.equals("p") && argModes == null) || 
-						(returnTypeType.equals("p") && argModes != null && returnTypeRelId == 0)) {
+						(returnTypeType.equals("p") && argModes == null)) {
 					
 					Object[] row = new Object[resultFields.length];
 					row[0] = null;
@@ -852,38 +853,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					results.add(row);
 				}
 	
-				// if we are returning a multi-column result.
-				if(returnTypeType.equals("c") || (returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
-					
-					String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
-					try(ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
-						while (columnrs.next()) {
-							
-							Type columnType = reg.loadType(columnrs.getInt("atttypid"));
-							
-							Object[] row = new Object[resultFields.length];
-							row[0] = null;
-							row[1] = schema;
-							row[2] = procedureName;
-							row[3] = columnrs.getString("attname");
-							row[4] = DatabaseMetaData.procedureColumnResult;
-							row[5] = SQLTypeMetaData.getSQLType(columnType);
-							row[6] = columnType.getJavaType().getName();
-							row[7] = null;
-							row[8] = null;
-							row[9] = null;
-							row[10] = null;
-							row[11] = DatabaseMetaData.procedureNullableUnknown;
-							row[12] = null;
-							row[17] = 0;
-							row[18] = "";
-							row[19] = specificName;
-							
-							results.add(row);
-						}
-					}
-				}
-
 				// Add a row for each argument.
 				for (int i = 0; i < numArgs; i++) {
 					
@@ -935,6 +904,39 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					results.add(row);
 				}
 	
+				// if we are returning a multi-column result.
+				if(returnTypeType.equals("c") ||
+						(returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
+					
+					String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
+					try(ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
+						while (columnrs.next()) {
+							
+							Type columnType = reg.loadType(columnrs.getInt("atttypid"));
+							
+							Object[] row = new Object[resultFields.length];
+							row[0] = null;
+							row[1] = schema;
+							row[2] = procedureName;
+							row[3] = columnrs.getString("attname");
+							row[4] = DatabaseMetaData.procedureColumnResult;
+							row[5] = SQLTypeMetaData.getSQLType(columnType);
+							row[6] = columnType.getJavaType().getName();
+							row[7] = null;
+							row[8] = null;
+							row[9] = null;
+							row[10] = null;
+							row[11] = DatabaseMetaData.procedureNullableUnknown;
+							row[12] = null;
+							row[17] = 0;
+							row[18] = "";
+							row[19] = specificName;
+							
+							results.add(row);
+						}
+					}
+				}
+
 			}
 		}
 		
@@ -1196,19 +1198,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     resultFields[8] = new ResultField("DECIMAL_DIGITS",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
     resultFields[9] = new ResultField("NUM_PREC_RADIX",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
     resultFields[10] = new ResultField("NULLABLE", 					0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[11] = new ResultField("REMARKS", 						0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[11] = new ResultField("REMARKS", 					0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[12] = new ResultField("COLUMN_DEF", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[13] = new ResultField("SQL_DATA_TYPE", 			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[13] = new ResultField("SQL_DATA_TYPE", 		0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
     resultFields[14] = new ResultField("SQL_DATETIME_SUB", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
     resultFields[15] = new ResultField("CHAR_OCTET_LENGTH",	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
     resultFields[16] = new ResultField("ORDINAL_POSITION", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[17] = new ResultField("IS_NULLABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[17] = new ResultField("IS_NULLABLE", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[18] = new ResultField("SCOPE_CATLOG", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[19] = new ResultField("SCOPE_SCHEMA", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[20] = new ResultField("SCOPE_TABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[20] = new ResultField("SCOPE_TABLE", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[21] = new ResultField("SOURCE_DATA_TYPE", 	0, (short)0, registry.loadType("short"), 	(short)0, 0, Format.Binary);
-    resultFields[22] = new ResultField("IS_AUTOINCREMENT",		0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN",	0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[22] = new ResultField("IS_AUTOINCREMENT",	0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN",0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
 
     List<Object[]> results = new ArrayList<>();
     
@@ -1225,9 +1227,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[4] = SQLTypeMetaData.getSQLType(columnData.type);
     	row[5] = SQLTypeMetaData.getTypeName(columnData.type, columnData.relationType, columnData.relationAttrNum);
     	
-    	int size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
+    	int size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
     	if(size == 0) {
-    		size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
+    		size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
     	}
     	
     	row[6] = size;
@@ -1270,17 +1272,323 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		if(table == null) {
+			table = "%";
+		}
+
+		if(columnNamePattern == null) {
+			columnNamePattern = "%";
+		}
+
+		Registry reg = connection.getRegistry();
+
+		StringBuilder sql = new StringBuilder();
+		List<Object> params = new ArrayList<>();
+		
+		sql.append(
+				"SELECT" + 
+				"	n.nspname,c.relname,r.rolname,c.relacl::text[],a.attacl::text[],a.attname " +
+				"FROM" +
+				"	pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
+				"WHERE " +
+				"	c.relnamespace = n.oid AND c.relowner = r.oid AND c.oid = a.attrelid AND c.relkind = 'r' AND a.attnum > 0 AND NOT a.attisdropped ");
+		
+		if(!isNullOrEmpty(schema)) {
+			sql.append(" AND n.nspname = ?");
+			params.add(schema);
+		}
+
+		sql.append(" AND c.relname = ?");
+		params.add(table);
+		
+		if(!isNullOrEmpty(columnNamePattern)) {
+			sql.append(" AND a.attname LIKE ?");
+			params.add(columnNamePattern);
+		}
+		
+		sql.append(" ORDER BY attname");
+
+		
+		ResultField fields[] = new ResultField[8];
+		fields[0] = new ResultField("TABLE_CAT", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[1] = new ResultField("TABLE_SCHEM",	0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[2] = new ResultField("TABLE_NAME", 	0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[3] = new ResultField("COLUMN_NAME", 	0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[4] = new ResultField("GRANTOR",			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[5] = new ResultField("GRANTEE", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[6] = new ResultField("PRIVILEGE", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[7] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+
+		List<Object[]> results = new ArrayList<>();
+		
+		try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+			
+			while(rs.next()) {
+				
+				String schemaName = rs.getString("nspname");
+				String tableName = rs.getString("relname");
+				String column = rs.getString("attname");
+				String owner = rs.getString("rolname");
+				
+				Map<String, Map<String, List<String[]>>> privileges = new HashMap<>();
+				mapACLPrivileges(owner, rs.getObject("relacl", String[].class), privileges);
+				mapACLPrivileges(owner, rs.getObject("attacl", String[].class), privileges);
+				
+				//Gather list privelege names 
+				String[] privNames = new String[privileges.size()];
+				Iterator<String> e = privileges.keySet().iterator();
+				int i = 0;
+				while(e.hasNext()) {
+					privNames[i++] = e.next();
+				}
+				
+				Arrays.sort(privNames);
+				
+				for(String privName : privNames) {
+					
+					Map<String, List<String[]>> grantees = privileges.get(privName);
+
+					//Gather list of grantee users
+					String[] granteeUsers = new String[grantees.size()];
+					Iterator<String> g = grantees.keySet().iterator();
+					int k = 0;
+					while(g.hasNext()) {
+						granteeUsers[k++] = g.next();
+					}
+					
+					//Add row for grantee
+					
+					for(int j = 0; j < grantees.size(); j++) {
+						
+						List<String[]> grantors = grantees.get(granteeUsers[j]);
+						String grantee = granteeUsers[j];
+						
+						for(int l = 0; l < grantors.size(); l++) {
+							
+							String[] grants = grantors.get(l);
+
+							String grantor = isNullOrEmpty(grants[0]) ? owner : grants[0];
+							String grantable = owner.equals(grantee) ? "YES" : grants[1];
+							
+							Object[] row = new Object[8];
+							row[0] = null;
+							row[1] = schemaName;
+							row[2] = tableName;
+							row[3] = column;
+							row[4] = grantor;
+							row[5] = grantee;
+							row[6] = privName;
+							row[7] = grantable;
+							
+							results.add(row);
+						}
+						
+					}
+					
+				}
+				
+			}
+			
+		}
+
+		return createResultSet(Arrays.asList(fields), results);
 	}
 
 	@Override
 	public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		Registry reg = connection.getRegistry();
+		
+		StringBuilder sql = new StringBuilder();
+		List<Object> params = new ArrayList<>();
+		
+		sql.append(
+				"SELECT" +
+				"	n.nspname,c.relname,r.rolname,c.relacl::text[] " +
+				"FROM" +
+				"	pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r " +
+				"WHERE" +
+				"	c.relnamespace = n.oid AND c.relowner = r.oid AND c.relkind = 'r' ");
+		
+		if(!isNullOrEmpty(schemaPattern)) {
+			sql.append(" AND n.nspname LIKE ?");
+			params.add(schemaPattern);
+		}
+
+		if(!isNullOrEmpty(tableNamePattern)) {
+			sql.append(" AND c.relname LIKE ?");
+			params.add(tableNamePattern);
+		}
+		
+		sql.append(" ORDER BY nspname, relname ");
+		
+
+		ResultField fields[] = new ResultField[7];
+		fields[0] = new ResultField("TABLE_CAT", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[1] = new ResultField("TABLE_SCHEM",	0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[2] = new ResultField("TABLE_NAME", 	0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[3] = new ResultField("GRANTOR",			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[4] = new ResultField("GRANTEE", 			0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[5] = new ResultField("PRIVILEGE", 		0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+		fields[6] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+
+		List<Object[]> results = new ArrayList<>();
+		
+		try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+			
+			while(rs.next()) {
+				
+				String schema = rs.getString("nspname");
+				String table = rs.getString("relname");
+				String owner = rs.getString("rolname");
+				
+				Map<String, Map<String, List<String[]>>> privileges = new HashMap<>();
+				mapACLPrivileges(owner, rs.getObject("relacl", String[].class), privileges);
+
+				String privNames[] = new String[privileges.size()];
+				Iterator<String> e = privileges.keySet().iterator();
+				int i = 0;
+				while(e.hasNext()) {
+					privNames[i++] = (String) e.next();
+				}
+				
+				Arrays.sort(privNames);
+				
+				for(String privName : privNames) {
+					
+					Map<String, List<String[]>> grantees = privileges.get(privName);
+
+					//Gather list of grantee users
+					String[] granteeUsers = new String[grantees.size()];
+					Iterator<String> g = grantees.keySet().iterator();
+					int k = 0;
+					while(g.hasNext()) {
+						granteeUsers[k++] = g.next();
+					}
+
+					for(int j = 0; j < granteeUsers.length; j++) {
+						
+						List<String[]> grantors = grantees.get(granteeUsers[j]);
+						String grantee = granteeUsers[j];
+						
+						for(int l = 0; l < grantors.size(); l++) {
+							
+							String[] grants = grantors.get(l);
+							
+							String grantor = isNullOrEmpty(grants[0]) ? owner : grants[0];
+							String grantable = owner.equals(grantee) ? "YES" : grants[1];
+						
+							Object[] row = new Object[7];
+							row[0] = null;
+							row[1] = schema;
+							row[2] = table;
+							row[3] = grantor;
+							row[4] = grantee;
+							row[5] = privName;
+							row[6] = grantable;
+							
+							results.add(row);
+
+						}
+					}
+				}
+			}
+		}
+
+		return createResultSet(Arrays.asList(fields), results);
 	}
 
-	@Override
+	private void mapACLPrivileges(String owner, String[] aclItems, Map<String,Map<String,List<String[]>>> privileges) {
+		
+		if(aclItems == null) {
+			//Null is shortcut for owner having full privileges
+			ACLItem fullPrivs = new ACLItem(owner, "arwdDxt", owner);
+			aclItems = new String[] {fullPrivs.toString()};
+		}
+
+		for(String aclItemStr : aclItems) {
+			
+			ACLItem aclItem = ACLItem.parse(aclItemStr);
+		
+			for(int i = 0; i < aclItem.privileges.length(); i++) {
+				
+				char c = aclItem.privileges.charAt(i);
+				if(c != '*') {
+					
+					String sqlpriv;
+					String grantable;
+					if(i < aclItem.privileges.length() - 1 && aclItem.privileges.charAt(i + 1) == '*') {
+						grantable = "YES";
+					}
+					else {
+						grantable = "NO";
+					}
+					
+					switch(c) {
+					case 'a':
+						sqlpriv = "INSERT";
+						break;
+					case 'r':
+						sqlpriv = "SELECT";
+						break;
+					case 'w':
+						sqlpriv = "UPDATE";
+						break;
+					case 'd':
+						sqlpriv = "DELETE";
+						break;
+					case 'D':
+						sqlpriv = "TRUNCATE";
+						break;
+					case 'R':
+						sqlpriv = "RULE";
+						break;
+					case 'x':
+						sqlpriv = "REFERENCES";
+						break;
+					case 't':
+						sqlpriv = "TRIGGER";
+						break;
+					case 'X':
+						sqlpriv = "EXECUTE";
+						break;
+					case 'U':
+						sqlpriv = "USAGE";
+						break;
+					case 'C':
+						sqlpriv = "CREATE";
+						break;
+					case 'T':
+						sqlpriv = "CREATE TEMP";
+						break;
+					default:
+						sqlpriv = "UNKNOWN";
+					}
+	
+					Map<String,List<String[]>> usersWithPermission = privileges.get(sqlpriv);
+					if(usersWithPermission == null) {
+						usersWithPermission = new HashMap<>();
+						privileges.put(sqlpriv, usersWithPermission);
+					}
+					
+					List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.user);
+					if(permissionByGrantor == null) {
+						permissionByGrantor = new ArrayList<>();
+						usersWithPermission.put(aclItem.user, permissionByGrantor);
+					}
+					
+					permissionByGrantor.add(new String[] { aclItem.grantor, grantable });
+					
+				}
+				
+			}
+			
+		}
+		
+	}
+
+  @Override
 	public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
 		
 		Registry reg = connection.getRegistry();
@@ -1547,7 +1855,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 	    row[6] = SQLTypeMetaData.isNullable(type, null, 0);
 	    row[7] = SQLTypeMetaData.isCaseSensitive(type);
 	    row[8] = true;
-	    row[9] = SQLTypeMetaData.isSigned(type);
+	    row[9] = !SQLTypeMetaData.isSigned(type);
 	    row[10] = SQLTypeMetaData.isCurrency(type);
 	    row[11] = SQLTypeMetaData.isAutoIncrement(type, null, 0);
 	    row[13] = SQLTypeMetaData.getMinScale(type);
@@ -1609,6 +1917,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         sql.append(" AND n.nspname = ?");
         params.add(schema);
     }
+    
+    sql.append(" AND ct.relname = ?");
+    params.add(table);
+
+    if (unique) {
+        sql.append(" AND i.indisunique ");
+    }
+    sql.append(" ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ");
     
 		return execForResultSet(sql.toString(), params);
 	}
@@ -1782,8 +2098,116 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		Registry reg = connection.getRegistry();
+		
+		StringBuilder sql = new StringBuilder();
+		List<Object> params = new ArrayList<>();
+		
+		sql.append(
+				"SELECT " +
+				"	NULL AS TYPE_CAT, n.nspname AS TYPE_SCHEM, t.typname AS TYPE_NAME, NULL AS CLASS_NAME, " +
+				"	CASE WHEN t.typtype='c' THEN " + java.sql.Types.STRUCT + " ELSE " + java.sql.Types.DISTINCT + " END AS DATA_TYPE, " +
+				"	pg_catalog.obj_description(t.oid, 'pg_type')  AS REMARKS, " +
+				"	typbasetype as BASE_TYPE_ID " +
+				"FROM" +
+				"	pg_catalog.pg_type t, pg_catalog.pg_namespace n " +
+				"WHERE" +
+				"	t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'");
+
+		if(types != null) {
+			
+			sql.append(" AND (false ");
+			
+			for(int i = 0; i < types.length; i++) {
+				switch(types[i]) {
+				case java.sql.Types.STRUCT:
+					sql.append(" or t.typtype = 'c'");
+					break;
+				case java.sql.Types.DISTINCT:
+					sql.append(" or t.typtype = 'd'");
+					break;
+				}
+			}
+			
+			sql.append(" ) ");
+		}
+		else {
+			
+			sql.append(" and t.typtype IN ('c','d') ");
+		}
+		
+		// spec says that if typeNamePattern is a fully qualified name
+		// then the schema and catalog are ignored
+
+		if(typeNamePattern != null) {
+			
+			// search for qualifier
+			int firstQualifier = typeNamePattern.indexOf('.');
+			int secondQualifier = typeNamePattern.lastIndexOf('.');
+
+			if(firstQualifier != -1) {
+				
+				// if one of them is -1 they both will be
+				if(firstQualifier != secondQualifier) {
+					// we have a catalog.schema.typename, ignore catalog
+					schemaPattern = typeNamePattern.substring(firstQualifier + 1, secondQualifier);
+				}
+				else {
+					// we just have a schema.typename
+					schemaPattern = typeNamePattern.substring(0, firstQualifier);
+				}
+				// strip out just the typeName
+				typeNamePattern = typeNamePattern.substring(secondQualifier + 1);
+			}
+			
+			sql.append(" AND t.typname LIKE ?");
+			params.add(typeNamePattern);
+		}
+
+		// schemaPattern may have been modified above
+		if(schemaPattern != null) {
+			sql.append(" AND n.nspname LIKE ?");
+			params.add(schemaPattern);
+		}
+		
+		sql.append(" ORDER BY data_type, type_schem, type_name");
+		
+		PGResultSet rs = execForResultSet(sql.toString(), params);
+		
+		ResultField[] fields = new ResultField[7];
+		fields[0] = rs.resultFields.get(0);
+		fields[1] = rs.resultFields.get(1);
+		fields[2] = rs.resultFields.get(2);
+		fields[3] = rs.resultFields.get(3);
+		fields[4] = rs.resultFields.get(4);
+		fields[5] = rs.resultFields.get(5);
+		fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+		
+		List<Object[]> results = new ArrayList<>();
+		while(rs.next()) {
+			
+			Object[] row = new Object[7];
+			
+			row[0] = rs.get(1);
+			row[1] = rs.get(2);
+			row[2] = rs.get(3);
+			row[3] = rs.get(4);
+			row[4] = rs.get(5);
+			row[5] = rs.get(6);
+			
+			Type type = reg.loadType(rs.getInt(7));
+			if(type != null) {
+				row[6] = SQLTypeMetaData.getSQLType(type);
+			}
+			else {
+				row[6] = null;
+			}
+			
+			results.add(row);
+		}
+		
+		return createResultSet(Arrays.asList(fields), results);
 	}
 
 	@Override
