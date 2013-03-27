@@ -53,7 +53,7 @@ abstract class PGStatement implements Statement {
 		this.holdability = holdability;
 		this.name = name;
 		this.processEscapes = true;
-		this.resultFields = null;
+		this.resultFields = resultFields;
 		this.activeResultSets = new ArrayList<>();
 	}
 
