@@ -838,7 +838,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					row[3] = "returnValue";
 					row[4] = DatabaseMetaData.procedureColumnReturn;
 					row[5] = SQLTypeMetaData.getSQLType(returnType);
-					row[6] = returnType.getJavaType().getName();
+					row[6] = SQLTypeMetaData.getTypeName(returnType, null, 0);
 					row[7] = null;
 					row[8] = null;
 					row[9] = null;
@@ -1223,7 +1223,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[2] = columnData.tableName;
     	row[3] = columnData.columnName;
     	row[4] = SQLTypeMetaData.getSQLType(columnData.type);
-    	row[5] = columnData.type.getJavaType().getName();
+    	row[5] = SQLTypeMetaData.getTypeName(columnData.type, columnData.relationType, columnData.relationAttrNum);
     	
     	int size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
     	if(size == 0) {
@@ -1259,16 +1259,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[19] = null;
     	row[20] = null;
     	row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;
-    	
-    	boolean autoIncrment = false;
-    	if(columnData.relationType != null && columnData.relationAttrNum != 0) {
-    		CompositeType.Attribute attr = columnData.relationType.getAttribute(columnData.relationAttrNum);
-    		if(attr != null) {
-      		autoIncrment = attr.autoIncrement;    			
-    		}
-    	}
-    	
-    	row[22] = autoIncrment;
+    	row[22] = SQLTypeMetaData.isAutoIncrement(columnData.type, columnData.relationType, columnData.relationAttrNum);
     	row[23] = columnData.relationType != null ? "YES" : "NO";
     	
     	results.add(row);
@@ -1339,7 +1330,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 				row[0] = scope;
 				row[1] = rs.getString("attname");
 				row[2] = SQLTypeMetaData.getSQLType(type);
-				row[3] = type.getJavaType().getName();
+				row[3] = SQLTypeMetaData.getTypeName(type, null, 0);
 				row[4] = columnSize;
 				row[5] = null; // unused
 				row[6] = decimalDigits;
@@ -1386,7 +1377,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     row[0] = null;
     row[1] = "ctid";
     row[2] = SQLTypeMetaData.getSQLType(type);
-    row[3] = type.getJavaType().getName();
+    row[3] = SQLTypeMetaData.getTypeName(type, null, 0);
     row[4] = null;
     row[5] = null;
     row[6] = null;
@@ -1541,11 +1532,10 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     while (rs.next()) {
     	
 	    Object[] row = new Object[18];
-	    String typname = rs.getString(1);
 	    int typeOid = rs.getInt(2);
 	    Type type = registry.loadType(typeOid);
 	
-	    row[0] = typname;
+	    row[0] = SQLTypeMetaData.getTypeName(type, null, 0);
 	    row[1] = SQLTypeMetaData.getSQLType(type);
 	    row[2] = SQLTypeMetaData.getMaxPrecision(type);
 	    
@@ -1559,7 +1549,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 	    row[8] = true;
 	    row[9] = SQLTypeMetaData.isSigned(type);
 	    row[10] = SQLTypeMetaData.isCurrency(type);
-	    row[11] = SQLTypeMetaData.isAutoIncrement(type);
+	    row[11] = SQLTypeMetaData.isAutoIncrement(type, null, 0);
 	    row[13] = SQLTypeMetaData.getMinScale(type);
 	    row[14] = SQLTypeMetaData.getMaxScale(type);
 	    row[15] = null; //Unused

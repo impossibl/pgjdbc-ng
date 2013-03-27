@@ -95,12 +95,10 @@ class PGResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public boolean isAutoIncrement(int column) throws SQLException {
 		
-		CompositeType.Attribute relAttr = getRelAttr(column);
-		if(relAttr == null) {
-			return false;
-		}
+		ResultField field = get(column);
+		CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
 		
-		return relAttr.autoIncrement;
+		return SQLTypeMetaData.isAutoIncrement(field.type, relType, field.relationAttributeNumber);
 	}
 
 	@Override
@@ -192,7 +190,10 @@ class PGResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public String getColumnTypeName(int column) throws SQLException {
 		
-		return get(column).type.getName();
+		ResultField field = get(column);
+		CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+		
+		return SQLTypeMetaData.getTypeName(field.type, relType, field.relationAttributeNumber);
 	}
 
 	@Override

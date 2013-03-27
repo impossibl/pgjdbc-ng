@@ -67,9 +67,16 @@ class SQLTypeMetaData {
 		}		
 	}
 
-	public static boolean isAutoIncrement(Type type) {
+	public static boolean isAutoIncrement(Type type, CompositeType relType, int relAttrNum) {
 		
-		if(type instanceof DomainType) {
+		if(relType != null && relAttrNum > 0) {
+			
+			CompositeType.Attribute attr = relType.getAttribute(relAttrNum);
+			if(attr != null && attr.autoIncrement)
+				return true;
+		}
+		else if(type instanceof DomainType) {
+			
 			return ((DomainType)type).getDefaultValue().startsWith("nextval(");
 		}
 		
@@ -156,6 +163,26 @@ class SQLTypeMetaData {
 			return Types.OTHER;
 		}
 			
+	}
+	
+	public static String getTypeName(Type type, CompositeType relType, int relAttrNum) {
+		
+		//int4/int8 auto-increment fields -> serial/bigserial
+		if(isAutoIncrement(type, relType, relAttrNum)) {
+			
+			switch(type.getPrimitiveType()) {
+			case Int4:
+				return "serial";
+				
+			case Int8:
+				return "bigserial";
+				
+			default:
+			}
+			
+		}
+		
+		return type.getName();
 	}
 	
 	public static int getPrecisionRadix(Type type) {
