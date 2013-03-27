@@ -19,6 +19,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
@@ -451,11 +452,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object res = get(columnIndex);
-		if(res == null)
-			return null;
-		
-		return res.toString();
+		return coerceToString(get(columnIndex));
 	}
 
 	@Override
@@ -464,13 +461,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Boolean) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToBoolean(val);
-		}
+		return coerceToBoolean(get(columnIndex));
 	}
 
 	@Override
@@ -479,13 +470,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Byte) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToByte(val);
-		}
+		return coerceToByte(get(columnIndex));
 	}
 
 	@Override
@@ -494,13 +479,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Short) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToShort(val);
-		}
+		return coerceToShort(get(columnIndex));
 	}
 
 	@Override
@@ -509,13 +488,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Integer) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToInt(val);
-		}
+		return coerceToInt(get(columnIndex));
 	}
 
 	@Override
@@ -524,13 +497,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Long) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToLong(val);
-		}
+		return coerceToLong(get(columnIndex));
 	}
 
 	@Override
@@ -539,13 +506,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Float) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToFloat(val);
-		}
+		return coerceToFloat(get(columnIndex));
 	}
 
 	@Override
@@ -554,13 +515,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Double) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToDouble(val);
-		}
+		return coerceToDouble(get(columnIndex));
 	}
 
 	@Override
@@ -580,13 +535,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (BigDecimal) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToBigDecimal(val);
-		}
+		return coerceToBigDecimal(get(columnIndex));
 	}
 
 	@Override
@@ -595,13 +544,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (byte[]) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToBytes(val, getType(columnIndex), statement.connection);
-		}
+		return coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -610,13 +553,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Date) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToDate(val, statement.connection);
-		}
+		return coerceToDate(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -625,13 +562,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Time) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToTime(val, statement.connection);
-		}
+		return coerceToTime(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -640,13 +571,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (Timestamp) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToTimestamp(val, statement.connection);
-		}
+		return coerceToTimestamp(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -657,13 +582,7 @@ class PGResultSet implements ResultSet {
 		
 		//TODO respect calendar param
 		
-		Object val = get(columnIndex);
-		try {
-			return (Date) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToDate(val, statement.connection);
-		}
+		return coerceToDate(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -674,13 +593,7 @@ class PGResultSet implements ResultSet {
 		
 		//TODO respect calendar param
 		
-		Object val = get(columnIndex);
-		try {
-			return (Time) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToTime(val, statement.connection);
-		}
+		return coerceToTime(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -691,13 +604,7 @@ class PGResultSet implements ResultSet {
 		
 		//TODO respect calendar param
 		
-		Object val = get(columnIndex);
-		try {
-			return (Timestamp) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToTimestamp(val, statement.connection);
-		}
+		return coerceToTimestamp(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -722,13 +629,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		Object val = get(columnIndex);
-		try {
-			return (URL) val;
-		}
-		catch(ClassCastException e) {
-			return coerceToURL(val);
-		}
+		return coerceToURL(get(columnIndex));
 	}
 
 	@Override
