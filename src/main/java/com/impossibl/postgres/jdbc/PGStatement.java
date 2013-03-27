@@ -302,8 +302,8 @@ abstract class PGStatement implements Statement {
 	public void setFetchDirection(int direction) throws SQLException {
 		checkClosed();
 		
-		if (direction != ResultSet.FETCH_FORWARD ||
-				direction != ResultSet.FETCH_REVERSE ||
+		if (direction != ResultSet.FETCH_FORWARD &&
+				direction != ResultSet.FETCH_REVERSE &&
 				direction != ResultSet.FETCH_UNKNOWN)
 			throw ILLEGAL_ARGUMENT;
 			
