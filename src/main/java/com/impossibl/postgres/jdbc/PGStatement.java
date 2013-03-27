@@ -2,6 +2,7 @@ package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
@@ -233,14 +234,14 @@ abstract class PGStatement implements Statement {
 	@Override
 	public boolean isPoolable() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		// TODO implement
 		return false;
 	}
 
 	@Override
 	public void setPoolable(boolean poolable) throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -336,21 +337,20 @@ abstract class PGStatement implements Statement {
 	@Override
 	public int getQueryTimeout() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		// TODO implement
 		return 0;
 	}
 
 	@Override
 	public void setQueryTimeout(int seconds) throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public void setCursorName(String name) throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
-
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -409,7 +409,7 @@ abstract class PGStatement implements Statement {
 	@Override
 	public void cancel() throws SQLException {
 		checkClosed();
-		// TODO Auto-generated method stub
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
