@@ -1,10 +1,13 @@
 package com.impossibl.postgres.types;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
 import com.impossibl.postgres.system.Context;
@@ -37,8 +40,10 @@ public class Registry {
 	private Map<String, PgProc.Row> pgProcNameMap;
 
 	private Context context;
+	private ReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public Registry(Context context) {
+		
 
 		this.context = context;
 
@@ -56,7 +61,7 @@ public class Registry {
 		kindMap.put('r', RangeType.class);
 
 		// Required initial types for bootstrapping
-		oidMap = new HashMap<>();
+		oidMap = Collections.synchronizedMap(new TreeMap<Integer, Type>());
 		oidMap.put(16, new BaseType(16, "bool", 		(short) 1, 	(byte) 0, Category.Boolean, ',', 0, "bool"));
 		oidMap.put(17, new BaseType(17, "bytea", 		(short) 1, 	(byte) 0, Category.User, 		',', 0, "bytea"));
 		oidMap.put(18, new BaseType(18, "char", 		(short) 1, 	(byte) 0, Category.String, 	',', 0, "char"));
@@ -77,22 +82,44 @@ public class Registry {
 	 * @param typeId The type's id
 	 * @return Type object or null, if none found
 	 */
-	public synchronized Type loadType(int typeId) {
+	public Type loadType(int typeId) {
 		
 		if(typeId == 0)
 			return null;
 
-		Type type = oidMap.get(typeId);
-		if(type == null) {
-			type = loadRaw(typeId);
+		lock.readLock().lock();
+		try {
 			
+			Type type = oidMap.get(typeId);
 			if(type == null) {
-				context.refreshType(typeId);
-				type = oidMap.get(typeId);
-			}
-		}
 
-		return type;
+				lock.readLock().unlock();
+				try {					
+				
+					type = loadRaw(typeId);
+				
+					if(type == null) {
+					
+						context.refreshType(typeId);
+					
+					}
+					
+				}
+				finally {
+					lock.readLock().lock();
+				}
+				
+				type = oidMap.get(typeId);
+				
+			}
+			
+			return type;
+			
+		}
+		finally {
+			lock.readLock().unlock();
+		}
+		
 	}
 
 	/**
@@ -101,9 +128,16 @@ public class Registry {
 	 * @param name The type's name
 	 * @return Type object or null, if none found
 	 */
-	public synchronized Type loadType(String name) {
+	public Type loadType(String name) {
 		
-		return nameMap.get(name);
+		lock.readLock().lock();
+		try {
+			return nameMap.get(name);
+		}
+		finally {
+			lock.readLock().unlock();
+		}
+		
 	}
 
 	/**
@@ -117,17 +151,38 @@ public class Registry {
 		if(relationId == 0)
 			return null;
 		
-		CompositeType type = (CompositeType) relIdMap.get(relationId);
-		if(type == null) {
-			type = loadRelationRaw(relationId);
-
+		lock.readLock().lock();
+		try {
+			
+			CompositeType type = (CompositeType) relIdMap.get(relationId);
 			if(type == null) {
-				context.refreshRelationType(relationId);
+				
+				lock.readLock().unlock();
+				try {
+				
+					type = loadRelationRaw(relationId);
+	
+					if(type == null) {
+					
+						context.refreshRelationType(relationId);
+						
+					}
+
+				}
+				finally {
+					lock.readLock().lock();
+				}
+					
 				type = (CompositeType) relIdMap.get(relationId);
+				
 			}
+			
+			return type;
+		}
+		finally {
+			lock.readLock().unlock();
 		}
 		
-		return type;
 	}
 
 	/**
@@ -138,11 +193,18 @@ public class Registry {
 	 */
 	public String lookupProcName(int procId) {
 
-		PgProc.Row pgProc = pgProcData.get(procId);
-		if(pgProc == null)
-			return null;
-
-		return pgProc.name;
+		lock.readLock().lock();
+		try {
+			
+			PgProc.Row pgProc = pgProcData.get(procId);
+			if(pgProc == null)
+				return null;
+	
+			return pgProc.name;
+		}
+		finally {
+			lock.readLock().unlock();
+		}
 	}
 
 	/**
@@ -153,11 +215,19 @@ public class Registry {
 	 */
 	public int lookupProcId(String procName) {
 
-		PgProc.Row pgProc = pgProcNameMap.get(procName);
-		if(pgProc == null)
-			return 0;
-
-		return pgProc.oid;
+		lock.readLock().lock();
+		try {
+			
+			PgProc.Row pgProc = pgProcNameMap.get(procName);
+			if(pgProc == null)
+				return 0;
+	
+			return pgProc.oid;
+		}
+		finally {
+			lock.readLock().unlock();
+		}
+		
 	}
 
 	/**
@@ -171,47 +241,54 @@ public class Registry {
 	 */
 	public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
 
-		/*
-		 * Update attribute info
-		 */
-
-		//Remove attribute info for updating types
-		for(PgType.Row pgType : pgTypeRows) {
-			pgAttrData.remove(pgType.relationId);
-		}
-
-		//Add updated info
-		for(PgAttribute.Row pgAttrRow : pgAttrRows) {
-
-			Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.relationId);
-			if(relRows == null) {
-				relRows = new HashSet<PgAttribute.Row>();
-				pgAttrData.put(pgAttrRow.relationId, relRows);
+		lock.writeLock().lock();
+		try {
+			/*
+			 * Update attribute info
+			 */
+	
+			//Remove attribute info for updating types
+			for(PgType.Row pgType : pgTypeRows) {
+				pgAttrData.remove(pgType.relationId);
+			}
+	
+			//Add updated info
+			for(PgAttribute.Row pgAttrRow : pgAttrRows) {
+	
+				Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.relationId);
+				if(relRows == null) {
+					relRows = new HashSet<PgAttribute.Row>();
+					pgAttrData.put(pgAttrRow.relationId, relRows);
+				}
+	
+				relRows.add(pgAttrRow);
+			}
+	
+			/*
+			 * Update proc info
+			 */
+	
+			for(PgProc.Row pgProcRow : pgProcRows) {
+				pgProcData.put(pgProcRow.oid, pgProcRow);
+				pgProcNameMap.put(pgProcRow.name, pgProcRow);
+			}
+	
+	
+			/*
+			 * Update type info
+			 */
+			for(PgType.Row pgTypeRow : pgTypeRows) {
+				pgTypeData.put(pgTypeRow.oid, pgTypeRow);
+				oidMap.remove(pgTypeRow.oid);
+				nameMap.remove(pgTypeRow.name);
+				relIdMap.remove(pgTypeRow.relationId);
 			}
 
-			relRows.add(pgAttrRow);
 		}
-
-		/*
-		 * Update proc info
-		 */
-
-		for(PgProc.Row pgProcRow : pgProcRows) {
-			pgProcData.put(pgProcRow.oid, pgProcRow);
-			pgProcNameMap.put(pgProcRow.name, pgProcRow);
+		finally {
+			lock.writeLock().unlock();
 		}
-
-
-		/*
-		 * Update type info
-		 */
-		for(PgType.Row pgTypeRow : pgTypeRows) {
-			pgTypeData.put(pgTypeRow.oid, pgTypeRow);
-			oidMap.remove(pgTypeRow.oid);
-			nameMap.remove(pgTypeRow.name);
-			relIdMap.remove(pgTypeRow.relationId);
-		}
-
+			
 		/*
 		 * (re)load all types just updated
 		 */
@@ -229,17 +306,36 @@ public class Registry {
 		if(typeId == 0)
 			return null;
 
-		PgType.Row pgType = pgTypeData.get(typeId);
-		Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.relationId);
+		lock.writeLock().lock();
+		try {
+			
+			PgType.Row pgType = pgTypeData.get(typeId);
+			if(pgType == null)
+				return null;
+		
+			Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.relationId);
 
-		Type type = loadRaw(pgType, pgAttrs);
-		if(type != null) {
-			oidMap.put(typeId, type);
-			nameMap.put(type.getName(), type);
-			relIdMap.put(type.getRelationId(), type);
+			Type type;
+			
+			lock.writeLock().unlock();
+			try {
+				type = loadRaw(pgType, pgAttrs);
+			}
+			finally {
+				lock.writeLock().lock();
+			}
+				
+			if(type != null) {
+				oidMap.put(typeId, type);
+				nameMap.put(type.getName(), type);
+				relIdMap.put(type.getRelationId(), type);
+			}
+
+			return type;
 		}
-
-		return type;
+		finally {
+			lock.writeLock().unlock();
+		}
 	}
 
 	/*
@@ -250,23 +346,37 @@ public class Registry {
 		if(relationId == 0)
 			return null;
 
-		CompositeType type = null;
-		
-		Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
-		if(pgAttrs != null && !pgAttrs.isEmpty()) {
+		lock.writeLock().lock();
+		try {
 			
-			PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().relationTypeId);
+			CompositeType type = null;			
 			
-			type = (CompositeType) loadRaw(pgType, pgAttrs);
-			if(type != null) {
-				oidMap.put(pgType.oid, type);
-				nameMap.put(type.getName(), type);
-				relIdMap.put(type.getRelationId(), type);
+			Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
+			if(pgAttrs != null && !pgAttrs.isEmpty()) {
+			
+				PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().relationTypeId);
+			
+				lock.writeLock().unlock();
+				try {
+					type = (CompositeType) loadRaw(pgType, pgAttrs);
+				}
+				finally {
+					lock.writeLock().lock();
+				}
+				
+				if(type != null) {
+					oidMap.put(pgType.oid, type);
+					nameMap.put(type.getName(), type);
+					relIdMap.put(type.getRelationId(), type);
+				}
 			}
 			
+			return type;
+		}
+		finally {
+			lock.writeLock().unlock();
 		}
 
-		return type;
 	}
 
 	/*
@@ -313,7 +423,13 @@ public class Registry {
 
 		try {
 
-			oidMap.put(pgType.oid, type);
+			lock.writeLock().lock();
+			try {
+				oidMap.put(pgType.oid, type);
+			}
+			finally {
+				lock.writeLock().unlock();
+			}
 
 			type.load(pgType, pgAttrs, this);
 
@@ -322,7 +438,13 @@ public class Registry {
 
 			e.printStackTrace();
 
-			oidMap.remove(pgType.oid);
+			lock.writeLock().lock();
+			try {
+				oidMap.remove(pgType.oid);
+			}
+			finally {
+				lock.writeLock().unlock();
+			}
 		}
 
 		return type;
