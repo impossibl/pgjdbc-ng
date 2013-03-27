@@ -137,7 +137,11 @@ class PGResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public String getColumnLabel(int column) throws SQLException {
 
-		return get(column).name;
+		String val = get(column).name;
+		if(val == null)
+			val = getColumnName(column);
+		
+		return val;
 	}
 
 	@Override
@@ -151,7 +155,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 		
 		Type relType = getRelType(column);
 		if(relType == null)
-			return null;
+			return "";
 		
 		return relType.getNamespace();
 	}
@@ -166,7 +170,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 		
 		CompositeType relType = getRelType(column);
 		if(relType == null)
-			return null;
+			return "";
 		
 		return relType.getName();
 	}
@@ -176,7 +180,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 		
 		CompositeType.Attribute attr = getRelAttr(column);
 		if(attr == null)
-			return null;
+			return get(column).name;
 		
 		return attr.name;
 	}
