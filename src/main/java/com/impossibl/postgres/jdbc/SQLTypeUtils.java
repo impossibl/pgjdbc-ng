@@ -1,5 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
+import static java.math.RoundingMode.HALF_EVEN;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
@@ -127,8 +129,17 @@ class SQLTypeUtils {
 		if(val == null) {
 			return 0;
 		}
+		else if(val instanceof Byte) {
+			return (byte) val;
+		}
 		else if(val instanceof Number) {
-			return ((Number)val).byteValue();
+
+			try {
+				return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).byteValueExact();
+			}
+			catch(ArithmeticException e) {
+				throw new SQLException("Coercion error", e);
+			}
 		}
 		else if(val instanceof String) {
 			return Byte.parseByte((String) val);
@@ -145,8 +156,20 @@ class SQLTypeUtils {
 		if(val == null) {
 			return 0;
 		}
+		else if(val instanceof Short) {
+			return (short) val;
+		}
+		else if(val instanceof Byte) {
+			return (byte) val;
+		}
 		else if(val instanceof Number) {
-			return ((Number)val).shortValue();
+
+			try {
+				return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).shortValueExact();
+			}
+			catch(ArithmeticException e) {
+				throw new SQLException("Coercion error", e);
+			}
 		}
 		else if(val instanceof String) {
 			return Short.parseShort((String) val);
@@ -163,8 +186,23 @@ class SQLTypeUtils {
 		if(val == null) {
 			return 0;
 		}
+		else if(val instanceof Integer) {
+			return (int) val;
+		}
+		else if(val instanceof Short) {
+			return (short) val;
+		}
+		else if(val instanceof Byte) {
+			return (byte) val;
+		}
 		else if(val instanceof Number) {
-			return ((Number)val).intValue();
+
+			try {
+				return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).intValueExact();
+			}
+			catch(ArithmeticException e) {
+				throw new SQLException("Coercion error", e);
+			}
 		}
 		else if(val instanceof String) {
 			return Integer.parseInt((String) val);
@@ -184,8 +222,26 @@ class SQLTypeUtils {
 		if(val == null) {
 			return 0;
 		}
+		else if(val instanceof Long) {
+			return (long) val;
+		}
+		else if(val instanceof Integer) {
+			return (int) val;
+		}
+		else if(val instanceof Short) {
+			return (short) val;
+		}
+		else if(val instanceof Byte) {
+			return (byte) val;
+		}
 		else if(val instanceof Number) {
-			return ((Number)val).longValue();
+
+			try {
+				return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).longValueExact();
+			}
+			catch(ArithmeticException e) {
+				throw new SQLException("Coercion error", e);
+			}
 		}
 		else if(val instanceof String) {
 			return Long.parseLong((String) val);
@@ -205,6 +261,9 @@ class SQLTypeUtils {
 		if(val == null) {
 			return 0;
 		}
+		else if(val instanceof Float) {
+			return (float) val;
+		}
 		else if(val instanceof Number) {
 			return ((Number)val).floatValue();
 		}
@@ -222,6 +281,9 @@ class SQLTypeUtils {
 		
 		if(val == null) {
 			return 0;
+		}
+		else if(val instanceof Double) {
+			return (double) val;
 		}
 		else if(val instanceof Number) {
 			return ((Number)val).doubleValue();
@@ -260,15 +322,31 @@ class SQLTypeUtils {
 			return ((Number)val).byteValue() != 0;
 		}
 		else if(val instanceof String) {
+			
 			String str = ((String) val).toLowerCase();
+			
+			try {
+				return Long.parseLong(str) != 0;
+			}
+			catch(Exception e) {
+			}
+			
+			try {
+				return Double.parseDouble(str) != 0;
+			}
+			catch(Exception e) {
+			}
+
 			switch(str) {
 			case "on":
 			case "true":
-			case "1":
+			case "t":
 				return true;
+				
 			default:
 				return false;
 			}
+			
 		}
 		else if(val instanceof Boolean) {
 			return (boolean) val;
