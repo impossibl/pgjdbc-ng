@@ -101,11 +101,15 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public void commandComplete(String command, Long rowsAffected, Long oid) {
+		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
 			status = Status.Completed;
 			BindExecCommandImpl.this.resultCommand = command;
 			BindExecCommandImpl.this.resultRowsAffected = rowsAffected;
 			BindExecCommandImpl.this.resultInsertedOid = oid;
+			
+			if(maxRows > 0) {
+				notifyAll();
+			}
 		}
 
 		@Override
