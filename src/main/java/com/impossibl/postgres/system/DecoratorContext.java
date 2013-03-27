@@ -59,6 +59,11 @@ public class DecoratorContext implements Context {
 	}
 
 	@Override
+	public void refreshRelationType(int relationId) {
+		base.refreshRelationType(relationId);
+	}
+
+	@Override
 	public Object getSetting(String name) {
 		return base.getSetting(name);
 	}

@@ -85,6 +85,11 @@ public class Registry {
 		Type type = oidMap.get(typeId);
 		if(type == null) {
 			type = loadRaw(typeId);
+			
+			if(type == null) {
+				context.refreshType(typeId);
+				type = oidMap.get(typeId);
+			}
 		}
 
 		return type;
@@ -112,7 +117,17 @@ public class Registry {
 		if(relationId == 0)
 			return null;
 		
-		return (CompositeType) relIdMap.get(relationId);
+		CompositeType type = (CompositeType) relIdMap.get(relationId);
+		if(type == null) {
+			type = loadRelationRaw(relationId);
+
+			if(type == null) {
+				context.refreshRelationType(relationId);
+				type = (CompositeType) relIdMap.get(relationId);
+			}
+		}
+		
+		return type;
 	}
 
 	/**
@@ -156,6 +171,16 @@ public class Registry {
 	 */
 	public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
 
+		/*
+		 * Update attribute info
+		 */
+
+		//Remove attribute info for updating types
+		for(PgType.Row pgType : pgTypeRows) {
+			pgAttrData.remove(pgType.relationId);
+		}
+
+		//Add updated info
 		for(PgAttribute.Row pgAttrRow : pgAttrRows) {
 
 			Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.relationId);
@@ -167,11 +192,19 @@ public class Registry {
 			relRows.add(pgAttrRow);
 		}
 
+		/*
+		 * Update proc info
+		 */
+
 		for(PgProc.Row pgProcRow : pgProcRows) {
 			pgProcData.put(pgProcRow.oid, pgProcRow);
 			pgProcNameMap.put(pgProcRow.name, pgProcRow);
 		}
 
+
+		/*
+		 * Update type info
+		 */
 		for(PgType.Row pgTypeRow : pgTypeRows) {
 			pgTypeData.put(pgTypeRow.oid, pgTypeRow);
 			oidMap.remove(pgTypeRow.oid);
@@ -179,8 +212,12 @@ public class Registry {
 			relIdMap.remove(pgTypeRow.relationId);
 		}
 
-		for(Integer id : pgTypeData.keySet())
-			loadType(id);
+		/*
+		 * (re)load all types just updated
+		 */
+		for(PgType.Row pgType : pgTypeRows) {
+			loadType(pgType.oid);
+		}
 
 	}
 
@@ -200,6 +237,33 @@ public class Registry {
 			oidMap.put(typeId, type);
 			nameMap.put(type.getName(), type);
 			relIdMap.put(type.getRelationId(), type);
+		}
+
+		return type;
+	}
+
+	/*
+	 * Materialize the requested type from the raw catalog data
+	 */
+	private CompositeType loadRelationRaw(int relationId) {
+
+		if(relationId == 0)
+			return null;
+
+		CompositeType type = null;
+		
+		Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
+		if(pgAttrs != null && !pgAttrs.isEmpty()) {
+			
+			PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().relationTypeId);
+			
+			type = (CompositeType) loadRaw(pgType, pgAttrs);
+			if(type != null) {
+				oidMap.put(pgType.oid, type);
+				nameMap.put(type.getName(), type);
+				relIdMap.put(type.getRelationId(), type);
+			}
+			
 		}
 
 		return type;

@@ -13,6 +13,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
 	public static class Row {
 
+		public int relationTypeId;
 		public int relationId;
 		public String name;
 		public int typeId;
@@ -73,11 +74,13 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 			" select " +
 			"		attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
 			"		attnum as \"number\", not attnotnull as \"nullable\", pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) like '%nextval(%' as \"autoIncrement\", " +
-			"		attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\" " +
+			"		attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\", reltype as \"relationTypeId\" " +
 			" from " +
 			"		pg_catalog.pg_attribute a " +
-			"	left join pg_attrdef ad " +
+			"	left join pg_catalog.pg_attrdef ad " +
 			"		on (a.attrelid = ad.adrelid and a.attnum = ad.adnum)" +
+			" left join pg_catalog.pg_class c" +
+			" 	on (a.attrelid = c.oid)" +
 			" where " +
 			" 	not a.attisdropped"
 	};

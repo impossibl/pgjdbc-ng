@@ -22,11 +22,12 @@ public interface Context {
 	Class<?> lookupInstanceType(Type type);
 
 	void refreshType(int typeId);
+	void refreshRelationType(int relationId);	
 
 	Object getSetting(String name);
 	<T> T getSetting(String name, Class<T> type);
 	boolean isSettingEnabled(String name);
 	
 	Protocol getProtocol();
-	
+
 }

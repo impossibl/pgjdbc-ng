@@ -164,6 +164,51 @@ public class BasicContext implements Context {
 	}
 
 	public void refreshType(int typeId) {
+
+		try {
+			
+			//Load types
+			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1";
+			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, typeId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+				
+			//Load attributes
+			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
+			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, pgTypes.get(0).relationId);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			//Ignore errors
+		}
+		
+	}
+	
+	public void refreshRelationType(int relationId) {
+
+		try {
+			
+			//Load types
+			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1";
+			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, relationId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+				
+			//Load attributes
+			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
+			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, relationId);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			//Ignore errors
+		}
+		
 	}
 	
 	public void init() throws IOException, NoticeException {
