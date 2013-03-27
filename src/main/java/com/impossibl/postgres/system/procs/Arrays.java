@@ -57,7 +57,7 @@ public class Arrays extends SimpleProcProvider {
 				Type elementType = context.getRegistry().loadType(buffer.readInt());
 				
 				//Each Dimension
-				int elementCount = 1;
+				int elementCount = dimensionCount > 0 ? 1 : 0;
 				int[] dimensions = new int[dimensionCount];
 				int[] lowerBounds = new int[dimensionCount];
 				for(int d=0; d < dimensionCount; ++d) {
