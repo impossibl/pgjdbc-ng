@@ -1,7 +1,6 @@
 package com.impossibl.postgres.types;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -61,7 +60,7 @@ public class Registry {
 		kindMap.put('r', RangeType.class);
 
 		// Required initial types for bootstrapping
-		oidMap = Collections.synchronizedMap(new TreeMap<Integer, Type>());
+		oidMap = new TreeMap<Integer, Type>();
 		oidMap.put(16, new BaseType(16, "bool", 		(short) 1, 	(byte) 0, Category.Boolean, ',', 0, "bool"));
 		oidMap.put(17, new BaseType(17, "bytea", 		(short) 1, 	(byte) 0, Category.User, 		',', 0, "bytea"));
 		oidMap.put(18, new BaseType(18, "char", 		(short) 1, 	(byte) 0, Category.String, 	',', 0, "char"));
