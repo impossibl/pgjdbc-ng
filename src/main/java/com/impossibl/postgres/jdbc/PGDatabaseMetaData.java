@@ -1186,29 +1186,29 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     
     ResultField[] resultFields = new ResultField[24];
     resultFields[0] = new ResultField("TABLE_CAT", 					0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("TABLE_SCHEM", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("TABLE_NAME", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("COLUMN_NAME", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("DATA_TYPE", 					0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("TYPE_NAME", 					0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("COLUMN_SIZE", 				0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("BUFFER_LENGTH", 			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("DECIMAL_DIGITS",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("NUM_PREC_RADIX",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("NULLABLE", 					0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("REMARKS", 						0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("COLUMN_DEF", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SQL_DATA_TYPE", 			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SQL_DATETIME_SUB", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("CHAR_OCTET_LENGTH",	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("ORDINAL_POSITION", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("IS_NULLABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SCOPE_CATLOG", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SCOPE_SCHEMA", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SCOPE_TABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("SOURCE_DATA_TYPE", 	0, (short)0, registry.loadType("short"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("IS_AUTOINCREMENT",		0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[0] = new ResultField("IS_GENERATEDCOLUMN",	0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[1] = new ResultField("TABLE_SCHEM", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[2] = new ResultField("TABLE_NAME", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[3] = new ResultField("COLUMN_NAME", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[4] = new ResultField("DATA_TYPE", 					0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[5] = new ResultField("TYPE_NAME", 					0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[6] = new ResultField("COLUMN_SIZE", 				0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[7] = new ResultField("BUFFER_LENGTH", 			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[8] = new ResultField("DECIMAL_DIGITS",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[9] = new ResultField("NUM_PREC_RADIX",			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[10] = new ResultField("NULLABLE", 					0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[11] = new ResultField("REMARKS", 						0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[12] = new ResultField("COLUMN_DEF", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[13] = new ResultField("SQL_DATA_TYPE", 			0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[14] = new ResultField("SQL_DATETIME_SUB", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[15] = new ResultField("CHAR_OCTET_LENGTH",	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[16] = new ResultField("ORDINAL_POSITION", 	0, (short)0, registry.loadType("int4"), 	(short)0, 0, Format.Binary);
+    resultFields[17] = new ResultField("IS_NULLABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[18] = new ResultField("SCOPE_CATLOG", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[19] = new ResultField("SCOPE_SCHEMA", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[20] = new ResultField("SCOPE_TABLE", 				0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[21] = new ResultField("SOURCE_DATA_TYPE", 	0, (short)0, registry.loadType("short"), 	(short)0, 0, Format.Binary);
+    resultFields[22] = new ResultField("IS_AUTOINCREMENT",		0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
+    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN",	0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
 
     List<Object[]> results = new ArrayList<>();
     
@@ -1258,7 +1258,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[18] = null;
     	row[19] = null;
     	row[20] = null;
-    	row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;
+    	row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;    	
     	row[22] = SQLTypeMetaData.isAutoIncrement(columnData.type, columnData.relationType, columnData.relationAttrNum);
     	row[23] = columnData.relationType != null ? "YES" : "NO";
     	
