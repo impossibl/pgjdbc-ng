@@ -20,7 +20,8 @@ public class TimestampMods extends SimpleProcProvider {
 			
 			Map<String, Object> mods = new HashMap<String, Object>();
 			
-			mods.put(PRECISION, (int)mod);
+			if(mod >= 0)
+				mods.put(PRECISION, (int)mod);
 			
 			return mods;
 		}

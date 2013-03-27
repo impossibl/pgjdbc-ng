@@ -239,12 +239,12 @@ class SQLTypeMetaData {
 
 		//Lookup prec & length (if the mods have them)
 		
-		int precMod = 0;
+		int precMod = -1;
 		if(mods.containsKey(PRECISION)) {
 			precMod = (int) mods.get(PRECISION);
 		}
 		
-		int lenMod = 0;
+		int lenMod = -1;
 		if(mods.containsKey(LENGTH)) {
 			lenMod = (int) mods.get(LENGTH);
 		}
@@ -364,13 +364,66 @@ class SQLTypeMetaData {
 
 	public static int getScale(Type type, int typeLength, int typeModifier) {
 
-		Map<String, Object> mods = type.unwrap().getModifierParser().parse(typeModifier);
+		type = type.unwrap();
 		
-		Object scale = mods.get(SCALE);
-		if(scale == null)
-			return 0;
+		Map<String, Object> mods = type.getModifierParser().parse(typeModifier);
 		
-		return (int) scale;
+		int scaleMod = -1;
+		if(mods.get(SCALE) != null) {
+			scaleMod = (int)mods.get(SCALE);
+		}
+		
+		int scale = 0;
+		
+		switch(type.getPrimitiveType()) {
+		case Float:
+			scale = 8;
+			break;
+
+		case Double:
+			scale = 17;
+			break;
+
+		case Numeric:
+			if(scale == -1) {
+				scale = 0;
+			}
+			else {
+				scale = scaleMod;
+			}
+			break;
+
+		case Time:
+		case TimeTZ:
+		case Timestamp:
+		case TimestampTZ:
+			int precMod = -1;
+			if(mods.get(PRECISION) != null) {
+				precMod = (int)mods.get(PRECISION);
+			}
+			
+			if(precMod == -1) {
+				scale = 6;
+			}
+			else {
+				scale = precMod;
+			}
+			break;
+
+		case Interval:
+			if(scaleMod == -1) {
+				scale = 6;
+			}
+			else {
+				scale = scaleMod;
+			}
+			break;
+
+		default:
+			scale = 0;
+		}
+    
+		return scale;
 	}
 
 	public static int getDisplaySize(Type type, int typeLength, int typeModifier) {
@@ -378,12 +431,12 @@ class SQLTypeMetaData {
 		type = type.unwrap();
 		Map<String, Object> mods = type.getModifierParser().parse(typeModifier);
 		
-		int precMod = 0;
+		int precMod = -1;
 		if(mods.containsKey(PRECISION)) {
 			precMod = (int) mods.get(PRECISION);
 		}
 
-		int lenMod = 0;
+		int lenMod = -1;
 		if(mods.containsKey(LENGTH)) {
 			lenMod = (int) mods.get(LENGTH);
 		}
@@ -395,7 +448,14 @@ class SQLTypeMetaData {
 		
 		switch(type.getCategory()) {
 		case Numeric:
-			size = getPrecision(type, typeLength, typeModifier) + 1;
+			if(precMod == -1) {
+				size = 131089;
+			}
+			else {
+				int prec = getPrecision(type, typeLength, typeModifier);
+				int scale = getScale(type, typeLength, typeModifier);
+				size = prec + (scale != 0 ? 1 : 0) + 1;
+			}
 			break;
 			
 		case Boolean:
@@ -406,7 +466,7 @@ class SQLTypeMetaData {
 		case Enumeration:
 		case BitString:
 			if(lenMod == -1)
-				size = 0;
+				size = Integer.MAX_VALUE;
 			else
 				size = lenMod;
 			break;
@@ -420,7 +480,7 @@ class SQLTypeMetaData {
 			break;
 			
 		default:
-			size = 0;
+			size = Integer.MAX_VALUE;
 			break;
 		}
 		
@@ -474,13 +534,13 @@ class SQLTypeMetaData {
 				size = 8 + secondSize;
 				break;
 			case TimeTZ:
-				size = 8 + precision + 6;
+				size = 8 + secondSize + 6;
 				break;
 			case Timestamp:
-				size = 13 + 1 + 8 + precision;
+				size = 13 + 1 + 8 + secondSize;
 				break;
 			case TimestampTZ:
-				size = 13 + 1 + 8 + precision + 6;
+				size = 13 + 1 + 8 + secondSize + 6;
 				break;
 			default:
 				size = 0;

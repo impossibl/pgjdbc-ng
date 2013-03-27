@@ -25,10 +25,6 @@ public class NumericMods extends SimpleProcProvider {
 				mods.put(PRECISION, (int)((mod-4) >> 16) & 0xffff);
 				mods.put(SCALE, 		(int)((mod-4) >>  0) & 0xffff);
 			}
-			else {
-				mods.put(PRECISION, (int)0);
-				mods.put(SCALE, 		(int)0);				
-			}
 			
 			return mods;
 		}

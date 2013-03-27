@@ -97,9 +97,6 @@ public class Strings extends SimpleProcProvider {
 			if(mod > 4) {
 				mods.put(LENGTH, (int)(mod - 4));
 			}
-			else {
-				mods.put(LENGTH, (int)0);
-			}
 			
 			return mods;
 		}
