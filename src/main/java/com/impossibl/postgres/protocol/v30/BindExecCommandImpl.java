@@ -230,6 +230,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 	public void execute(ProtocolImpl protocol) throws IOException {
 		
+		reset();
+
 		// Setup context for parsing fields with customized parameters
 		//
 		parsingContext = new SettingsContext(protocol.getContext());
@@ -259,8 +261,6 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		else {
 			protocol.sendSync();			
 		}
-
-		reset();
 
 		waitFor(listener);
 		
