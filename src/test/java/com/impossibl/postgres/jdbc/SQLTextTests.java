@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.sql.SQLException;
+import java.text.ParseException;
 
 import org.junit.Test;
 
@@ -70,11 +71,12 @@ public class SQLTextTests {
 	 * Tests transforming JDBC SQL input into PostgreSQL's wire
 	 * protocol format. 
 	 * @throws SQLException 
+	 * @throws ParseException 
 	 * 
 	 * @see SQLTextUtils.getProtocolSQLText 
 	 */
 	@Test
-	public void testPostgreSQLText() throws SQLException {
+	public void testPostgreSQLText() throws SQLException, ParseException {
 
 		for(String[] test : sqlTransformTests) {
 			

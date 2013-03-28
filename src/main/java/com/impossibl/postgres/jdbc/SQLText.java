@@ -1,6 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,7 +25,7 @@ public class SQLText {
 	
 	private MultiStatementNode root;	
 	
-	public SQLText(String sqlText) {
+	public SQLText(String sqlText) throws ParseException {
 		root = parse(sqlText);
 	}
 	
@@ -69,8 +70,8 @@ public class SQLText {
 					"(,)|" +																						/* Comma (breaking) */
 					"(\\s+)",																						/* Whitespace */
 					Pattern.MULTILINE);
-
-	public static MultiStatementNode parse(String sql) {
+	
+	public static MultiStatementNode parse(String sql) throws ParseException {
 		
 		Stack<CompositeNode> parents = new Stack<CompositeNode>();
 		
@@ -81,100 +82,108 @@ public class SQLText {
 
 		int paramId = 1;
 		int startIdx = 0;
+		
+		try {
 
-		while(matcher.find()) {
-			
-			//Add the unmatched region as grammar...
-			if(startIdx != matcher.start()) {
-				String txt = sql.substring(startIdx, matcher.start()).trim();
-				parents.peek().add(new GrammarPiece(txt, matcher.start()));
-			}
-
-			//Add whatever we matched...
-			String val;
-			if((val = matcher.group(1)) != null) {
+			while(matcher.find()) {
 				
-				parents.peek().add(new QuotedIdentifierPiece(val, matcher.start()));
-			}
-			else if((val = matcher.group(2)) != null) {
-				
-				parents.peek().add(new StringLiteralPiece(val, matcher.start()));
-			}
-			else if((val = matcher.group(3)) != null) {
-				
-				parents.peek().add(new CommentPiece(val, matcher.start()));
-			}
-			else if((val = matcher.group(4)) != null) {
-				
-				parents.peek().add(new ParameterPiece(paramId++, matcher.start()));
-			}
-			else if((val = matcher.group(5)) != null) {
-				
-				//Pop & add everything until the top node
-				while(parents.size() > 1) {
+				//Add the unmatched region as grammar...
+				if(startIdx != matcher.start()) {
+					String txt = sql.substring(startIdx, matcher.start()).trim();
+					parents.peek().add(new GrammarPiece(txt, matcher.start()));
+				}
+	
+				//Add whatever we matched...
+				String val;
+				if((val = matcher.group(1)) != null) {
 					
-					CompositeNode comp = parents.pop();
-					comp.setEndPos(matcher.end());
-					parents.peek().add(comp);
+					parents.peek().add(new QuotedIdentifierPiece(val, matcher.start()));
+				}
+				else if((val = matcher.group(2)) != null) {
+					
+					parents.peek().add(new StringLiteralPiece(val, matcher.start()));
+				}
+				else if((val = matcher.group(3)) != null) {
+					
+					parents.peek().add(new CommentPiece(val, matcher.start()));
+				}
+				else if((val = matcher.group(4)) != null) {
+					
+					parents.peek().add(new ParameterPiece(paramId++, matcher.start()));
+				}
+				else if((val = matcher.group(5)) != null) {
+					
+					//Pop & add everything until the top node
+					while(parents.size() > 1) {
+						
+						CompositeNode comp = parents.pop();
+						comp.setEndPos(matcher.end());
+						parents.peek().add(comp);
+					}
+					
+					parents.push(new StatementNode(matcher.start()));
+				}
+				else if((val = matcher.group(6)) != null) {
+					
+					if(val.equals("{")) {
+						parents.push(new EscapeNode(matcher.start()));
+					}
+					else {
+						EscapeNode tmp = (EscapeNode) parents.pop();
+						tmp.setEndPos(matcher.end());
+						parents.peek().add(tmp);
+					}
+				}
+				else if((val = matcher.group(7)) != null) {
+	
+					parents.peek().add(new UnquotedIdentifierPiece(val, matcher.start()));
+				}
+				else if((val = matcher.group(8)) != null) {
+	
+					parents.peek().add(new NumericLiteralPiece(val, matcher.start()));
+				}
+				else if((val = matcher.group(9)) != null) {
+	
+					if(val.equals("(")) {
+						parents.push(new ParenGroupNode(matcher.start()));
+					}
+					else {
+						ParenGroupNode tmp = (ParenGroupNode) parents.pop();
+						tmp.setEndPos(matcher.end());
+						parents.peek().add(tmp);
+					}
+				}
+				else if((val = matcher.group(10)) != null) {
+	
+					parents.peek().add(new GrammarPiece(",", matcher.start()));
+				}
+				else if((val = matcher.group(11)) != null) {
+	
+					parents.peek().add(new WhitespacePiece(val, matcher.start()));
 				}
 				
-				parents.push(new StatementNode(matcher.start()));
-			}
-			else if((val = matcher.group(6)) != null) {
-				
-				if(val.equals("{")) {
-					parents.push(new EscapeNode(matcher.start()));
-				}
-				else {
-					EscapeNode tmp = (EscapeNode) parents.pop();
-					tmp.setEndPos(matcher.end());
-					parents.peek().add(tmp);
-				}
-			}
-			else if((val = matcher.group(7)) != null) {
-
-				parents.peek().add(new UnquotedIdentifierPiece(val, matcher.start()));
-			}
-			else if((val = matcher.group(8)) != null) {
-
-				parents.peek().add(new NumericLiteralPiece(val, matcher.start()));
-			}
-			else if((val = matcher.group(9)) != null) {
-
-				if(val.equals("(")) {
-					parents.push(new ParenGroupNode(matcher.start()));
-				}
-				else {
-					ParenGroupNode tmp = (ParenGroupNode) parents.pop();
-					tmp.setEndPos(matcher.end());
-					parents.peek().add(tmp);
-				}
-			}
-			else if((val = matcher.group(10)) != null) {
-
-				parents.peek().add(new GrammarPiece(",", matcher.start()));
-			}
-			else if((val = matcher.group(11)) != null) {
-
-				parents.peek().add(new WhitespacePiece(val, matcher.start()));
+				startIdx = matcher.end();			
 			}
 			
-			startIdx = matcher.end();			
+			//Add last grammar node
+			if(startIdx != sql.length()) {
+				parents.peek().add(new GrammarPiece(sql.substring(startIdx), startIdx));
+			}
+			
+			//Auto close last statement
+			if(parents.peek() instanceof StatementNode) {
+				CompositeNode tmp = parents.pop();
+				tmp.setEndPos(startIdx);
+				parents.peek().add(tmp);
+			}
+			
+			return (MultiStatementNode)parents.get(0);
+		}
+		catch(Exception e) {
+			
+			throw new ParseException("Error parsing SQL text", startIdx);
 		}
 		
-		//Add last grammar node
-		if(startIdx != sql.length()) {
-			parents.peek().add(new GrammarPiece(sql.substring(startIdx), startIdx));
-		}
-		
-		//Auto close last statement
-		if(parents.peek() instanceof StatementNode) {
-			CompositeNode tmp = parents.pop();
-			tmp.setEndPos(startIdx);
-			parents.peek().add(tmp);
-		}
-		
-		return (MultiStatementNode)parents.get(0);
 	}
 
 }
