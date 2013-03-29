@@ -890,7 +890,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 					}
 	
 					row[5] = SQLTypeMetaData.getSQLType(argType);
-					row[6] = argType.getJavaType().getName();
+					row[6] = argType.getJavaType(connection.getTypeMap()).getName();
 					row[7] = null;
 					row[8] = null;
 					row[9] = null;
@@ -921,7 +921,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 							row[3] = columnrs.getString("attname");
 							row[4] = DatabaseMetaData.procedureColumnResult;
 							row[5] = SQLTypeMetaData.getSQLType(columnType);
-							row[6] = columnType.getJavaType().getName();
+							row[6] = columnType.getJavaType(connection.getTypeMap()).getName();
 							row[7] = null;
 							row[8] = null;
 							row[9] = null;

@@ -32,6 +32,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.io.ByteStreams;
@@ -85,7 +86,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		Type paramType = parameterTypes.get(parameterIdx);
 		
-		parameterValues.set(parameterIdx, coerce(val, paramType, connection.getTypeMap(), connection));
+		parameterValues.set(parameterIdx, coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), connection));
 	}
 
 	void internalClose() throws SQLException {
@@ -162,14 +163,14 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	public ParameterMetaData getParameterMetaData() throws SQLException {
 		checkClosed();
 		
-		return new PGParameterMetaData(parameterTypes);
+		return new PGParameterMetaData(parameterTypes, connection.getTypeMap());
 	}
 
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
 		
-		return new PGResultSetMetaData(connection, resultFields);
+		return new PGResultSetMetaData(connection, resultFields, connection.getTypeMap());
 	}
 
 	@Override

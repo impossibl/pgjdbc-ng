@@ -81,6 +81,17 @@ public class CompositeType extends Type {
 	}
 
 	@Override
+	public Class<?> getJavaType(Map<String, Class<?>> customizations) {
+
+		Class<?> type = customizations.get(getName());
+		if(type == null) {
+			type = super.getJavaType(customizations);
+		}
+
+		return type;
+	}
+
+	@Override
 	public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs, Registry registry) {
 
 		super.load(pgType, pgAttrs, registry);

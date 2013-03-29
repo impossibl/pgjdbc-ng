@@ -1,6 +1,7 @@
 package com.impossibl.postgres.types;
 
 import java.lang.reflect.Array;
+import java.util.Map;
 
 
 
@@ -22,9 +23,9 @@ public class ArrayType extends Type {
 		this.elementType = elementType;
 	}
 	
-	public Class<?> getJavaType() {
+	public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 		
-		return Array.newInstance(elementType.getJavaType(), 0).getClass();
+		return Array.newInstance(elementType.getJavaType(customizations), 0).getClass();
 		
 	}
 

@@ -2,6 +2,7 @@ package com.impossibl.postgres.types;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -252,7 +253,7 @@ public abstract class Type {
 		return PrimitiveType.Unknown;
 	}
 	
-	public Class<?> getJavaType() {
+	public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 		Codec codec;
 		
 		codec = getBinaryCodec();

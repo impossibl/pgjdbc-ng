@@ -7,6 +7,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.system.Settings;
@@ -17,10 +18,12 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
 	PGConnection connection;
 	List<ResultField> resultFields;
+	Map<String, Class<?>> typeMap;
 	
-	PGResultSetMetaData(PGConnection connection, List<ResultField> resultFields) {
+	PGResultSetMetaData(PGConnection connection, List<ResultField> resultFields, Map<String, Class<?>> typeMap) {
 		this.connection = connection;
 		this.resultFields = resultFields;
+		this.typeMap = typeMap;
 	}
 
 	/**
@@ -204,7 +207,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 	public String getColumnClassName(int column) throws SQLException {
 		
 		ResultField field = get(column);
-		return field.getType().getJavaType().getName();
+		return field.getType().getJavaType(typeMap).getName();
 	}
 
 	@Override

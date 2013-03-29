@@ -6,6 +6,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import com.impossibl.postgres.types.Type;
 
@@ -13,12 +14,13 @@ public class PGParameterMetaData implements ParameterMetaData {
 	
 	
 	List<Type> parameterTypes;
+	Map<String, Class<?>> typeMap;
 	
 	
-	
-	public PGParameterMetaData(List<Type> parameterTypes) {
+	public PGParameterMetaData(List<Type> parameterTypes, Map<String, Class<?>> typeMap) {
 		super();
 		this.parameterTypes = parameterTypes;
+		this.typeMap = typeMap;
 	}
 
 	void checkParamIndex(int paramIndex) throws SQLException {
@@ -110,7 +112,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
 		Type paramType = getType(param);
 		
-		return paramType.getJavaType().getName();
+		return paramType.getJavaType(typeMap).getName();
 	}
 
 	@Override

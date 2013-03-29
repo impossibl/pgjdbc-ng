@@ -4,6 +4,7 @@ import static java.lang.reflect.Array.newInstance;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.util.Collections;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -101,7 +102,8 @@ public class Arrays extends SimpleProcProvider {
 		
 		Object readSubArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
 			
-			Object inst = newInstance(type.unwrap().getJavaType(), dims);
+			Class<?> elementClass = type.unwrap().getJavaType(Collections.<String,Class<?>>emptyMap());
+			Object inst = newInstance(elementClass, dims);
 			
 			int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
 
@@ -116,7 +118,8 @@ public class Arrays extends SimpleProcProvider {
 		
 		Object readElements(ChannelBuffer buffer, Type type, int len, Context context) throws IOException {
 			
-			Object inst = newInstance(type.unwrap().getJavaType(), len);			
+			Class<?> elementClass = type.unwrap().getJavaType(Collections.<String,Class<?>>emptyMap());
+			Object inst = newInstance(elementClass, len);			
 			
 			for(int c=0; c < len; ++c) {
 				

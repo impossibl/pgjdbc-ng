@@ -16,6 +16,7 @@ import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -31,7 +32,7 @@ class SQLTypeUtils {
 	
 	public static Class<?> mapType(Type sourceType, Map<String, Class<?>> typeMap) {
 		
-		Class<?> targetType = sourceType.getJavaType();
+		Class<?> targetType = sourceType.getJavaType(typeMap);
 
 		Class<?> mappedType = typeMap.get(sourceType.getName());
 		if(mappedType != null) {
@@ -481,7 +482,7 @@ class SQLTypeUtils {
 		else if(val instanceof byte[]) {
 			return (byte[]) val;
 		}
-		else if(sourceType.getJavaType().isInstance(val)) {
+		else if(sourceType.getJavaType(Collections.<String,Class<?>>emptyMap()).isInstance(val)) {
 			
 			ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
 			

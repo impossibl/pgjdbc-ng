@@ -476,7 +476,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
-		return new PGResultSetMetaData(statement.connection, resultFields);
+		return new PGResultSetMetaData(statement.connection, resultFields, typeMap);
 	}
 
 	@Override
