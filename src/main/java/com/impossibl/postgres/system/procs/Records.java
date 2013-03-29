@@ -38,9 +38,9 @@ public class Records extends SimpleProcProvider {
 
 			Record record = null;
 
-			int lengthGiven = buffer.readInt();
+			int length = buffer.readInt();
 			
-			if(lengthGiven != -1) {
+			if(length != -1) {
 				
 				long readStart = buffer.readerIndex();
 	
@@ -64,7 +64,7 @@ public class Records extends SimpleProcProvider {
 					attributeVals[c] = attributeVal;
 				}
 	
-				if (lengthGiven != buffer.readerIndex() - readStart) {
+				if (length != buffer.readerIndex() - readStart) {
 					throw new IllegalStateException();
 				}
 				
@@ -88,12 +88,10 @@ public class Records extends SimpleProcProvider {
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-			if (val == null) {
+			buffer.writeInt(-1);
 
-				buffer.writeInt(-1);
-			}
-			else {
-				
+			if (val != null) {
+
 				buffer.writeInt(-1);
 
 				int writeStart = buffer.writerIndex();
