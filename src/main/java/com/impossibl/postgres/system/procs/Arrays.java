@@ -87,7 +87,10 @@ public class Arrays extends SimpleProcProvider {
 		
 		Object readArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
 		
-			if(dims.length == 1) {
+			if(dims.length == 0) {
+				return readElements(buffer, type, 0, context);
+			}
+			else if(dims.length == 1) {
 				return readElements(buffer, type, dims[0], context);
 			}
 			else {
