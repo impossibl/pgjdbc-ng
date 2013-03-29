@@ -30,7 +30,6 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -334,21 +333,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		checkClosed();
 		checkParameterIndex(parameterIndex);
 
-		switch(targetSqlType) {
-		case Types.OTHER:
-		case Types.STRUCT:
-		case Types.DISTINCT:
-		case Types.NULL:
-			set(parameterIndex, x);
-			return;			
+		if(SQLTypeMetaData.getSQLType(parameterTypes.get(parameterIndex-1)) != targetSqlType) {
+			throw new SQLException("Invalid target SQL type");
 		}
-		
-		Type type = SQLTypeMetaData.getType(targetSqlType, connection.getRegistry());
-		if(type == null) {
-			throw new SQLException("Cannot coerce to target SQL type");
-		}
-		
-		parameterTypes.set(parameterIndex-1, type);
 		
 		set(parameterIndex, x);
 	}
