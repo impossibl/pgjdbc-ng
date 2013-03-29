@@ -236,6 +236,31 @@ class SQLTypeMetaData {
 			
 	}
 	
+	public static int getSQLTypeAlias(int sqlType) {
+		
+		switch(sqlType) {
+		case Types.BIT:
+			return Types.BOOLEAN;
+			
+		case Types.CHAR:
+		case Types.VARCHAR:
+		case Types.LONGVARCHAR:
+			return Types.VARCHAR;
+			
+		case Types.BINARY:
+		case Types.VARBINARY:
+		case Types.LONGVARBINARY:
+			return Types.VARBINARY;
+			
+		case Types.NCHAR:
+		case Types.NVARCHAR:
+		case Types.LONGNVARCHAR:
+			return Types.NVARCHAR;
+		}
+		
+		return sqlType;
+	}
+	
 	public static String getTypeName(Type type, CompositeType relType, int relAttrNum) {
 		
 		//int4/int8 auto-increment fields -> serial/bigserial

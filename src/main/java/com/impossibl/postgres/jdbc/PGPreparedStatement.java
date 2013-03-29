@@ -333,7 +333,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		checkClosed();
 		checkParameterIndex(parameterIndex);
 
-		if(SQLTypeMetaData.getSQLType(parameterTypes.get(parameterIndex-1)) != targetSqlType) {
+		if(SQLTypeMetaData.getSQLType(parameterTypes.get(parameterIndex-1)) != SQLTypeMetaData.getSQLTypeAlias(targetSqlType)) {
 			throw new SQLException("Invalid target SQL type");
 		}
 		
