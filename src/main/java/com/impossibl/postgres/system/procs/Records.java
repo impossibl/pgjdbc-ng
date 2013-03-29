@@ -92,8 +92,6 @@ public class Records extends SimpleProcProvider {
 
 			if (val != null) {
 
-				buffer.writeInt(-1);
-
 				int writeStart = buffer.writerIndex();
 				
 				Record record = (Record) val;
