@@ -249,26 +249,60 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-		setBinaryStream(parameterIndex, x, (long) -1);
+
+		_setBinaryStream(parameterIndex, x, (long) -1);
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-		setBinaryStream(parameterIndex, x, (long) length);
+		
+		if(length < 0) {
+			throw new SQLException("Invalid length");
+		}
+		
+		x = ByteStreams.limit(x, length);				
+
+		_setBinaryStream(parameterIndex, x, length);
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
 		
+		if(length < 0) {
+			throw new SQLException("Invalid length");
+		}
+		
+		x = ByteStreams.limit(x, length);				
+
+		_setBinaryStream(parameterIndex, x, length);
+	}
+	
+	public void _setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
+		
+		if(x == null) {
+			
+			set(parameterIndex, null);
+		}
+		else {
+			
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
-			ByteStreams.copy(x, out);
+				
+				long read = ByteStreams.copy(x, out);
+				
+				if(length != -1 && read != length) {
+					throw new SQLException("Not enough data in stream");
+				}
+				
 		}
 		catch(IOException e) {
 			throw new SQLException(e);
 		}
 
 		set(parameterIndex, out.toByteArray());
+			
+		}
+		
 	}
 
 	@Override
