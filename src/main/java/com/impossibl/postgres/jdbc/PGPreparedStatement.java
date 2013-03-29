@@ -285,8 +285,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		}
 		else {
 			
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			try {
 				
 				long read = ByteStreams.copy(x, out);
 				
@@ -294,12 +294,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 					throw new SQLException("Not enough data in stream");
 				}
 				
-		}
-		catch(IOException e) {
-			throw new SQLException(e);
-		}
-
-		set(parameterIndex, out.toByteArray());
+			}
+			catch(IOException e) {
+				throw new SQLException(e);
+			}
+	
+			set(parameterIndex, out.toByteArray());
 			
 		}
 		
@@ -372,10 +372,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		checkClosed();
 		checkParameterIndex(parameterIndex);
 
-		if(SQLTypeMetaData.getSQLType(parameterTypes.get(parameterIndex-1)) != SQLTypeMetaData.getSQLTypeAlias(targetSqlType)) {
-			throw new SQLException("Invalid target SQL type");
-		}
-		
 		set(parameterIndex, x);
 	}
 
