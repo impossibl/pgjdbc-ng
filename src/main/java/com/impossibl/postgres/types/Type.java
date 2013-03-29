@@ -249,7 +249,7 @@ public abstract class Type {
 			return codec.decoder.getInputPrimitiveType();
 		}
 		
-		return null;
+		return PrimitiveType.Unknown;
 	}
 	
 	public Class<?> getJavaType() {

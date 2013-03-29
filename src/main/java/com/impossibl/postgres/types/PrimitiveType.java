@@ -22,5 +22,6 @@ public enum PrimitiveType {
 	Binary,
 	Array,
 	Record,
-	Range
+	Range,
+	Unknown
 }

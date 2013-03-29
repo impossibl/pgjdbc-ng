@@ -27,7 +27,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public PrimitiveType getInputPrimitiveType() {
-			return null;
+			return PrimitiveType.Unknown;
 		}
 		
 		public Class<Void> getOutputType() {
@@ -54,7 +54,7 @@ public class Unsupporteds implements ProcProvider {
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return null;
+			return PrimitiveType.Unknown;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
