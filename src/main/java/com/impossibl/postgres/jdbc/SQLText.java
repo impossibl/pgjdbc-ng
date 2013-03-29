@@ -37,8 +37,8 @@ public class SQLText {
 		return (StatementNode) root.get(root.getNodeCount()-1);
 	}
 	
-	public void process(Processor processor) throws SQLException {
-		root.process(processor);
+	public void process(Processor processor, boolean recurse) throws SQLException {
+		root.process(processor, recurse);
 	}
 	
 	@Override

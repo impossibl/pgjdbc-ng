@@ -70,8 +70,7 @@ class SQLTextEscapeFunctions {
 	public final static String LCASE = "lcase";
 	public final static String LEFT = "left";
 	public final static String LENGTH = "length";
-	public final static String LOCATE = "locate"; // the 3 args version duplicate
-																								// args
+	public final static String LOCATE = "locate"; // the 3 args version duplicate args
 	public final static String LTRIM = "ltrim";
 	public final static String OCTET_LENGTH = "octet_length";
 	public final static String POSITION = "position";

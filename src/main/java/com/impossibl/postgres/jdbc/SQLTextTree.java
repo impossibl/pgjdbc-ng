@@ -12,7 +12,7 @@ public class SQLTextTree {
 	
 	public interface Processor {
 		
-		public Node process(Node node) throws SQLException;
+		public Node process(Node node, boolean recurse) throws SQLException;
 		
 	}
 
@@ -44,21 +44,21 @@ public class SQLTextTree {
 		
 		abstract void build(StringBuilder builder);
 		
-		public Node process(Processor processor) throws SQLException {
-			return processor.process(this);
+		public Node process(Processor processor, boolean recurse) throws SQLException {
+			return processor.process(this, recurse);
 		}
 
-		void removeAll(final Class<? extends Node> nodeType) {
+		void removeAll(final Class<? extends Node> nodeType, boolean recurse) {
 			try {
 				process(new Processor() {
 
 					@Override
-					public Node process(Node node) throws SQLException {
+					public Node process(Node node, boolean recurse) throws SQLException {
 						if(nodeType.isInstance(node))
 							return null;
 						return node;
 					}
-				});
+				}, recurse);
 			}
 			catch(SQLException e) {
 			}
@@ -113,12 +113,12 @@ public class SQLTextTree {
 			return nodes.subList(fromIndex, toIndex);
 		}
 		
-		public Node process(Processor processor) throws SQLException {
+		public Node process(Processor processor, boolean recurse) throws SQLException {
 			
 			//Process each child node...
 			ListIterator<Node> nodeIter = nodes.listIterator();
 			while(nodeIter.hasNext()) {
-				Node res = nodeIter.next().process(processor);
+				Node res = nodeIter.next().process(processor, recurse);
 				if(res != null) {
 					nodeIter.set(res);
 				}
@@ -127,12 +127,22 @@ public class SQLTextTree {
 				}
 			}
 			
-			return processor.process(this);
+			return processor.process(this, recurse);
 		}
 
 		void add(Node node) {
 
 			this.nodes.add(node);
+		}
+
+		public boolean containsAll(Class<? extends Node> cls) {
+			
+			for(Node node : nodes) {
+				if(cls.isInstance(node) == false)
+					return false;
+			}
+			
+			return true;
 		}
 
 	}
