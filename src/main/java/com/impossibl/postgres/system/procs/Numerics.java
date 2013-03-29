@@ -15,8 +15,10 @@ import com.impossibl.postgres.types.Type;
 
 public class Numerics extends SimpleProcProvider {
 
-	private static final short NUMERIC_POS = 0x0000;
-	private static final short NUMERIC_NEG = 0x4000;
+	private static final short NUMERIC_POS = 		(short) 0x0000;
+	private static final short NUMERIC_NEG = 		(short) 0x4000;
+	//private static final short NUMERIC_SHORT =	(short) 0x8000;
+	//private static final short NUMERIC_NAN = 		(short) 0xC000;
 	private static final short DEC_DIGITS = 4;
 
 	public Numerics() {
@@ -35,28 +37,42 @@ public class Numerics extends SimpleProcProvider {
 
 		public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
+			BigDecimal value;
+			
 			int length = buffer.readInt();
 			if (length == -1) {
-				return null;
+				
+				value = null;
 			}
 			else if (length < 8) {
+				
 				throw new IOException("invalid length");
 			}
+			else {
+				
+				int readStart = buffer.readerIndex();
 
-			short digitCount = buffer.readShort();
-
-			short[] info = new short[3];
-			info[0] = buffer.readShort();	//weight
-			info[1] = buffer.readShort();	//sign
-			info[2] = buffer.readShort();	//displayScale
-
-			short[] digits = new short[digitCount];
-			for (int d = 0; d < digits.length; ++d)
-				digits[d] = buffer.readShort();
-
-			String num = decodeToString(info[0], info[1], info[2], digits);
-
-			return new BigDecimal(num);
+				short digitCount = buffer.readShort();
+	
+				short[] info = new short[3];
+				info[0] = buffer.readShort();	//weight
+				info[1] = buffer.readShort();	//sign
+				info[2] = buffer.readShort();	//displayScale
+	
+				short[] digits = new short[digitCount];
+				for (int d = 0; d < digits.length; ++d)
+					digits[d] = buffer.readShort();
+	
+				String num = decodeToString(info[0], info[1], info[2], digits);
+	
+				if(length != buffer.readerIndex() - readStart) {
+					throw new IOException("invalid length");
+				}
+				
+				value = new BigDecimal(num);
+			}
+			
+			return value;
 		}
 
 	}
@@ -72,16 +88,19 @@ public class Numerics extends SimpleProcProvider {
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-			if (val == null) {
+			
+			buffer.writeInt(-1);
 
-				buffer.writeInt(-1);
-			}
-			else {
+			if (val != null) {
+				
+				int writeStart = buffer.writerIndex();
 
 				String num = ((BigDecimal) val).toPlainString();
 
 				short[] info = new short[3];
 				short[] digits = encodeFromString(num, info);
+				
+				buffer.writeShort(digits.length);
 
 				buffer.writeShort(info[0]);	//weight
 				buffer.writeShort(info[1]);	//sign
@@ -89,6 +108,10 @@ public class Numerics extends SimpleProcProvider {
 
 				for (int d = 0; d < digits.length; ++d)
 					buffer.writeShort(digits[d]);
+
+				//Set length
+				buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
+
 			}
 
 		}
