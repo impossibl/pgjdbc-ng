@@ -347,7 +347,7 @@ public class SQLTextEscapes {
 			
 			if(node instanceof PieceNode && matchList.contains(((PieceNode) node).getText().toUpperCase())) {
 				
-				trim(current);
+				current.trim();
 				
 				if(current.getNodeCount() > 0) {
 					
@@ -368,33 +368,13 @@ public class SQLTextEscapes {
 			
 		}
 		
-		trim(current);
+		current.trim();
 		
 		if(current.getNodeCount() > 0) {
 			comps.add(current);
 		}
 		
 		return comps;
-	}
-	
-	private static void trim(CompositeNode comp) {
-		
-		if(comp.getNodeCount() == 0)
-			return;
-		
-		//Prune starting and ending whitespace
-		if(comp.get(0) instanceof WhitespacePiece) {
-			comp.nodes.remove(0);
-		}
-		
-		if(comp.nodes.isEmpty()) {
-			return;
-		}
-		
-		if(comp.get(comp.nodes.size()-1) instanceof WhitespacePiece) {
-			comp.nodes.remove(comp.nodes.size()-1);
-		}
-		
 	}
 
 }

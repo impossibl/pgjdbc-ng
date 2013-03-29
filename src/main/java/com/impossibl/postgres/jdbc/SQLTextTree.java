@@ -144,6 +144,26 @@ public class SQLTextTree {
 			
 			return true;
 		}
+		
+		public void trim() {
+			
+			if(nodes.isEmpty())
+				return;
+			
+			//Prune starting and ending whitespace
+			if(nodes.get(0) instanceof WhitespacePiece) {
+				nodes.remove(0);
+			}
+			
+			if(nodes.isEmpty()) {
+				return;
+			}
+			
+			if(nodes.get(nodes.size()-1) instanceof WhitespacePiece) {
+				nodes.remove(nodes.size()-1);
+			}
+			
+		}
 
 	}
 

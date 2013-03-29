@@ -113,15 +113,18 @@ public class SQLText {
 				}
 				else if((val = matcher.group(5)) != null) {
 					
-					//Pop & add everything until the top node
-					while(parents.size() > 1) {
+					if(parents.size() == 2) {
 						
 						CompositeNode comp = parents.pop();
 						comp.setEndPos(matcher.end());
-						parents.peek().add(comp);
+						parents.peek().add(comp);					
+						parents.push(new StatementNode(matcher.start()));
+					}
+					else {
+						
+						parents.peek().add(new GrammarPiece(val, matcher.start()));
 					}
 					
-					parents.push(new StatementNode(matcher.start()));
 				}
 				else if((val = matcher.group(6)) != null) {
 					
@@ -188,6 +191,11 @@ public class SQLText {
 			
 			//Auto close last statement
 			if(parents.peek() instanceof StatementNode) {
+				
+				StatementNode stmt = (StatementNode) parents.peek();
+				
+				stmt.trim();
+				
 				CompositeNode tmp = parents.pop();
 				tmp.setEndPos(startIdx);
 				parents.peek().add(tmp);
