@@ -96,20 +96,28 @@ public class CompositeType extends Type {
 
 		super.load(pgType, pgAttrs, registry);
 
-		attributes = new ArrayList<>(pgAttrs.size());
-
-		for (PgAttribute.Row pgAttr : pgAttrs) {
-
-			Attribute attr = new Attribute();
-			attr.number = pgAttr.number;
-			attr.name = pgAttr.name;
-			attr.type = registry.loadType(pgAttr.typeId);
-			attr.nullable = pgAttr.nullable;
-			attr.hasDefault = pgAttr.hasDefault;
-			attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
-			attr.autoIncrement = pgAttr.autoIncrement;
-
-			attributes.add(attr);
+		if(pgAttrs == null) {
+			
+			attributes = Collections.emptyList();
+		}
+		else {
+			
+			attributes = new ArrayList<>(pgAttrs.size());
+	
+			for (PgAttribute.Row pgAttr : pgAttrs) {
+	
+				Attribute attr = new Attribute();
+				attr.number = pgAttr.number;
+				attr.name = pgAttr.name;
+				attr.type = registry.loadType(pgAttr.typeId);
+				attr.nullable = pgAttr.nullable;
+				attr.hasDefault = pgAttr.hasDefault;
+				attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
+				attr.autoIncrement = pgAttr.autoIncrement;
+	
+				attributes.add(attr);
+			}
+		
 		}
 
 	}

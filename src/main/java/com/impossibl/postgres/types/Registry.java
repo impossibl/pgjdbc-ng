@@ -354,6 +354,8 @@ public class Registry {
 			if(pgAttrs != null && !pgAttrs.isEmpty()) {
 			
 				PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().relationTypeId);
+				if(pgType == null)
+					return null;
 			
 				lock.writeLock().unlock();
 				try {
