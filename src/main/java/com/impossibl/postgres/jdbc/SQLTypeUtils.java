@@ -297,6 +297,9 @@ class SQLTypeUtils {
 		else if(val instanceof Number) {
 			return new BigDecimal(val.toString());
 		}
+		else if(val instanceof Boolean) {
+			return new BigDecimal((boolean)val ? "1.0" : "0.0");
+		}
 		else if(val instanceof String) {
 			return new BigDecimal((String) val);
 		}
@@ -353,6 +356,9 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof  Number) {
 			return ((Number)val).toString();
+		}
+		else if(val instanceof Character) {
+			return new String(new char[] {(Character)val});
 		}
 		else if(val instanceof String) {
 			return (String) val;
