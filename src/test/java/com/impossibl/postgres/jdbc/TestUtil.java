@@ -81,7 +81,7 @@ public class TestUtil {
 	 * parameters, like "compatible".
 	 */
 	public static Connection openDB(Properties props) throws Exception {
-		
+
 		props.setProperty("user", getUser());
 		props.setProperty("password", getPassword());
 
@@ -246,6 +246,19 @@ public class TestUtil {
 			}
 			System.out.println();
 		}
+	}
+
+	public static boolean getStandardConformingStrings(Connection con) throws SQLException {
+		
+		Statement stmt = con.createStatement();
+		stmt.closeOnCompletion();
+		
+		ResultSet rs = stmt.executeQuery("SHOW standard_conforming_strings");
+		if(rs.next()) {
+			return rs.getBoolean(1);
+		}
+		
+		return false;
 	}
 
 }
