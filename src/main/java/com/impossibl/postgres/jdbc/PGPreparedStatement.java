@@ -86,7 +86,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		Type paramType = parameterTypes.get(parameterIdx);
 		
-		parameterValues.set(parameterIdx, coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), connection));
+		if(val != null) {
+			val = coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), connection);
+		}
+		
+		parameterValues.set(parameterIdx, val);
 	}
 
 	void internalClose() throws SQLException {
