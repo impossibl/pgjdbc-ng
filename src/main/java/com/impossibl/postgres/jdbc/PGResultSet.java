@@ -657,6 +657,9 @@ class PGResultSet implements ResultSet {
 		checkColumnIndex(columnIndex);
 		
 		Object value = get(columnIndex);
+		if(value == null)
+			return null;
+		
 		Type type = getType(columnIndex);
 		
 		if(type instanceof ArrayType == false) {

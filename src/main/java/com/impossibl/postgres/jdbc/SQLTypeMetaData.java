@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
 
+import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -122,8 +123,6 @@ class SQLTypeMetaData {
 		case Types.BOOLEAN:
 		case Types.BIT:
 			return reg.loadType("bool");
-		case Types.TINYINT:
-			return null;
 		case Types.SMALLINT:
 			return reg.loadType("int2");
 		case Types.INTEGER:
@@ -153,7 +152,7 @@ class SQLTypeMetaData {
 		case Types.LONGVARBINARY:
 			return reg.loadType("bytea");
 		case Types.ARRAY:
-			return reg.loadType("array");
+			return reg.loadType("anyarray");
 		case Types.BLOB:
 		case Types.CLOB:
 			return reg.loadType("oid");
@@ -163,6 +162,7 @@ class SQLTypeMetaData {
 			return reg.loadType("oid");
 		case Types.ROWID:
 			return reg.loadType("oid");
+		case Types.TINYINT:
 		case Types.REF:
 		case Types.OTHER:
 		case Types.DATALINK:
@@ -179,6 +179,10 @@ class SQLTypeMetaData {
 	}
 	
 	public static int getSQLType(Type type) {
+		
+		if(type instanceof ArrayType) {
+			return Types.ARRAY;
+		}
 		
 		type = type.unwrap();
 		

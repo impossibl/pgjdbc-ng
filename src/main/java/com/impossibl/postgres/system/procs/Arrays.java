@@ -1,11 +1,9 @@
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.Array;
-import static com.impossibl.postgres.utils.Factory.createInstance;
+import static java.lang.reflect.Array.newInstance;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -18,18 +16,17 @@ import com.impossibl.postgres.types.Type;
 /*
  * Array codec
  * 
- * TODO: support multi-dimension arrays
  */
 public class Arrays extends SimpleProcProvider {
 
 	public Arrays() {
-		super(null, null, new Encoder(), new Decoder(), "array_", "oidvector");
+		super(null, null, new Encoder(), new Decoder(), "array_", "anyarray_", "oidvector", "intvector");
 	}
 	
 	static class Decoder implements Type.Codec.Decoder {
 		
 		public PrimitiveType getInputPrimitiveType() {
-			return Array;
+			return PrimitiveType.Array;
 		}
 		
 		public Class<?> getOutputType() {
@@ -38,13 +35,13 @@ public class Arrays extends SimpleProcProvider {
 
 		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			int lengthGiven = buffer.readInt();
+			int length = buffer.readInt();
 			
 			int readStart = buffer.readerIndex();
 			
 			Object instance = null;
 			
-			if(lengthGiven != -1) {
+			if(length != -1) {
 				
 				ArrayType atype = ((ArrayType)type);
 				
@@ -57,7 +54,6 @@ public class Arrays extends SimpleProcProvider {
 				Type elementType = context.getRegistry().loadType(buffer.readInt());
 				
 				//Each Dimension
-				int elementCount = dimensionCount > 0 ? 1 : 0;
 				int[] dimensions = new int[dimensionCount];
 				int[] lowerBounds = new int[dimensionCount];
 				for(int d=0; d < dimensionCount; ++d) {
@@ -67,9 +63,6 @@ public class Arrays extends SimpleProcProvider {
 					
 					//Lower bounds
 					lowerBounds[d] = buffer.readInt();
-					
-					
-					elementCount *= dimensions[d];
 				}
 				
 				if(atype.getElementType().getId() != elementType.getId()) {
@@ -79,23 +72,56 @@ public class Arrays extends SimpleProcProvider {
 				//
 				//Array & Elements
 				//
+
+				instance = readArray(buffer, elementType, dimensions, context);
 				
-				instance = createInstance(context.lookupInstanceType(type), elementCount);
 				
-				for(int e=0; e < elementCount; ++e) {
-					
-					Object elementVal = elementType.getBinaryCodec().decoder.decode(elementType, buffer, context);
-					
-					set(instance, e, elementVal);
-				}				
+				if(length != buffer.readerIndex() - readStart) {
+					throw new IOException("invalid length");
+				}
+
+			}
+			
+			return instance;
+		}
+		
+		Object readArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
+		
+			if(dims.length == 1) {
+				return readElements(buffer, type, dims[0], context);
+			}
+			else {
+				return readSubArray(buffer, type, dims, context);
+			}
+			
+		}
+		
+		Object readSubArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
+			
+			Object inst = newInstance(type.unwrap().getJavaType(), dims);
+			
+			int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
+
+			for(int c=0; c < dims[0]; ++c) {
+				
+				Array.set(inst, c, readArray(buffer, type, subDims, context));
 				
 			}
 			
-			if(lengthGiven != -1 && lengthGiven != buffer.readerIndex() - readStart) {
-				throw new IOException("invalid length");
+			return inst;
+		}
+		
+		Object readElements(ChannelBuffer buffer, Type type, int len, Context context) throws IOException {
+			
+			Object inst = newInstance(type.unwrap().getJavaType(), len);			
+			
+			for(int c=0; c < len; ++c) {
+				
+				Array.set(inst, c, type.getBinaryCodec().decoder.decode(type, buffer, context));
+				
 			}
-
-			return instance;
+			
+			return inst;
 		}
 
 	}
@@ -107,18 +133,14 @@ public class Arrays extends SimpleProcProvider {
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return Array;
+			return PrimitiveType.Array;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 			
-			if(val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(-1);
+			buffer.writeInt(-1);
+
+			if(val != null) {
 				
 				int writeStart = buffer.writerIndex();
 				
@@ -129,7 +151,7 @@ public class Arrays extends SimpleProcProvider {
 				//Header
 				//
 				
-				int dimensionCount = Arrays.dimensions(val);
+				int dimensionCount = getDimensions(val);
 				//Dimension count
 				buffer.writeInt(dimensionCount);
 				//Has nulls
@@ -138,29 +160,24 @@ public class Arrays extends SimpleProcProvider {
 				buffer.writeInt(elementType.getId());
 				
 				//each dimension
-				int elementCount = 1;
+				Object dim = val;
 				for(int d=0; d < dimensionCount; ++d) {
 					
-					int dimension = Arrays.length(val,d);
+					int dimension = Array.getLength(dim);
 					
 					//Dimension
 					buffer.writeInt(dimension);
 					
 					//Lower bounds
 					buffer.writeInt(0);
-					
-					elementCount *= dimension;
+
+					dim = Array.get(dim, 0);
 				}
 				
 				//
 				//Array & Elements
-
-				for(int e=0; e < elementCount; ++e) {
-					
-					Object elementVal = get(val, e);
-					
-					elementType.getBinaryCodec().encoder.encode(elementType, buffer, elementVal, context);
-				}
+				
+				writeArray(buffer, elementType, val, context);
 				
 				//Set length
 				buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
@@ -168,75 +185,51 @@ public class Arrays extends SimpleProcProvider {
 			}
 
 		}
-
-	}
-
-	public static int dimensions(Object val) {
-		return 1;
-	}
-
-	@SuppressWarnings("rawtypes")
-	public static int length(Object val, int dimension) throws IOException {
 		
-		if(dimension != 0) {
-			throw new IllegalStateException("multi-dimensional arrays not supported");
+		int getDimensions(Object val) {
+			 return 1 + val.getClass().getName().lastIndexOf('[');
 		}
-		
-		if(val.getClass().isArray()) {
-			return java.lang.reflect.Array.getLength(val);
+
+		void writeArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+			
+			if(val.getClass().getComponentType().isArray()) {
+				
+				writeSubArray(buffer, type, val, context);
+			}
+			else {
+				
+				writeElements(buffer, type, val, context);
+			}
+			
 		}
-		else if(val instanceof List) {
-			return ((List)val).size();
+
+		void writeElements(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+
+			int len = Array.getLength(val);
+			
+			for(int c=0; c < len; ++c) {
+				
+				type.getBinaryCodec().encoder.encode(type, buffer, Array.get(val, c), context);
+			}
+			
 		}
-		else if(val instanceof Map) {
-			return ((Map)val).size();
+
+		void writeSubArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+
+			int len = Array.getLength(val);
+			
+			for(int c=0; c < len; ++c) {
+				
+				writeArray(buffer, type, Array.get(val, c), context);
+			}
+			
 		}
-		else {
-			throw new IOException("unsupported collection type");
+
+		boolean hasNulls(Object value) {
+			
+			return java.util.Arrays.asList((Object[])value).contains(null);
 		}
+
 	}
 
-	@SuppressWarnings("rawtypes")
-	public static Object get(Object val, int idx) throws IOException {
-
-		if(val.getClass().isArray()) {
-			return java.lang.reflect.Array.get(val, idx);
-		}
-		else if(val instanceof List) {
-			return ((List)val).get(idx);
-		}
-		else if(val instanceof Map) {
-			return ((Map)val).get(idx);
-		}
-		else {
-			throw new IOException("unsupported collection type");
-		}
-	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static void set(Object val, int idx, Object elementVal) throws IOException {
-
-		if(val.getClass().isArray()) {
-			java.lang.reflect.Array.set(val, idx, elementVal);
-		}
-		else if(val instanceof List) {
-			((List)val).add(elementVal);
-		}
-		else if(val instanceof Map) {
-			((Map)val).put(idx, elementVal);
-		}
-		else {
-			throw new IOException("unsupported collection type");
-		}
-	}
-
-	public static boolean hasNulls(Object value) {
-		
-		return java.util.Arrays.asList((Object[])value).contains(null);
-	}
-
-	public static boolean is(Object val) {
-		return val.getClass().isArray() || val instanceof List;
-	}
-	
 }

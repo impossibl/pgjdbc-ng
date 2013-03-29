@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
 
 import java.sql.Array;
@@ -14,6 +15,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.Type;
 
 public class PGArray implements Array {
 
@@ -50,10 +52,7 @@ public class PGArray implements Array {
 	@Override
 	public Object getArray(Map<String, Class<?>> map) throws SQLException {
 		
-		Class<?> targetType = map.get(type.getName());
-		if(targetType == null) {
-			targetType = Object[].class;
-		}
+		Class<?> targetType = SQLTypeUtils.mapType(type, map);
 
 		return coerceToArray(value, type, targetType, map, connection);
 	}
@@ -70,10 +69,7 @@ public class PGArray implements Array {
 			 throw new SQLException("Invalid array slice");
 		}
 		
-		Class<?> targetType = map.get(type.getName());
-		if(targetType == null) {
-			targetType = Object[].class;
-		}
+		Class<?> targetType = SQLTypeUtils.mapType(type, map);
 
 		return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
 	}
@@ -85,7 +81,7 @@ public class PGArray implements Array {
 
 	@Override
 	public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
-		return getResultSet(1, value.length);
+		return getResultSet(1, value.length, map);
 	}
 
 	@Override
@@ -102,9 +98,11 @@ public class PGArray implements Array {
 
 		Registry reg = connection.getRegistry();
 		
+		Type elementType = getDimensions(value) > 1 ? type : type.getElementType();
+		
 		ResultField[] fields = {
 				new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
-				new ResultField("VALUE", 0, (short)0, type.getElementType(), (short)0, 0, Format.Binary)
+				new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
 		};
 		
 		List<Object[]> results = new ArrayList<Object[]>(value.length);

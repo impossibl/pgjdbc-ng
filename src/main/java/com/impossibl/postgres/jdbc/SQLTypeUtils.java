@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static java.math.RoundingMode.HALF_EVEN;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -29,25 +31,13 @@ class SQLTypeUtils {
 	
 	public static Class<?> mapType(Type sourceType, Map<String, Class<?>> typeMap) {
 		
-		Class<?> targetType;
-		
-		if(sourceType instanceof ArrayType) {
-			
-			Class<?> componentType = mapType(((ArrayType) sourceType).getElementType(), typeMap);
-			
-			targetType = Array.newInstance(componentType, 0).getClass();
-		}
-		else {
-			
-			targetType = sourceType.getJavaType();
+		Class<?> targetType = sourceType.getJavaType();
 
-			Class<?> mappedType = typeMap.get(sourceType.getName());
-			if(mappedType != null) {
-				targetType = mappedType;
-			}
-			
+		Class<?> mappedType = typeMap.get(sourceType.getName());
+		if(mappedType != null) {
+			targetType = mappedType;
 		}
-		
+
 		return targetType;
 	}
 	
@@ -514,8 +504,14 @@ class SQLTypeUtils {
 		if(val == null) {
 			return null;
 		}
+		else if(val instanceof PGArray) {
+			return coerceToArray(((PGArray) val).getValue(), type, targetType, typeMap, connection);
+		}
+		else if(val.getClass().isArray()) {
+			return coerceToArray(val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+		}
 		
-		return coerceToArray(val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+		throw createCoercionException(val.getClass(), targetType);
 	}
 	
 	public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {	
@@ -524,12 +520,23 @@ class SQLTypeUtils {
 			return null;
 		}
 		else if(val instanceof PGArray) {
-			coerceToArray(((PGArray) val).getValue(), type, targetType, typeMap, connection);
+			return coerceToArray(((PGArray) val).getValue(), index, count, type, targetType, typeMap, connection);
 		}
-		else if(val.getClass().isArray() && type instanceof ArrayType) {
+		else if(val.getClass().isArray() && targetType.isArray()) {
 			
-			ArrayType arrayType = (ArrayType) type;
-			Type elementType = arrayType.getElementType();
+			int targetDims = getDimensions(targetType);
+			if(targetDims == 1) {
+				
+				targetDims = getDimensions(val);
+
+				//Ensure targetType has correct # of dimensions
+				targetType = Array.newInstance(targetType.getComponentType(), new int[targetDims]).getClass();
+			}
+
+			if(type instanceof ArrayType) {
+				type = ((ArrayType) type).getElementType();
+			}
+
 			Class<?> elementClass = targetType.getComponentType();
 			
 			Object dst;
@@ -539,12 +546,28 @@ class SQLTypeUtils {
 			}
 			else if(val.getClass().getComponentType() == targetType.getComponentType()) {
 				
-				dst = val;
+				if(index == 0 && count == Array.getLength(val)) {
+					dst = val;
+				}
+				else {
+					dst = Arrays.copyOfRange((Object[])val, index, index + count);
+				}
 			}
 			else if(elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
 
 				dst = Array.newInstance(targetType.getComponentType(), count);
 				System.arraycopy(val, (int)index, dst, 0, count);
+			}
+			else if(val.getClass().getComponentType().isArray()) {
+				
+				dst = Array.newInstance(targetType.getComponentType(), count);
+
+				for(int c=index, end=index+count; c < end; ++c) {
+					
+					Array.set(dst, c, coerce(Array.get(val, c), type, elementClass, typeMap, connection));
+					
+				}
+				
 			}
 			else {
 
@@ -552,7 +575,7 @@ class SQLTypeUtils {
 
 				for(int c=index, end=index+count; c < end; ++c) {
 					
-					Array.set(dst, c, coerce(Array.get(val, c), elementType, elementClass, typeMap, connection));
+					Array.set(dst, c, coerce(Array.get(val, c), type, elementClass, typeMap, connection));
 					
 				}
 				
