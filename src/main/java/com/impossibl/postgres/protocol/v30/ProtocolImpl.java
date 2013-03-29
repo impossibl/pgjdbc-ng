@@ -684,6 +684,17 @@ public class ProtocolImpl implements Protocol {
 			break;
 
 		case "SELECT":
+			
+			if (parts.length == 2) {
+
+				rowsAffected = null;
+			}
+			else {
+				throw new IOException("error parsing command tag");
+			}
+
+			break;
+			
 		case "UPDATE":
 		case "DELETE":
 		case "MOVE":
