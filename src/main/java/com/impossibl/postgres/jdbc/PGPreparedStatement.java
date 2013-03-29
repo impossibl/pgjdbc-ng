@@ -260,7 +260,13 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw new SQLException("Invalid length");
 		}
 		
-		x = ByteStreams.limit(x, length);				
+		if(x != null) {
+
+			x = ByteStreams.limit(x, length);
+		}
+		else if(length != 0) {
+			throw new SQLException("Invalid length");
+		}		
 
 		_setBinaryStream(parameterIndex, x, length);
 	}
@@ -272,7 +278,13 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw new SQLException("Invalid length");
 		}
 		
-		x = ByteStreams.limit(x, length);				
+		if(x != null) {
+
+			x = ByteStreams.limit(x, length);
+		}
+		else if(length != 0) {
+			throw new SQLException("Invalid length");
+		}
 
 		_setBinaryStream(parameterIndex, x, length);
 	}
