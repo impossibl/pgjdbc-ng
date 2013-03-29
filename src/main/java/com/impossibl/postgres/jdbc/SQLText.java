@@ -129,9 +129,17 @@ public class SQLText {
 						parents.push(new EscapeNode(matcher.start()));
 					}
 					else {
-						EscapeNode tmp = (EscapeNode) parents.pop();
-						tmp.setEndPos(matcher.end());
-						parents.peek().add(tmp);
+						
+						if(parents.peek() instanceof EscapeNode) {
+							
+							EscapeNode tmp = (EscapeNode) parents.pop();
+							tmp.setEndPos(matcher.end());
+							parents.peek().add(tmp);
+						}
+						else {
+							
+							throw new ParseException("Mismatched curly brace", matcher.start());
+						}
 					}
 				}
 				else if((val = matcher.group(7)) != null) {
@@ -148,9 +156,17 @@ public class SQLText {
 						parents.push(new ParenGroupNode(matcher.start()));
 					}
 					else {
-						ParenGroupNode tmp = (ParenGroupNode) parents.pop();
-						tmp.setEndPos(matcher.end());
-						parents.peek().add(tmp);
+
+						if(parents.peek() instanceof ParenGroupNode) {
+							
+							ParenGroupNode tmp = (ParenGroupNode) parents.pop();
+							tmp.setEndPos(matcher.end());
+							parents.peek().add(tmp);
+						}
+						else {
+							
+							throw new ParseException("Mismmatched parenthesis", matcher.start());
+						}
 					}
 				}
 				else if((val = matcher.group(10)) != null) {
@@ -178,10 +194,17 @@ public class SQLText {
 			}
 			
 			return (MultiStatementNode)parents.get(0);
+			
+		}
+		catch(ParseException e) {
+			throw e;
 		}
 		catch(Exception e) {
 			
-			throw new ParseException("Error parsing SQL text", startIdx);
+			//Grab about 10 characters to report context of error
+			String errorTxt = sql.substring(startIdx, Math.min(sql.length(), startIdx+10));
+			
+			throw new ParseException("Error near: " + errorTxt, startIdx);
 		}
 		
 	}
