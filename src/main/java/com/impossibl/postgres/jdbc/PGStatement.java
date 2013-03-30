@@ -193,6 +193,9 @@ abstract class PGStatement implements Statement {
 
 		warningChain = connection.execute(command, true);
 
+		if (statementName != null)
+			resultFields = command.getResultFields();
+
 		return !command.getResultFields().isEmpty();
 		
 	}
