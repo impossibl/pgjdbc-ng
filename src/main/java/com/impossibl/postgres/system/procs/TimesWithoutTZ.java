@@ -4,11 +4,14 @@ import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS
 import static com.impossibl.postgres.types.PrimitiveType.Time;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.joda.time.DateTimeZone.UTC;
 
 import java.io.IOException;
 import java.sql.Time;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -49,7 +52,9 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 			
 			long millis = MICROSECONDS.toMillis(micros);
 			
-			return new Time(millis);
+			DateTime dt = new DateTime(millis, UTC).withZoneRetainFields(DateTimeZone.getDefault());
+			
+			return new Time(dt.getMillis());
 		}
 
 	}
@@ -71,9 +76,9 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 			}
 			else {
 				
-				Time time = (Time) val;
+				DateTime time = new DateTime(val).withZoneRetainFields(UTC);
 				
-				long millis = time.getTime();
+				long millis = time.getMillis();
 				
 				long micros = MILLISECONDS.toMicros(millis);
 				

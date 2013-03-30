@@ -2,7 +2,6 @@ package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
-import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -66,7 +65,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return TimestampTZ;
+			return TimeTZ;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {

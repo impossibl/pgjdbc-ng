@@ -50,6 +50,7 @@ public class DateStyle {
 		case "SQL":
 		case "GERMAN":
 			DateTimeParser[] parsers = {
+					ISODateTimeFormat.dateParser().getParser(),
 					DateTimeFormat.shortDate().getParser(),
 					DateTimeFormat.mediumDate().getParser(),
 					DateTimeFormat.longDate().getParser(),
@@ -81,6 +82,7 @@ public class DateStyle {
 		case "SQL":
 		case "GERMAN":
 			DateTimeParser[] parsers = {
+					ISODateTimeFormat.timeParser().getParser(),
 					DateTimeFormat.shortTime().getParser(),
 					DateTimeFormat.mediumTime().getParser(),
 					DateTimeFormat.longTime().getParser(),
@@ -112,7 +114,7 @@ public class DateStyle {
 		case "SQL":
 		case "GERMAN":
 			DateTimeParser[] parsers = {
-					ISODateTimeFormat.dateTime().getParser(),
+					ISODateTimeFormat.dateTimeParser().getParser(),
 					DateTimeFormat.shortDateTime().getParser(),
 					DateTimeFormat.mediumDateTime().getParser(),
 					DateTimeFormat.longDateTime().getParser(),

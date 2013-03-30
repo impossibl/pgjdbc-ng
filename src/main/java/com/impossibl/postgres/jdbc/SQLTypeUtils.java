@@ -380,7 +380,7 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof String) {
 			try {
-				return new Date(context.getDateFormatter().parseDateTime((String) val).toDate().getTime());
+				return new Date(context.getDateFormatter().parseMillis((String) val));
 			}
 			catch(IllegalArgumentException e) {
 				throw new SQLException("Cannot parse date: " + val.toString());
@@ -403,10 +403,10 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof String) {
 			try {
-				return new Time(context.getTimeFormatter().parseLocalTime((String) val).getMillisOfDay());
+				return new Time(context.getTimeFormatter().parseMillis((String) val));
 			}
 			catch(IllegalArgumentException e) {
-				throw new SQLException("Cannot parse date: " + val.toString());
+				throw new SQLException("Cannot parse time: " + val.toString());
 			}
 		}
 		else if(val instanceof Time) {
@@ -426,10 +426,10 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof String) {
 			try {
-				return new Timestamp(context.getTimestampFormatter().parseDateTime((String) val).toDate().getTime());
+				return new Timestamp(context.getTimestampFormatter().parseMillis((String) val));
 			}
 			catch(IllegalArgumentException e) {
-				throw new SQLException("Cannot parse date: " + val.toString(), e);
+				throw new SQLException("Cannot parse timestamp: " + val.toString(), e);
 			}
 		}
 		else if(val instanceof Time) {
