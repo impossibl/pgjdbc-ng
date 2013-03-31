@@ -245,29 +245,32 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		
 		protocol.setListener(listener);
 
+		ChannelBuffer msg = null;
+
 		if(status != Status.Suspended) {
 
-			protocol.sendBind(portalName, statementName, parameterTypes, parameterValues);
+			msg = protocol.appendBindExecToBuffer(msg, portalName, statementName, parameterTypes, parameterValues);
 
 		}
 
 		if(resultFields == null || !parameterTypes.isEmpty()) {
 
-			protocol.sendDescribe(Portal, portalName);
+			msg = protocol.appendDescribeToBuffer(msg, Portal, portalName);
 
 		}
 
-		protocol.sendExecute(portalName, maxRows);
+		msg = protocol.appendExecuteToBuffer(msg, portalName, maxRows);
 
 		if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
-			protocol.sendFlush();			
+			protocol.appendFlushToBuffer(msg);
 		}
 		else {
-			protocol.sendSync();			
+			protocol.appendSyncToBuffer(msg);
 		}
 
+		protocol.channel.write(msg);
+
 		waitFor(listener);
-		
 	}
 
 }
