@@ -775,11 +775,11 @@ public class ProtocolImpl implements Protocol {
 
 	private void receiveReadyForQuery(ChannelBuffer buffer) throws IOException {
 
-		switch (buffer.readByte()) {
+		switch(buffer.readByte()) {
 		case 'T':
 			txStatus = Active;
 			break;
-		case 'F':
+		case 'E':
 			txStatus = Failed;
 			break;
 		case 'I':

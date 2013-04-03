@@ -4,7 +4,7 @@ public enum TransactionStatus {
 	
 	Idle		('I'),
 	Active	('T'),
-	Failed	('F')
+	Failed	('E')
 	;
 	
 	byte code;
