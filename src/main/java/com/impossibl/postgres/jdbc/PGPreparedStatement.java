@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
@@ -79,6 +80,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	}
 	
 	void set(int parameterIdx, Object val) throws SQLException {
+		
+		set(parameterIdx, val, TimeZone.getDefault());
+	}
+	
+	void set(int parameterIdx, Object val, TimeZone zone) throws SQLException {
 		checkClosed();
 		checkParameterIndex(parameterIdx);
 		
@@ -87,7 +93,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		Type paramType = parameterTypes.get(parameterIdx);
 		
 		if(val != null) {
-			val = coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), connection);
+			val = coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), zone, connection);
 		}
 		
 		parameterValues.set(parameterIdx, val);
@@ -234,17 +240,44 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setDate(int parameterIndex, Date x) throws SQLException {		
-		set(parameterIndex, x);
+		setDate(parameterIndex, x, Calendar.getInstance());
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time x) throws SQLException {		
-		set(parameterIndex, x);
+		setTime(parameterIndex, x, Calendar.getInstance());
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {		
-		set(parameterIndex, x);
+		setTimestamp(parameterIndex, x, Calendar.getInstance());
+	}
+
+	@Override
+	public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
+		
+		TimeZone zone = cal.getTimeZone();
+		
+		set(parameterIndex, x, zone);
+	}
+
+	@Override
+	public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
+
+		
+		TimeZone zone = cal.getTimeZone();
+		
+		set(parameterIndex, x, zone);
+	}
+
+	@Override
+	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
+		checkClosed();
+		checkParameterIndex(parameterIndex);
+
+		TimeZone zone = cal.getTimeZone();
+		
+		set(parameterIndex, x, zone);
 	}
 
 	@Override
@@ -415,24 +448,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
 		set(parameterIndex, x);
-	}
-
-	@Override
-	public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
-	public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
-
-	@Override
-	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
 	}
 
 	@Override

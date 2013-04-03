@@ -1,10 +1,9 @@
 package com.impossibl.postgres.system;
 
 import java.nio.charset.Charset;
+import java.util.TimeZone;
 
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
-
+import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -24,28 +23,28 @@ public class DecoratorContext implements Context {
 	}
 
 	@Override
+	public TimeZone getTimeZone() {
+		return base.getTimeZone();
+	}
+
+	@Override
 	public Charset getCharset() {
 		return base.getCharset();
 	}
 
 	@Override
-	public DateTimeFormatter getDateFormatter() {
+	public DateTimeFormat getDateFormatter() {
 		return base.getDateFormatter();
 	}
 
 	@Override
-	public DateTimeFormatter getTimeFormatter() {
+	public DateTimeFormat getTimeFormatter() {
 		return base.getTimeFormatter();
 	}
 
 	@Override
-	public DateTimeFormatter getTimestampFormatter() {
+	public DateTimeFormat getTimestampFormatter() {
 		return base.getTimestampFormatter();
-	}
-
-	@Override
-	public DateTimeZone getTimeZone() {
-		return base.getTimeZone();
 	}
 
 	@Override

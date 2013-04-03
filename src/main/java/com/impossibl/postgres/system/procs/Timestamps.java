@@ -1,16 +1,21 @@
 package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.datetime.TimeZones;
+import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
+import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
+import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
+import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -18,9 +23,10 @@ import com.impossibl.postgres.types.Type;
 
 
 public class Timestamps extends SettingSelectProcProvider {
-
+	
 	private static long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
 	
+	private TimeZone zone;
 	private PrimitiveType primitiveType;
 
 	public Timestamps(PrimitiveType primitiveType, String... baseNames) {
@@ -28,6 +34,7 @@ public class Timestamps extends SettingSelectProcProvider {
 				null, null, null, null,
 				null, null, null, null, baseNames);
 		this.primitiveType = primitiveType;
+		this.zone = primitiveType == TimestampTZ ? TimeZones.UTC : null;
 		this.matchedBinEncoder = new BinIntegerEncoder();
 		this.matchedBinDecoder = new BinIntegerDecoder();
 	}
@@ -39,10 +46,10 @@ public class Timestamps extends SettingSelectProcProvider {
 		}
 		
 		public Class<?> getOutputType() {
-			return Timestamp.class;
+			return Instant.class;
 		}
 
-		public Timestamp decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+		public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
 			if (length == -1) {
@@ -52,10 +59,21 @@ public class Timestamps extends SettingSelectProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			long microsPg = buffer.readLong();
-			long microsJava = microsPg + PG_JAVA_EPOCH_DIFF_MICROS;
-
-			return convertMicrosToTimestamp(microsJava);
+			long micros = buffer.readLong();
+			
+			if(micros == Long.MAX_VALUE) {
+				return FutureInfiniteInstant.INSTANCE;
+			}
+			else if(micros == Long.MIN_VALUE) {
+				return PastInfiniteInstant.INSTANCE;
+			}
+			
+			micros += PG_JAVA_EPOCH_DIFF_MICROS;
+			
+			if(zone != null)
+				return new PreciseInstant(Instant.Type.Timestamp, micros, zone);
+			else
+				return new AmbiguousInstant(Instant.Type.Timestamp, micros);
 		}
 
 	}
@@ -63,7 +81,7 @@ public class Timestamps extends SettingSelectProcProvider {
 	class BinIntegerEncoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
-			return Timestamp.class;
+			return Instant.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
@@ -77,38 +95,30 @@ public class Timestamps extends SettingSelectProcProvider {
 			}
 			else {
 				
-				Timestamp ts = (Timestamp) val;
+				Instant inst = (Instant) val;
+				val.toString();
 				
-				long microsJava = convertTimestampToMicros(ts);
-				long microsPg = microsJava - PG_JAVA_EPOCH_DIFF_MICROS;
+				long micros;
+				if(primitiveType == PrimitiveType.TimestampTZ) {
+					micros = inst.getMicrosUTC();
+				}
+				else {
+					micros = inst.disambiguate(TimeZone.getDefault()).getMicrosLocal();
+				}
+				
+				if(!isInfinity(micros)) {
+					
+					micros -= PG_JAVA_EPOCH_DIFF_MICROS;
+				}
 				
 				buffer.writeInt(8);
-				buffer.writeLong(microsPg);
+				buffer.writeLong(micros);
 			}
 
 		}
 
 	}
 	
-	private static Timestamp convertMicrosToTimestamp(long micros) {
-		
-		long millis = MICROSECONDS.toMillis(micros);
-		long leftoverMicros = micros - MILLISECONDS.toMicros(millis);
-		
-		Timestamp ts = new Timestamp(millis);
-		
-		long nanos = ts.getNanos() + MICROSECONDS.toNanos(leftoverMicros);
-		ts.setNanos((int) nanos);
-		return ts;
-	}
-
-	private static long convertTimestampToMicros(Timestamp timestamp) {
-		
-		long micros = MILLISECONDS.toMicros(timestamp.getTime());
-		long extra = (timestamp.getNanos() % 1000000) / 1000;
-		return micros + extra;
-	}
-
 	private static long calculateEpochDifferenceMicros() {
 		
 		Calendar pgEpochInJava = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
@@ -119,4 +129,9 @@ public class Timestamps extends SettingSelectProcProvider {
 		return MILLISECONDS.toMicros(pgEpochInJava.getTimeInMillis());
 	}
 
+	public static boolean isInfinity(long micros) {
+		
+		return micros == Long.MAX_VALUE || micros == Long.MIN_VALUE;
+	}
+	
 }

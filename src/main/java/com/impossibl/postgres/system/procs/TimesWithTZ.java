@@ -2,15 +2,17 @@ package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.sql.Time;
+import java.util.TimeZone;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.datetime.TimeZones;
+import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -33,10 +35,10 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 		}
 		
 		public Class<?> getOutputType() {
-			return Time.class;
+			return Instant.class;
 		}
 
-		public Time decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+		public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
 			if (length == -1) {
@@ -46,14 +48,13 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 				throw new IOException("invalid length");
 			}
 
-			long baseMicros = buffer.readLong();
+			long micros = buffer.readLong();
 			int tzOffsetSecs = buffer.readInt();
 			
-			long micros = baseMicros+ SECONDS.toMicros(tzOffsetSecs);
+			int tzOffsetMillis = (int)SECONDS.toMillis(-tzOffsetSecs);
+			TimeZone zone = TimeZones.getOffsetZone(tzOffsetMillis);
 			
-			long millis = MICROSECONDS.toMillis(micros);
-			
-			return new Time(millis);
+			return new PreciseInstant(Instant.Type.Time, micros, zone);
 		}
 
 	}
@@ -61,7 +62,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 	static class BinIntegerEncoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
-			return Time.class;
+			return Instant.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
@@ -75,15 +76,14 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 			}
 			else {
 				
-				Time time = (Time) val;
+				Instant inst = (Instant) val;
 				
-				long millis = time.getTime();
+				long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
 				
-				long baseMicros = MILLISECONDS.toMicros(millis);
-				int tzOffsetSecs = (int)MILLISECONDS.toSeconds(context.getTimeZone().getStandardOffset(0));
+				int tzOffsetSecs = (int) -inst.getZoneOffsetSecs();
 				
 				buffer.writeInt(12);
-				buffer.writeLong(baseMicros);
+				buffer.writeLong(micros);
 				buffer.writeInt(tzOffsetSecs);
 			}
 

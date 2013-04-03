@@ -56,6 +56,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -495,7 +496,7 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		return coerceToString(get(columnIndex));
+		return coerceToString(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -592,29 +593,20 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public Date getDate(int columnIndex) throws SQLException {
-		checkClosed();
-		checkRow();
-		checkColumnIndex(columnIndex);
-		
-		return coerceToDate(get(columnIndex), statement.connection);
+
+		return getDate(columnIndex, Calendar.getInstance());
 	}
 
 	@Override
 	public Time getTime(int columnIndex) throws SQLException {
-		checkClosed();
-		checkRow();
-		checkColumnIndex(columnIndex);
-		
-		return coerceToTime(get(columnIndex), statement.connection);
+
+		return getTime(columnIndex, Calendar.getInstance());
 	}
 
 	@Override
 	public Timestamp getTimestamp(int columnIndex) throws SQLException {
-		checkClosed();
-		checkRow();
-		checkColumnIndex(columnIndex);
-		
-		return coerceToTimestamp(get(columnIndex), statement.connection);
+
+		return getTimestamp(columnIndex, Calendar.getInstance());
 	}
 
 	@Override
@@ -623,9 +615,9 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		//TODO respect calendar param
+		TimeZone zone = cal.getTimeZone();
 		
-		return coerceToDate(get(columnIndex), statement.connection);
+		return coerceToDate(get(columnIndex), zone, statement.connection);
 	}
 
 	@Override
@@ -634,9 +626,9 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		//TODO respect calendar param
+		TimeZone zone = cal.getTimeZone();
 		
-		return coerceToTime(get(columnIndex), statement.connection);
+		return coerceToTime(get(columnIndex), zone, statement.connection);
 	}
 
 	@Override
@@ -645,9 +637,9 @@ class PGResultSet implements ResultSet {
 		checkRow();
 		checkColumnIndex(columnIndex);
 		
-		//TODO respect calendar param
+		TimeZone zone = cal.getTimeZone();
 		
-		return coerceToTimestamp(get(columnIndex), statement.connection);
+		return coerceToTimestamp(get(columnIndex), zone, statement.connection);
 	}
 
 	@Override

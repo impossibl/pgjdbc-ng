@@ -20,13 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Logger;
 
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
+import com.impossibl.postgres.datetime.DateTimeFormat;
+import com.impossibl.postgres.datetime.ISODateFormat;
+import com.impossibl.postgres.datetime.ISOTimestampFormat;
+import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
@@ -56,10 +57,10 @@ public class BasicContext implements Context {
 	protected Registry registry;
 	protected Map<String, Class<?>> targetTypeMap;
 	protected Charset charset;
-	protected DateTimeZone timeZone;
-	protected DateTimeFormatter dateFormatter;
-	protected DateTimeFormatter timeFormatter;
-	protected DateTimeFormatter timestampFormatter;
+	protected TimeZone timeZone;
+	protected DateTimeFormat dateFormatter;
+	protected DateTimeFormat timeFormatter;
+	protected DateTimeFormat timestampFormatter;
 	protected Properties settings;
 	protected Version serverVersion;
 	protected KeyData keyData;
@@ -72,10 +73,10 @@ public class BasicContext implements Context {
 		this.targetTypeMap = new HashMap<>(targetTypeMap);
 		this.settings = settings;
 		this.charset = UTF_8;
-		this.timeZone = DateTimeZone.forID("UTC");
-		this.dateFormatter = DateTimeFormat.fullDate();
-		this.timeFormatter = DateTimeFormat.fullTime();
-		this.timestampFormatter = DateTimeFormat.fullDateTime();
+		this.timeZone = TimeZone.getTimeZone("UTC");
+		this.dateFormatter = new ISODateFormat();
+		this.timeFormatter = new ISOTimeFormat();
+		this.timestampFormatter = new ISOTimestampFormat();
 		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 		this.notificationListeners = new ConcurrentSkipListSet<>(); 
 	}
@@ -147,19 +148,19 @@ public class BasicContext implements Context {
 		return charset;
 	}
 
-	public DateTimeZone getTimeZone() {
+	public TimeZone getTimeZone() {
 		return timeZone;
 	}
 
-	public DateTimeFormatter getDateFormatter() {
+	public DateTimeFormat getDateFormatter() {
 		return dateFormatter;
 	}
 
-	public DateTimeFormatter getTimeFormatter() {
+	public DateTimeFormat getTimeFormatter() {
 		return timeFormatter;
 	}
 
-	public DateTimeFormatter getTimestampFormatter() {
+	public DateTimeFormat getTimestampFormatter() {
 		return timestampFormatter;
 	}
 
@@ -368,32 +369,26 @@ public class BasicContext implements Context {
 				dateFormatter = DateStyle.getDateFormatter(parsedDateStyle);
 				if(dateFormatter == null) {
 					logger.warning("Unknown Date format, reverting to default");
-					dateFormatter = DateTimeFormat.fullDate();
+					dateFormatter = new ISODateFormat();
 				}
-				dateFormatter = dateFormatter.withZone(timeZone);
 				
 				timeFormatter = DateStyle.getTimeFormatter(parsedDateStyle);
 				if(timeFormatter == null) {
 					logger.warning("Unknown Time format, reverting to default");
-					timeFormatter = DateTimeFormat.fullTime();
+					timeFormatter = new ISOTimeFormat();
 				}
-				timeFormatter = timeFormatter.withZone(timeZone);
 				
 				timestampFormatter = DateStyle.getTimestampFormatter(parsedDateStyle);
 				if(timestampFormatter == null) {
 					logger.warning("Unknown Timestamp format, reverting to default");
-					timestampFormatter = DateTimeFormat.fullDateTime();
+					timestampFormatter = new ISOTimestampFormat();
 				}
-				timestampFormatter = timestampFormatter.withZone(timeZone);
 			}
 			break;
 			
 		case "TimeZone":
 			
-			timeZone = DateTimeZone.forID(value);
-			dateFormatter = dateFormatter.withZone(timeZone);
-			timeFormatter = timeFormatter.withZone(timeZone);
-			timestampFormatter = timestampFormatter.withZone(timeZone);
+			timeZone = TimeZone.getTimeZone(value);
 			break;
 			
 		case "integer_datetimes":

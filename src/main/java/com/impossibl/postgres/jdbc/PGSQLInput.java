@@ -39,6 +39,7 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
@@ -73,7 +74,7 @@ public class PGSQLInput implements SQLInput {
 
 	@Override
 	public String readString() throws SQLException {
-		return coerceToString(getNextAttributeValue());
+		return coerceToString(getNextAttributeValue(), connection);
 	}
 
 	@Override
@@ -134,27 +135,29 @@ public class PGSQLInput implements SQLInput {
 
 	@Override
 	public Date readDate() throws SQLException {
-		return coerceToDate(getNextAttributeValue(), connection);
+		return coerceToDate(getNextAttributeValue(), TimeZone.getDefault(), connection);
 	}
 
 	@Override
 	public Time readTime() throws SQLException {
-		return coerceToTime(getNextAttributeValue(), connection);
+
+		return coerceToTime(getNextAttributeValue(), TimeZone.getDefault(), connection);
 	}
 
 	@Override
 	public Timestamp readTimestamp() throws SQLException {
-		return coerceToTimestamp(getNextAttributeValue(), connection);
+
+		return coerceToTimestamp(getNextAttributeValue(), TimeZone.getDefault(), connection);
 	}
 
 	@Override
 	public Reader readCharacterStream() throws SQLException {
-		return new StringReader(coerceToString(getNextAttributeValue()));
+		return new StringReader(coerceToString(getNextAttributeValue(), connection));
 	}
 
 	@Override
 	public InputStream readAsciiStream() throws SQLException {
-		return new ByteArrayInputStream(coerceToString(getNextAttributeValue()).getBytes(US_ASCII));
+		return new ByteArrayInputStream(coerceToString(getNextAttributeValue(), connection).getBytes(US_ASCII));
 	}
 
 	@Override

@@ -1,11 +1,9 @@
 package com.impossibl.postgres.system;
 
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
-import org.joda.time.format.DateTimeParser;
-import org.joda.time.format.DateTimePrinter;
-import org.joda.time.format.ISODateTimeFormat;
+import com.impossibl.postgres.datetime.DateTimeFormat;
+import com.impossibl.postgres.datetime.ISODateFormat;
+import com.impossibl.postgres.datetime.ISOTimeFormat;
+import com.impossibl.postgres.datetime.ISOTimestampFormat;
 
 /**
  * Utility methods for handling PostgreSQL DateStyle parameters
@@ -39,30 +37,18 @@ public class DateStyle {
 	 * @param dateStyle Parsed DateStyle
 	 * @returns DateFormat for handling dates in the style specified in dateStyle
 	 */
-	public static DateTimeFormatter getDateFormatter(String[] dateStyle) {
+	public static DateTimeFormat getDateFormatter(String[] dateStyle) {
 		
-		//TODO do we actually need to do this or is Java formats acceptable
-		//given that we transmit in binary 
-
 		switch(dateStyle[0]) {
 		case "ISO":
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
-			DateTimeParser[] parsers = {
-					ISODateTimeFormat.dateParser().getParser(),
-					DateTimeFormat.shortDate().getParser(),
-					DateTimeFormat.mediumDate().getParser(),
-					DateTimeFormat.longDate().getParser(),
-					DateTimeFormat.fullDate().getParser()
-			};
-			
-			DateTimePrinter printer = DateTimeFormat.fullDate().getPrinter();
-
-			return new DateTimeFormatterBuilder().append(printer, parsers).toFormatter();
+		default:
+			//Currently everything is ISO
+			return new ISODateFormat();
 		}
 		
-		return null;
 	}
 
 	/**
@@ -71,30 +57,18 @@ public class DateStyle {
 	 * @param dateStyle Parsed DateStyle
 	 * @returns DateFormat for handling times in the style specified in dateStyle
 	 */
-	public static DateTimeFormatter getTimeFormatter(String[] dateStyle) {
+	public static DateTimeFormat getTimeFormatter(String[] dateStyle) {
 		
-		//TODO do we actually need to do this or is Java formats acceptable
-		//given that we transmit in binary 
-
 		switch(dateStyle[0]) {
 		case "ISO":
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
-			DateTimeParser[] parsers = {
-					ISODateTimeFormat.timeParser().getParser(),
-					DateTimeFormat.shortTime().getParser(),
-					DateTimeFormat.mediumTime().getParser(),
-					DateTimeFormat.longTime().getParser(),
-					DateTimeFormat.fullTime().getParser()
-			};
-			
-			DateTimePrinter printer = DateTimeFormat.fullTime().getPrinter();
-
-			return new DateTimeFormatterBuilder().append(printer, parsers).toFormatter();
+		default:
+			//Currently everything is ISO
+			return new ISOTimeFormat();
 		}
-		
-		return null;
+
 	}
 
 	/**
@@ -103,30 +77,18 @@ public class DateStyle {
 	 * @param dateStyle Parsed DateStyle
 	 * @returns DateFormat for handling timestamps in the style specified in dateStyle
 	 */
-	public static DateTimeFormatter getTimestampFormatter(String[] dateStyle) {
+	public static DateTimeFormat getTimestampFormatter(String[] dateStyle) {
 		
-		//TODO do we actually need to do this or is Java formats acceptable
-		//given that we transmit in binary 
-
 		switch(dateStyle[0]) {
 		case "ISO":
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
-			DateTimeParser[] parsers = {
-					ISODateTimeFormat.dateTimeParser().getParser(),
-					DateTimeFormat.shortDateTime().getParser(),
-					DateTimeFormat.mediumDateTime().getParser(),
-					DateTimeFormat.longDateTime().getParser(),
-					DateTimeFormat.fullDateTime().getParser()
-			};
-			
-			DateTimePrinter printer = DateTimeFormat.fullTime().getPrinter();
-
-			return new DateTimeFormatterBuilder().append(printer, parsers).toFormatter();
+		default:
+			//Currently everything is ISO
+			return new ISOTimestampFormat();
 		}
 		
-		return null;
 	}
 
 }

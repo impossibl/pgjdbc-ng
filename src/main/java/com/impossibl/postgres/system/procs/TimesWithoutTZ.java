@@ -2,17 +2,14 @@ package com.impossibl.postgres.system.procs;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.types.PrimitiveType.Time;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.joda.time.DateTimeZone.UTC;
+import static java.util.concurrent.TimeUnit.DAYS;
 
 import java.io.IOException;
-import java.sql.Time;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
+import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
+import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -35,10 +32,10 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 		}
 		
 		public Class<?> getOutputType() {
-			return Time.class;
+			return Instant.class;
 		}
 
-		public Time decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+		public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
 			int length = buffer.readInt();
 			if (length == -1) {
@@ -50,11 +47,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
 			long micros = buffer.readLong();
 			
-			long millis = MICROSECONDS.toMillis(micros);
-			
-			DateTime dt = new DateTime(millis, UTC).withZoneRetainFields(DateTimeZone.getDefault());
-			
-			return new Time(dt.getMillis());
+			return new AmbiguousInstant(Instant.Type.Time, micros);
 		}
 
 	}
@@ -62,7 +55,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 	static class BinIntegerEncoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
-			return Time.class;
+			return Instant.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
@@ -76,11 +69,9 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 			}
 			else {
 				
-				DateTime time = new DateTime(val).withZoneRetainFields(UTC);
-				
-				long millis = time.getMillis();
-				
-				long micros = MILLISECONDS.toMicros(millis);
+				Instant inst = (Instant) val;
+
+				long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
 				
 				buffer.writeInt(8);
 				buffer.writeLong(micros);

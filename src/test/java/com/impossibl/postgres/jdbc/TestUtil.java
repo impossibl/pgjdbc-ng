@@ -261,4 +261,9 @@ public class TestUtil {
 		return false;
 	}
 
+	public static String fix(int v, int l) {
+		String s = "0000000000".substring(0, l) + Integer.toString(v);
+		return s.substring(s.length() - l);
+	}
+
 }
