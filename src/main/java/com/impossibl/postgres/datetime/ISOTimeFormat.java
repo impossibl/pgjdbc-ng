@@ -44,32 +44,37 @@ public class ISOTimeFormat implements DateTimeFormat {
 				pieces.put(HOUR_PIECE, parseResult[0]);
 	
 				offset = parseInt(date, offset + 1, parseResult);
-				checkOffset(date, offset, ':');
+				checkOffset(date, offset, '\0');
 				pieces.put(MINUTE_PIECE, parseResult[0]);
 	
-				offset = parseInt(date, offset + 1, parseResult);
-				checkOffset(date, offset, '\0');
-				pieces.put(SECOND_PIECE, parseResult[0]);
-
-				//Optional fraction
+				//Optional seconds
 				if(offset < date.length()) {
+					checkOffset(date, offset, ':');
+					
+					offset = parseInt(date, offset + 1, parseResult);
+					checkOffset(date, offset, '\0');
+					pieces.put(SECOND_PIECE, parseResult[0]);
 
-					if(date.charAt(offset) == '.') {
-						
-						checkOffset(date, offset, '.');
-						
-						int nanosStart = offset+1;
-						offset = parseInt(date, nanosStart, parseResult);
-						checkOffset(date, offset, '\0');
-						
-						int nanoDigits = offset - nanosStart;
-						if(nanoDigits > 9) {
-							return ~nanosStart;
+					//Optional fraction
+					if(offset < date.length()) {
+	
+						if(date.charAt(offset) == '.') {
+							
+							checkOffset(date, offset, '.');
+							
+							int nanosStart = offset+1;
+							offset = parseInt(date, nanosStart, parseResult);
+							checkOffset(date, offset, '\0');
+							
+							int nanoDigits = offset - nanosStart;
+							if(nanoDigits > 9) {
+								return ~nanosStart;
+							}
+							
+							int nanos = parseResult[0] * (int)Math.pow(10, 9 - nanoDigits);
+							pieces.put(NANOSECOND_PIECE, nanos);
+							
 						}
-						
-						int nanos = parseResult[0] * (int)Math.pow(10, 9 - nanoDigits);
-						pieces.put(NANOSECOND_PIECE, nanos);
-						
 					}
 				}
 	
