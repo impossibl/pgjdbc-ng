@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -105,11 +108,15 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 		protocol.setListener(listener);
 
-		protocol.sendParse(statementName, query, parseParameterTypes);
+		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+		
+		protocol.writeParse(msg, statementName, query, parseParameterTypes);
 
-		protocol.sendDescribe(Statement, statementName);
+		protocol.writeDescribe(msg, Statement, statementName);
 
-		protocol.sendSync();
+		protocol.writeSync(msg);
+
+		protocol.send(msg);
 
 		waitFor(listener);
 		

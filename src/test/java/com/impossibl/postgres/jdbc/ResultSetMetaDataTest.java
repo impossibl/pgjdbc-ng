@@ -187,14 +187,15 @@ public class ResultSetMetaDataTest extends TestCase {
 		stmt.close();
 	}
 
-	public void testClassesMatch() throws SQLException {
+	public void testClassesMatch() throws SQLException, ClassNotFoundException {
 		Statement stmt = conn.createStatement();
 		stmt.executeUpdate("INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123')");
 		ResultSet rs = stmt.executeQuery("SELECT * FROM alltypes");
 		ResultSetMetaData rsmd = rs.getMetaData();
 		assertTrue(rs.next());
 		for(int i = 0; i < rsmd.getColumnCount(); i++) {
-			assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1));
+			Class<?> cls = Class.forName(rsmd.getColumnClassName(i + 1));
+			assertTrue(cls.isAssignableFrom(rs.getObject(i + 1).getClass()));
 		}
 	}
 

@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
@@ -153,12 +152,12 @@ public class ProtocolImpl implements Protocol {
 		return txStatus;
 	}
 
-	public void sendStartup(Map<String, Object> params) throws IOException {
+	public void writeStartup(ChannelBuffer msg, Map<String, Object> params) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("STARTUP: " + params);
 			
-		ChannelBuffer msg = newMessage((byte) 0);
+		beginMessage(msg, (byte) 0);
 
 		// Version
 		msg.writeShort(3);
@@ -172,39 +171,39 @@ public class ProtocolImpl implements Protocol {
 
 		msg.writeByte(0);
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
-
-	public void sendPassword(String password) throws IOException {
+	
+	public void writePassword(ChannelBuffer msg, String password) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("PASSWORD: " + password);
 			
-		ChannelBuffer msg = newMessage(PASSWORD_MSG_ID);
+		beginMessage(msg, PASSWORD_MSG_ID);
 
 		writeCString(msg, password, context.getCharset());
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendQuery(String query) throws IOException {
+	public void writeQuery(ChannelBuffer msg, String query) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("QUERY: " + query);
 			
-		ChannelBuffer msg = newMessage(QUERY_MSG_ID);
+		beginMessage(msg, QUERY_MSG_ID);
 
 		writeCString(msg, query, context.getCharset());
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendParse(String stmtName, String query, List<Type> paramTypes) throws IOException {
+	public void writeParse(ChannelBuffer msg, String stmtName, String query, List<Type> paramTypes) throws IOException {
 		
 		if(logger.isLoggable(FINEST))
 			logger.finest("PARSE (" + stmtName + "): " + query);
 
-		ChannelBuffer msg = newMessage(PARSE_MSG_ID);
+		beginMessage(msg, PARSE_MSG_ID);
 
 		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
 		writeCString(msg, query, context.getCharset());
@@ -214,15 +213,15 @@ public class ProtocolImpl implements Protocol {
 			msg.writeInt(paramType.getId());
 		}
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
+	public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
-		ChannelBuffer msg = newMessage(BIND_MSG_ID);
+		beginMessage(msg, BIND_MSG_ID);
 
 		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
 		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
@@ -233,38 +232,38 @@ public class ProtocolImpl implements Protocol {
 		msg.writeShort(1);
 		msg.writeShort(1);
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendDescribe(ServerObjectType target, String targetName) throws IOException {
+	public void writeDescribe(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("DESCRIBE " + target + " (" + targetName + ")");
 
-		ChannelBuffer msg = newMessage(DESCRIBE_MSG_ID);
+		beginMessage(msg, DESCRIBE_MSG_ID);
 
 		msg.writeByte(target.getId());
 		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendExecute(String portalName, int maxRows) throws IOException {
+	public void writeExecute(ChannelBuffer msg, String portalName, int maxRows) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("EXECUTE (" + portalName + "): " + maxRows);
 
-		ChannelBuffer msg = newMessage(EXECUTE_MSG_ID);
+		beginMessage(msg, EXECUTE_MSG_ID);
 
 		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
 		msg.writeInt(maxRows);
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendFunctionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
+	public void writeFunctionCall(ChannelBuffer msg, int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
-		ChannelBuffer msg = newMessage(FUNCTION_CALL_MSG_ID);
+		beginMessage(msg, FUNCTION_CALL_MSG_ID);
 
 		msg.writeInt(functionId);
 
@@ -272,55 +271,48 @@ public class ProtocolImpl implements Protocol {
 
 		msg.writeShort(1);
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	private ChannelBuffer newMessage(byte msgId) {
-		
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
-		if(msgId != 0)
-			msg.writeByte(msgId);
-		msg.writeInt(-1);
-		
-		return msg;
-	}
-
-	public void sendClose(ServerObjectType target, String targetName) throws IOException {
+	public void writeClose(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("CLOSE " + target + ": " + targetName);
 			
-		ChannelBuffer msg = newMessage(CLOSE_MSG_ID);
+		beginMessage(msg, CLOSE_MSG_ID);
 
 		msg.writeByte(target.getId());
 		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
 
-		sendMessage(msg);
+		endMessage(msg);
 	}
 
-	public void sendFlush() throws IOException {
+	public void writeFlush(ChannelBuffer msg) throws IOException {
 		
 		if(logger.isLoggable(FINEST))
 			logger.finest("FLUSH");
 			
-		sendMessage(FLUSH_MSG_ID);
+		writeMessage(msg, FLUSH_MSG_ID);
 	}
 
-	public void sendSync() throws IOException {
+	public void writeSync(ChannelBuffer msg) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("SYNC");
 			
-		sendMessage(SYNC_MSG_ID);
+		writeMessage(msg, SYNC_MSG_ID);
 	}
 
-	public void sendTerminate() throws IOException {
+	public void writeTerminate(ChannelBuffer msg) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("TERM");
 			
-		sendMessage(TERMINATE_MSG_ID);
+		writeMessage(msg, TERMINATE_MSG_ID);
+	}
+	
+	public void send(ChannelBuffer msg) throws IOException {
+		channel.write(msg);
 	}
 
 	protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
@@ -345,43 +337,37 @@ public class ProtocolImpl implements Protocol {
 		}
 	}
 
-	protected void sendMessage(ChannelBuffer msg) throws IOException {
+	protected void writeMessage(ChannelBuffer msg, byte msgId) throws IOException {
 
-		int lengthPos = msg.getByte(0) != -1 ? 1 : 0;
-		
-		msg.setInt(lengthPos, msg.readableBytes() - lengthPos);
-		
-		channel.write(msg);
+		msg.writeByte(msgId);
+		msg.writeInt(4);
 	}
 
-	protected void sendMessage(byte msgId) throws IOException {
-
-		ChannelBuffer buffer = ChannelBuffers.buffer(5);
-
-		buffer.writeByte(msgId);
-		buffer.writeInt(4);
+	protected void beginMessage(ChannelBuffer msg, byte msgId) {
 		
-		channel.write(buffer);
+		if(msg == null) {
+			throw new IllegalArgumentException("Parent message required");
+		}
+		
+		if(msgId != 0)
+			msg.writeByte(msgId);
+
+		msg.markWriterIndex();
+
+		msg.writeInt(-1);
 	}
 
-	public Object parseResultData(ChannelBuffer buffer, Type resultType) throws IOException {
+	protected void endMessage(ChannelBuffer msg) throws IOException {
 
-		Object value = null;
-
-		int length = buffer.readInt();
-
-		long start = buffer.readerIndex();
-
-		if (length != -1) {
-
-			//value = resultType.getBinaryIO().decoder.decode(resultType, in, context);
-		}
-
-		if (length == (buffer.readerIndex() - start)) {
-			throw new IOException("invalid result length");
-		}
-
-		return value;
+		int endPos = msg.writerIndex();
+		
+		msg.resetWriterIndex();
+		
+		int begPos = msg.writerIndex();
+		
+		msg.setInt(begPos, endPos - begPos);
+		
+		msg.writerIndex(endPos);
 	}
 
 	/*
