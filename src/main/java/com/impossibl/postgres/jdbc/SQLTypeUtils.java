@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -64,7 +65,7 @@ class SQLTypeUtils {
 	}
 	
 	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
-			
+
 		if(targetType.isInstance(val)) {
 			return val;
 		}
@@ -400,6 +401,9 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof Instant) {
 			return ((Instant) val).print(context);
+		}
+		else if(val instanceof UUID) {
+			return val.toString();
 		}
 		
 		throw createCoercionException(val.getClass(), String.class);
