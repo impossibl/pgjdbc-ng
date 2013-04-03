@@ -77,7 +77,6 @@ public class ArrayTest extends TestCase {
 		ps.setObject(1, new Integer[]{1,2,3});
 		ps.setObject(2, new Float[]{3.1f,1.4f});
 		ps.setObject(3, new String[] {"abc","def"});
-		ps.executeUpdate();
 		
 		ResultSet rs = ps.executeQuery();
 		assertTrue(rs.next());
