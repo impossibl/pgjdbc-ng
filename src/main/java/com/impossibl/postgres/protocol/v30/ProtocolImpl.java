@@ -745,6 +745,8 @@ public class ProtocolImpl implements Protocol {
 			
 			if(parts.length != 1)
 				throw new IOException("error parsing command tag");
+			
+			rowsAffected = 0l;
 		}
 
 		logger.finest("COMPLETE: " + commandTag);
