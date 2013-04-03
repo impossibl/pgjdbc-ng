@@ -132,6 +132,8 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		protocol.setListener(listener);
 
 		protocol.sendQuery(command);
+		
+		protocol.sendSync();
 
 		waitFor(listener);
 	}
