@@ -196,9 +196,11 @@ public class SQLText {
 				
 				stmt.trim();
 				
-				CompositeNode tmp = parents.pop();
-				tmp.setEndPos(startIdx);
-				parents.peek().add(tmp);
+				if(stmt.getNodeCount() > 0) {
+					CompositeNode tmp = parents.pop();
+					tmp.setEndPos(startIdx);
+					parents.peek().add(tmp);
+				}
 			}
 			
 			return (MultiStatementNode)parents.get(0);
