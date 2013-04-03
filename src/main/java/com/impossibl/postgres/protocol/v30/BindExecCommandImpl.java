@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 import com.impossibl.postgres.mapper.Mapper;
 import com.impossibl.postgres.mapper.PropertySetter;
@@ -242,12 +243,12 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
 		
 		protocol.setListener(listener);
-
-		ChannelBuffer msg = null;
+		
+		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
 		if(status != Status.Suspended) {
 
-			msg = protocol.appendBindExecToBuffer(msg, portalName, statementName, parameterTypes, parameterValues);
+			protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues);
 
 		}
 
@@ -255,22 +256,23 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		if(resultFields == null || !parameterTypes.isEmpty()) {
 
-			msg = protocol.appendDescribeToBuffer(msg, Portal, portalName);
+			protocol.writeDescribe(msg, Portal, portalName);
 
 		}
 
-		msg = protocol.appendExecuteToBuffer(msg, portalName, maxRows);
+		protocol.writeExecute(msg, portalName, maxRows);
 
 		if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
-			protocol.appendFlushToBuffer(msg);
+			protocol.writeFlush(msg);			
 		}
 		else {
-			protocol.appendSyncToBuffer(msg);
+			protocol.writeSync(msg);			
 		}
-
-		protocol.channel.write(msg);
+		
+		protocol.send(msg);
 
 		waitFor(listener);
+		
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -131,9 +132,13 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		
 		protocol.setListener(listener);
 
-		protocol.sendQuery(command);
+		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 		
-		protocol.sendSync();
+		protocol.writeQuery(msg, command);
+		
+		protocol.writeSync(msg);
+
+		protocol.send(msg);
 
 		waitFor(listener);
 	}
