@@ -65,7 +65,10 @@ class SQLTypeUtils {
 	
 	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
 			
-		if(targetType == Byte.class || targetType == byte.class) {
+		if(targetType.isInstance(val)) {
+			return val;
+		}
+		else if(targetType == Byte.class || targetType == byte.class) {
 			return coerceToByte(val);
 		}
 		else if(targetType == Short.class || targetType == short.class) {
