@@ -4,7 +4,6 @@ import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
-import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
@@ -14,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -404,7 +404,7 @@ abstract class PGStatement implements Statement {
 		checkClosed();
 		
 		if(generatedKeysResultSet == null) {
-			throw NO_RESULT_SET_AVAILABLE;
+			return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
 		}
 		
 		return generatedKeysResultSet;

@@ -132,10 +132,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 		execute();
 
-		if(wantsGeneratedKeys) {
-			generatedKeysResultSet = getResultSet();
-		}
-
 		return getUpdateCount();
 	}
 
