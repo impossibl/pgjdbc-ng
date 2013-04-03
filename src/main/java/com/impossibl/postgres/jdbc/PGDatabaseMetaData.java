@@ -171,7 +171,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean nullsAreSortedAtEnd() throws SQLException {
-		return true;
+		return false;
 	}
 
 	@Override

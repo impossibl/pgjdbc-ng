@@ -13,6 +13,7 @@ import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -32,9 +33,35 @@ public class PGDriver implements Driver {
 	private static final String JDBC_PASSWORD_PARAM = "password";
 
 	static class ConnectionSpecifier {
+		
 		public List<InetSocketAddress> addresses = new ArrayList<>();
 		public String database;
 		public Properties parameters = new Properties();
+		
+		public String getHosts() {
+			
+			StringBuilder hosts = new StringBuilder();
+			
+			Iterator<InetSocketAddress> addrIter = addresses.iterator();
+			while(addrIter.hasNext()) {
+				
+				InetSocketAddress addr = addrIter.next();
+				
+				hosts.append(addr.getHostString());
+				
+				if(addr.getPort() != 5432) {
+					hosts.append(':');
+					hosts.append(addr.getPort());
+				}
+				
+				if(addrIter.hasNext()) {
+					hosts.append(",");
+				}
+			}
+			
+			return hosts.toString();
+		}
+		
 	}
 
 	
@@ -115,12 +142,13 @@ public class PGDriver implements Driver {
 		//Translate JDBC parameters to PostgreSQL parameters
 		settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
 		settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
-		
-		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.addresses.toString() + "/" + connSpec.database);		
+
+		//Create & store URL
+		settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.getHosts() + "/" + connSpec.database);		
 		
 		return settings;
 	}
-
+	
 	/*
 	 * URL Pattern jdbc:postgresql:(?://((?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?(?:,(?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?)*)/)?(\w+)(?:\?(.*))?
 	 * 	Capturing Groups:
