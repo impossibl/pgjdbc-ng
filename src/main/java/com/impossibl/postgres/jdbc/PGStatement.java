@@ -364,7 +364,7 @@ abstract class PGStatement implements Statement {
 		if (generatedKeysResultSet != null ||
 				command == null || 
 				command.getResultFields().isEmpty()) {
-			throw NO_RESULT_SET_AVAILABLE;
+			return null;
 		}
 
 		PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command);
