@@ -409,31 +409,153 @@ public class ArrayTest extends TestCase {
 		assertEquals(4, i[1][1].intValue());
 	}
 
-	/*
-	 * The box data type uses a semicolon as the array element delimiter instead
-	 * of a comma which pretty much everything else uses.
-	 */
-//	public void testNonStandardDelimiter() throws SQLException {
-//		Statement stmt = conn.createStatement();
-//		ResultSet rs = stmt.executeQuery("SELECT '{(3,4),(1,2);(7,8),(5,6)}'::box[]");
-//		assertTrue(rs.next());
-//		Array arr = rs.getArray(1);
-//
-//		ResultSet arrRS = arr.getResultSet();
-//
-//		assertTrue(arrRS.next());
-//		PGbox box1 = (PGbox) arrRS.getObject(2);
-//		PGpoint p1 = box1.point[0];
-//		assertEquals(3, p1.x, 0.001);
-//		assertEquals(4, p1.y, 0.001);
-//
-//		assertTrue(arrRS.next());
-//		PGbox box2 = (PGbox) arrRS.getObject(2);
-//		PGpoint p2 = box2.point[1];
-//		assertEquals(5, p2.x, 0.001);
-//		assertEquals(6, p2.y, 0.001);
-//
-//		assertTrue(!arrRS.next());
-//	}
+
+	public void testCreateArrayOfInt() throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int[]");
+		Integer in[] = new Integer[3];
+		in[0] = 0;
+		in[1] = -1;
+		in[2] = 2;
+		pstmt.setArray(1, conn.createArrayOf("int4", in));
+
+		ResultSet rs = pstmt.executeQuery();
+		assertTrue(rs.next());
+		Array arr = rs.getArray(1);
+		Integer out[] = (Integer[]) arr.getArray();
+
+		assertEquals(3, out.length);
+		assertEquals(0, out[0].intValue());
+		assertEquals(-1, out[1].intValue());
+		assertEquals(2, out[2].intValue());
+	}
+
+	public void testCreateArrayOfMultiString() throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("SELECT ?::text[]");
+		String in[][] = new String[2][2];
+		in[0][0] = "a";
+		in[0][1] = "";
+		in[1][0] = "\\";
+		in[1][1] = "\"\\'z";
+		pstmt.setArray(1, conn.createArrayOf("text", in));
+
+		ResultSet rs = pstmt.executeQuery();
+		assertTrue(rs.next());
+		Array arr = rs.getArray(1);
+		String out[][] = (String[][]) arr.getArray();
+
+		assertEquals(2, out.length);
+		assertEquals(2, out[0].length);
+		assertEquals("a", out[0][0]);
+		assertEquals("", out[0][1]);
+		assertEquals("\\", out[1][0]);
+		assertEquals("\"\\'z", out[1][1]);
+	}
+
+	public void testCreateArrayOfNull() throws SQLException {
+
+		String sql = "SELECT ?";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		String in[] = new String[2];
+		in[0] = null;
+		in[1] = null;
+		pstmt.setArray(1, conn.createArrayOf("int8", in));
+
+		ResultSet rs = pstmt.executeQuery();
+		assertTrue(rs.next());
+		Array arr = rs.getArray(1);
+		Long out[] = (Long[]) arr.getArray();
+
+		assertEquals(2, out.length);
+		assertNull(out[0]);
+		assertNull(out[1]);
+	}
+
+	public void testCreateEmptyArrayOfIntViaAlias() throws SQLException {
+		
+		PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int[]");
+		Integer in[] = new Integer[0];
+		pstmt.setArray(1, conn.createArrayOf("integer", in));
+
+		ResultSet rs = pstmt.executeQuery();
+		assertTrue(rs.next());
+		Array arr = rs.getArray(1);
+		Integer out[] = (Integer[]) arr.getArray();
+
+		assertEquals(0, out.length);
+
+		ResultSet arrRs = arr.getResultSet();
+		assertFalse(arrRs.next());
+	}
+
+	public void testCreateArrayWithoutServer() throws SQLException {
+		String in[][] = new String[2][2];
+		in[0][0] = "a";
+		in[0][1] = "";
+		in[1][0] = "\\";
+		in[1][1] = "\"\\'z";
+
+		Array arr = conn.createArrayOf("varchar", in);
+		String out[][] = (String[][]) arr.getArray();
+
+		assertEquals(2, out.length);
+		assertEquals(2, out[0].length);
+		assertEquals("a", out[0][0]);
+		assertEquals("", out[0][1]);
+		assertEquals("\\", out[1][0]);
+		assertEquals("\"\\'z", out[1][1]);
+	}
+
+	public void testCreatePrimitiveArray() throws SQLException {
+		double in[][] = new double[2][2];
+		in[0][0] = 3.5;
+		in[0][1] = -4.5;
+		in[1][0] = 10.0 / 3;
+		in[1][1] = 77;
+
+		Array arr = conn.createArrayOf("float8", in);
+		Double out[][] = (Double[][]) arr.getArray();
+
+		assertEquals(2, out.length);
+		assertEquals(2, out[0].length);
+		assertEquals(3.5, out[0][0], 0.00001);
+		assertEquals(-4.5, out[0][1], 0.00001);
+		assertEquals(10.0 / 3, out[1][0], 0.00001);
+		assertEquals(77, out[1][1], 0.00001);
+	}
+
+	public void testSetObjectFromJavaArray() throws SQLException {
+		String[] strArray = new String[] { "a", "b", "c" };
+
+		PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
+
+		// Incorrect, but commonly attempted by many ORMs:
+		try {
+			pstmt.setObject(1, strArray, Types.ARRAY);
+			pstmt.executeUpdate();
+			fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
+		}
+		catch(SQLException ex) {
+			// Expected failure.
+		}
+
+		// Also incorrect, but commonly attempted by many ORMs:
+		try {
+			pstmt.setObject(1, strArray);
+			pstmt.executeUpdate();
+			fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+		}
+		catch(SQLException ex) {
+			// Expected failure.
+		}
+
+		// Correct way, though the use of "text" as a type is non-portable.
+		// Only supported for JDK 1.6 and JDBC4
+		Array sqlArray = conn.createArrayOf("text", strArray);
+		pstmt.setArray(1, sqlArray);
+		pstmt.executeUpdate();
+
+		pstmt.close();
+	}
 
 }
