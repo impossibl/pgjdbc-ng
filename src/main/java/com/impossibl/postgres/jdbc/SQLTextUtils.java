@@ -165,7 +165,7 @@ class SQLTextUtils {
 	 * @return SQL text
 	 */
 	public static String getRollbackToText(PGSavepoint savepoint) {
-		return "ROLLBACK TO SAVEPOINT " + savepoint;
+		return "ROLLBACK TO SAVEPOINT " + savepoint.getId();
 	}
 
 	/**
@@ -175,7 +175,7 @@ class SQLTextUtils {
 	 * @return
 	 */
 	public static String getSetSavepointText(PGSavepoint savepoint) {
-		return "SAVEPOINT " + savepoint;
+		return "SAVEPOINT " + savepoint.getId();
 	}
 
 	/**
@@ -185,7 +185,7 @@ class SQLTextUtils {
 	 * @return
 	 */
 	public static String getReleaseSavepointText(PGSavepoint savepoint) {
-		return "RELEASE SAVEPOINT " + savepoint;
+		return "RELEASE SAVEPOINT " + savepoint.getId();
 	}
 
 	/**

@@ -565,14 +565,17 @@ class PGConnection extends BasicContext implements Connection {
 			throw new SQLException("invalid savepoint");
 		}
 
-		// Use up the savepoint
-		savepoint.invalidate();
-
-		// Rollback to save-point (if in transaction)
-		if(protocol.getTransactionStatus() != Idle) {
-			execute(getRollbackToText(savepoint), false);
+		try {
+			// Rollback to save-point (if in transaction)
+			if(protocol.getTransactionStatus() != Idle) {
+				execute(getRollbackToText(savepoint), false);
+			}
 		}
-
+		finally {
+			// Mark as released
+			savepoint.setReleased(true);
+		}
+		
 	}
 
 	@Override
@@ -586,14 +589,17 @@ class PGConnection extends BasicContext implements Connection {
 			throw new SQLException("invalid savepoint");
 		}
 
-		// Use up the save-point
-		savepoint.invalidate();
-
-		// Release the save-point (if in a transaction)
-		if(protocol.getTransactionStatus() != Idle) {
-			execute(getReleaseSavepointText((PGSavepoint) savepoint), false);
+		try {
+			// Release the save-point (if in a transaction)
+			if(!savepoint.getReleased() && protocol.getTransactionStatus() != Idle) {
+				execute(getReleaseSavepointText((PGSavepoint) savepoint), false);
+			}
 		}
-
+		finally {
+			// Use up the save-point
+			savepoint.invalidate();
+		}
+		
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
 import java.sql.SQLException;
 import java.sql.Savepoint;
 
@@ -12,19 +14,34 @@ import java.sql.Savepoint;
  */
 class PGSavepoint implements Savepoint {
 
-	Integer id;
-	String name;
+	private Integer id;
+	private String name;
+	private boolean released;
 
 	PGSavepoint(int id) {
 		this.id = id;
 	}
 
-	public PGSavepoint(String name) {
+	PGSavepoint(String name) {
 		this.name = name;
+	}
+
+	/**
+	 * Ensure the savepoint is valid
+	 * 
+	 * @throws SQLException
+	 * 					If the connection is invalid
+	 */
+	void checkValid() throws SQLException {
+
+		if(!isValid())
+			throw new SQLException("Invalid savepoint");
 	}
 
 	@Override
 	public int getSavepointId() throws SQLException {
+		checkValid();
+		
 		if(id == null)
 			throw new SQLException("named savepoints have no id");
 		return id;
@@ -32,13 +49,19 @@ class PGSavepoint implements Savepoint {
 
 	@Override
 	public String getSavepointName() throws SQLException {
+		checkValid();
+		
 		if(name == null)
 			throw new SQLException("auto savepoints have no name");
 		return name;
 	}
 
-	public String toString() {
-		return name != null ? name : Integer.toString(id);
+	public String getId() {
+		if(id != null)
+			return "sp_" + id.toString();
+		if(name != null)
+			return Identifiers.escape(name);
+		throw new IllegalStateException();
 	}
 
 	public boolean isValid() {
@@ -49,5 +72,18 @@ class PGSavepoint implements Savepoint {
 		id = null;
 		name = null;
 	}
+	
+	public boolean getReleased() {
+		return released;
+	}
+	
+	public void setReleased(boolean released) {
+		this.released = released;
+	}
 
+	@Override
+	public String toString() {
+		return id != null ? id.toString() : nullToEmpty(name);
+	}
+	
 }
