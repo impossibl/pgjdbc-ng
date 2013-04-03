@@ -94,7 +94,6 @@ public class ISOTimeFormat implements DateTimeFormat {
 					}
 				}
 				
-				return offset;
 			}
 			catch(IndexOutOfBoundsException | IllegalArgumentException e) {
 			}

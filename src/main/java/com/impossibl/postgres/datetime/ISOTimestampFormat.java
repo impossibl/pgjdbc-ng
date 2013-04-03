@@ -65,7 +65,6 @@ public class ISOTimestampFormat implements DateTimeFormat {
 					
 				}
 				
-				return offset;
 			}
 			catch(IndexOutOfBoundsException | IllegalArgumentException e) {
 			}

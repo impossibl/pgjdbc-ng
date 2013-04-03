@@ -7,7 +7,9 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import java.util.Calendar;
 import java.util.Map;
 
+import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 
 public class ISODateFormat implements DateTimeFormat {
 	
@@ -32,24 +34,35 @@ public class ISODateFormat implements DateTimeFormat {
 	
 			try {
 				
-				int[] parsedValue = new int[1];
+				if(date.equals("infinity")) {
+					pieces.put(INFINITY_PIECE, FutureInfiniteInstant.INSTANCE);
+					offset = date.length();
+				}
+				else if(date.equals("-infinity")) {
+					pieces.put(INFINITY_PIECE, PastInfiniteInstant.INSTANCE);
+					offset = date.length();
+				}
+				else {
+					
+					int[] parsedValue = new int[1];
+					
+					// extract year
+					offset = parseInt(date, offset, parsedValue);
+					checkOffset(date, offset, '-');
+					pieces.put(YEAR_PIECE, parsedValue[0]);
+			
+					// extract month
+					offset = parseInt(date, offset + 1, parsedValue);
+					checkOffset(date, offset, '-');
+					pieces.put(MONTH_PIECE, parsedValue[0]);
+			
+					// extract day
+					offset = parseInt(date, offset += 1, parsedValue);
+					checkOffset(date, offset, '\0');
+					pieces.put(DAY_PIECE, parsedValue[0]);
 				
-				// extract year
-				offset = parseInt(date, offset, parsedValue);
-				checkOffset(date, offset, '-');
-				pieces.put(YEAR_PIECE, parsedValue[0]);
-		
-				// extract month
-				offset = parseInt(date, offset + 1, parsedValue);
-				checkOffset(date, offset, '-');
-				pieces.put(MONTH_PIECE, parsedValue[0]);
-		
-				// extract day
-				offset = parseInt(date, offset += 1, parsedValue);
-				checkOffset(date, offset, '\0');
-				pieces.put(DAY_PIECE, parsedValue[0]);
+				}
 				
-				return offset;
 			}
 			catch(IndexOutOfBoundsException | IllegalArgumentException e) {
 			}
