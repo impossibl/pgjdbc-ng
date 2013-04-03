@@ -33,7 +33,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 	Type getType(int paramIndex) throws SQLException {
 		checkParamIndex(paramIndex);
 		
-		return parameterTypes.get(paramIndex);
+		return parameterTypes.get(paramIndex-1);
 	}
 	
 	@Override
