@@ -650,7 +650,10 @@ class SQLTypeUtils {
 			else if(elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
 
 				dst = Array.newInstance(targetType.getComponentType(), count);
-				System.arraycopy(val, (int)index, dst, 0, count);
+				
+				for(int i=0; i < count; ++i) {
+					Array.set(dst, i, Array.get(val, i));
+				}
 			}
 			else if(val.getClass().getComponentType().isArray()) {
 				
