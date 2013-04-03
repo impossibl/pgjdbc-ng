@@ -54,7 +54,7 @@ public class ISODateFormat implements DateTimeFormat {
 			catch(IndexOutOfBoundsException | IllegalArgumentException e) {
 			}
 			
-			return ~offset;
+			return offset;
 		}
 		
 	}

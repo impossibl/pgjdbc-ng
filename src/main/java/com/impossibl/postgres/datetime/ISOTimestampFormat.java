@@ -70,7 +70,7 @@ public class ISOTimestampFormat implements DateTimeFormat {
 			catch(IndexOutOfBoundsException | IllegalArgumentException e) {
 			}
 			
-			return ~offset;
+			return offset;
 		}
 		
 	}

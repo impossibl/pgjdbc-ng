@@ -495,7 +495,7 @@ class SQLTypeUtils {
 			case Date: {
 				Map<String, Object> pieces = new HashMap<>();
 				int offset = context.getDateFormatter().getParser().parse(str, 0, pieces);
-				if(offset < 1) {
+				if(offset < 0) {
 					throw createCoercionParseException(str, ~offset, Date.class);
 				}
 				return Instants.dateFromPieces(pieces, zone);
@@ -505,7 +505,7 @@ class SQLTypeUtils {
 			case TimeTZ: {
 				Map<String, Object> pieces = new HashMap<>();
 				int offset = context.getTimeFormatter().getParser().parse(val.toString(), 0, pieces);
-				if(offset < 1) {
+				if(offset < 0) {
 					throw createCoercionParseException(str, ~offset, Time.class);
 				}
 				return Instants.timeFromPieces(pieces, zone);
@@ -515,7 +515,7 @@ class SQLTypeUtils {
 			case TimestampTZ: {			
 				Map<String, Object> pieces = new HashMap<>();
 				int offset = context.getTimestampFormatter().getParser().parse(val.toString(), 0, pieces);
-				if(offset < 1) {
+				if(offset < 0) {
 					throw createCoercionParseException(str, ~offset, Timestamp.class);
 				}
 				return Instants.timestampFromPieces(pieces, zone);
@@ -813,7 +813,7 @@ class SQLTypeUtils {
 			parseErrorEndPos -= 3;
 			errorText = "...";
 		}
-		errorText = errorText + val.substring(parseErrorPos, parseErrorEndPos);
+		errorText = val.substring(parseErrorPos, parseErrorEndPos) + errorText;
 		
 		return new SQLException("Coercion from 'String' to '" + dstType.getName() + "' failed. Parser error near '" + errorText  + "'");
 	}
