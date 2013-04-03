@@ -217,12 +217,13 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendBind(String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
+	public ChannelBuffer appendBindExecToBuffer(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
-		ChannelBuffer msg = newMessage(BIND_MSG_ID);
+		msg = newMessage(msg, BIND_MSG_ID);
+		int lengthPos = msg.writerIndex() - 4;
 
 		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
 		writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
@@ -233,33 +234,45 @@ public class ProtocolImpl implements Protocol {
 		msg.writeShort(1);
 		msg.writeShort(1);
 
-		sendMessage(msg);
+		setMessageLength(msg, lengthPos);
+
+		return msg;
 	}
 
 	public void sendDescribe(ServerObjectType target, String targetName) throws IOException {
+		channel.write(appendDescribeToBuffer(null, target, targetName));
+	}
+
+	public ChannelBuffer appendDescribeToBuffer(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("DESCRIBE " + target + " (" + targetName + ")");
 
-		ChannelBuffer msg = newMessage(DESCRIBE_MSG_ID);
+		msg = newMessage(msg, DESCRIBE_MSG_ID);
+		int lengthPos = msg.writerIndex() - 4;
 
 		msg.writeByte(target.getId());
 		writeCString(msg, targetName != null ? targetName : "", context.getCharset());
 
-		sendMessage(msg);
+		setMessageLength(msg, lengthPos);
+
+		return msg;
 	}
 
-	public void sendExecute(String portalName, int maxRows) throws IOException {
+	public ChannelBuffer appendExecuteToBuffer(ChannelBuffer msg, String portalName, int maxRows) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("EXECUTE (" + portalName + "): " + maxRows);
 
-		ChannelBuffer msg = newMessage(EXECUTE_MSG_ID);
+		msg = newMessage(msg, EXECUTE_MSG_ID);
+		int lengthPos = msg.writerIndex() - 4;
 
 		writeCString(msg, portalName != null ? portalName : "", context.getCharset());
 		msg.writeInt(maxRows);
 
-		sendMessage(msg);
+		setMessageLength(msg, lengthPos);
+
+		return msg;
 	}
 
 	public void sendFunctionCall(int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
@@ -275,15 +288,19 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	private ChannelBuffer newMessage(byte msgId) {
-		
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
+	private ChannelBuffer newMessage(ChannelBuffer msg, byte msgId) {
+		if (msg == null)
+			msg = ChannelBuffers.dynamicBuffer();
+
 		if(msgId != 0)
 			msg.writeByte(msgId);
 		msg.writeInt(-1);
 		
 		return msg;
+	}
+
+	private ChannelBuffer newMessage(byte msgId) {
+		return newMessage(null, msgId);
 	}
 
 	public void sendClose(ServerObjectType target, String targetName) throws IOException {
@@ -299,12 +316,20 @@ public class ProtocolImpl implements Protocol {
 		sendMessage(msg);
 	}
 
-	public void sendFlush() throws IOException {
+	public void appendFlushToBuffer(ChannelBuffer msg) throws IOException {
 		
 		if(logger.isLoggable(FINEST))
 			logger.finest("FLUSH");
 			
-		sendMessage(FLUSH_MSG_ID);
+		appendMessageToBuffer(msg, FLUSH_MSG_ID);
+	}
+
+	public void appendSyncToBuffer(ChannelBuffer msg) throws IOException {
+
+		if(logger.isLoggable(FINEST))
+			logger.finest("SYNC");
+
+		appendMessageToBuffer(msg, SYNC_MSG_ID);
 	}
 
 	public void sendSync() throws IOException {
@@ -345,21 +370,29 @@ public class ProtocolImpl implements Protocol {
 		}
 	}
 
-	protected void sendMessage(ChannelBuffer msg) throws IOException {
+	protected void setMessageLength(ChannelBuffer msg, int lengthPos) throws IOException {
 
+		msg.setInt(lengthPos, msg.readableBytes() - lengthPos);
+	}
+
+	protected void sendMessage(ChannelBuffer msg) throws IOException {
 		int lengthPos = msg.getByte(0) != -1 ? 1 : 0;
 		
-		msg.setInt(lengthPos, msg.readableBytes() - lengthPos);
-		
+		setMessageLength(msg, lengthPos);
+
 		channel.write(msg);
+	}
+
+	protected void appendMessageToBuffer(ChannelBuffer msg, byte msgId) throws IOException {
+		msg.writeByte(msgId);
+		msg.writeInt(4);
 	}
 
 	protected void sendMessage(byte msgId) throws IOException {
 
 		ChannelBuffer buffer = ChannelBuffers.buffer(5);
 
-		buffer.writeByte(msgId);
-		buffer.writeInt(4);
+		appendMessageToBuffer(buffer, msgId);
 		
 		channel.write(buffer);
 	}
