@@ -26,6 +26,7 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
@@ -216,7 +217,7 @@ public class ProtocolImpl implements Protocol {
 		endMessage(msg);
 	}
 
-	public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues) throws IOException {
+	public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
 
 		if(logger.isLoggable(FINEST))
 			logger.finest("BIND (" + portalName + "): " + parameterValues.size());
@@ -228,9 +229,19 @@ public class ProtocolImpl implements Protocol {
 
 		loadParams(msg, parameterTypes, parameterValues);
 
-		// Binary format for all results fields
-		msg.writeShort(1);
-		msg.writeShort(1);
+		//Set format for results fields
+		if(resultFieldFormats.isEmpty()) {
+			//Request all binary
+			msg.writeShort(1);
+			msg.writeShort(1);
+		}
+		else {
+			//Select result format for each
+			msg.writeShort(resultFieldFormats.size());
+			for(Format format : resultFieldFormats) {
+				msg.writeShort(format.ordinal());
+			}
+		}
 
 		endMessage(msg);
 	}
@@ -317,9 +328,17 @@ public class ProtocolImpl implements Protocol {
 
 	protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
-		// Binary format for all parameters
-		buffer.writeShort(1);
-		buffer.writeShort(1);
+		// Select format for parameters
+		if(paramTypes == null) {
+			buffer.writeShort(1);
+			buffer.writeShort(1);
+		}
+		else {
+			buffer.writeShort(paramTypes.size());
+			for(Type paramType : paramTypes) {
+				buffer.writeShort(paramType.getParameterFormat().ordinal());
+			}
+		}
 
 		// Values for each parameter
 		if (paramTypes == null) {
@@ -332,7 +351,9 @@ public class ProtocolImpl implements Protocol {
 				Type paramType = paramTypes.get(c);
 				Object paramValue = paramValues.get(c);
 
-				paramType.getBinaryCodec().encoder.encode(paramType, buffer, paramValue, context);
+				Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
+				codec.encoder.encode(paramType, buffer, paramValue, context);
+				
 			}
 		}
 	}

@@ -458,37 +458,38 @@ public class Registry {
 	 * @param decoderId proc-id of the decoder
 	 * @return A matching Codec instance
 	 */
-	public Codec loadCodec(int encoderId, int decoderId) {
+	public Codec loadCodec(int encoderId, int decoderId, boolean defaults) {
+		
 		Codec io = new Codec();
-		io.decoder = loadDecoderProc(decoderId);
-		io.encoder = loadEncoderProc(encoderId);
+		io.decoder = loadDecoderProc(decoderId, defaults);
+		io.encoder = loadEncoderProc(encoderId, defaults);
 		return io;
 	}
 
 	/*
 	 * Loads a matching encoder given its proc-id
 	 */
-	private Codec.Encoder loadEncoderProc(int procId) {
+	private Codec.Encoder loadEncoderProc(int procId, boolean defaults) {
 
 		String name = lookupProcName(procId);
-		if(name == null) {
-			name = ""; //get the default proc
+		if(name == null && !defaults) {
+			return null;
 		}
 
-		return Procs.loadEncoderProc(name, context);
+		return Procs.loadEncoderProc(name, context, defaults);
 	}
 
 	/*
 	 * Loads a matching decoder given its proc-id
 	 */
-	private Codec.Decoder loadDecoderProc(int procId) {
+	private Codec.Decoder loadDecoderProc(int procId, boolean defaults) {
 
 		String name = lookupProcName(procId);
-		if(name == null) {
-			name = ""; //get the default proc
+		if(name == null && !defaults) {
+			return null;
 		}
 
-		return Procs.loadDecoderProc(name, context);
+		return Procs.loadDecoderProc(name, context, defaults);
 	}
 
 	/*

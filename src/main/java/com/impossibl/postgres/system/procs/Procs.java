@@ -40,19 +40,19 @@ public class Procs {
 
 	public static Codec loadNamedTextCodec(String baseName, Context context) {
 		Codec codec = new Codec();
-		codec.encoder = loadEncoderProc(baseName + "in", context);
-		codec.decoder = loadDecoderProc(baseName + "out", context);
+		codec.encoder = loadEncoderProc(baseName + "in", context, true);
+		codec.decoder = loadDecoderProc(baseName + "out", context, true);
 		return codec;
 	}
 
 	public static Codec loadNamedBinaryCodec(String baseName, Context context) {
 		Codec codec = new Codec();
-		codec.encoder = loadEncoderProc(baseName + "recv", context);
-		codec.decoder = loadDecoderProc(baseName + "send", context);
+		codec.encoder = loadEncoderProc(baseName + "recv", context, false);
+		codec.decoder = loadDecoderProc(baseName + "send", context, false);
 		return codec;
 	}
 
-	public static Codec.Encoder loadEncoderProc(String name, Context context) {
+	public static Codec.Encoder loadEncoderProc(String name, Context context, boolean defaults) {
 		
 		if(!name.isEmpty()) {
 			Codec.Encoder h;
@@ -63,10 +63,13 @@ public class Procs {
 			}
 		}
 
-		return UNSUPPORTEDS.findEncoder(name, context);
+		if(!defaults)
+			return null;
+		
+		return new Strings.Encoder();
 	}
 
-	public static Codec.Decoder loadDecoderProc(String name, Context context) {
+	public static Codec.Decoder loadDecoderProc(String name, Context context, boolean defaults) {
 		
 		if(!name.isEmpty()) {
 			Codec.Decoder h;
@@ -77,7 +80,10 @@ public class Procs {
 			}
 		}
 
-		return UNSUPPORTEDS.findDecoder(name, context);
+		if(!defaults)
+			return null;
+		
+		return new Strings.Decoder();
 	}
 
 	public static Modifiers.Parser loadModifierParserProc(String name, Context context) {

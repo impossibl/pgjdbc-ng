@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -111,8 +112,7 @@ public abstract class Type {
 	private Character delimeter;
 	private int arrayTypeId;
 	private int relationId;
-	private Codec binaryCodec;
-	private Codec textCodec;
+	private Codec[] codecs;
 	private Modifiers.Parser modifierParser;	
 	
 	public Type() {
@@ -127,8 +127,7 @@ public abstract class Type {
 		this.category = category;
 		this.delimeter = delimeter;
 		this.arrayTypeId = arrayTypeId;
-		this.binaryCodec = binaryCodec;
-		this.textCodec = textCodec;
+		this.codecs = new Codec[]{textCodec, binaryCodec};
 	}
 
 	public int getId() {
@@ -196,19 +195,23 @@ public abstract class Type {
 	}
 	
 	public Codec getBinaryCodec() {
-		return binaryCodec;
+		return codecs[Format.Binary.ordinal()];
 	}
 	
 	public void setBinaryCodec(Codec binaryCodec) {
-		this.binaryCodec = binaryCodec;
+		this.codecs[Format.Binary.ordinal()] = binaryCodec;
 	}
 	
 	public Codec getTextCodec() {
-		return textCodec;
+		return codecs[Format.Text.ordinal()];
 	}
 
 	public void setTextCodec(Codec textCodec) {
-		this.textCodec = textCodec;
+		codecs[Format.Text.ordinal()] = textCodec;
+	}
+
+	public Codec getCodec(Format format) {
+		return codecs[format.ordinal()];
 	}
 
 	public Modifiers.Parser getModifierParser() {
@@ -269,6 +272,32 @@ public abstract class Type {
 		return null;
 	}
 	
+	public Format getParameterFormat() {
+		
+		Codec binCodec = getBinaryCodec();
+		if(binCodec.encoder != null)
+			return Format.Binary;
+		
+		Codec txtCodec = getTextCodec();
+		if(txtCodec.encoder != null)
+			return Format.Text;
+		
+		return null;
+	}
+	
+	public Format getResultFormat() {
+		
+		Codec binCodec = getBinaryCodec();
+		if(binCodec.decoder != null)
+			return Format.Binary;
+		
+		Codec txtCodec = getTextCodec();
+		if(txtCodec.decoder != null)
+			return Format.Text;
+		
+		return null;
+	}
+	
 	/**
 	 * Load this type from a "pg_type" table entry and, if available, a
 	 * collection of "pg_attribute" table entries.
@@ -288,8 +317,10 @@ public abstract class Type {
 		delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
 		arrayTypeId = source.arrayTypeId;
 		relationId = source.relationId;
-		textCodec = registry.loadCodec(source.inputId, source.outputId);
-		binaryCodec = registry.loadCodec(source.receiveId, source.sendId);
+		codecs = new Codec[] {
+				registry.loadCodec(source.inputId, source.outputId, true),
+				registry.loadCodec(source.receiveId, source.sendId, false),
+		};
 		modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);		
 	}
 	

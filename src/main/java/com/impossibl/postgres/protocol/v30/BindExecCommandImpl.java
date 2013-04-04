@@ -18,6 +18,7 @@ import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
@@ -72,17 +73,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 				ResultField field = resultFields.get(c);
 
 				Type fieldType = field.getType();
-				Object fieldVal = null;
-
-				switch (field.format) {
-				case Text:
-					fieldVal = fieldType.getTextCodec().decoder.decode(fieldType, buffer, parsingContext);
-					break;
-
-				case Binary:
-					fieldVal = fieldType.getBinaryCodec().decoder.decode(fieldType, buffer, parsingContext);
-					break;
-				}
+				Object fieldVal = fieldType.getCodec(field.format).decoder.decode(fieldType, buffer, parsingContext);
 
 				resultSetters.get(c).set(rowInstance, fieldVal);
 			}
@@ -247,8 +238,16 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
 		if(status != Status.Suspended) {
+			
+			List<Format> resultFieldFormats = new ArrayList<>();
+			if(resultFields != null) {
+				for(ResultField resultField : resultFields) {
+					resultField.format = resultField.getType().getResultFormat();
+					resultFieldFormats.add(resultField.format);
+				}
+			}
 
-			protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues);
+			protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
 
 		}
 
