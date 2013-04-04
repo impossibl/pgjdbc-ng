@@ -118,6 +118,8 @@ public class SQLText {
 					
 					if(parents.size() == 2) {
 						
+						paramId = 1;
+						
 						CompositeNode comp = parents.pop();
 						comp.setEndPos(matcher.end());
 						parents.peek().add(comp);					
