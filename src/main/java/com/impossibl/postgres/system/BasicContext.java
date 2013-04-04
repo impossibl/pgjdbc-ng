@@ -165,7 +165,21 @@ public class BasicContext implements Context {
 	}
 
 	public void refreshType(int typeId) {
+		
+		int latestKnownTypeId = registry.getLatestKnownTypeId();
+		if(latestKnownTypeId >= typeId) {
+			//Refresh this specific type
+			refreshSpecificType(typeId);
+		}
+		else {
+			//Load all new types we haven't seent
+			refreshTypes(latestKnownTypeId);
+		}
+		
+	}
 
+	void refreshSpecificType(int typeId) {
+		
 		try {
 			
 			//Load types
@@ -179,6 +193,34 @@ public class BasicContext implements Context {
 			//Load attributes
 			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
 			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, pgTypes.get(0).relationId);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			//Ignore errors
+		}
+		
+	}
+	
+	void refreshTypes(int latestTypeId) {
+		
+		try {
+			
+			//Load types
+			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1";
+			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, latestTypeId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+			
+			Integer[] typeIds = new Integer[pgTypes.size()];
+			for(int c=0; c < pgTypes.size(); ++c)
+				typeIds[c] = pgTypes.get(c).relationId;
+				
+			//Load attributes
+			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )";
+			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, (Object)typeIds);
 			
 			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
 		}

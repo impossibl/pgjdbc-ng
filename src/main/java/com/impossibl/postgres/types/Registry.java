@@ -29,13 +29,13 @@ public class Registry {
 	private static Logger logger = Logger.getLogger(Registry.class.getName());
 
 	private Map<Character, Class<? extends Type>> kindMap;
-	private Map<Integer, Type> oidMap;
+	private TreeMap<Integer, Type> oidMap;
 	private Map<String, Type> nameMap;
-	private Map<Integer, Type> relIdMap;
+	private TreeMap<Integer, Type> relIdMap;
 
-	private Map<Integer, PgType.Row> pgTypeData;
-	private Map<Integer, Collection<PgAttribute.Row>> pgAttrData;
-	private Map<Integer, PgProc.Row> pgProcData;
+	private TreeMap<Integer, PgType.Row> pgTypeData;
+	private TreeMap<Integer, Collection<PgAttribute.Row>> pgAttrData;
+	private TreeMap<Integer, PgProc.Row> pgProcData;
 	private Map<String, PgProc.Row> pgProcNameMap;
 
 	private Context context;
@@ -71,7 +71,7 @@ public class Registry {
 		oidMap.put(25, new BaseType(25, "text", 		(short) 1, 	(byte) 0, Category.String, 	',', 0, "text"));
 		oidMap.put(26, new BaseType(26, "oid", 			(short) 4,	(byte) 0, Category.Numeric, ',', 0, "oid"));
 
-		relIdMap = new HashMap<>();
+		relIdMap = new TreeMap<>();
 		nameMap = new HashMap<>();
 	}
 
@@ -227,6 +227,10 @@ public class Registry {
 			lock.readLock().unlock();
 		}
 		
+	}
+	
+	public int getLatestKnownTypeId() {
+		return oidMap.lastKey();
 	}
 
 	/**
