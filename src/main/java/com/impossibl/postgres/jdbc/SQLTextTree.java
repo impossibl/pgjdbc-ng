@@ -165,6 +165,18 @@ public class SQLTextTree {
 			
 		}
 
+		public Node getFirstNode() {
+			if(nodes.isEmpty())
+				return null;
+			return nodes.get(0);
+		}
+
+		public Node getLastNode() {
+			if(nodes.isEmpty())
+				return null;
+			return nodes.get(nodes.size()-1);
+		}
+
 	}
 
 	public static class MultiStatementNode extends CompositeNode {
@@ -320,18 +332,26 @@ public class SQLTextTree {
 
 	public static class StringLiteralPiece extends LiteralPiece {
 
+		String delimeter;
+		
 		StringLiteralPiece(String val, int startPos) {
 			super(val, startPos);
+			this.delimeter = "'";
+		}
+
+		StringLiteralPiece(String val, String delimeter, int startPos) {
+			super(val, startPos);
+			this.delimeter = delimeter;
 		}
 
 		@Override
 		void build(StringBuilder builder) {
 
-			builder.append('\'');
+			builder.append(delimeter);
 
 			super.build(builder);
 
-			builder.append('\'');
+			builder.append(delimeter);
 		}
 
 	}

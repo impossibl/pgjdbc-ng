@@ -68,7 +68,8 @@ public class SQLText {
 					"((?:[+-]?(?:\\d+)?(?:\\.\\d+(?:[eE][+-]?\\d+)?))|(?:[+-]?\\d+))|" + /* Numeric literal */
 					"(\\(|\\))|" +																			/* Parens (grouping) */
 					"(,)|" +																						/* Comma (breaking) */
-					"(\\s+)",																						/* Whitespace */
+					"(\\s+)|" +																					/* Whitespace */
+					"(\\$\\w*\\$)",																			/* Dollar quote */
 					Pattern.MULTILINE);
 	
 	public static MultiStatementNode parse(String sql) throws ParseException {
@@ -85,7 +86,7 @@ public class SQLText {
 		
 		try {
 
-			while(matcher.find()) {
+			while(matcher.find(startIdx)) {
 				
 				//Add the unmatched region as grammar...
 				if(startIdx != matcher.start()) {
@@ -93,6 +94,8 @@ public class SQLText {
 					parents.peek().add(new GrammarPiece(txt, matcher.start()));
 				}
 	
+				startIdx = matcher.end();
+
 				//Add whatever we matched...
 				String val;
 				if((val = matcher.group(1)) != null) {
@@ -180,8 +183,35 @@ public class SQLText {
 	
 					parents.peek().add(new WhitespacePiece(val, matcher.start()));
 				}
+				else if((val = matcher.group(12)) != null) {
+
+					//Find the end of the $$ quoted block
+					int pos = sql.indexOf(val, matcher.end());
+					
+					//Is this part of an identifier?
+					boolean ident = parents.peek().getLastNode() instanceof UnquotedIdentifierPiece;
+					
+					//For $$ quotes to be valid they
+					//	a) need to be closed
+					//	b) must not be adjacent to an identifier
+					
+					if(!ident && pos != -1) {
+
+						String quotedText = sql.substring(matcher.end(), pos);
+						
+						parents.peek().add(new StringLiteralPiece(quotedText, val, matcher.start()));
+						
+						startIdx = pos + val.length();
+						
+					}
+					else {
+					
+						//No end found... treat it as grammar
+						parents.peek().add(new GrammarPiece(val, matcher.start()));
+					}
+					
+				}
 				
-				startIdx = matcher.end();			
 			}
 			
 			//Add last grammar node
