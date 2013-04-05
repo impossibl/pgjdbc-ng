@@ -402,7 +402,7 @@ class SQLTypeUtils {
 			return val.toString();
 		}
 		else if(val instanceof Instant) {
-			return ((Instant) val).print(context);
+			return ((Instant) val).disambiguate(TimeZone.getDefault()).print(context);
 		}
 		else if(val instanceof byte[]) {
 			return new String((byte[]) val, context.getCharset());
