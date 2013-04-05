@@ -24,8 +24,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
-import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
-import static com.impossibl.postgres.protocol.v30.BindExecCommandImpl.Status.Completed;
+import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.math.RoundingMode.HALF_UP;
@@ -58,7 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
@@ -77,7 +76,7 @@ class PGResultSet implements ResultSet {
 	Integer fetchSize;
 	int resultsIndexOffset;
 	int currentRowIndex;
-	BindExecCommand command;
+	QueryCommand command;
 	SQLWarning warningChain;
 	List<ResultField> resultFields;
 	List<Object[]> results;
@@ -86,16 +85,17 @@ class PGResultSet implements ResultSet {
 
 	
 	
-	PGResultSet(PGStatement statement, int concurrency, BindExecCommand command) throws SQLException {
-		this(statement, command.getStatus() == Completed ? TYPE_SCROLL_INSENSITIVE : TYPE_FORWARD_ONLY, concurrency, command.getResultFields(), command.getResults(Object[].class));
+	PGResultSet(PGStatement statement, int concurrency, QueryCommand command, List<ResultField> resultFields, List<?> results) throws SQLException {
+		this(statement, command.getStatus() == Completed ? TYPE_SCROLL_INSENSITIVE : TYPE_FORWARD_ONLY, concurrency, resultFields, results);
 		this.command = command;
 	}
 	
-	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results) throws SQLException {
 		this(statement, type, concurrency, resultFields, results, statement.connection.getTypeMap());
 	}
 	
-	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) {
+	@SuppressWarnings("unchecked")
+	PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results, Map<String, Class<?>> typeMap) {
 		this.type = type;
 		this.concurrency = concurrency;
 		this.statement = statement;
@@ -104,7 +104,7 @@ class PGResultSet implements ResultSet {
 		this.resultsIndexOffset = 0;
 		this.currentRowIndex = -1;
 		this.resultFields = resultFields;
-		this.results = results;
+		this.results = (List<Object[]>)results;
 		this.typeMap = typeMap;
 	}
 	
@@ -339,6 +339,7 @@ class PGResultSet implements ResultSet {
 		return isValidRow();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean next() throws SQLException {
 		checkClosed();
@@ -352,8 +353,15 @@ class PGResultSet implements ResultSet {
 				
 				warningChain = statement.connection.execute(command, true);
 				
-				resultFields = command.getResultFields();
-				results = (List<Object[]>) command.getResults(Object[].class);
+				List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+				if(resultBatches.size() != 1) {
+					throw new SQLException("Invalid result data");
+				}
+				
+				QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+				
+				resultFields = resultBatch.fields;
+				results = (List<Object[]>) resultBatch.results;
 				
 				resultsIndexOffset = currentRowIndex;				
 				currentRowIndex = -1;
@@ -454,14 +462,12 @@ class PGResultSet implements ResultSet {
 	
 	void internalClose() throws SQLException {
 
-		//Dispose of the portal if we are using one
-		
-		if(command != null) {
-			
-			statement.dispose(Portal, command.getPortalName());
+		//Release resources
+
+		if(command != null) {			
+			statement.dispose(command);
 		}
 		
-		//Release resources
 		statement = null;
 		command = null;
 		results = null;

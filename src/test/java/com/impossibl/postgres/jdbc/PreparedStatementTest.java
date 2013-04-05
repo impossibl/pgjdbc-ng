@@ -206,15 +206,6 @@ public class PreparedStatementTest extends TestCase {
 		pstmt.setObject(1, null, Types.VARCHAR);
 		pstmt.executeUpdate();
 
-		//TODO make this test work with available object 
-		// valid: setObject() with partial type info and a typed
-		// "null object instance"
-//		org.postgresql.util.PGobject dummy = new org.postgresql.util.PGobject();
-//		dummy.setType("text");
-//		dummy.setValue(null);
-//		pstmt.setObject(1, dummy, Types.OTHER);
-//		pstmt.executeUpdate();
-
 		// setObject() with no type info
 		pstmt.setObject(1, null);
 		pstmt.executeUpdate();

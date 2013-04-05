@@ -26,8 +26,8 @@ import java.util.logging.Logger;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
-import com.impossibl.postgres.datetime.ISOTimestampFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
+import com.impossibl.postgres.datetime.ISOTimestampFormat;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
@@ -322,10 +322,14 @@ public class BasicContext implements Context {
 			throw new NoticeException("Error executing query", query.getError());
 		}
 
-		return query.getResults(rowType);
+		@SuppressWarnings("unchecked")
+		List<T> res = (List<T>) query.getResultBatches().get(0).results;
+		
+		return res;
 	}
 
-	protected List<Object[]> execQuery(String queryTxt) throws IOException, NoticeException {
+	@SuppressWarnings("unchecked")
+	protected List<Object> execQuery(String queryTxt) throws IOException, NoticeException {
 
 		QueryCommand query = protocol.createQuery(queryTxt);
 		
@@ -335,10 +339,7 @@ public class BasicContext implements Context {
 			throw new NoticeException("Error querying", query.getError());
 		}
 
-		@SuppressWarnings("unchecked")
-		List<Object[]> res = (List<Object[]>) query.getResults();
-		
-		return res;
+		return (List<Object>)query.getResultBatches().get(0).results;
 	}
 
 	protected Object execQueryForResult(String queryTxt) throws IOException, NoticeException {
@@ -351,13 +352,17 @@ public class BasicContext implements Context {
 			throw new NoticeException("Error preparing query", query.getError());
 		}
 
-		@SuppressWarnings("unchecked")
-		List<Object[]> res = (List<Object[]>) query.getResults();
+		List<QueryCommand.ResultBatch> res = query.getResultBatches();
 		if(res.isEmpty()) {
-			return query.getResultRowsAffected();
+			return null;
 		}
 		
-		Object[] firstRow = res.get(0);
+		QueryCommand.ResultBatch resultBatch = res.get(0);
+		if(resultBatch.results.isEmpty()) {
+			return resultBatch.rowsAffected;
+		}
+		
+		Object[] firstRow = (Object[]) resultBatch.results.get(0);
 		if(firstRow.length == 0)
 			return null;
 		
@@ -366,12 +371,12 @@ public class BasicContext implements Context {
 	
 	protected String execQueryForString(String queryTxt) throws IOException, NoticeException {
 
-		List<Object[]> res = execQuery(queryTxt);
+		List<Object> res = execQuery(queryTxt);
 		if(res.isEmpty()) {
 			return "";
 		}
 		
-		Object[] firstRow = res.get(0);
+		Object[] firstRow = (Object[]) res.get(0);
 		if(firstRow.length == 0)
 			return "";
 		

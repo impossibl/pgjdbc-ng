@@ -3,9 +3,10 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -19,6 +20,8 @@ import java.util.Map;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
+import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
@@ -40,7 +43,8 @@ abstract class PGStatement implements Statement {
 	Integer maxRows;
 	Integer fetchSize;
 	Integer maxFieldSize;
-	BindExecCommand command;
+	QueryCommand command;
+	List<QueryCommand.ResultBatch> resultBatches;
 	boolean autoClose;
 	List<PGResultSet> activeResultSets;
 	PGResultSet generatedKeysResultSet;
@@ -93,6 +97,15 @@ abstract class PGStatement implements Statement {
 		CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
 		
 		connection.execute(close, false);		
+	}
+	
+	void dispose(Command command) throws SQLException {
+		
+		if(command instanceof BindExecCommand) {
+			
+			dispose(ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
+		}
+		
 	}
 	
 	/**
@@ -161,7 +174,44 @@ abstract class PGStatement implements Statement {
 		command = null;
 		resultFields = null;
 	}
+	
+	boolean hasResults() {
+		return !resultBatches.isEmpty() &&
+				resultBatches.get(0).results != null;
+	}
 
+	boolean hasUpdateCount() {
+		return !resultBatches.isEmpty() &&
+				resultBatches.get(0).rowsAffected != null;
+	}
+
+	/**
+	 * Execute the named statement. It must have previously been parsed and
+	 * ready to be bound and executed.
+	 * 
+	 * @param statementName Name of backend statement to execute or null
+	 * @param parameterTypes List of parameter types
+	 * @param parameterValues List of parmaeter values
+	 * @return true if command returned results or false if not
+	 * @throws SQLException
+	 * 					If an error occurred durring statement execution
+	 */
+	public boolean executeSimple(String sql) throws SQLException {
+		
+		closeResultSets();
+
+		command = connection.getProtocol().createQuery(sql);
+
+		if(maxFieldSize != null)
+			command.setMaxFieldLength(maxFieldSize);
+
+		warningChain = connection.execute(command, true);
+		
+		resultBatches = command.getResultBatches();
+
+		return hasResults();
+	}
+	
 	/**
 	 * Execute the named statement. It must have previously been parsed and
 	 * ready to be bound and executed.
@@ -183,7 +233,7 @@ abstract class PGStatement implements Statement {
 			portalName = connection.getNextPortalName();
 		}
 
-		command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
+		BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
 
 		if(fetchSize != null)
 			command.setMaxRows(fetchSize);
@@ -191,10 +241,12 @@ abstract class PGStatement implements Statement {
 		if(maxFieldSize != null)
 			command.setMaxFieldLength(maxFieldSize);
 
-		warningChain = connection.execute(command, true);
-
-		return !command.getResultFields().isEmpty();
+		this.warningChain = connection.execute(command, true);
 		
+		this.command = command;
+		this.resultBatches = command.getResultBatches();
+
+		return hasResults();		
 	}
 	
 	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
@@ -202,7 +254,8 @@ abstract class PGStatement implements Statement {
 	}
 		
 	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
-		PGResultSet resultSet = new PGResultSet(this, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, resultFields, results);
+		
+		PGResultSet resultSet = new PGResultSet(this, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY, resultFields, results);
 		activeResultSets.add(resultSet);
 		return resultSet;
 	}
@@ -363,11 +416,13 @@ abstract class PGStatement implements Statement {
 
 		if (generatedKeysResultSet != null ||
 				command == null || 
-				command.getResultFields().isEmpty()) {
+				!hasResults()) {
 			return null;
 		}
+		
+		QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
-		PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command);
+		PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command, resultBatch.fields, resultBatch.results);
 		
 		this.activeResultSets.add(rs);
 		
@@ -378,25 +433,29 @@ abstract class PGStatement implements Statement {
 	public int getUpdateCount() throws SQLException {
 		checkClosed();
 
-		if (command == null || command.getResultRowsAffected() == null) {
-			throw NO_RESULT_COUNT_AVAILABLE;
+		if (command == null || !hasUpdateCount()) {
+			return -1;
 		}
 		
-		int res = (int) (long) command.getResultRowsAffected();
-		
-		return res;
+		return (int) (long) resultBatches.get(0).rowsAffected;
 	}
 
 	@Override
 	public boolean getMoreResults() throws SQLException {
-		checkClosed();
-		return false;
+		return getMoreResults(CLOSE_ALL_RESULTS);
 	}
 
 	@Override
 	public boolean getMoreResults(int current) throws SQLException {
 		checkClosed();
-		return false;
+		
+		if(resultBatches.isEmpty()) {
+			return false;
+		}
+		
+		resultBatches.remove(0);
+		
+		return hasResults();
 	}
 
 	@Override

@@ -30,13 +30,27 @@ public class SQLText {
 	}
 	
 	public int getStatementCount() {
+		if(root == null)
+			return 0;
 		return root.getNodeCount();
 	}
 	
+	public StatementNode getFirstStatement() {
+		if(root == null || root.getNodeCount() == 0)
+			return null;
+		return (StatementNode) root.get(0);
+	}
+	
 	public StatementNode getLastStatement() {
+		if(root == null || root.getNodeCount() == 0)
+			return null;
 		return (StatementNode) root.get(root.getNodeCount()-1);
 	}
 	
+	public void addStatements(SQLText sqlText) {
+		root.nodes.addAll(sqlText.root.nodes);
+	}
+
 	public void process(Processor processor, boolean recurse) throws SQLException {
 		root.process(processor, recurse);
 	}

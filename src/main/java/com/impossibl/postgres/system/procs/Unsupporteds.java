@@ -18,7 +18,7 @@ import com.impossibl.postgres.types.Type.Codec;
  */
 public class Unsupporteds implements ProcProvider {
 
-	static class Decoder implements Type.Codec.Decoder {
+	public static class Decoder implements Type.Codec.Decoder {
 
 		String name;
 		
@@ -41,7 +41,7 @@ public class Unsupporteds implements ProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	public static class Encoder implements Type.Codec.Encoder {
 
 		String name;
 		
@@ -63,7 +63,7 @@ public class Unsupporteds implements ProcProvider {
 
 	}
 	
-	static class ModParser implements Modifiers.Parser {
+	public static class ModParser implements Modifiers.Parser {
 
 		@Override
 		public Map<String, Object> parse(long mod) {
