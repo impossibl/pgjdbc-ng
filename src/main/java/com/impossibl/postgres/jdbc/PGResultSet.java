@@ -678,27 +678,52 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public Reader getCharacterStream(int columnIndex) throws SQLException {
-		return new StringReader(getString(columnIndex));
+
+		String data = getString(columnIndex);
+		if(data == null)
+			return null;
+		
+		return new StringReader(data);
 	}
 
 	@Override
 	public InputStream getAsciiStream(int columnIndex) throws SQLException {
-		return new ByteArrayInputStream(getString(columnIndex).getBytes(US_ASCII));
+
+		String data = getString(columnIndex);
+		if(data == null)
+			return null;
+		
+		return new ByteArrayInputStream(data.getBytes(US_ASCII));
 	}
 
 	@Override
 	public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-		return new ByteArrayInputStream(getString(columnIndex).getBytes(UTF_8));
+
+		String data = getString(columnIndex);
+		if(data == null)
+			return null;
+		
+		return new ByteArrayInputStream(data.getBytes(UTF_8));
 	}
 
 	@Override
 	public InputStream getBinaryStream(int columnIndex) throws SQLException {
-		return new ByteArrayInputStream(getBytes(columnIndex));
+
+		byte[] data = getBytes(columnIndex);
+		if(data == null)
+			return null;
+		
+		return new ByteArrayInputStream(data);
 	}
 
 	@Override
 	public Blob getBlob(int columnIndex) throws SQLException {
-		return new PGBlob(statement.connection, getInt(columnIndex));
+
+		Object loId = getObject(columnIndex);
+		if(loId == null)
+			return null;
+		
+		return new PGBlob(statement.connection, (int)loId);
 	}
 
 	@Override
