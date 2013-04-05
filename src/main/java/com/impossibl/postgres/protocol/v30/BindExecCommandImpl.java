@@ -143,7 +143,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private Status status;
 	private SettingsContext parsingContext;
 	private ResultBatch resultBatch;
-
+	
 	
 	
 	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
@@ -178,34 +178,52 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		return portalName;
 	}
 
+	@Override
 	public Status getStatus() {
 		return status;
 	}
 
+	@Override
 	public List<Type> getParameterTypes() {
 		return parameterTypes;
 	}
 
+	@Override
+	public void setParameterTypes(List<Type> parameterTypes) {
+		this.parameterTypes = parameterTypes;
+	}
+
+	@Override
 	public List<Object> getParameterValues() {
 		return parameterValues;
 	}
 
+	@Override
+	public void setParameterValues(List<Object> parameterValues) {
+		this.parameterValues = parameterValues;
+	}
+
+	@Override
 	public int getMaxRows() {
 		return maxRows;
 	}
 
+	@Override
 	public void setMaxRows(int maxRows) {
 		this.maxRows = maxRows;
 	}
 
+	@Override
 	public int getMaxFieldLength() {
 		return maxFieldLength;
 	}
 
+	@Override
 	public void setMaxFieldLength(int maxFieldLength) {
 		this.maxFieldLength = maxFieldLength;
 	}
 
+	@Override
 	public List<ResultBatch> getResultBatches() {
 		return newArrayList(resultBatch);
 	}

@@ -1,11 +1,13 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -27,9 +30,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -38,6 +43,8 @@ import java.util.TimeZone;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
 
@@ -49,6 +56,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
+	List<List<Object>> batchParameterValues;
 	boolean wantsGeneratedKeys;
 	
 	
@@ -136,21 +144,71 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	}
 
 	@Override
+	public void addBatch() throws SQLException {
+		checkClosed();
+		
+		if(batchParameterValues == null) {
+			batchParameterValues = new ArrayList<>();
+		}
+		
+		List<Object> currentParameterValues = parameterValues;
+		parameterValues = asList(new Object[parameterValues.size()]);
+		
+		batchParameterValues.add(currentParameterValues);
+	}
+
+	@Override
 	public void clearBatch() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		batchParameterValues = null;
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
+		
+		if(batchParameterValues == null || batchParameterValues.isEmpty()) {
+			return new int[0];
+		}
+		
+		int[] counts = new int[batchParameterValues.size()];
+		Arrays.fill(counts, SUCCESS_NO_INFO);
+		
+		List<Object[]> generatedKeys = new ArrayList<>();
+		
+		BindExecCommand command = connection.getProtocol().createBindExec(null, name, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
 
-	@Override
-	public void addBatch() throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
+		for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+			
+			List<Object> parameterValues = batchParameterValues.get(c);
+			
+			command.setParameterValues(parameterValues);
+			
+			SQLWarning warnings = connection.execute(command, true);
+			
+			warningChain = chainWarnings(warningChain, warnings);
+			
+			List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+			if(resultBatches.size() != 1) {
+				throw new BatchUpdateException(counts);
+			}
+		
+			QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+			if(resultBatch.rowsAffected == null) {
+				throw new BatchUpdateException(counts);
+			}
+			
+			if(wantsGeneratedKeys) {
+				generatedKeys.add((Object[])resultBatch.results.get(0));
+			}
+			
+			counts[c] = (int)(long)resultBatch.rowsAffected;
+		}
+		
+		generatedKeysResultSet = createResultSet(resultFields, generatedKeys);
+
+		return counts;
 	}
 
 	@Override

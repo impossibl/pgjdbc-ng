@@ -10,6 +10,9 @@ public interface BindExecCommand extends QueryCommand {
 	String getPortalName();
 		
 	List<Type> getParameterTypes();
+	void setParameterTypes(List<Type> parameterTypes);
+	
 	List<Object> getParameterValues();
+	void setParameterValues(List<Object> values);
 	
 }
