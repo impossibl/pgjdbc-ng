@@ -7,7 +7,6 @@ import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUN
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -151,10 +150,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			batchParameterValues = new ArrayList<>();
 		}
 		
-		List<Object> currentParameterValues = parameterValues;
-		parameterValues = asList(new Object[parameterValues.size()]);
-		
-		batchParameterValues.add(currentParameterValues);
+		batchParameterValues.add(new ArrayList<>(parameterValues));
 	}
 
 	@Override
@@ -168,47 +164,55 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	public int[] executeBatch() throws SQLException {
 		checkClosed();
 		
-		if(batchParameterValues == null || batchParameterValues.isEmpty()) {
-			return new int[0];
-		}
-		
-		int[] counts = new int[batchParameterValues.size()];
-		Arrays.fill(counts, SUCCESS_NO_INFO);
-		
-		List<Object[]> generatedKeys = new ArrayList<>();
-		
-		BindExecCommand command = connection.getProtocol().createBindExec(null, name, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+		try {
+			
+			if(batchParameterValues == null || batchParameterValues.isEmpty()) {
+				return new int[0];
+			}
+			
+			int[] counts = new int[batchParameterValues.size()];
+			Arrays.fill(counts, SUCCESS_NO_INFO);
+			
+			List<Object[]> generatedKeys = new ArrayList<>();
+			
+			BindExecCommand command = connection.getProtocol().createBindExec(null, name, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+	
+			for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+				
+				List<Object> parameterValues = batchParameterValues.get(c);
+				
+				command.setParameterValues(parameterValues);
+				
+				SQLWarning warnings = connection.execute(command, true);
+				
+				warningChain = chainWarnings(warningChain, warnings);
+				
+				List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+				if(resultBatches.size() != 1) {
+					throw new BatchUpdateException(counts);
+				}
+			
+				QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+				if(resultBatch.rowsAffected == null) {
+					throw new BatchUpdateException(counts);
+				}
+				
+				if(wantsGeneratedKeys) {
+					generatedKeys.add((Object[])resultBatch.results.get(0));
+				}
+				
+				counts[c] = (int)(long)resultBatch.rowsAffected;
+			}
+			
+			generatedKeysResultSet = createResultSet(resultFields, generatedKeys);
 
-		for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+			return counts;
 			
-			List<Object> parameterValues = batchParameterValues.get(c);
-			
-			command.setParameterValues(parameterValues);
-			
-			SQLWarning warnings = connection.execute(command, true);
-			
-			warningChain = chainWarnings(warningChain, warnings);
-			
-			List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-			if(resultBatches.size() != 1) {
-				throw new BatchUpdateException(counts);
-			}
-		
-			QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-			if(resultBatch.rowsAffected == null) {
-				throw new BatchUpdateException(counts);
-			}
-			
-			if(wantsGeneratedKeys) {
-				generatedKeys.add((Object[])resultBatch.results.get(0));
-			}
-			
-			counts[c] = (int)(long)resultBatch.rowsAffected;
 		}
-		
-		generatedKeysResultSet = createResultSet(resultFields, generatedKeys);
+		finally {
+			batchParameterValues = null;
+		}
 
-		return counts;
 	}
 
 	@Override
