@@ -184,6 +184,10 @@ class SQLTypeMetaData {
 			return Types.ARRAY;
 		}
 		
+		if(type instanceof DomainType) {
+			return Types.DISTINCT;
+		}
+		
 		type = type.unwrap();
 		
 		PrimitiveType ptype = type.getPrimitiveType();

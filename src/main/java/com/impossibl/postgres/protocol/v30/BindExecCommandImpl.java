@@ -1,9 +1,9 @@
 package com.impossibl.postgres.protocol.v30;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.utils.Factory.createInstance;
-import static java.util.Arrays.asList;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,11 +28,6 @@ import com.impossibl.postgres.types.Type;
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
-	public enum Status {
-		Completed,
-		Suspended
-	}
-
 	class BindExecCommandListener extends BaseProtocolListener {
 		
 		Context context;
@@ -51,14 +46,17 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 
 		@Override
-		public void rowDescription(List<ResultField> resultFields) {
-			BindExecCommandImpl.this.resultFields = resultFields;
-			BindExecCommandImpl.this.resultSetters = Mapper.buildMapping(rowType, resultFields);
+		public void rowDescription(List<ResultField> newResultFields) {
+			resultFields = newResultFields;
+			resultBatch.fields = newResultFields;
+			resultBatch.results = !newResultFields.isEmpty() ? new ArrayList<>() : null;
+			resultSetters = Mapper.buildMapping(rowType, newResultFields);
 		}
 
 		@Override
 		public void noData() {
-			resultFields = Collections.emptyList();
+			resultBatch.fields = Collections.emptyList();
+			resultBatch.results = null;
 		}
 
 		@Override
@@ -70,7 +68,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 			for (int c = 0; c < itemCount; ++c) {
 
-				ResultField field = resultFields.get(c);
+				ResultField field = resultBatch.fields.get(c);
 
 				Type fieldType = field.getType();
 				Object fieldVal = fieldType.getCodec(field.format).decoder.decode(fieldType, buffer, parsingContext);
@@ -78,7 +76,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 				resultSetters.get(c).set(rowInstance, fieldVal);
 			}
 
-			results.add(rowInstance);
+			@SuppressWarnings("unchecked")
+			List<Object> res = (List<Object>) resultBatch.results;
+			res.add(rowInstance);
 		}
 
 		@Override
@@ -95,9 +95,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		@Override
 		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
 			status = Status.Completed;
-			BindExecCommandImpl.this.resultCommand = command;
-			BindExecCommandImpl.this.resultRowsAffected = rowsAffected;
-			BindExecCommandImpl.this.resultInsertedOid = oid;
+			resultBatch.command = command;
+			resultBatch.rowsAffected = rowsAffected;
+			resultBatch.insertedOid = oid;
 			
 			if(maxRows > 0) {
 				notifyAll();
@@ -128,16 +128,14 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private List<Object> parameterValues;
 	private List<ResultField> resultFields;
 	private Class<?> rowType;
-	private List<Object> results;
 	private List<PropertySetter> resultSetters;
-	private String resultCommand;
-	private Long resultRowsAffected;
-	private Long resultInsertedOid;
 	private int maxRows;
 	private int maxFieldLength;
 	private Status status;
-	private SettingsContext parsingContext; 
-
+	private SettingsContext parsingContext;
+	private ResultBatch resultBatch;
+	
+	
 	
 	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
 
@@ -147,7 +145,6 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.parameterValues = parameterValues;
 		this.resultFields = resultFields;
 		this.rowType = rowType;
-		this.results = new ArrayList<>();
 		this.maxRows = 0;
 		this.maxFieldLength = Integer.MAX_VALUE;
 		
@@ -157,7 +154,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 	public void reset() {
 		status = null;
-		results.clear();
+		resultBatch = new ResultBatch();
+		resultBatch.fields = resultFields;
+		resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
 	}
 
 	@Override
@@ -170,58 +169,54 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		return portalName;
 	}
 
+	@Override
 	public Status getStatus() {
 		return status;
 	}
 
+	@Override
 	public List<Type> getParameterTypes() {
 		return parameterTypes;
 	}
 
+	@Override
+	public void setParameterTypes(List<Type> parameterTypes) {
+		this.parameterTypes = parameterTypes;
+	}
+
+	@Override
 	public List<Object> getParameterValues() {
 		return parameterValues;
 	}
 
+	@Override
+	public void setParameterValues(List<Object> parameterValues) {
+		this.parameterValues = parameterValues;
+	}
+
+	@Override
 	public int getMaxRows() {
 		return maxRows;
 	}
 
+	@Override
 	public void setMaxRows(int maxRows) {
 		this.maxRows = maxRows;
 	}
 
+	@Override
 	public int getMaxFieldLength() {
 		return maxFieldLength;
 	}
 
+	@Override
 	public void setMaxFieldLength(int maxFieldLength) {
 		this.maxFieldLength = maxFieldLength;
 	}
 
-	public List<ResultField> getResultFields() {
-		return resultFields;
-	}
-
-	public List<?> getResults() {
-		return results;
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> List<T> getResults(Class<T> rowType) {
-		//TODO do this unchecked
-		return (List<T>) results;
-	}
-
-	public String getResultCommand() {
-		return resultCommand;
-	}
-
-	public Long getResultRowsAffected() {
-		return resultRowsAffected;
-	}
-
-	public List<Long> getResultInsertedOids() {
-		return asList(resultInsertedOid);
+	@Override
+	public List<ResultBatch> getResultBatches() {
+		return newArrayList(resultBatch);
 	}
 
 	public void execute(ProtocolImpl protocol) throws IOException {
@@ -253,7 +248,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		reset();
 
-		if(resultFields == null || !parameterTypes.isEmpty()) {
+		if(resultFields == null) {
 
 			protocol.writeDescribe(msg, Portal, portalName);
 

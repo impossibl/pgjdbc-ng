@@ -2,7 +2,6 @@ package com.impossibl.postgres.protocol.v30;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -13,7 +12,10 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.procs.Strings;
+import com.impossibl.postgres.system.procs.Unsupporteds;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.Type.Codec;
 
 
 
@@ -30,31 +32,38 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
 		@Override
 		public boolean isComplete() {
-			return resultCommand != null || error != null;
+			return !resultBatches.isEmpty() || error != null;
 		}
 
 		@Override
 		public void rowDescription(List<ResultField> resultFields) {
-			QueryCommandImpl.this.resultFields = resultFields;
+			resultBatch.fields = resultFields;
+			resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
 		}
 
 		@Override
 		public void rowData(ChannelBuffer buffer) throws IOException {
-			
+						
 			int fieldCount = buffer.readShort();
 
 			Object[] rowInstance = new Object[fieldCount];
 
 			for (int c = 0; c < fieldCount; ++c) {
 
-				ResultField field = resultFields.get(c);
+				ResultField field = resultBatch.fields.get(c);
 
 				Type fieldType = field.getType();
 				Object fieldVal = null;
 
 				switch (field.format) {
 				case Text:
-					fieldVal = fieldType.getTextCodec().decoder.decode(fieldType, buffer, context);
+					Codec codec = fieldType.getTextCodec();
+					if(codec.decoder instanceof Unsupporteds.Decoder) {
+						fieldVal = Strings.DECODER.decode(fieldType, buffer, context);
+					}
+					else {
+						fieldVal = codec.decoder.decode(fieldType, buffer, context);
+					}
 					break;
 
 				default:
@@ -64,14 +73,19 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 				rowInstance[c] = fieldVal;
 			}
 
-			results.add(rowInstance);
+			@SuppressWarnings("unchecked")
+			List<Object> res = (List<Object>) resultBatch.results;
+			res.add(rowInstance);
 		}
 
 		@Override
 		public void commandComplete(String command, Long rowsAffected, Long oid) {
-			QueryCommandImpl.this.resultCommand = command;
-			QueryCommandImpl.this.resultRowsAffected = rowsAffected;
-			QueryCommandImpl.this.resultInsertedOid = oid;
+			resultBatch.command = command;
+			resultBatch.rowsAffected = rowsAffected;
+			resultBatch.insertedOid = oid;
+			
+			resultBatches.add(resultBatch);
+			resultBatch = new ResultBatch();
 		}
 
 		@Override
@@ -94,39 +108,24 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
 	
 	String command;
-	String resultCommand;
-	Long resultRowsAffected;
-	Long resultInsertedOid;
-	List<ResultField> resultFields;
-	List<Object[]> results;
+	List<ResultBatch> resultBatches;
+	ResultBatch resultBatch;
 
+	
+	
 	public QueryCommandImpl(String command) {
 		this.command = command;
 	}
 
 	@Override
-	public String getResultCommand() {
-		return resultCommand;
-	}
-
-	@Override
-	public Long getResultRowsAffected() {
-		return resultRowsAffected;
-	}
-
-	@Override
-	public List<Long> getResultInsertedOids() {
-		return Arrays.asList(resultInsertedOid);
-	}
-
-	@Override
-	public List<Object[]> getResults() {
-		return results;
+	public List<ResultBatch> getResultBatches() {
+		return resultBatches;
 	}
 
 	public void execute(ProtocolImpl protocol) throws IOException {
 		
-		results = new ArrayList<>();
+		resultBatch = new ResultBatch();
+		resultBatches = new ArrayList<>();
 
 		QueryListener listener = new QueryListener(protocol.getContext());
 		
@@ -141,6 +140,29 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		protocol.send(msg);
 
 		waitFor(listener);
+	}
+
+	@Override
+	public Status getStatus() {
+		return Status.Completed;
+	}
+
+	@Override
+	public int getMaxFieldLength() {
+		return 0;
+	}
+
+	@Override
+	public void setMaxFieldLength(int maxFieldLength) {
+	}
+
+	@Override
+	public int getMaxRows() {
+		return 0;
+	}
+
+	@Override
+	public void setMaxRows(int maxRows) {
 	}
 
 }

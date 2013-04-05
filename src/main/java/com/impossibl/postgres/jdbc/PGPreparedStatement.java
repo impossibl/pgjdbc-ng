@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
@@ -16,6 +17,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -27,9 +29,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -38,6 +42,8 @@ import java.util.TimeZone;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
 
@@ -49,6 +55,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
+	List<List<Object>> batchParameterValues;
 	boolean wantsGeneratedKeys;
 	
 	
@@ -136,21 +143,76 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	}
 
 	@Override
+	public void addBatch() throws SQLException {
+		checkClosed();
+		
+		if(batchParameterValues == null) {
+			batchParameterValues = new ArrayList<>();
+		}
+		
+		batchParameterValues.add(new ArrayList<>(parameterValues));
+	}
+
+	@Override
 	public void clearBatch() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		batchParameterValues = null;
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
+		
+		try {
+			
+			if(batchParameterValues == null || batchParameterValues.isEmpty()) {
+				return new int[0];
+			}
+			
+			int[] counts = new int[batchParameterValues.size()];
+			Arrays.fill(counts, SUCCESS_NO_INFO);
+			
+			List<Object[]> generatedKeys = new ArrayList<>();
+			
+			BindExecCommand command = connection.getProtocol().createBindExec(null, name, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+	
+			for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+				
+				List<Object> parameterValues = batchParameterValues.get(c);
+				
+				command.setParameterValues(parameterValues);
+				
+				SQLWarning warnings = connection.execute(command, true);
+				
+				warningChain = chainWarnings(warningChain, warnings);
+				
+				List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+				if(resultBatches.size() != 1) {
+					throw new BatchUpdateException(counts);
+				}
+			
+				QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+				if(resultBatch.rowsAffected == null) {
+					throw new BatchUpdateException(counts);
+				}
+				
+				if(wantsGeneratedKeys) {
+					generatedKeys.add((Object[])resultBatch.results.get(0));
+				}
+				
+				counts[c] = (int)(long)resultBatch.rowsAffected;
+			}
+			
+			generatedKeysResultSet = createResultSet(resultFields, generatedKeys);
 
-	@Override
-	public void addBatch() throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
+			return counts;
+			
+		}
+		finally {
+			batchParameterValues = null;
+		}
+
 	}
 
 	@Override
@@ -459,7 +521,14 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		if(xmlObject instanceof PGSQLXML == false) {
+			throw new SQLException("SQLXML object not created by driver");
+		}
+		
+		PGSQLXML sqlXml = (PGSQLXML) xmlObject;
+		
+		set(parameterIndex, sqlXml.getData());
 	}
 
 	@Override

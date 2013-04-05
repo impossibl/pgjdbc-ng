@@ -16,10 +16,19 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
+import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.IdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.NumericLiteralPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
+import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 
 
@@ -193,9 +202,9 @@ class SQLTextEscapeFunctions {
 		return (Method) functionMap.get(functionName.toLowerCase(Locale.US));
 	}
 	
-	public static String invokeEscape(Method method, String name, List<Node> args) throws SQLException {
+	public static Node invokeEscape(Method method, String name, List<Node> args) throws SQLException {
 		try {
-			return (String) method.invoke(null, name, args);
+			return (Node) method.invoke(null, name, args);
 		}
 		catch(InvocationTargetException e) {
 			if(e.getCause() instanceof SQLException) {
@@ -210,171 +219,122 @@ class SQLTextEscapeFunctions {
 		}
 	}
 	
-	public static String defaultEscape(String name, List<Node> args) throws SQLException {		
-    // by default the function name is kept unchanged
-    StringBuilder sb = new StringBuilder();
-    sb.append(name).append('(');
-    
-    Iterator<Node> argsIter = args.iterator();
-    while(argsIter.hasNext()) {
-    	argsIter.next().build(sb);
-    	if(argsIter.hasNext()) {
-    		sb.append(',');
-    	}
-    }
-    
-    sb.append(')');
-    return sb.toString();    
+	public static Node defaultEscape(String name, List<Node> args) throws SQLException {
+		
+		return call(name, args);
 	}
 
 	// ** numeric functions translations **
 	/** rand to random translation */
-	public static String sqlrand(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("random(");		
+	public static Node sqlrand(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "ceiling"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(")");
-		return sb.toString();
+		return call("random", args);		
 	}
 	
 	/** ceiling to ceil translation */
-	public static String sqlceiling(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("ceil(");
+	public static Node sqlceiling(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "ceiling"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("ceil", args);
 	}
 
 	/** log to ln translation */
-	public static String sqllog(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("ln(");
+	public static Node sqllog(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "log"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("ln", args);
 	}
 
 	/** log10 to log translation */
-	public static String sqllog10(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("log(");
+	public static Node sqllog10(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "log10"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("log", args);
 	}
 
 	/** power to pow translation */
-	public static String sqlpower(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("pow(");
+	public static Node sqlpower(String name, List<Node> args) throws SQLException {
 		if(args.size() != 2) {
 			throw new SQLException(GT.tr("{0} function takes two and only two arguments.", "power"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0)).append(',').append(args.get(1));
-		return sb.append(')').toString();
+		return call("pow", args);
 	}
 
 	/** truncate to trunc translation */
-	public static String sqltruncate(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("trunc(");
+	public static Node sqltruncate(String name, List<Node> args) throws SQLException {
 		if(args.size() != 2) {
 			throw new SQLException(GT.tr("{0} function takes two and only two arguments.", "truncate"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0)).append(',').append(args.get(1));
-		return sb.append(')').toString();
+		return call("trunc", args);
 	}
 
 	// ** string functions translations **
 	/** char to chr translation */
-	public static String sqlchar(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("chr(");
+	public static Node sqlchar(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "char"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("chr", args);
 	}
 
 	/** concat translation */
-	public static String sqlconcat(String name, List<Node> args) {
-		StringBuilder sb = new StringBuilder();
-		sb.append('(');
-
-		Iterator<Node> argsIter = args.iterator();
-    while(argsIter.hasNext()) {
-    	argsIter.next().build(sb);
-    	if(argsIter.hasNext()) {
-    		sb.append(" || ");
-    	}
-    }
-    
-		return sb.append(')').toString();
+	public static Node sqlconcat(String name, List<Node> args) {
+		
+		return groupedBy(args, "||");
 	}
 
 	/** insert to overlay translation */
-	public static String sqlinsert(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("overlay(");
+	public static Node sqlinsert(String name, List<Node> args) throws SQLException {
 		if(args.size() != 4) {
 			throw new SQLException(GT.tr("{0} function takes four and only four arguments.", "insert"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0)).append(" placing ").append(args.get(3));
-		sb.append(" from ").append(args.get(1)).append(" for ").append(args.get(2));
-		return sb.append(')').toString();
+		return sequence("overlay",
+				groupedSequence(args.get(0), "placing", args.get(3), "from", args.get(1), "for", args.get(2)));
 	}
 
 	/** lcase to lower translation */
-	public static String sqllcase(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("lower(");
+	public static Node sqllcase(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "lcase"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("lower", args);
 	}
 
 	/** left to substring translation */
-	public static String sqlleft(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("substring(");
+	public static Node sqlleft(String name, List<Node> args) throws SQLException {
 		if(args.size() != 2) {
 			throw new SQLException(GT.tr("{0} function takes two and only two arguments.", "left"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0)).append(" for ").append(args.get(1));
-		return sb.append(')').toString();
+		return sequence("substring",
+				groupedSequence(args.get(0), "for", args.get(1)));
 	}
 
 	/** length translation */
-	public static String sqllength(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("length(trim(trailing from ");
+	public static Node sqllength(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "length"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append("))").toString();
+		return sequence("length",
+				groupedSequence(
+						sequence("trim",
+								groupedSequence("trailing", "from", args.get(0)))));
 	}
 
 	/** locate translation */
-	public static String sqllocate(String name, List<Node> args) throws SQLException {
+	public static Node sqllocate(String name, List<Node> args) throws SQLException {
 		if(args.size() == 2) {
-			return "position(" + args.get(0) + " in " + args.get(1) + ")";
+			return sequence("position",
+					groupedSequence(args.get(0), "in", args.get(1)));
 		}
 		else if(args.size() == 3) {
-			String tmp = "position(" + args.get(0) + " in substring(" + args.get(1) + " from " + args.get(2) + "))";
-			return "(" + args.get(2) + "*sign(" + tmp + ")+" + tmp + ")";
+			Node tmp = sequence("position",
+					groupedSequence(args.get(0), "in", "substring", groupedSequence(args.get(1), "from", args.get(2))));
+			return groupedSequence(args.get(2), grammar("*"), ident("sign"), groupedSequence(tmp), grammar("+"), tmp);
 		}
 		else {
 			throw new SQLException(GT.tr("{0} function takes two or three arguments.", "locate"), PSQLState.SYNTAX_ERROR);
@@ -382,75 +342,54 @@ class SQLTextEscapeFunctions {
 	}
 
 	/** ltrim translation */
-	public static String sqlltrim(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("trim(leading from ");
+	public static Node sqlltrim(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "ltrim"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return sequence("trim",
+				groupedSequence("leading", "from", args.get(0)));
 	}
 
 	/** position translation */
-	public static String sqlposition(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("position(");
+	public static Node sqlposition(String name, List<Node> args) throws SQLException {
 		if(args.size() != 3 && args.size() != 4) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "length"), PSQLState.SYNTAX_ERROR);
 		}
-
-		Iterator<Node> argsIter = args.subList(0, 3).iterator();
-    while(argsIter.hasNext()) {
-    	argsIter.next().build(sb);
-    	if(argsIter.hasNext()) {
-    		sb.append(' ');
-    	}
-    }
-    
-		return sb.append(")").toString();
+		return sequence("position",
+				groupedBy(args.subList(0, 3), " "));
 	}
 
 /** right to substring translation */
-	public static String sqlright(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("substring(");
+	public static Node sqlright(String name, List<Node> args) throws SQLException {
 		if(args.size() != 2) {
 			throw new SQLException(GT.tr("{0} function takes two and only two arguments.", "right"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0)).append(" from (length(").append(args.get(0)).append(")+1-").append(args.get(1));
-		return sb.append("))").toString();
+		return sequence("substring",
+				groupedSequence(args.get(0), "from", 
+						groupedSequence("length", groupedSequence(args.get(0)), grammar("+"), literal(1), grammar("-"), args.get(1))));
 	}
 
 	/** rtrim translation */
-	public static String sqlrtrim(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("trim(trailing from ");
+	public static Node sqlrtrim(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "rtrim"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return sequence("trim",
+				groupedSequence("trailing", "from", args.get(0)));
 	}
 
 	/** space translation */
-	public static String sqlspace(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("repeat(' ',");
+	public static Node sqlspace(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "space"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("repeat", asList(literal(" "), args.get(0)));
 	}
 
 	/** substring to substr translation */
-	public static String sqlsubstring(String name, List<Node> args) throws SQLException {
-		if(args.size() == 2) {
-			return "substr(" + args.get(0) + "," + args.get(1) + ")";
-		}
-		else if(args.size() == 3) {
-			return "substr(" + args.get(0) + "," + args.get(1) + "," + args.get(2) + ")";
+	public static Node sqlsubstring(String name, List<Node> args) throws SQLException {
+		if(args.size() == 2 || args.size() == 3) {
+			return call("substr", args);
 		}
 		else {
 			throw new SQLException(GT.tr("{0} function takes two or three arguments.", "substring"), PSQLState.SYNTAX_ERROR);
@@ -458,163 +397,157 @@ class SQLTextEscapeFunctions {
 	}
 
 	/** ucase to upper translation */
-	public static String sqlucase(String name, List<Node> args) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		sb.append("upper(");
+	public static Node sqlucase(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "ucase"), PSQLState.SYNTAX_ERROR);
 		}
-		sb.append(args.get(0));
-		return sb.append(')').toString();
+		return call("upper", args);
 	}
 
 	/** curdate to current_date translation */
-	public static String sqlcurdate(String name, List<Node> args) throws SQLException {
+	public static Node sqlcurdate(String name, List<Node> args) throws SQLException {
 		if(args.size() != 0) {
 			throw new SQLException(GT.tr("{0} function doesn''t take any argument.", "curdate"), PSQLState.SYNTAX_ERROR);
 		}
-		return "current_date";
+		return ident("current_date");
 	}
 
 	/** curtime to current_time translation */
-	public static String sqlcurtime(String name, List<Node> args) throws SQLException {
+	public static Node sqlcurtime(String name, List<Node> args) throws SQLException {
 		if(args.size() != 0) {
 			throw new SQLException(GT.tr("{0} function doesn''t take any argument.", "curtime"), PSQLState.SYNTAX_ERROR);
 		}
-		return "current_time";
+		return ident("current_time");
 	}
 
 	/** dayname translation */
-	public static String sqldayname(String name, List<Node> args) throws SQLException {
+	public static Node sqldayname(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "dayname"), PSQLState.SYNTAX_ERROR);
 		}
-		return "to_char(" + args.get(0) + ",'Day')";
+		return call("to_char", asList(args.get(0), literal("Day")));
 	}
 
 	/** dayofmonth translation */
-	public static String sqldayofmonth(String name, List<Node> args) throws SQLException {
+	public static Node sqldayofmonth(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "dayofmonth"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(day from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("day", "from", args.get(0)));
 	}
 
 	/**
 	 * dayofweek translation adding 1 to postgresql function since we expect
 	 * values from 1 to 7
 	 */
-	public static String sqldayofweek(String name, List<Node> args) throws SQLException {
+	public static Node sqldayofweek(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "dayofweek"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(dow from " + args.get(0) + ")+1";
+		return groupedSequence(sequence("extract", groupedSequence("dow", "from", args.get(0))), grammar("+"), literal(1));
 	}
 
 	/** dayofyear translation */
-	public static String sqldayofyear(String name, List<Node> args) throws SQLException {
+	public static Node sqldayofyear(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "dayofyear"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(doy from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("doy", "from", args.get(0)));
 	}
 
 	/** hour translation */
-	public static String sqlhour(String name, List<Node> args) throws SQLException {
+	public static Node sqlhour(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "hour"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(hour from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("hour", "from", args.get(0)));
 	}
 
 	/** minute translation */
-	public static String sqlminute(String name, List<Node> args) throws SQLException {
+	public static Node sqlminute(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "minute"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(minute from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("minute", "from", args.get(0)));
 	}
 
 	/** month translation */
-	public static String sqlmonth(String name, List<Node> args) throws SQLException {
+	public static Node sqlmonth(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "month"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(month from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("month", "from", args.get(0)));
 	}
 
 	/** monthname translation */
-	public static String sqlmonthname(String name, List<Node> args) throws SQLException {
+	public static Node sqlmonthname(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "monthname"), PSQLState.SYNTAX_ERROR);
 		}
-		return "to_char(" + args.get(0) + ",'Month')";
+		return call("to_char", asList(args.get(0), literal("Month")));
 	}
 
 	/** quarter translation */
-	public static String sqlquarter(String name, List<Node> args) throws SQLException {
+	public static Node sqlquarter(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "quarter"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(quarter from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("quarter", "from", args.get(0)));
 	}
 
 	/** second translation */
-	public static String sqlsecond(String name, List<Node> args) throws SQLException {
+	public static Node sqlsecond(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "second"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(second from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("second", "from", args.get(0)));
 	}
 
 	/** week translation */
-	public static String sqlweek(String name, List<Node> args) throws SQLException {
+	public static Node sqlweek(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "week"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(week from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("week", "from", args.get(0)));
 	}
 
 	/** year translation */
-	public static String sqlyear(String name, List<Node> args) throws SQLException {
+	public static Node sqlyear(String name, List<Node> args) throws SQLException {
 		if(args.size() != 1) {
 			throw new SQLException(GT.tr("{0} function takes one and only one argument.", "year"), PSQLState.SYNTAX_ERROR);
 		}
-		return "extract(year from " + args.get(0) + ")";
+		return sequence("extract", groupedSequence("year", "from", args.get(0)));
 	}
 
 	/** time stamp add */
-	public static String sqltimestampadd(String name, List<Node> args) throws SQLException {
+	public static Node sqltimestampadd(String name, List<Node> args) throws SQLException {
 		if(args.size() != 3) {
 			throw new SQLException(GT.tr("{0} function takes three and only three arguments.", "timestampadd"), PSQLState.SYNTAX_ERROR);
 		}
-		String interval = SQLTextEscapeFunctions.constantToInterval(args.get(0).toString(), args.get(1).toString());
-		StringBuilder sb = new StringBuilder();
-		sb.append("(").append(interval).append("+");
-		sb.append(args.get(2)).append(")");
-		return sb.toString();
+		Node interval = constantToInterval(args.get(0).toString(), args.get(1));
+		return groupedSequence(interval, grammar("+"), args.get(2));
 	}
 
-	private final static String constantToInterval(String type, String value) throws SQLException {
+	private final static Node constantToInterval(String type, Node value) throws SQLException {
 		if(!type.startsWith(SQL_TSI_ROOT))
 			throw new SQLException(GT.tr("Interval {0} not yet implemented", type), PSQLState.SYNTAX_ERROR);
 		String shortType = type.substring(SQL_TSI_ROOT.length());
 		if(SQL_TSI_DAY.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' day' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" day"), "as", "interval"));
 		else if(SQL_TSI_SECOND.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' second' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" second"), "as", "interval"));
 		else if(SQL_TSI_HOUR.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' hour' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" hour"), "as", "interval"));
 		else if(SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' minute' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" minute"), "as", "interval"));
 		else if(SQL_TSI_MONTH.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' month' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" month"), "as", "interval"));
 		else if(SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
-			return "CAST((" + value + "::int * 3) || ' month' as interval)";
+			return sequence("CAST", groupedSequence(groupedSequence(value, grammar("::int"), grammar("*"), literal(3)), grammar("||"), literal(" month"), "as", "interval"));
 		else if(SQL_TSI_WEEK.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' week' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" week"), "as", "interval"));
 		else if(SQL_TSI_YEAR.equalsIgnoreCase(shortType))
-			return "CAST(" + value + " || ' year' as interval)";
+			return sequence("CAST", groupedSequence(value, grammar("||"), literal(" year"), "as", "interval"));
 		else if(SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
 			throw new SQLException(GT.tr("Interval {0} not yet implemented", "SQL_TSI_FRAC_SECOND"), PSQLState.SYNTAX_ERROR);
 		else
@@ -622,28 +555,26 @@ class SQLTextEscapeFunctions {
 	}
 
 	/** time stamp diff */
-	public static String sqltimestampdiff(String name, List<Node> args) throws SQLException {
+	public static Node sqltimestampdiff(String name, List<Node> args) throws SQLException {
 		if(args.size() != 3) {
 			throw new SQLException(GT.tr("{0} function takes three and only three arguments.", "timestampdiff"), PSQLState.SYNTAX_ERROR);
 		}
-		String datePart = SQLTextEscapeFunctions.constantToDatePart(args.get(0).toString());
-		StringBuilder sb = new StringBuilder();
-		sb.append("extract( ").append(datePart).append(" from (").append(args.get(2)).append("-").append(args.get(1)).append("))");
-		return sb.toString();
+		Node datePart = constantToDatePart(args.get(0).toString());
+		return sequence("extract", groupedSequence(datePart, "from", groupedSequence(args.get(2), grammar("-"), args.get(1))));
 	}
 
-	private final static String constantToDatePart(String type) throws SQLException {
+	private final static Node constantToDatePart(String type) throws SQLException {
 		if(!type.startsWith(SQL_TSI_ROOT))
 			throw new SQLException(GT.tr("Interval {0} not yet implemented", type), PSQLState.SYNTAX_ERROR);
 		String shortType = type.substring(SQL_TSI_ROOT.length());
 		if(SQL_TSI_DAY.equalsIgnoreCase(shortType))
-			return "day";
+			return ident("day");
 		else if(SQL_TSI_SECOND.equalsIgnoreCase(shortType))
-			return "second";
+			return ident("second");
 		else if(SQL_TSI_HOUR.equalsIgnoreCase(shortType))
-			return "hour";
+			return ident("hour");
 		else if(SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
-			return "minute";
+			return ident("minute");
 		// See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
 		/*
 		 * else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType)) return "month"; else
@@ -658,28 +589,143 @@ class SQLTextEscapeFunctions {
 	}
 
 	/** database translation */
-	public static String sqldatabase(String name, List<Node> args) throws SQLException {
+	public static Node sqldatabase(String name, List<Node> args) throws SQLException {
 		if(args.size() != 0) {
 			throw new SQLException(GT.tr("{0} function doesn''t take any argument.", "database"), PSQLState.SYNTAX_ERROR);
 		}
-		return "current_database()";
+		return call("current_database", args);
 	}
 
 	/** ifnull translation */
-	public static String sqlifnull(String name, List<Node> args) throws SQLException {
+	public static Node sqlifnull(String name, List<Node> args) throws SQLException {
 		if(args.size() != 2) {
 			throw new SQLException(GT.tr("{0} function takes two and only two arguments.", "ifnull"), PSQLState.SYNTAX_ERROR);
 		}
-		return "coalesce(" + args.get(0) + "," + args.get(1) + ")";
+		return call("coalesce", args);
 	}
 
 	/** user translation */
-	public static String sqluser(String name, List<Node> args) throws SQLException {
+	public static Node sqluser(String name, List<Node> args) throws SQLException {
 		if(args.size() != 0) {
 			throw new SQLException(GT.tr("{0} function doesn''t take any argument.", "user"), PSQLState.SYNTAX_ERROR);
 		}
-		return "user";
+		return ident("user");
 	}
+	
+	static Node space() {
+		return new WhitespacePiece(" ", -1);
+	}
+
+	static Node grammar(String val) {
+		return new GrammarPiece(val.toString(), -1);
+	}
+
+	static Node literal(Number val) {
+		return new NumericLiteralPiece(val.toString(), -1);
+	}
+
+	static Node literal(String text) {
+		return new StringLiteralPiece(text, -1);
+	}
+
+	private static Node ident(String name) {
+		return new UnquotedIdentifierPiece(name, -1);
+	}
+
+	static Node call(String name, List<Node> args) {
+		return sequence(name, groupedBy(args, ","));
+	}
+	
+	static ParenGroupNode groupedBy(List<Node> args, String sep) {
+		
+		ParenGroupNode groupNode = new ParenGroupNode(-1);
+		
+    Iterator<Node> argsIter = args.iterator();
+    while(argsIter.hasNext()) {
+    	groupNode.add(argsIter.next());
+    	if(argsIter.hasNext()) {
+    		groupNode.add(new GrammarPiece(sep, -1));
+    	}
+    }
+
+    return groupNode;
+	}
+	
+	static ParenGroupNode groupedSequence(Object... args) {
+		
+		ParenGroupNode groupNode = new ParenGroupNode(-1);
+		
+		sequence(groupNode, asList(args));
+
+    return groupNode;
+	}
+	
+	static CompositeNode sequence(String identName, Object... args) {
+		
+		CompositeNode seqNode = new CompositeNode(-1);
+		
+		seqNode.add(ident(identName));
+		sequence(seqNode, asList(args));
+
+		return seqNode;
+	}
+	
+	static CompositeNode sequence(Object... args) {
+		
+		CompositeNode seqNode = new CompositeNode(-1);
+		
+		sequence(seqNode, asList(args));
+
+		return seqNode;
+	}
+	
+	static Node concat(Node a, Node b) {
+		
+		if(a instanceof CompositeNode) {
+			CompositeNode ac = (CompositeNode) a;
+			if(b instanceof CompositeNode)
+				ac.nodes.addAll(((CompositeNode) b).nodes);
+			else
+				ac.nodes.add(b);
+			return a;
+		}
+		else if(b instanceof CompositeNode) {
+			((CompositeNode) b).nodes.add(0, a);
+			return b;
+		}
+		else {
+			CompositeNode c = new CompositeNode(-1);
+			c.add(a);
+			c.add(b);
+			return c;
+		}
+	}
+	
+	static void sequence(CompositeNode seqNode, List<Object> args) {
+		
+		ListIterator<Object> argsIter = args.listIterator();
+    while(argsIter.hasNext()) {
+    	
+    	Object obj = argsIter.next();
+
+    	Node lastNode = seqNode.getLastNode();
+  		if(lastNode instanceof WhitespacePiece == false && obj instanceof WhitespacePiece == false &&
+  				obj instanceof ParenGroupNode == false &&
+  				(lastNode instanceof IdentifierPiece || obj instanceof IdentifierPiece || obj instanceof String)) {
+  			seqNode.add(new WhitespacePiece(" ", -1));
+  		}
+  		
+    	if(obj instanceof Node) {
+    		seqNode.add((Node) obj);
+    	}
+    	else {
+    		
+    		seqNode.add(new UnquotedIdentifierPiece(obj.toString(), -1));
+    	}
+    }
+    
+	}
+	
 }
 
 /**

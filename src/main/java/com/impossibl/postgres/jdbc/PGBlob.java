@@ -1,6 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_CONNECTION;
+import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_BLOB;
+import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -59,7 +60,13 @@ public class PGBlob implements Blob {
 	
 	private void checkClosed() throws SQLException {
 		if(lo == null) {
-			throw CLOSED_CONNECTION;
+			throw CLOSED_BLOB;
+		}
+	}
+
+	private void checkPosition(long pos) throws SQLException {
+		if(pos < 1) {
+			throw ILLEGAL_ARGUMENT;
 		}
 	}
 
@@ -67,14 +74,19 @@ public class PGBlob implements Blob {
 	public long length() throws SQLException {
 		checkClosed();
 
-		return lo.tell();
+		long cur = lo.tell();
+		lo.lseek(0, LargeObject.SEEK_END);
+		long len = lo.tell();
+		lo.lseek(cur, LargeObject.SEEK_SET);
+		return len;
 	}
 
 	@Override
 	public byte[] getBytes(long pos, int length) throws SQLException {
 		checkClosed();
+		checkPosition(pos);
 
-		lo.lseek(pos, LargeObject.SEEK_SET);
+		lo.lseek(pos-1, LargeObject.SEEK_SET);
 		return lo.read(length);
 	}
 
@@ -90,18 +102,20 @@ public class PGBlob implements Blob {
 	@Override
 	public InputStream getBinaryStream(long pos, long length) throws SQLException {
 		checkClosed();
+		checkPosition(pos);
 
 		LargeObject streamLo = lo.dup();
 		streamLos.add(streamLo);
-		streamLo.lseek(pos, LargeObject.SEEK_SET);
+		streamLo.lseek(pos-1, LargeObject.SEEK_SET);
 		return ByteStreams.limit(new BlobInputStream(streamLo), length); 
 	}
 
 	@Override
 	public long position(byte[] pattern, long start) throws SQLException {
 		checkClosed();
+		checkPosition(start);
 
-		LOByteIterator iter = new LOByteIterator(start);
+		LOByteIterator iter = new LOByteIterator(start-1);
 		long curPos=start, matchStartPos=0;
 		int patternIdx=0;
 		
@@ -125,6 +139,7 @@ public class PGBlob implements Blob {
 				patternIdx = 0;
 			}
 			
+			curPos++;
 		}
 
 		return -1;
@@ -134,32 +149,33 @@ public class PGBlob implements Blob {
 	public long position(Blob pattern, long start) throws SQLException {
 		checkClosed();
 
-		return position(pattern.getBytes(0, (int)pattern.length()), start);
+		return position(pattern.getBytes(1, (int)pattern.length()), start);
 	}
 
 	@Override
 	public int setBytes(long pos, byte[] bytes) throws SQLException {
-		checkClosed();
-
+		
 		return setBytes(pos, bytes, 0, bytes.length);
 	}
 
 	@Override
 	public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
 		checkClosed();
+		checkPosition(pos);
 
-		lo.lseek(pos, LargeObject.SEEK_SET);
+		lo.lseek(pos-1, LargeObject.SEEK_SET);
 		return lo.write(bytes, offset, len);
 	}
 
 	@Override
 	public OutputStream setBinaryStream(long pos) throws SQLException {
 		checkClosed();
+		checkPosition(pos);
 
 		LargeObject streamLo = lo.dup();
 		streamLos.add(streamLo);
-		streamLo.lseek(pos, LargeObject.SEEK_SET);
-		return new BlobOutputStream(streamLo);
+		streamLo.lseek(pos-1, LargeObject.SEEK_SET);
+		return new BlobOutputStream(this, streamLo);
 	}
 
 	@Override
@@ -171,13 +187,21 @@ public class PGBlob implements Blob {
 
 	@Override
 	public void free() throws SQLException {
-		checkClosed();
+
+		if(lo == null)
+			return;
 
 		lo.close();
+		lo = null;
+		
 		for(LargeObject streamLo : streamLos) {
 			streamLo.close();
 		}
 		streamLos.clear();
+	}
+	
+	void removeStream(LargeObject lo) {		
+		streamLos.remove(lo);
 	}
 
 }

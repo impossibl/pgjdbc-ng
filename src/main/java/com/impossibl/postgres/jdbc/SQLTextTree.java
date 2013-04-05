@@ -12,7 +12,7 @@ public class SQLTextTree {
 	
 	public interface Processor {
 		
-		public Node process(Node node, boolean recurse) throws SQLException;
+		public Node process(Node node) throws SQLException;
 		
 	}
 
@@ -45,7 +45,7 @@ public class SQLTextTree {
 		abstract void build(StringBuilder builder);
 		
 		public Node process(Processor processor, boolean recurse) throws SQLException {
-			return processor.process(this, recurse);
+			return processor.process(this);
 		}
 
 		void removeAll(final Class<? extends Node> nodeType, boolean recurse) {
@@ -53,7 +53,7 @@ public class SQLTextTree {
 				process(new Processor() {
 
 					@Override
-					public Node process(Node node, boolean recurse) throws SQLException {
+					public Node process(Node node) throws SQLException {
 						if(nodeType.isInstance(node))
 							return null;
 						return node;
@@ -79,6 +79,11 @@ public class SQLTextTree {
 
 		public CompositeNode(int startPos) {
 			super(startPos, -1);
+		}
+
+		public CompositeNode(List<Node> nodes, int startPos) {
+			super(startPos, -1);
+			this.nodes = nodes;
 		}
 
 		void build(StringBuilder builder) {
@@ -118,8 +123,11 @@ public class SQLTextTree {
 			//Process each child node...
 			ListIterator<Node> nodeIter = nodes.listIterator();
 			while(nodeIter.hasNext()) {
-				Node res = nodeIter.next().process(processor, recurse);
+				Node res = processor.process(nodeIter.next());
 				if(res != null) {
+					if(recurse) {
+						res.process(processor, recurse);
+					}
 					nodeIter.set(res);
 				}
 				else {
@@ -127,7 +135,7 @@ public class SQLTextTree {
 				}
 			}
 			
-			return processor.process(this, recurse);
+			return processor.process(this);
 		}
 
 		void add(Node node) {
@@ -165,12 +173,28 @@ public class SQLTextTree {
 			
 		}
 
+		public Node getFirstNode() {
+			if(nodes.isEmpty())
+				return null;
+			return nodes.get(0);
+		}
+
+		public Node getLastNode() {
+			if(nodes.isEmpty())
+				return null;
+			return nodes.get(nodes.size()-1);
+		}
+
 	}
 
 	public static class MultiStatementNode extends CompositeNode {
 
 		public MultiStatementNode(int startPos) {
 			super(startPos);
+		}
+
+		public MultiStatementNode(List<Node> nodes, int startPos) {
+			super(nodes, startPos);
 		}
 
 		@Override
@@ -320,18 +344,26 @@ public class SQLTextTree {
 
 	public static class StringLiteralPiece extends LiteralPiece {
 
+		String delimeter;
+		
 		StringLiteralPiece(String val, int startPos) {
 			super(val, startPos);
+			this.delimeter = "'";
+		}
+
+		StringLiteralPiece(String val, String delimeter, int startPos) {
+			super(val, startPos);
+			this.delimeter = delimeter;
 		}
 
 		@Override
 		void build(StringBuilder builder) {
 
-			builder.append('\'');
+			builder.append(delimeter);
 
 			super.build(builder);
 
-			builder.append('\'');
+			builder.append(delimeter);
 		}
 
 	}

@@ -30,6 +30,7 @@ public class Procs {
 		new Timestamps(Timestamp, "timestamp_"),
 		new Timestamps(TimestampTZ, "timestamptz_"),
 		new TimestampMods(),
+		new Intervals(),
 		new UUIDs(),
 		new Moneys(),
 		new Arrays(),

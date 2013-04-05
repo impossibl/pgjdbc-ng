@@ -1,7 +1,13 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.concat;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.getEscapeMethod;
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.grammar;
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.groupedSequence;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.invokeEscape;
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.literal;
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.sequence;
+import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.space;
 
 import java.lang.reflect.Method;
 import java.sql.Date;
@@ -20,7 +26,6 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.PieceNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
-import com.impossibl.postgres.jdbc.SQLTextTree.ReplacementPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
@@ -33,7 +38,7 @@ public class SQLTextEscapes {
 		text.process(new Processor() {
 
 			@Override
-			public Node process(Node node, boolean recurse) throws SQLException {
+			public Node process(Node node) throws SQLException {
 				
 				if(node instanceof EscapeNode == false) {
 					return node;
@@ -43,14 +48,14 @@ public class SQLTextEscapes {
 			}
 			
 		}, true);
-		
+
 	}
 
-	private static PieceNode processEscape(EscapeNode escape, Context context) throws SQLException {
+	private static Node processEscape(EscapeNode escape, Context context) throws SQLException {
 		
 		UnquotedIdentifierPiece type = getNode(escape, 0, UnquotedIdentifierPiece.class);
 		
-		String result = null;
+		Node result = null;
 		
 		switch(type.toString().toLowerCase()) {
 		case "fn":
@@ -93,10 +98,10 @@ public class SQLTextEscapes {
 			throw new SQLException("Invalid escape (" + escape.getStartPos() + ")", "Syntax Error");
 		}
 		
-		return new ReplacementPiece(result, escape.getStartPos());
+		return result;
 	}
 	
-	private static String processFunctionEscape(EscapeNode escape) throws SQLException {
+	private static Node processFunctionEscape(EscapeNode escape) throws SQLException {
 
 		escape.removeAll(WhitespacePiece.class, false);
 
@@ -113,7 +118,7 @@ public class SQLTextEscapes {
 		return invokeEscape(method, name.toString(), args);
 	}
 
-	private static String processDateEscape(EscapeNode escape, Context context) throws SQLException {
+	private static Node processDateEscape(EscapeNode escape, Context context) throws SQLException {
 		
 		escape.removeAll(WhitespacePiece.class, false);
 
@@ -129,14 +134,10 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid date format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		StringBuilder sb = new StringBuilder();
-		sb.append("DATE '");
-		sb.append(date);
-		sb.append("'");
-		return sb.toString();
+		return sequence("DATE", space(), literal(date.toString()));
 	}
 
-	private static String processTimeEscape(EscapeNode escape, Context context) throws SQLException {
+	private static Node processTimeEscape(EscapeNode escape, Context context) throws SQLException {
 
 		escape.removeAll(WhitespacePiece.class, false);
 
@@ -152,14 +153,10 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid time format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		StringBuilder sb = new StringBuilder();
-		sb.append("TIME '");
-		sb.append(time);
-		sb.append("'");
-		return sb.toString();
+		return sequence("TIME", space(), literal(time.toString()));
 	}
 
-	private static String processTimestampEscape(EscapeNode escape, Context context) throws SQLException {
+	private static Node processTimestampEscape(EscapeNode escape, Context context) throws SQLException {
 		
 		escape.removeAll(WhitespacePiece.class, false);
 
@@ -175,14 +172,10 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid timestamp format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		StringBuilder sb = new StringBuilder();
-		sb.append("TIMESTAMP '");
-		sb.append(timestamp);
-		sb.append("'");
-		return sb.toString();
+		return sequence("TIMESTAMP", space(), literal(timestamp.toString()));
 	}
 
-	private static String processOuterJoinEscape(EscapeNode escape) throws SQLException {
+	private static Node processOuterJoinEscape(EscapeNode escape) throws SQLException {
 		
 		List<Node> nodes = split(escape, true, "OJ", "LEFT", "RIGHT", "FULL", "OUTER", "JOIN", "ON");
 		
@@ -191,20 +184,10 @@ public class SQLTextEscapes {
 		checkLiteralNode(nodes.get(4), "JOIN");
 		checkLiteralNode(nodes.get(6), "ON");		
 
-		StringBuilder sb = new StringBuilder();
-		
-		nodes.get(1).build(sb);
-		sb.append(' ');
-		nodes.get(2).build(sb);
-		sb.append(" OUTER JOIN ");
-		nodes.get(5).build(sb);
-		sb.append(" ON ");
-		nodes.get(7).build(sb);
-		
-		return sb.toString();
+		return sequence(nodes.get(1), space(), nodes.get(2), "OUTER", "JOIN", nodes.get(5), "ON", nodes.get(7));
 	}
 
-	private static String processCallAssignEscape(EscapeNode escape) throws SQLException {
+	private static Node processCallAssignEscape(EscapeNode escape) throws SQLException {
 
 		escape.removeAll(WhitespacePiece.class, false);
 		
@@ -213,37 +196,19 @@ public class SQLTextEscapes {
 		checkLiteralNode(escape, 1, "=");
 		checkLiteralNode(escape, 2, "call");
 		
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append("(SELECT * FROM ")
-			.append(getNode(escape, 1, UnquotedIdentifierPiece.class));
-		
-		getNode(escape, 3, ParenGroupNode.class).build(sb);
-		
-		sb.append(")");
-		
-		return sb.toString();
+		return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), space(), getNode(escape, 3, ParenGroupNode.class));
 	}
 
-	private static String processCallEscape(EscapeNode escape) throws SQLException {
+	private static Node processCallEscape(EscapeNode escape) throws SQLException {
 
 		escape.removeAll(WhitespacePiece.class, false);
 		
 		checkSize(escape, 2, 3);
 		
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append("(SELECT * FROM ")
-			.append(getNode(escape, 1, UnquotedIdentifierPiece.class));
-		
-		getNode(escape, 2, ParenGroupNode.class).build(sb);
-		
-		sb.append(')');
-		
-		return sb.toString();
+		return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), space(), getNode(escape, 2, ParenGroupNode.class));
 	}
 
-	private static String processLimitEscape(EscapeNode escape) throws SQLException {
+	private static Node processLimitEscape(EscapeNode escape) throws SQLException {
 
 		escape.removeAll(WhitespacePiece.class, false);
 		
@@ -257,32 +222,22 @@ public class SQLTextEscapes {
 			offset = getNode(escape, 3, Node.class);;
 		}
 		
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("LIMIT ");
-		
-		rows.build(sb);
+		Node limit = sequence("LIMIT", rows);
 		
 		if(offset != null) {
-			sb.append(" OFFSET ");
-			offset.build(sb);
+			limit = concat(limit, sequence(space(), "OFFSET", offset));
 		}
-		
-		return sb.toString();
+
+		return limit;
 	}
 
-	private static String processLikeEscape(EscapeNode escape) throws SQLException {
+	private static Node processLikeEscape(EscapeNode escape) throws SQLException {
 		
 		escape.removeAll(WhitespacePiece.class, false);
 		
 		checkSize(escape, 2);
 
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append("ESCAPE ");
-		getNode(escape, 1, Node.class).build(sb);
-		
-		return sb.toString();		
+		return sequence("ESCAPE", space(), getNode(escape, 1, Node.class));
 	}
 
 	private static void checkSize(CompositeNode comp, int... sizes) throws SQLException {

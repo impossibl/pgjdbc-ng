@@ -5,6 +5,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTE
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+import static java.util.Arrays.asList;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -1261,7 +1262,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[19] = null;
     	row[20] = null;
     	row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;    	
-    	row[22] = SQLTypeMetaData.isAutoIncrement(columnData.type, columnData.relationType, columnData.relationAttrNum);
+    	row[22] = SQLTypeMetaData.isAutoIncrement(columnData.type, columnData.relationType, columnData.relationAttrNum) ? "YES" : "NO";
     	row[23] = columnData.relationType != null ? "YES" : "NO";
     	
     	results.add(row);
@@ -2327,8 +2328,27 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getClientInfoProperties() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+
+		Registry registry = connection.getRegistry();
+
+		ResultField[] resultFields = new ResultField[18];
+    List<Object[]> results = new ArrayList<>();
+
+    resultFields[0] = 	new ResultField("NAME", 							0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[1] = 	new ResultField("MAX_LEN", 						0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[2] = 	new ResultField("DEFAULT_VALUE", 			0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[3] = 	new ResultField("DESCRIPTION", 				0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
+    
+    Object[] row = new Object[4];
+    
+    //ApplicationName
+    row[0] = "ApplicationName";
+    row[1] = -1;
+    row[2] = "pgjdbc app";
+    row[3] = "Name of application using the connection";
+    results.add(row);
+    
+    return createResultSet(asList(resultFields), results);
 	}
 
 	@Override

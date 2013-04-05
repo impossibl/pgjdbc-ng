@@ -18,12 +18,15 @@ import com.impossibl.postgres.types.Type;
 
 
 public class Strings extends SimpleProcProvider {
+	
+	public static final Decoder DECODER = new Decoder();
+	public static final Decoder ENCODER = new Decoder();
 
 	public Strings() {
-		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_", "cstring_", "unknown");
+		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "unknown");
 	}
 	
-	static class Decoder implements Type.Codec.Decoder {
+	public static class Decoder implements Type.Codec.Decoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return String;
@@ -58,7 +61,7 @@ public class Strings extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	public static class Encoder implements Type.Codec.Encoder {
 
 		public Class<?> getInputType() {
 			return String.class;
