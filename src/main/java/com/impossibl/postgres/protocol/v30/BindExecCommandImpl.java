@@ -249,7 +249,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		reset();
 
-		if(resultFields == null || !parameterTypes.isEmpty()) {
+		if(resultFields == null) {
 
 			protocol.writeDescribe(msg, Portal, portalName);
 
