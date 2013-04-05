@@ -134,7 +134,7 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid date format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		return sequence("DATE", literal(date.toString()));
+		return sequence("DATE", space(), literal(date.toString()));
 	}
 
 	private static Node processTimeEscape(EscapeNode escape, Context context) throws SQLException {
@@ -153,7 +153,7 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid time format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		return sequence("TIME", literal(time.toString()));
+		return sequence("TIME", space(), literal(time.toString()));
 	}
 
 	private static Node processTimestampEscape(EscapeNode escape, Context context) throws SQLException {
@@ -172,7 +172,7 @@ public class SQLTextEscapes {
 			throw new SQLException("invalid timestamp format in escape (" + escape.getStartPos() + ")");
 		}
 		
-		return sequence("TIMESTAMP", literal(timestamp.toString()));
+		return sequence("TIMESTAMP", space(), literal(timestamp.toString()));
 	}
 
 	private static Node processOuterJoinEscape(EscapeNode escape) throws SQLException {
@@ -196,7 +196,7 @@ public class SQLTextEscapes {
 		checkLiteralNode(escape, 1, "=");
 		checkLiteralNode(escape, 2, "call");
 		
-		return groupedSequence("SELECT", grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), getNode(escape, 3, ParenGroupNode.class));
+		return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), space(), getNode(escape, 3, ParenGroupNode.class));
 	}
 
 	private static Node processCallEscape(EscapeNode escape) throws SQLException {
@@ -205,7 +205,7 @@ public class SQLTextEscapes {
 		
 		checkSize(escape, 2, 3);
 		
-		return groupedSequence("SELECT", grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), getNode(escape, 2, ParenGroupNode.class));
+		return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), space(), getNode(escape, 2, ParenGroupNode.class));
 	}
 
 	private static Node processLimitEscape(EscapeNode escape) throws SQLException {
@@ -225,7 +225,7 @@ public class SQLTextEscapes {
 		Node limit = sequence("LIMIT", rows);
 		
 		if(offset != null) {
-			limit = concat(limit, sequence("OFFSET", offset));
+			limit = concat(limit, sequence(space(), "OFFSET", offset));
 		}
 
 		return limit;
@@ -237,7 +237,7 @@ public class SQLTextEscapes {
 		
 		checkSize(escape, 2);
 
-		return sequence("ESCAPE", getNode(escape, 1, Node.class));
+		return sequence("ESCAPE", space(), getNode(escape, 1, Node.class));
 	}
 
 	private static void checkSize(CompositeNode comp, int... sizes) throws SQLException {

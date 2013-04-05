@@ -22,6 +22,7 @@ import java.util.Map;
 
 import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.IdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.NumericLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
@@ -612,7 +613,7 @@ class SQLTextEscapeFunctions {
 	}
 	
 	static Node space() {
-		return new GrammarPiece(" ", -1);
+		return new WhitespacePiece(" ", -1);
 	}
 
 	static Node grammar(String val) {
@@ -706,26 +707,20 @@ class SQLTextEscapeFunctions {
     while(argsIter.hasNext()) {
     	
     	Object obj = argsIter.next();
+
+    	Node lastNode = seqNode.getLastNode();
+  		if(lastNode instanceof WhitespacePiece == false && obj instanceof WhitespacePiece == false &&
+  				obj instanceof ParenGroupNode == false &&
+  				(lastNode instanceof IdentifierPiece || obj instanceof IdentifierPiece || obj instanceof String)) {
+  			seqNode.add(new WhitespacePiece(" ", -1));
+  		}
+  		
     	if(obj instanceof Node) {
     		seqNode.add((Node) obj);
     	}
     	else {
-    		if(argsIter.hasPrevious()) {
-    			Object prev = argsIter.previous();
-    			if(prev instanceof ParenGroupNode == false) {
-    				seqNode.add(new WhitespacePiece(" ", -1));
-    			}
-    			argsIter.next();
-    		}
     		
     		seqNode.add(new UnquotedIdentifierPiece(obj.toString(), -1));
-    		
-    		if(argsIter.hasNext()) {
-    			if(argsIter.next() instanceof ParenGroupNode == false) {
-      			seqNode.add(new WhitespacePiece(" ", -1));
-    			}
-    			argsIter.previous();
-    		}
     	}
     }
     
