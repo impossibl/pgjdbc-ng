@@ -221,6 +221,7 @@ public class XmlTest extends TestCase {
 	public void testGetObject() throws SQLException {
 		ResultSet rs = getRS();
 		assertTrue(rs.next());
+		@SuppressWarnings("unused")
 		SQLXML xml = (SQLXML) rs.getObject(1);
 	}
 
