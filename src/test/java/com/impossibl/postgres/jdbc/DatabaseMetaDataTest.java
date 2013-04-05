@@ -447,6 +447,9 @@ public class DatabaseMetaDataTest extends TestCase {
 		ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
 		assertTrue(rs.next());
 		assertEquals("id", rs.getString("COLUMN_NAME"));
+		assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
+		assertEquals("nndom", rs.getString("TYPE_NAME"));
+		assertEquals(Types.INTEGER, rs.getInt("SOURCE_DATA_TYPE"));
 		assertEquals("NO", rs.getString("IS_NULLABLE"));
 		assertTrue(!rs.next());
 	}
@@ -929,6 +932,45 @@ public class DatabaseMetaDataTest extends TestCase {
 		assertTrue(rs.next());
 		assertEquals("b", rs.getString("COLUMN_NAME"));
 		assertEquals(100, rs.getInt("COLUMN_SIZE"));
+		assertTrue(!rs.next());
+	}
+
+  public void testGetClientInfoProperties() throws Exception {
+		DatabaseMetaData dbmd = con.getMetaData();
+
+		ResultSet rs = dbmd.getClientInfoProperties();
+
+		assertTrue(rs.next());
+		assertEquals("ApplicationName", rs.getString("NAME"));
+	}
+
+	public void testGetColumnsForAutoIncrement() throws Exception {
+		DatabaseMetaData dbmd = con.getMetaData();
+
+		ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
+		assertTrue(rs.next());
+		assertEquals("a", rs.getString("COLUMN_NAME"));
+		assertEquals("NO", rs.getString("IS_AUTOINCREMENT"));
+
+		assertTrue(rs.next());
+		assertEquals("b", rs.getString("COLUMN_NAME"));
+		assertEquals("YES", rs.getString("IS_AUTOINCREMENT"));
+
+		assertTrue(rs.next());
+		assertEquals("c", rs.getString("COLUMN_NAME"));
+		assertEquals("YES", rs.getString("IS_AUTOINCREMENT"));
+
+		assertTrue(!rs.next());
+	}
+
+	public void testGetSchemas() throws SQLException {
+		DatabaseMetaData dbmd = con.getMetaData();
+
+		ResultSet rs = dbmd.getSchemas("", "publ%");
+
+		assertTrue(rs.next());
+		assertEquals("public", rs.getString("TABLE_SCHEM"));
+		assertNull(rs.getString("TABLE_CATALOG"));
 		assertTrue(!rs.next());
 	}
 
