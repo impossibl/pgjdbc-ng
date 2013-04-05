@@ -23,7 +23,7 @@ public class Strings extends SimpleProcProvider {
 	public static final Decoder ENCODER = new Decoder();
 
 	public Strings() {
-		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "xml_", "cstring_", "unknown");
+		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "unknown");
 	}
 	
 	public static class Decoder implements Type.Codec.Decoder {

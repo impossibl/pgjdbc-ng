@@ -17,7 +17,7 @@ import com.impossibl.postgres.types.Type;
 public class Bytes extends SimpleProcProvider {
 
 	public Bytes() {
-		super(null, null, new Encoder(), new Decoder(), "bytea");
+		super(null, null, new Encoder(), new Decoder(), "bytea", "xml_");
 	}
 
 	static class Decoder implements Type.Codec.Decoder {

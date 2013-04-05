@@ -703,8 +703,12 @@ class PGResultSet implements ResultSet {
 
 	@Override
 	public SQLXML getSQLXML(int columnIndex) throws SQLException {
-		checkClosed();		
-		throw NOT_IMPLEMENTED;
+		
+		byte[] data = getBytes(columnIndex);
+		if(data == null)
+			return null;
+		
+		return new PGSQLXML(statement.connection, data);
 	}
 
 	@Override

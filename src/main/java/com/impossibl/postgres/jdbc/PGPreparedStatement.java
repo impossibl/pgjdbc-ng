@@ -517,7 +517,14 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		if(xmlObject instanceof PGSQLXML == false) {
+			throw new SQLException("SQLXML object not created by driver");
+		}
+		
+		PGSQLXML sqlXml = (PGSQLXML) xmlObject;
+		
+		set(parameterIndex, sqlXml.getData());
 	}
 
 	@Override

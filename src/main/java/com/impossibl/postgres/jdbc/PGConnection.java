@@ -772,7 +772,8 @@ class PGConnection extends BasicContext implements Connection {
 	@Override
 	public SQLXML createSQLXML() throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+		
+		return new PGSQLXML(this);
 	}
 
 	@Override
