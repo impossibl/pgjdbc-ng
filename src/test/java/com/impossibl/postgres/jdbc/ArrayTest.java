@@ -453,7 +453,7 @@ public class ArrayTest extends TestCase {
 
 	public void testCreateArrayOfNull() throws SQLException {
 
-		String sql = "SELECT ?";
+		String sql = "SELECT ?::int8[]";
 
 		PreparedStatement pstmt = conn.prepareStatement(sql);
 		String in[] = new String[2];
