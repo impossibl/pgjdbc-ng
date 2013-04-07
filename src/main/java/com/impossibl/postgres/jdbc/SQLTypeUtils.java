@@ -68,6 +68,9 @@ class SQLTypeUtils {
 
 	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
 
+		if(val == null) {
+			return null;
+		}
 		if(targetType.isInstance(val)) {
 			return val;
 		}
@@ -579,6 +582,9 @@ class SQLTypeUtils {
 		}
 		else if(val instanceof byte[]) {
 			return (byte[]) val;
+		}
+		else if(val instanceof String) {
+			return ((String)val).getBytes(context.getCharset());
 		}
 		else if(val instanceof PGSQLXML) {
 			return ((PGSQLXML) val).getData();
