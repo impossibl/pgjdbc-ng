@@ -135,7 +135,7 @@ class SQLTypeUtils {
 			return coerceToCustomType(val, sourceType, targetType, typeMap, connection);
 		}
 
-		throw createCoercionException(sourceType.getJavaType(typeMap), targetType);
+		throw createCoercionException(val.getClass(), targetType);
 	}
 
 	public static byte coerceToByte(Object val) throws SQLException {
