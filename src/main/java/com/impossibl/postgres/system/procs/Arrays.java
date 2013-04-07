@@ -286,25 +286,59 @@ public class Arrays extends SimpleProcProvider {
 			data = data.subSequence(1, data.length()-1);
 			
 			List<Object> elements = new ArrayList<>();
+			StringBuilder elementTxt = new StringBuilder();
 			
+			boolean string = false;
 			int opened = 0;
-			int elementStart =0;
 			int c;
 			for(c=0; c < data.length(); ++c) {
 				
 				char ch = data.charAt(c);
-				if(ch == '{')
-					opened++;
-				else if(ch == '}')
-					opened--;
-				else if(ch == delim && opened == 0) {
-					Object element = readArray(data.subSequence(elementStart, c), delim, type, context);
-					elements.add(element);
-					elementStart = c+1;
+				switch(ch) {
+				case '{':
+					if(!string)
+						opened++;
+					else
+						elementTxt.append(ch);
+					break;
+					
+				case '}':
+					if(!string)
+						opened--;
+					else
+						elementTxt.append(ch);
+					break;
+					
+				case '"':
+					string = !string;
+					break;
+					
+				case '\\':
+					++c;
+					if(c < data.length())
+						elementTxt.append(data.charAt(c));
+					break;
+					
+				default:
+					
+					if(ch == delim && opened == 0 && !string) {
+						
+						Object element = readArray(elementTxt.toString(), delim, type, context);
+						
+						elements.add(element);
+						
+						elementTxt = new StringBuilder();
+					}
+					else {
+						
+						elementTxt.append(ch);
+					}
+					
 				}
+				
 			}
-			
-			Object finalElement = readArray(data.subSequence(elementStart, c), delim, type, context);
+				
+			Object finalElement = readArray(elementTxt.toString(), delim, type, context);
 			elements.add(finalElement);
 			
 			return elements.toArray();
