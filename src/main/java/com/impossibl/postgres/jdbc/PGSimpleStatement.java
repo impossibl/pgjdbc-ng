@@ -18,7 +18,6 @@ import java.util.Collections;
 
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
 
 class PGSimpleStatement extends PGStatement {
@@ -26,7 +25,7 @@ class PGSimpleStatement extends PGStatement {
 	SQLText batchCommands;
 
 	public PGSimpleStatement(PGConnection connection, int type, int concurrency, int holdability) {
-		super(connection, type, concurrency, holdability, null, Collections.<ResultField>emptyList());
+		super(connection, type, concurrency, holdability, null, null);
 	}
 
 	SQLWarning prepare(SQLText sqlText) throws SQLException {

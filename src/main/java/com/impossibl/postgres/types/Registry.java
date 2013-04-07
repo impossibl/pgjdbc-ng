@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -495,38 +496,38 @@ public class Registry {
 	 * @param decoderId proc-id of the decoder
 	 * @return A matching Codec instance
 	 */
-	public Codec loadCodec(int encoderId, int decoderId, boolean defaults) {
+	public Codec loadCodec(int encoderId, int decoderId, Format format) {
 		
 		Codec io = new Codec();
-		io.decoder = loadDecoderProc(decoderId, defaults);
-		io.encoder = loadEncoderProc(encoderId, defaults);
+		io.decoder = loadDecoderProc(decoderId, Procs.DEFAULT_DECODERS[format.ordinal()]);
+		io.encoder = loadEncoderProc(encoderId, Procs.DEFAULT_ENCODERS[format.ordinal()]);
 		return io;
 	}
 
 	/*
 	 * Loads a matching encoder given its proc-id
 	 */
-	private Codec.Encoder loadEncoderProc(int procId, boolean defaults) {
+	private Codec.Encoder loadEncoderProc(int procId, Codec.Encoder defaultEncoder) {
 
 		String name = lookupProcName(procId);
-		if(name == null && !defaults) {
-			return null;
+		if(name == null) {
+			return defaultEncoder;
 		}
 
-		return Procs.loadEncoderProc(name, context, defaults);
+		return Procs.loadEncoderProc(name, context, defaultEncoder);
 	}
 
 	/*
 	 * Loads a matching decoder given its proc-id
 	 */
-	private Codec.Decoder loadDecoderProc(int procId, boolean defaults) {
+	private Codec.Decoder loadDecoderProc(int procId, Codec.Decoder defaultDecoder) {
 
 		String name = lookupProcName(procId);
-		if(name == null && !defaults) {
-			return null;
+		if(name == null) {
+			return defaultDecoder;
 		}
 
-		return Procs.loadDecoderProc(name, context, defaults);
+		return Procs.loadDecoderProc(name, context, defaultDecoder);
 	}
 
 	/*

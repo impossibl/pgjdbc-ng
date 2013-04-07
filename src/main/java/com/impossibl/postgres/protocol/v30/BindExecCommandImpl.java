@@ -27,7 +27,7 @@ import com.impossibl.postgres.types.Type;
 
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
-
+	
 	class BindExecCommandListener extends BaseProtocolListener {
 		
 		Context context;
@@ -48,8 +48,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		@Override
 		public void rowDescription(List<ResultField> newResultFields) {
 			resultFields = newResultFields;
+			resultFieldFormats = getResultFieldFormats(newResultFields);
 			resultBatch.fields = newResultFields;
-			resultBatch.results = !newResultFields.isEmpty() ? new ArrayList<>() : null;
+			resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
 			resultSetters = Mapper.buildMapping(rowType, newResultFields);
 		}
 
@@ -71,7 +72,10 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 				ResultField field = resultBatch.fields.get(c);
 
 				Type fieldType = field.getType();
-				Object fieldVal = fieldType.getCodec(field.format).decoder.decode(fieldType, buffer, parsingContext);
+				
+				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
+				
+				Object fieldVal = decoder.decode(fieldType, buffer, context);
 
 				resultSetters.get(c).set(rowInstance, fieldVal);
 			}
@@ -134,6 +138,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private Status status;
 	private SettingsContext parsingContext;
 	private ResultBatch resultBatch;
+	private List<Format> resultFieldFormats;
 	
 	
 	
@@ -148,15 +153,21 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		this.maxRows = 0;
 		this.maxFieldLength = Integer.MAX_VALUE;
 		
-		if(resultFields != null)
+		if(resultFields != null) {
 			this.resultSetters = Mapper.buildMapping(rowType, resultFields);
+			this.resultFieldFormats = getResultFieldFormats(resultFields);
+		}
+		else {
+			this.resultFieldFormats = Collections.emptyList();
+		}
+		
 	}
 
 	public void reset() {
 		status = null;
 		resultBatch = new ResultBatch();
 		resultBatch.fields = resultFields;
-		resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
+		resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
 	}
 
 	@Override
@@ -234,14 +245,6 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		if(status != Status.Suspended) {
 			
-			List<Format> resultFieldFormats = new ArrayList<>();
-			if(resultFields != null) {
-				for(ResultField resultField : resultFields) {
-					resultField.format = resultField.getType().getResultFormat();
-					resultFieldFormats.add(resultField.format);
-				}
-			}
-
 			protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
 
 		}
@@ -267,6 +270,18 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		waitFor(listener);
 		
+	}
+	
+	static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
+		
+		List<Format> resultFieldFormats = new ArrayList<>();
+		
+		for(ResultField resultField : resultFields) {
+			resultField.format = resultField.getType().getResultFormat();
+			resultFieldFormats.add(resultField.format);
+		}
+		
+		return resultFieldFormats;
 	}
 
 }

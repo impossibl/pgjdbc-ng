@@ -17,7 +17,7 @@ public class Names extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "name");
 	}
 	
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return String;
@@ -42,7 +42,7 @@ public class Names extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return String.class;

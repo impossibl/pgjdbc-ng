@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -87,7 +85,7 @@ public abstract class Type {
 		public interface Decoder {
 			PrimitiveType getInputPrimitiveType();
 			Class<?> getOutputType();
-			Object decode(Type type,  ChannelBuffer buffer, Context context) throws IOException;
+			Object decode(Type type,  Object buffer, Context context) throws IOException;
 		}
 		
 		/**
@@ -96,7 +94,7 @@ public abstract class Type {
 		public interface Encoder {
 			Class<?> getInputType();
 			PrimitiveType getOutputPrimitiveType();
-			void encode(Type tyoe, ChannelBuffer buffer, Object value, Context context) throws IOException;
+			void encode(Type tyoe, Object buffer, Object value, Context context) throws IOException;
 		}
 
 		public Decoder decoder;
@@ -244,12 +242,12 @@ public abstract class Type {
 		Codec codec;
 		
 		codec = getBinaryCodec();
-		if(codec != null && codec.decoder.getInputPrimitiveType() != null) {
+		if(codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
 			return codec.decoder.getInputPrimitiveType();
 		}
 		
 		codec = getTextCodec();
-		if(codec != null && codec.decoder.getInputPrimitiveType() != null) {
+		if(codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
 			return codec.decoder.getInputPrimitiveType();
 		}
 		
@@ -260,42 +258,42 @@ public abstract class Type {
 		Codec codec;
 		
 		codec = getBinaryCodec();
-		if(codec != null) {
+		if(codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
 			return codec.decoder.getOutputType();
 		}
 		
 		codec = getTextCodec();
-		if(codec != null) {
+		if(codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
 			return codec.decoder.getOutputType();
 		}
 		
-		return null;
+		return String.class;
 	}
 	
 	public Format getParameterFormat() {
 		
 		Codec binCodec = getBinaryCodec();
-		if(binCodec.encoder != null)
+		if(binCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
 			return Format.Binary;
 		
 		Codec txtCodec = getTextCodec();
-		if(txtCodec.encoder != null)
+		if(txtCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
 			return Format.Text;
 		
-		return null;
+		return Format.Text;
 	}
 	
 	public Format getResultFormat() {
 		
 		Codec binCodec = getBinaryCodec();
-		if(binCodec.decoder != null)
+		if(binCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
 			return Format.Binary;
 		
 		Codec txtCodec = getTextCodec();
-		if(txtCodec.decoder != null)
+		if(txtCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
 			return Format.Text;
 		
-		return null;
+		return Format.Text;
 	}
 	
 	/**
@@ -318,8 +316,8 @@ public abstract class Type {
 		arrayTypeId = source.arrayTypeId;
 		relationId = source.relationId;
 		codecs = new Codec[] {
-				registry.loadCodec(source.inputId, source.outputId, true),
-				registry.loadCodec(source.receiveId, source.sendId, false),
+				registry.loadCodec(source.inputId, source.outputId, Format.Text),
+				registry.loadCodec(source.receiveId, source.sendId, Format.Binary),
 		};
 		modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);		
 	}

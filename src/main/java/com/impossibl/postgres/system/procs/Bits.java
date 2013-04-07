@@ -19,7 +19,7 @@ public class Bits extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "bit_", "varbit_");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Bits;
@@ -54,7 +54,7 @@ public class Bits extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return BitSet.class;

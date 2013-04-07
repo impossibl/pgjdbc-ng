@@ -25,7 +25,7 @@ public class Numerics extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "numeric_");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Numeric;
@@ -77,7 +77,7 @@ public class Numerics extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return BigDecimal.class;

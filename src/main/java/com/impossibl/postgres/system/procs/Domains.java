@@ -8,7 +8,6 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.Type.Codec;
 
 public class Domains extends SimpleProcProvider {
 	
@@ -16,7 +15,7 @@ public class Domains extends SimpleProcProvider {
 		super(new BinEncoder(), null, null, null, "domain_");
 	}
 	
-	public static class BinEncoder implements Codec.Encoder {
+	public static class BinEncoder extends BinaryEncoder {
 
 		@Override
 		public Class<?> getInputType() {
@@ -39,7 +38,7 @@ public class Domains extends SimpleProcProvider {
 		
 	}
 
-	public static class TxtEncoder implements Codec.Encoder {
+	public static class TxtEncoder extends TextEncoder {
 
 		@Override
 		public Class<?> getInputType() {
@@ -52,7 +51,7 @@ public class Domains extends SimpleProcProvider {
 		}
 
 		@Override
-		public void encode(Type type, ChannelBuffer buffer, Object value, Context context) throws IOException {
+		public void encode(Type type, StringBuilder buffer, Object value, Context context) throws IOException {
 
 			DomainType domainType = (DomainType) type;
 			Type baseType = domainType.getBase();

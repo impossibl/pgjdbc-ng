@@ -21,7 +21,7 @@ public class Ranges extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "range_");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Range;
@@ -63,7 +63,7 @@ public class Ranges extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Range.class;

@@ -18,7 +18,7 @@ public class Bools extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "bool");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Bool;
@@ -43,7 +43,7 @@ public class Bools extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Boolean.class;
