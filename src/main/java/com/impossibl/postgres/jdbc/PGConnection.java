@@ -780,7 +780,7 @@ class PGConnection extends BasicContext implements Connection {
 	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
 		checkClosed();
 		
-		Type type = getRegistry().loadType("_" + typeName);
+		Type type = getRegistry().loadType(typeName + "[]");
 		if(type == null) {
 			throw new SQLException("Array type not found");
 		}
