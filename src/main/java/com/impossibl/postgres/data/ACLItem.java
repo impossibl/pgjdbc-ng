@@ -1,4 +1,4 @@
-package com.impossibl.postgres.system.tables;
+package com.impossibl.postgres.data;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 

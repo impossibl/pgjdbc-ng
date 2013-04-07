@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
+import com.impossibl.postgres.data.ACLItem;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.tables.ACLItem;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -1289,7 +1289,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 		
 		sql.append(
 				"SELECT" + 
-				"	n.nspname,c.relname,r.rolname,c.relacl::text[],a.attacl::text[],a.attname " +
+				"	n.nspname,c.relname,r.rolname,c.relacl,a.attacl,a.attname " +
 				"FROM" +
 				"	pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
 				"WHERE " +
@@ -1333,8 +1333,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 				String owner = rs.getString("rolname");
 				
 				Map<String, Map<String, List<String[]>>> privileges = new HashMap<>();
-				mapACLPrivileges(owner, rs.getObject("relacl", String[].class), privileges);
-				mapACLPrivileges(owner, rs.getObject("attacl", String[].class), privileges);
+				mapACLPrivileges(owner, rs.getObject("relacl", ACLItem[].class), privileges);
+				mapACLPrivileges(owner, rs.getObject("attacl", ACLItem[].class), privileges);
 				
 				//Gather list privelege names 
 				String[] privNames = new String[privileges.size()];
@@ -1445,7 +1445,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 				String owner = rs.getString("rolname");
 				
 				Map<String, Map<String, List<String[]>>> privileges = new HashMap<>();
-				mapACLPrivileges(owner, rs.getObject("relacl", String[].class), privileges);
+				mapACLPrivileges(owner, rs.getObject("relacl", ACLItem[].class), privileges);
 
 				String privNames[] = new String[privileges.size()];
 				Iterator<String> e = privileges.keySet().iterator();
@@ -1500,18 +1500,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 		return createResultSet(Arrays.asList(fields), results);
 	}
 
-	private void mapACLPrivileges(String owner, String[] aclItems, Map<String,Map<String,List<String[]>>> privileges) {
+	private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String,Map<String,List<String[]>>> privileges) {
 		
 		if(aclItems == null) {
 			//Null is shortcut for owner having full privileges
 			ACLItem fullPrivs = new ACLItem(owner, "arwdDxt", owner);
-			aclItems = new String[] {fullPrivs.toString()};
+			aclItems = new ACLItem[] {fullPrivs};
 		}
 
-		for(String aclItemStr : aclItems) {
+		for(ACLItem aclItem : aclItems) {
 			
-			ACLItem aclItem = ACLItem.parse(aclItemStr);
-		
 			for(int i = 0; i < aclItem.privileges.length(); i++) {
 				
 				char c = aclItem.privileges.charAt(i);

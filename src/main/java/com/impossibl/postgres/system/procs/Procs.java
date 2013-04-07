@@ -41,6 +41,7 @@ public class Procs {
 		new Moneys(),
 		new Arrays(),
 		new Records(),
+		new ACLItems(),
 	};
 	
 	public static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
