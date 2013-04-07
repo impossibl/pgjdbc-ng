@@ -172,7 +172,9 @@ public class Arrays extends SimpleProcProvider {
 				Object dim = val;
 				for(int d=0; d < dimensionCount; ++d) {
 					
-					int dimension = Array.getLength(dim);
+					int dimension = 0;
+					if(dim != null)
+						dimension = Array.getLength(dim);
 					
 					//Dimension
 					buffer.writeInt(dimension);
@@ -180,6 +182,9 @@ public class Arrays extends SimpleProcProvider {
 					//Lower bounds
 					buffer.writeInt(0);
 
+					if(dimension == 0)
+						dim = null;
+					else if(dim != null)
 						dim = Array.get(dim, 0);
 				}
 				
@@ -236,9 +241,12 @@ public class Arrays extends SimpleProcProvider {
 
 		boolean hasNulls(Object value) {
 			
-			return java.util.Arrays.asList((Object[])value).contains(null);
+			for(int c=0, sz = Array.getLength(value); c < sz; ++c) {
+				if(Array.get(value, c) == null)
+					return true;
 			}
 			
+			return false;
 		}
 
 	}
