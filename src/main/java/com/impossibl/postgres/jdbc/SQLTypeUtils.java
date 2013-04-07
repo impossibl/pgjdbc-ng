@@ -655,7 +655,7 @@ class SQLTypeUtils {
 					dst = Arrays.copyOfRange((Object[]) val, index, index + count);
 				}
 			}
-			else if(elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
+			else if(Array.get(val, 0) != null && elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
 
 				dst = Array.newInstance(targetType.getComponentType(), count);
 
