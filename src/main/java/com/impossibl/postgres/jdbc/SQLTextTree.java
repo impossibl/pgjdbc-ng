@@ -123,11 +123,16 @@ public class SQLTextTree {
 			//Process each child node...
 			ListIterator<Node> nodeIter = nodes.listIterator();
 			while(nodeIter.hasNext()) {
-				Node res = processor.process(nodeIter.next());
+				
+				Node res;
+				if(recurse) {
+					res = nodeIter.next().process(processor, recurse);
+				}
+				else {
+					res = processor.process(nodeIter.next());					
+				}
+				
 				if(res != null) {
-					if(recurse) {
-						res.process(processor, recurse);
-					}
 					nodeIter.set(res);
 				}
 				else {
