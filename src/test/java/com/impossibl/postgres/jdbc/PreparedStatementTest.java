@@ -297,28 +297,31 @@ public class PreparedStatementTest extends TestCase {
 		assertFalse(rs.next());
 		st.close();
 
-		st = conn.prepareStatement("SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;" + "SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;" + "SELECT ?");
+		st = conn.prepareStatement("SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;");
 		st.setString(1, ";");
-		st.setString(2, ";");
-		st.setString(3, "$a$ $a$");
-
 		assertTrue(st.execute());
 		rs = st.getResultSet();
 		assertTrue(rs.next());
 		assertEquals(";", rs.getString(1));
-		assertFalse(rs.next());
-
-		assertTrue(st.getMoreResults());
+		assertFalse(rs.next());		
+		
+		st = conn.prepareStatement("SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;");
+		st.setString(1, ";");
+		assertTrue(st.execute());
 		rs = st.getResultSet();
 		assertTrue(rs.next());
 		assertEquals("$a$;$x $a$", rs.getString(1));
 		assertFalse(rs.next());
-
-		assertTrue(st.getMoreResults());
+		
+		st = conn.prepareStatement("SELECT ?::text");
+		st.setString(1, "$a$ $a$");
+		assertTrue(st.execute());
 		rs = st.getResultSet();
 		assertTrue(rs.next());
 		assertEquals("$a$ $a$", rs.getString(1));
+		
 		assertFalse(rs.next());
+		
 		st.close();
 	}
 
@@ -341,23 +344,23 @@ public class PreparedStatementTest extends TestCase {
 	}
 
 	public void testComments() throws SQLException {
-		PreparedStatement st;
+		Statement st;
+		PreparedStatement pst;
 		ResultSet rs;
 
-		st = conn.prepareStatement("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT ?;--SELECT ?");
-		st.setString(1, "a");
-		assertTrue(st.execute());
+		st = conn.createStatement();
+		assertTrue(st.execute("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT 1;--SELECT 1"));
 		assertTrue(st.getMoreResults());
 		assertFalse(st.getMoreResults());
 		st.close();
 
-		st = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
-		st.setString(1, "?");
-		rs = st.executeQuery();
+		pst = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
+		pst.setString(1, "?");
+		rs = pst.executeQuery();
 		assertTrue(rs.next());
 		assertEquals("?", rs.getString(1));
 		assertFalse(rs.next());
-		st.close();
+		pst.close();
 	}
 
 	public void testDouble() throws SQLException {

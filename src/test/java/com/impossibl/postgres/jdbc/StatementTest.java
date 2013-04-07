@@ -99,12 +99,7 @@ public class StatementTest extends TestCase {
 	public void testEmptyQuery() throws SQLException {
 		Statement stmt = con.createStatement();
 		stmt.execute("");
-		try {
-			assertNull(stmt.getResultSet());
-			fail("Should have thrown an error.");
-		}
-		catch(SQLException e) {
-		}
+		assertNull(stmt.getResultSet());
 	}
 
 	public void testUpdateCount() throws SQLException {
