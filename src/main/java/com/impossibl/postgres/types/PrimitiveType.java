@@ -23,5 +23,6 @@ public enum PrimitiveType {
 	Array,
 	Record,
 	Range,
+	ACLItem,
 	Unknown
 }

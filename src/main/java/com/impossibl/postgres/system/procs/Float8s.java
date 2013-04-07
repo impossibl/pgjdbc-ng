@@ -18,7 +18,7 @@ public class Float8s extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "float8");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Double;
@@ -43,7 +43,7 @@ public class Float8s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Double.class;

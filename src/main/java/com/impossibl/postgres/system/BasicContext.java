@@ -1,5 +1,6 @@
 package com.impossibl.postgres.system;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
@@ -8,6 +9,7 @@ import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.logging.Level.WARNING;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -33,6 +35,7 @@ import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -53,6 +56,12 @@ public class BasicContext implements Context {
 		int secretKey;
 	}
 	
+	public static class PreparedQuery {
+		String name;
+		List<Type> parameterTypes;
+		List<ResultField> resultFields;
+	}
+	
 	
 	protected Registry registry;
 	protected Map<String, Class<?>> targetTypeMap;
@@ -66,6 +75,7 @@ public class BasicContext implements Context {
 	protected KeyData keyData;
 	protected Protocol protocol;
 	protected Set<WeakReference<NotificationListener>> notificationListeners;
+	protected PreparedQuery[] refreshQueries;
 	
 	
 	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
@@ -164,101 +174,13 @@ public class BasicContext implements Context {
 		return timestampFormatter;
 	}
 
-	public void refreshType(int typeId) {
-		
-		int latestKnownTypeId = registry.getLatestKnownTypeId();
-		if(latestKnownTypeId >= typeId) {
-			//Refresh this specific type
-			refreshSpecificType(typeId);
-		}
-		else {
-			//Load all new types we haven't seent
-			refreshTypes(latestKnownTypeId);
-		}
-		
-	}
-
-	void refreshSpecificType(int typeId) {
-		
-		try {
-			
-			//Load types
-			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1";
-			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, typeId);
-			
-			if(pgTypes.isEmpty()) {
-				return;
-			}
-				
-			//Load attributes
-			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
-			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, pgTypes.get(0).relationId);
-			
-			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
-		}
-		catch(IOException | NoticeException e) {
-			//Ignore errors
-		}
-		
-	}
-	
-	void refreshTypes(int latestTypeId) {
-		
-		try {
-			
-			//Load types
-			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1";
-			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, latestTypeId);
-			
-			if(pgTypes.isEmpty()) {
-				return;
-			}
-			
-			Integer[] typeIds = new Integer[pgTypes.size()];
-			for(int c=0; c < pgTypes.size(); ++c)
-				typeIds[c] = pgTypes.get(c).relationId;
-				
-			//Load attributes
-			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )";
-			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, (Object)typeIds);
-			
-			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
-		}
-		catch(IOException | NoticeException e) {
-			//Ignore errors
-		}
-		
-	}
-	
-	public void refreshRelationType(int relationId) {
-
-		try {
-			
-			//Load types
-			String typeSQL = PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1";
-			List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class, relationId);
-			
-			if(pgTypes.isEmpty()) {
-				return;
-			}
-				
-			//Load attributes
-			String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
-			List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class, relationId);
-			
-			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
-		}
-		catch(IOException | NoticeException e) {
-			//Ignore errors
-		}
-		
-	}
-	
-	public void init() throws IOException, NoticeException {
+	protected void init() throws IOException, NoticeException {
 		
 		start();
 			
 		loadTypes();
+		
+		prepareRefreshTypeQueries();
 	}
 
 	private void loadTypes() throws IOException, NoticeException {
@@ -304,6 +226,129 @@ public class BasicContext implements Context {
 		}
 	}
 	
+	private void prepareRefreshTypeQueries() throws IOException {
+		
+		refreshQueries = new PreparedQuery[5];
+		
+		String sql0 = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1";
+		List<Type> params0 = Collections.<Type>emptyList();		
+		refreshQueries[0] = prepareQuery(sql0, "refresh-type", params0);
+		
+		String sql1 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
+		List<Type> params1 = newArrayList(registry.loadType("int4"));
+		refreshQueries[1] = prepareQuery(sql1, "refresh-type-attrs", params1);
+
+		String sql2 = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1";
+		List<Type> params2 = newArrayList(registry.loadType("int4"));
+		refreshQueries[2] = prepareQuery(sql2, "refresh-types", params2);
+
+		String sql3 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )";
+		List<Type> params3 = newArrayList(registry.loadType("int4[]"));
+		refreshQueries[3] = prepareQuery(sql3, "refresh-types-attrs", params3);
+		
+		String sql4 = PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1";
+		List<Type> params4 = Collections.<Type>emptyList();		
+		refreshQueries[4] = prepareQuery(sql4, "refresh-reltype", params4);
+		
+	}
+	
+	private PreparedQuery prepareQuery(String sql, String name, List<Type> parameterTypes) throws IOException {
+		
+		PrepareCommand prep = protocol.createPrepare(name, sql, parameterTypes);
+		protocol.execute(prep);
+		
+		PreparedQuery pq = new PreparedQuery();
+		pq.name = name;
+		pq.parameterTypes = prep.getDescribedParameterTypes();
+		pq.resultFields = prep.getDescribedResultFields();
+		
+		return pq;
+	}
+	
+	public void refreshType(int typeId) {
+		
+		int latestKnownTypeId = registry.getLatestKnownTypeId();
+		if(latestKnownTypeId >= typeId) {
+			//Refresh this specific type
+			refreshSpecificType(typeId);
+		}
+		else {
+			//Load all new types we haven't seent
+			refreshTypes(latestKnownTypeId);
+		}
+		
+	}
+
+	void refreshSpecificType(int typeId) {
+		
+		try {
+			
+			//Load types
+			List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[0], PgType.Row.class, typeId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+				
+			//Load attributes
+			List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[1], PgAttribute.Row.class, pgTypes.get(0).relationId);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			//Ignore errors
+		}
+		
+	}
+	
+	void refreshTypes(int latestTypeId) {
+		
+		try {
+			
+			//Load types
+			List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[2], PgType.Row.class, latestTypeId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+			
+			Integer[] typeIds = new Integer[pgTypes.size()];
+			for(int c=0; c < pgTypes.size(); ++c)
+				typeIds[c] = pgTypes.get(c).relationId;
+				
+			//Load attributes
+			List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[3], PgAttribute.Row.class, (Object)typeIds);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			logger.log(WARNING, "Error refreshing types", e);
+		}
+		
+	}
+	
+	public void refreshRelationType(int relationId) {
+
+		try {
+			
+			//Load types
+			List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[4], PgType.Row.class, relationId);
+			
+			if(pgTypes.isEmpty()) {
+				return;
+			}
+				
+			//Load attributes
+			List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[1], PgAttribute.Row.class, relationId);
+			
+			registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+		}
+		catch(IOException | NoticeException e) {
+			//Ignore errors
+		}
+		
+	}
+	
 	protected <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
 		PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
@@ -314,7 +359,17 @@ public class BasicContext implements Context {
 			throw new NoticeException("Error preparing query", prepare.getError());
 		}
 		
-		BindExecCommand query = protocol.createBindExec(null, null, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields(), rowType);
+		return execPreparedQuery(null, null, rowType, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields());
+	}
+	
+	protected <T> List<T> execPreparedQuery(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
+		
+		return execPreparedQuery(pq.name, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+	}
+	
+	protected <T> List<T> execPreparedQuery(String portalName, String statementName, Class<T> rowType, List<Type> paramTypes, List<Object> paramValues, List<ResultField> resultFields) throws IOException, NoticeException {
+		
+		BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
 		
 		protocol.execute(query);
 		

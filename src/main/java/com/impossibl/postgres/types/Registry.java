@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -40,6 +41,8 @@ public class Registry {
 
 	private Context context;
 	private ReadWriteLock lock = new ReentrantReadWriteLock();
+	
+	private Map<String, String> typeNameAliases;
 
 	public Registry(Context context) {
 		
@@ -73,6 +76,17 @@ public class Registry {
 
 		relIdMap = new TreeMap<>();
 		nameMap = new HashMap<>();
+		
+		typeNameAliases = new HashMap<>();
+		typeNameAliases.put("smallint", "int2");
+		typeNameAliases.put("integer", "int4");
+		typeNameAliases.put("bigint", "int8");
+		typeNameAliases.put("decimal", "numeric");
+		typeNameAliases.put("real", "float4");
+		typeNameAliases.put("double precision", "float8");
+		typeNameAliases.put("smallserial", "int2");
+		typeNameAliases.put("serial", "int4");
+		typeNameAliases.put("bigserial", "int8");
 	}
 
 	/**
@@ -129,14 +143,34 @@ public class Registry {
 	 */
 	public Type loadType(String name) {
 		
+		boolean isArray = false;
+		if(name .endsWith("[]")) {
+			isArray = true;
+			name = name.substring(0, name.length()-2);
+		}
+		
+		
+		String alias = typeNameAliases.get(name);
+		if(alias != null) {
+			name = alias;
+		}
+		
+
+		Type res;
+		
 		lock.readLock().lock();
 		try {
-			return nameMap.get(name);
+			res = nameMap.get(name);
 		}
 		finally {
 			lock.readLock().unlock();
 		}
 		
+		if(isArray) {
+			res = loadType(res.getArrayTypeId());
+		}
+		
+		return res;
 	}
 
 	/**
@@ -462,37 +496,38 @@ public class Registry {
 	 * @param decoderId proc-id of the decoder
 	 * @return A matching Codec instance
 	 */
-	public Codec loadCodec(int encoderId, int decoderId) {
+	public Codec loadCodec(int encoderId, int decoderId, Format format) {
+		
 		Codec io = new Codec();
-		io.decoder = loadDecoderProc(decoderId);
-		io.encoder = loadEncoderProc(encoderId);
+		io.decoder = loadDecoderProc(decoderId, Procs.DEFAULT_DECODERS[format.ordinal()]);
+		io.encoder = loadEncoderProc(encoderId, Procs.DEFAULT_ENCODERS[format.ordinal()]);
 		return io;
 	}
 
 	/*
 	 * Loads a matching encoder given its proc-id
 	 */
-	private Codec.Encoder loadEncoderProc(int procId) {
+	private Codec.Encoder loadEncoderProc(int procId, Codec.Encoder defaultEncoder) {
 
 		String name = lookupProcName(procId);
 		if(name == null) {
-			name = ""; //get the default proc
+			return defaultEncoder;
 		}
 
-		return Procs.loadEncoderProc(name, context);
+		return Procs.loadEncoderProc(name, context, defaultEncoder);
 	}
 
 	/*
 	 * Loads a matching decoder given its proc-id
 	 */
-	private Codec.Decoder loadDecoderProc(int procId) {
+	private Codec.Decoder loadDecoderProc(int procId, Codec.Decoder defaultDecoder) {
 
 		String name = lookupProcName(procId);
 		if(name == null) {
-			name = ""; //get the default proc
+			return defaultDecoder;
 		}
 
-		return Procs.loadDecoderProc(name, context);
+		return Procs.loadDecoderProc(name, context, defaultDecoder);
 	}
 
 	/*

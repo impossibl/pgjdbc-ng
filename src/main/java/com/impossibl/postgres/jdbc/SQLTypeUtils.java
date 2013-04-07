@@ -68,6 +68,9 @@ class SQLTypeUtils {
 
 	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
 
+		if(val == null) {
+			return null;
+		}
 		if(targetType.isInstance(val)) {
 			return val;
 		}
@@ -580,6 +583,9 @@ class SQLTypeUtils {
 		else if(val instanceof byte[]) {
 			return (byte[]) val;
 		}
+		else if(val instanceof String) {
+			return ((String)val).getBytes(context.getCharset());
+		}
 		else if(val instanceof PGSQLXML) {
 			return ((PGSQLXML) val).getData();
 		}
@@ -655,7 +661,7 @@ class SQLTypeUtils {
 					dst = Arrays.copyOfRange((Object[]) val, index, index + count);
 				}
 			}
-			else if(elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
+			else if(Array.get(val, 0) != null && elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
 
 				dst = Array.newInstance(targetType.getComponentType(), count);
 

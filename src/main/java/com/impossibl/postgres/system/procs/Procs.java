@@ -3,12 +3,18 @@ package com.impossibl.postgres.system.procs;
 import static com.impossibl.postgres.types.PrimitiveType.Timestamp;
 import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
+import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 
 
 public class Procs {
+		
+	
+	public static final Type.Codec.Decoder[] defaultDecoders = { Strings.BINARY_DECODER, Bytes.BINARY_DECODER };
+	
 	
 	private static ProcProvider[] PROVIDERS = {
 		new Bools(),
@@ -35,25 +41,29 @@ public class Procs {
 		new Moneys(),
 		new Arrays(),
 		new Records(),
+		new ACLItems(),
 	};
 	
-	private static final Unsupporteds UNSUPPORTEDS = new Unsupporteds(); 
+	public static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
+	public static final Type.Codec.Encoder[] DEFAULT_ENCODERS = { new Unknowns.TxtEncoder(), new Unknowns.BinEncoder() };
+	public static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
+	
 
 	public static Codec loadNamedTextCodec(String baseName, Context context) {
 		Codec codec = new Codec();
-		codec.encoder = loadEncoderProc(baseName + "in", context);
-		codec.decoder = loadDecoderProc(baseName + "out", context);
+		codec.encoder = loadEncoderProc(baseName + "in", 	context, DEFAULT_ENCODERS[Format.Text.ordinal()]);
+		codec.decoder = loadDecoderProc(baseName + "out", context, DEFAULT_DECODERS[Format.Text.ordinal()]);
 		return codec;
 	}
 
 	public static Codec loadNamedBinaryCodec(String baseName, Context context) {
 		Codec codec = new Codec();
-		codec.encoder = loadEncoderProc(baseName + "recv", context);
-		codec.decoder = loadDecoderProc(baseName + "send", context);
+		codec.encoder = loadEncoderProc(baseName + "recv", context, DEFAULT_ENCODERS[Format.Binary.ordinal()]);
+		codec.decoder = loadDecoderProc(baseName + "send", context, DEFAULT_DECODERS[Format.Binary.ordinal()]);
 		return codec;
 	}
 
-	public static Codec.Encoder loadEncoderProc(String name, Context context) {
+	public static Codec.Encoder loadEncoderProc(String name, Context context, Type.Codec.Encoder defaultEncoder) {
 		
 		if(!name.isEmpty()) {
 			Codec.Encoder h;
@@ -64,10 +74,10 @@ public class Procs {
 			}
 		}
 
-		return UNSUPPORTEDS.findEncoder(name, context);
+		return defaultEncoder;
 	}
 
-	public static Codec.Decoder loadDecoderProc(String name, Context context) {
+	public static Codec.Decoder loadDecoderProc(String name, Context context, Type.Codec.Decoder defaultDecoder) {
 		
 		if(!name.isEmpty()) {
 			Codec.Decoder h;
@@ -78,7 +88,7 @@ public class Procs {
 			}
 		}
 
-		return UNSUPPORTEDS.findDecoder(name, context);
+		return defaultDecoder;
 	}
 
 	public static Modifiers.Parser loadModifierParserProc(String name, Context context) {
@@ -92,7 +102,7 @@ public class Procs {
 			}
 		}
 
-		return UNSUPPORTEDS.findModifierParser(name, context);
+		return DEFAULT_MOD_PARSER;
 	}
 
 }

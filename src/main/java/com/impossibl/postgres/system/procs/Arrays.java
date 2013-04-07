@@ -4,10 +4,13 @@ import static java.lang.reflect.Array.newInstance;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -21,10 +24,10 @@ import com.impossibl.postgres.types.Type;
 public class Arrays extends SimpleProcProvider {
 
 	public Arrays() {
-		super(null, null, new Encoder(), new Decoder(), "array_", "anyarray_", "oidvector", "intvector");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "array_", "anyarray_", "oidvector", "intvector");
 	}
 	
-	static class Decoder implements Type.Codec.Decoder {
+	static class BinDecoder extends BinaryDecoder {
 		
 		public PrimitiveType getInputPrimitiveType() {
 			return PrimitiveType.Array;
@@ -132,7 +135,7 @@ public class Arrays extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Object[].class;
@@ -169,7 +172,9 @@ public class Arrays extends SimpleProcProvider {
 				Object dim = val;
 				for(int d=0; d < dimensionCount; ++d) {
 					
-					int dimension = Array.getLength(dim);
+					int dimension = 0;
+					if(dim != null)
+						dimension = Array.getLength(dim);
 					
 					//Dimension
 					buffer.writeInt(dimension);
@@ -177,7 +182,10 @@ public class Arrays extends SimpleProcProvider {
 					//Lower bounds
 					buffer.writeInt(0);
 
-					dim = Array.get(dim, 0);
+					if(dimension == 0)
+						dim = null;
+					else if(dim != null)
+						dim = Array.get(dim, 0);
 				}
 				
 				//
@@ -233,7 +241,123 @@ public class Arrays extends SimpleProcProvider {
 
 		boolean hasNulls(Object value) {
 			
-			return java.util.Arrays.asList((Object[])value).contains(null);
+			for(int c=0, sz = Array.getLength(value); c < sz; ++c) {
+				if(Array.get(value, c) == null)
+					return true;
+			}
+			
+			return false;
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+		
+		public PrimitiveType getInputPrimitiveType() {
+			return PrimitiveType.Array;
+		}
+		
+		public Class<?> getOutputType() {
+			return Object[].class;
+		}
+
+		public Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			int length = buffer.length();
+			
+			Object instance = null;
+			
+			if(length != 0) {
+				
+				ArrayType atype = ((ArrayType)type);
+
+				instance = readArray(buffer, atype.getDelimeter(), type.unwrap(), context);
+			}
+			
+			return instance;
+		}
+		
+		Object readArray(CharSequence data, char delim, Type type, Context context) throws IOException {
+			
+			if(data.length() < 2 || (data.charAt(0) != '{' && data.charAt(data.length()-1) != '}')) {
+				return type.getCodec(Format.Text).decoder.decode(type, data, context);
+			}
+			
+			data = data.subSequence(1, data.length()-1);
+			
+			List<Object> elements = new ArrayList<>();
+			StringBuilder elementTxt = new StringBuilder();
+			
+			boolean string = false;
+			int opened = 0;
+			int c;
+			for(c=0; c < data.length(); ++c) {
+				
+				char ch = data.charAt(c);
+				switch(ch) {
+				case '{':
+					if(!string)
+						opened++;
+					else
+						elementTxt.append(ch);
+					break;
+					
+				case '}':
+					if(!string)
+						opened--;
+					else
+						elementTxt.append(ch);
+					break;
+					
+				case '"':
+					string = !string;
+					break;
+					
+				case '\\':
+					++c;
+					if(c < data.length())
+						elementTxt.append(data.charAt(c));
+					break;
+					
+				default:
+					
+					if(ch == delim && opened == 0 && !string) {
+						
+						Object element = readArray(elementTxt.toString(), delim, type, context);
+						
+						elements.add(element);
+						
+						elementTxt = new StringBuilder();
+					}
+					else {
+						
+						elementTxt.append(ch);
+					}
+					
+				}
+				
+			}
+				
+			Object finalElement = readArray(elementTxt.toString(), delim, type, context);
+			elements.add(finalElement);
+			
+			return elements.toArray();
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Object[].class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return PrimitiveType.Array;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
 		}
 
 	}

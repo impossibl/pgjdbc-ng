@@ -22,7 +22,7 @@ public class Records extends SimpleProcProvider {
 		super(null, null, new Encoder(), new Decoder(), "record_");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class Decoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Record;
@@ -76,7 +76,7 @@ public class Records extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class Encoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Record.class;

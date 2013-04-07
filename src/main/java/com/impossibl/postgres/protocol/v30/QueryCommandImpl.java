@@ -12,10 +12,7 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.procs.Strings;
-import com.impossibl.postgres.system.procs.Unsupporteds;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.Type.Codec;
 
 
 
@@ -53,22 +50,10 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 				ResultField field = resultBatch.fields.get(c);
 
 				Type fieldType = field.getType();
-				Object fieldVal = null;
-
-				switch (field.format) {
-				case Text:
-					Codec codec = fieldType.getTextCodec();
-					if(codec.decoder instanceof Unsupporteds.Decoder) {
-						fieldVal = Strings.DECODER.decode(fieldType, buffer, context);
-					}
-					else {
-						fieldVal = codec.decoder.decode(fieldType, buffer, context);
-					}
-					break;
-
-				default:
-					throw new IOException("simple queries only support text format");
-				}
+				
+				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
+				
+				Object fieldVal = decoder.decode(fieldType, buffer, context);
 
 				rowInstance[c] = fieldVal;
 			}

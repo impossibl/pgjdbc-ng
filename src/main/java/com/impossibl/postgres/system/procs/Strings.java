@@ -19,14 +19,14 @@ import com.impossibl.postgres.types.Type;
 
 public class Strings extends SimpleProcProvider {
 	
-	public static final Decoder DECODER = new Decoder();
-	public static final Decoder ENCODER = new Decoder();
+	public static final BinDecoder BINARY_DECODER = new BinDecoder();
+	public static final BinDecoder BINARY_ENCODER = new BinDecoder();
 
 	public Strings() {
-		super(new Encoder(), new Decoder(), new Encoder(), new Decoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "unknown");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "unknown");
 	}
 	
-	public static class Decoder implements Type.Codec.Decoder {
+	public static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return String;
@@ -61,7 +61,7 @@ public class Strings extends SimpleProcProvider {
 
 	}
 
-	public static class Encoder implements Type.Codec.Encoder {
+	public static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return String.class;
@@ -86,6 +86,40 @@ public class Strings extends SimpleProcProvider {
 				buffer.writeBytes(bytes);
 			}
 			
+		}
+
+	}
+
+	public static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return String;
+		}
+		
+		public Class<?> getOutputType() {
+			return String.class;
+		}
+
+		public String decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			return buffer.toString();
+		}
+
+	}
+
+	public static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return String.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return String;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+			buffer.append((String)val);
 		}
 
 	}

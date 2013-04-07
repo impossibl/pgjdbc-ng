@@ -39,7 +39,7 @@ public class Timestamps extends SettingSelectProcProvider {
 		this.matchedBinDecoder = new BinIntegerDecoder();
 	}
 
-	class BinIntegerDecoder implements Type.Codec.Decoder {
+	class BinIntegerDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return primitiveType;
@@ -78,7 +78,7 @@ public class Timestamps extends SettingSelectProcProvider {
 
 	}
 
-	class BinIntegerEncoder implements Type.Codec.Encoder {
+	class BinIntegerEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Instant.class;

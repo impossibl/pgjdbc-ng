@@ -92,7 +92,7 @@ public class PGArray implements Array {
 	@Override
 	public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
-		if(index < 1 || index > value.length || (index + count) > (value.length + 1)) {
+		if(index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
 			 throw new SQLException("Invalid array slice");
 		}
 

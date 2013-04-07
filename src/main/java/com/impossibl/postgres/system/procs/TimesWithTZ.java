@@ -28,7 +28,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 				"timetz_");
 	}
 
-	static class BinIntegerDecoder implements Type.Codec.Decoder {
+	static class BinIntegerDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return TimeTZ;
@@ -59,7 +59,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
 	}
 
-	static class BinIntegerEncoder implements Type.Codec.Encoder {
+	static class BinIntegerEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Instant.class;

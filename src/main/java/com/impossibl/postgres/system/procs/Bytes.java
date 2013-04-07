@@ -15,12 +15,15 @@ import com.impossibl.postgres.types.Type;
 
 
 public class Bytes extends SimpleProcProvider {
+	
+	public static final BinDecoder BINARY_DECODER = new BinDecoder();
+	public static final BinEncoder BINARY_ENCODER = new BinEncoder();
 
 	public Bytes() {
-		super(null, null, new Encoder(), new Decoder(), "bytea", "xml_");
+		super(null, null, new BinEncoder(), new BinDecoder(), "bytea", "xml_");
 	}
 
-	static class Decoder implements Type.Codec.Decoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Binary;
@@ -55,7 +58,7 @@ public class Bytes extends SimpleProcProvider {
 
 	}
 
-	static class Encoder implements Type.Codec.Encoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return byte[].class;
