@@ -186,7 +186,7 @@ class PGResultSet implements ResultSet {
 	}
 
 	Type getType(int columnIndex) {
-		return resultFields.get(columnIndex-1).getType();
+		return resultFields.get(columnIndex-1).typeRef.get();
 	}
 	
 	@Override

@@ -8,7 +8,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.protocol.TypeRef;
 
 
 
@@ -18,7 +18,7 @@ public interface ProtocolListener {
 
 	void parseComplete() throws IOException;
 
-	void parametersDescription(List<Type> parameterTypes) throws IOException;
+	void parametersDescription(List<TypeRef> parameterTypes) throws IOException;
 
 	void noData() throws IOException;
 

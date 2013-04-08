@@ -30,6 +30,7 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Registry;
@@ -584,12 +585,12 @@ public class ProtocolImpl implements Protocol {
 
 		short paramCount = buffer.readShort();
 
-		Type[] paramTypes = new Type[paramCount];
+		TypeRef[] paramTypes = new TypeRef[paramCount];
 
 		for (int c = 0; c < paramCount; ++c) {
 
 			int paramTypeId = buffer.readInt();
-			paramTypes[c] = context.getRegistry().loadType(paramTypeId);
+			paramTypes[c] = TypeRef.from(paramTypeId, context.getRegistry());
 		}
 
 		logger.finest("PARAM-DESC: " + paramCount);
@@ -611,7 +612,7 @@ public class ProtocolImpl implements Protocol {
 			field.name = readCString(buffer, context.getCharset());
 			field.relationId = buffer.readInt();
 			field.relationAttributeNumber = buffer.readShort();
-			field.typeRef = new ResultField.TypeLocator(buffer.readInt(), registry);
+			field.typeRef = TypeRef.from(buffer.readInt(), registry);
 			field.typeLength = buffer.readShort();
 			field.typeModifier = buffer.readInt();
 			field.format = ResultField.Format.values()[buffer.readShort()];

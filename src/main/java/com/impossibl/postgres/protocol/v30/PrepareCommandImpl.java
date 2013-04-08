@@ -3,6 +3,7 @@ package com.impossibl.postgres.protocol.v30;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,6 +15,7 @@ import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.types.Type;
 
 
@@ -23,7 +25,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 	private String statementName;
 	private String query;
 	private List<Type> parseParameterTypes;
-	private List<Type> describedParameterTypes;
+	private List<TypeRef> describedParameterTypes;
 	private List<ResultField> describedResultFields;
 	private ProtocolListener listener = new BaseProtocolListener() {
 
@@ -37,7 +39,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 		}
 
 		@Override
-		public void parametersDescription(List<Type> parameterTypes) {
+		public void parametersDescription(List<TypeRef> parameterTypes) {
 			PrepareCommandImpl.this.describedParameterTypes = parameterTypes;
 		}
 
@@ -95,7 +97,11 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
 	@Override
 	public List<Type> getDescribedParameterTypes() {
-		return describedParameterTypes;
+		List<Type> types = new ArrayList<>();
+		for(TypeRef typeRef : describedParameterTypes) {
+			types.add(typeRef.get());
+		}
+		return types;
 	}
 
 	@Override

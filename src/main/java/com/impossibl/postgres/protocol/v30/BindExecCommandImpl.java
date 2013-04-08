@@ -71,7 +71,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 				ResultField field = resultBatch.fields.get(c);
 
-				Type fieldType = field.getType();
+				Type fieldType = field.typeRef.get();
 				
 				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 				
@@ -277,7 +277,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		List<Format> resultFieldFormats = new ArrayList<>();
 		
 		for(ResultField resultField : resultFields) {
-			resultField.format = resultField.getType().getResultFormat();
+			resultField.format = resultField.typeRef.get().getResultFormat();
 			resultFieldFormats.add(resultField.format);
 		}
 		

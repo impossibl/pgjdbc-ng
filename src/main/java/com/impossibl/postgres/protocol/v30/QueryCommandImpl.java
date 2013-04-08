@@ -49,7 +49,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
 				ResultField field = resultBatch.fields.get(c);
 
-				Type fieldType = field.getType();
+				Type fieldType = field.typeRef.get();
 				
 				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 				
