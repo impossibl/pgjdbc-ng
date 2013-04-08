@@ -6,6 +6,7 @@ import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +119,17 @@ public class CompositeType extends Type {
 				attributes.add(attr);
 			}
 		
+			Collections.sort(attributes, new Comparator<Attribute>() {
+
+				@Override
+				public int compare(Attribute o1, Attribute o2) {
+					int o1n = o1.number < 0 ? o1.number + Integer.MAX_VALUE : o1.number;
+					int o2n = o2.number < 0 ? o2.number + Integer.MAX_VALUE : o2.number;					
+					return o1n - o2n;
+				}
+
+			});
+			
 		}
 
 	}
