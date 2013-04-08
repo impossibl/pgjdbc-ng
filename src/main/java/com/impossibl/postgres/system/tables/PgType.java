@@ -38,19 +38,25 @@ public class PgType implements Table<PgType.Row> {
 		public String domainDefault;
 
 		@Override
-		public boolean equals(Object val) {
-			if(val == null)
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
 				return false;
-			if(val instanceof Integer)
-				return oid == (Integer) val;
-			if(val instanceof Row)
-				return oid == ((Row) val).oid;
-			return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Row other = (Row) obj;
+			if (oid != other.oid)
+				return false;
+			return true;
 		}
 
 		@Override
 		public int hashCode() {
-			return oid;
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + oid;
+			return result;
 		}
 
 	}

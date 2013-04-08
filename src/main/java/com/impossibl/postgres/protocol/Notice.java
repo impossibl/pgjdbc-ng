@@ -46,16 +46,16 @@ public class Notice {
 	public static final String INTERNAL_ERROR_CLASS							= "XX";
 	
 	
-	public String severity;
-	public String code;
-	public String message;
-	public String detail;
-	public String hint;
-	public String position;
-	public String where;
-	public String routine;
-	public String file;
-	public String line;
+	private String severity;
+	private String code;
+	private String message;
+	private String detail;
+	private String hint;
+	private String position;
+	private String where;
+	private String routine;
+	private String file;
+	private String line;
 	
 	
 	public Notice() {
@@ -78,6 +78,86 @@ public class Notice {
 	
 	public boolean isError() {
 		return code != null && !isSuccess() && !isWarning();
+	}
+
+	public String getSeverity() {
+		return severity;
+	}
+
+	public void setSeverity(String severity) {
+		this.severity = severity;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public String getDetail() {
+		return detail;
+	}
+
+	public void setDetail(String detail) {
+		this.detail = detail;
+	}
+
+	public String getHint() {
+		return hint;
+	}
+
+	public void setHint(String hint) {
+		this.hint = hint;
+	}
+
+	public String getPosition() {
+		return position;
+	}
+
+	public void setPosition(String position) {
+		this.position = position;
+	}
+
+	public String getWhere() {
+		return where;
+	}
+
+	public void setWhere(String where) {
+		this.where = where;
+	}
+
+	public String getRoutine() {
+		return routine;
+	}
+
+	public void setRoutine(String routine) {
+		this.routine = routine;
+	}
+
+	public String getFile() {
+		return file;
+	}
+
+	public void setFile(String file) {
+		this.file = file;
+	}
+
+	public String getLine() {
+		return line;
+	}
+
+	public void setLine(String line) {
+		this.line = line;
 	}
 	
 }
