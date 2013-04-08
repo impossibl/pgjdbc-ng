@@ -45,9 +45,21 @@ public class Procs {
 		new ACLItems(),
 	};
 	
-	public static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
-	public static final Type.Codec.Encoder[] DEFAULT_ENCODERS = { new Unknowns.TxtEncoder(), new Unknowns.BinEncoder() };
-	public static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
+	private static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
+	private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = { new Unknowns.TxtEncoder(), new Unknowns.BinEncoder() };
+	private static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
+	
+	public static Type.Codec.Decoder getDefaultDecoder(Format format) {
+		return DEFAULT_DECODERS[format.ordinal()];
+	}
+	
+	public static Type.Codec.Encoder getDefaultEncoder(Format format) {
+		return DEFAULT_ENCODERS[format.ordinal()];
+	}
+	
+	public static Modifiers.Parser getDefaultModParser() {
+		return DEFAULT_MOD_PARSER;
+	}
 	
 
 	public static Codec loadNamedTextCodec(String baseName, Context context) {

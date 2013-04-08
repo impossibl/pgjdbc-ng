@@ -15,6 +15,8 @@ public class BlobOutputStream extends OutputStream {
 		super();
 		this.owner = owner;
 		this.lo = lo;
+		this.pos = 0;
+		this.buf = new byte[1024];
 	}
 
 

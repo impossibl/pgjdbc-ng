@@ -70,7 +70,7 @@ public class PGSQLXML implements SQLXML {
 				Transformer transformer = factory.newTransformer();
 				DOMSource domSource = new DOMSource(node);
 				
-				Writer writer = new OutputStreamWriter(new OutputStream());
+				Writer writer = new OutputStreamWriter(new OutputStream(), connection.getCharset());
 				StreamResult streamResult = new StreamResult(writer);
 				
 				transformer.transform(domSource, streamResult);
@@ -245,11 +245,17 @@ public class PGSQLXML implements SQLXML {
 		return new OutputStreamWriter(new OutputStream(), connection.getCharset());
 	}
 
-	public <T extends Result> T setResult(Class<T> resultClass) throws SQLException {
+	public <T extends Result> T setResult(Class<T> resultClassIn) throws SQLException {
 		checkFreed();
 		checkWritable();
+		
+		@SuppressWarnings("unchecked")
+		Class<T> resultClass = (Class<T>) DOMResult.class;
+		if(resultClassIn != null) {
+			resultClass = resultClassIn;
+		}
 
-		if(resultClass == null || DOMResult.class.equals(resultClass)) {
+		if(DOMResult.class.equals(resultClass)) {
 			
 			return resultClass.cast(new InternalDOMResult());
 		}

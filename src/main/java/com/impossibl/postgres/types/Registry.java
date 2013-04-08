@@ -499,8 +499,8 @@ public class Registry {
 	public Codec loadCodec(int encoderId, int decoderId, Format format) {
 		
 		Codec io = new Codec();
-		io.decoder = loadDecoderProc(decoderId, Procs.DEFAULT_DECODERS[format.ordinal()]);
-		io.encoder = loadEncoderProc(encoderId, Procs.DEFAULT_ENCODERS[format.ordinal()]);
+		io.decoder = loadDecoderProc(decoderId, Procs.getDefaultDecoder(format));
+		io.encoder = loadEncoderProc(encoderId, Procs.getDefaultEncoder(format));
 		return io;
 	}
 

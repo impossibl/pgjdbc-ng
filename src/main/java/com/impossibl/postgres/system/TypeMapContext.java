@@ -15,7 +15,7 @@ public class TypeMapContext extends DecoratorContext {
 
 	@Override
 	public Class<?> lookupInstanceType(Type type) {
-		Class<?> instanceType = typeMap.get(type);
+		Class<?> instanceType = typeMap.get(type.getName());
 		if(instanceType == null)
 			instanceType = super.lookupInstanceType(type);
 		return instanceType;

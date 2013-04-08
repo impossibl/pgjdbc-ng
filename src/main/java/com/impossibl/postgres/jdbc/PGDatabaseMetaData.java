@@ -1,6 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
@@ -2126,6 +2127,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 				case java.sql.Types.DISTINCT:
 					sql.append(" or t.typtype = 'd'");
 					break;
+				default:
+					break;
 				}
 			}
 			
@@ -2236,20 +2239,17 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
@@ -2297,7 +2297,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean locatorsUpdateCopy() throws SQLException {
-		// TODO look into...
 		return false;
 	}
 
@@ -2351,20 +2350,17 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override
 	public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw NOT_IMPLEMENTED;
 	}
 
 	@Override

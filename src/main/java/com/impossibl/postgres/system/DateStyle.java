@@ -41,12 +41,13 @@ public class DateStyle {
 		
 		switch(dateStyle[0]) {
 		case "ISO":
+			return new ISODateFormat();
+
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
 		default:
-			//Currently everything is ISO
-			return new ISODateFormat();
+			return null;
 		}
 		
 	}
@@ -61,12 +62,13 @@ public class DateStyle {
 		
 		switch(dateStyle[0]) {
 		case "ISO":
+			return new ISOTimeFormat();
+			
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
 		default:
-			//Currently everything is ISO
-			return new ISOTimeFormat();
+			return null;
 		}
 
 	}
@@ -81,12 +83,13 @@ public class DateStyle {
 		
 		switch(dateStyle[0]) {
 		case "ISO":
+			return new ISOTimestampFormat();
+			
 		case "POSTGRES":			
 		case "SQL":
 		case "GERMAN":
 		default:
-			//Currently everything is ISO
-			return new ISOTimestampFormat();
+			return null;
 		}
 		
 	}

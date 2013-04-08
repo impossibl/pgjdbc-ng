@@ -228,7 +228,7 @@ public class PGDriver implements Driver {
 					String[] items = nameValue.split("=");
 					
 					if(items.length == 1) {
-						spec.parameters.put(items[0],null);
+						spec.parameters.put(items[0],"");
 					}
 					else if(items.length == 2) {
 						spec.parameters.put(items[0],items[1]);

@@ -566,7 +566,7 @@ public class ProtocolImpl implements Protocol {
 
 		Notice notice = parseNotice(buffer);
 
-		logger.finest("ERROR: " + notice.code + ": " + notice.message);
+		logger.finest("ERROR: " + notice.getCode() + ": " + notice.getMessage());
 
 		listener.error(notice);
 	}
@@ -575,7 +575,7 @@ public class ProtocolImpl implements Protocol {
 
 		Notice notice = parseNotice(buffer);
 		
-		logger.finest(notice.severity + ": " + notice.code + ": " + notice.message);
+		logger.finest(notice.getSeverity() + ": " + notice.getCode() + ": " + notice.getMessage());
 
 		listener.notice(notice);
 	}
@@ -813,43 +813,43 @@ public class ProtocolImpl implements Protocol {
 
 			switch (msgId) {
 			case 'S':
-				notice.severity = readCString(buffer, context.getCharset());
+				notice.setSeverity(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'C':
-				notice.code = readCString(buffer, context.getCharset());
+				notice.setCode(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'M':
-				notice.message = readCString(buffer, context.getCharset());
+				notice.setMessage(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'D':
-				notice.detail = readCString(buffer, context.getCharset());
+				notice.setDetail(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'H':
-				notice.hint = readCString(buffer, context.getCharset());
+				notice.setHint(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'P':
-				notice.position = readCString(buffer, context.getCharset());
+				notice.setPosition(readCString(buffer, context.getCharset()));
 				break;
 				
 			case 'W':
-				notice.where = readCString(buffer, context.getCharset());
+				notice.setWhere(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'F':
-				notice.file = readCString(buffer, context.getCharset());
+				notice.setFile(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'L':
-				notice.line = readCString(buffer, context.getCharset());
+				notice.setLine(readCString(buffer, context.getCharset()));
 				break;
 
 			case 'R':
-				notice.routine = readCString(buffer, context.getCharset());
+				notice.setRoutine(readCString(buffer, context.getCharset()));
 				break;
 
 			default:

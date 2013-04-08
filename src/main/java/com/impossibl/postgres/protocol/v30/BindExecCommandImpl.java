@@ -50,7 +50,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 			resultFields = newResultFields;
 			resultFieldFormats = getResultFieldFormats(newResultFields);
 			resultBatch.fields = newResultFields;
-			resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
+			resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
 			resultSetters = Mapper.buildMapping(rowType, newResultFields);
 		}
 
@@ -158,6 +158,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 			this.resultFieldFormats = getResultFieldFormats(resultFields);
 		}
 		else {
+			this.resultSetters = Collections.emptyList();
 			this.resultFieldFormats = Collections.emptyList();
 		}
 		

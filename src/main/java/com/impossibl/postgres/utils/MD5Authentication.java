@@ -23,7 +23,6 @@ public class MD5Authentication {
 		
 		HexBinaryAdapter hex = new HexBinaryAdapter();
 		byte[] tempDigest, passDigest;
-		byte[] hexDigest = new byte[35];
 
 		MessageDigest md;
 		try {
@@ -37,7 +36,7 @@ public class MD5Authentication {
 		md.update(user.getBytes(UTF_8));
 		tempDigest = md.digest();
 
-		hexDigest = hex.marshal(tempDigest).toLowerCase().getBytes(US_ASCII);
+		byte[] hexDigest = hex.marshal(tempDigest).toLowerCase().getBytes(US_ASCII);
 		
 		md.update(hexDigest);
 		md.update(salt);

@@ -94,7 +94,7 @@ public class ErrorUtils {
 
 		}
 
-		return new SQLWarning(notice.message, notice.code);
+		return new SQLWarning(notice.getMessage(), notice.getCode());
 	}
 
 	/**
@@ -105,7 +105,7 @@ public class ErrorUtils {
 	 */
 	public static SQLException makeSQLException(Notice notice) {
 
-		return new SQLException(notice.message, notice.code);
+		return new SQLException(notice.getMessage(), notice.getCode());
 	}
 
 	/**

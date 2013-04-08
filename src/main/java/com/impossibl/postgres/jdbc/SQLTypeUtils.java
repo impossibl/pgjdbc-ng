@@ -75,6 +75,7 @@ class SQLTypeUtils {
 				break;
 				
 			default:
+				break;
 			}
 			
 		}
@@ -692,17 +693,6 @@ class SQLTypeUtils {
 				for(int i = 0; i < count; ++i) {
 					Array.set(dst, i, Array.get(val, i));
 				}
-			}
-			else if(val.getClass().getComponentType().isArray()) {
-
-				dst = Array.newInstance(targetType.getComponentType(), count);
-
-				for(int c = index, end = index + count; c < end; ++c) {
-
-					Array.set(dst, c, coerce(Array.get(val, c), type, elementClass, typeMap, connection));
-
-				}
-
 			}
 			else {
 

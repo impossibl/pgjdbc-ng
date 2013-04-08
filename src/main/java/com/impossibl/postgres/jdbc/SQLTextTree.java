@@ -297,8 +297,6 @@ public class SQLTextTree {
 
 	public static class ParameterPiece extends PieceNode {
 
-		int idx;
-
 		ParameterPiece(int idx, int pos) {
 			super("$"+idx, pos);
 		}
