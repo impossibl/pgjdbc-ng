@@ -22,10 +22,10 @@ public class Numerics extends SimpleProcProvider {
 	private static final short DEC_DIGITS = 4;
 
 	public Numerics() {
-		super(null, null, new Encoder(), new Decoder(), "numeric_");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "numeric_");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Numeric;
@@ -77,7 +77,7 @@ public class Numerics extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return BigDecimal.class;
@@ -114,6 +114,40 @@ public class Numerics extends SimpleProcProvider {
 
 			}
 
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Numeric;
+		}
+		
+		public Class<?> getOutputType() {
+			return BigDecimal.class;
+		}
+
+		public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			return new BigDecimal(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return BigDecimal.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Numeric;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {			
+
+			buffer.append(val.toString());
 		}
 
 	}

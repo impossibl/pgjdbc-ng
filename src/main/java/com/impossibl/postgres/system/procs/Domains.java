@@ -12,7 +12,7 @@ import com.impossibl.postgres.types.Type;
 public class Domains extends SimpleProcProvider {
 	
 	public Domains() {
-		super(new BinEncoder(), null, null, null, "domain_");
+		super(new TxtEncoder(), null, new BinEncoder(), null, "domain_");
 	}
 	
 	public static class BinEncoder extends BinaryEncoder {

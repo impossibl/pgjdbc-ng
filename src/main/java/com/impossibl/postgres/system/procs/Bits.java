@@ -92,4 +92,62 @@ public class Bits extends SimpleProcProvider {
 
 	}
 
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Bits;
+		}
+		
+		public Class<?> getOutputType() {
+			return BitSet.class;
+		}
+
+		public BitSet decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			BitSet bits = new BitSet();
+			
+			for(int c=0, sz=buffer.length(); c < sz; ++c) {
+				
+				switch(buffer.charAt(c)) {
+				case '0':
+					bits.clear(c);
+					break;
+					
+				case '1':
+					bits.set(c);					
+					break;
+					
+				default:
+					throw new IOException("Invalid bits format");
+				}
+			}
+			
+			return bits;
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return BitSet.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Bits;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {			
+
+			BitSet bits = (BitSet) val;
+			
+			for(int c=0, sz=bits.length(); c < sz; ++c) {
+				
+				buffer.append(bits.get(c) ? '1' : '0');
+			}
+			
+		}
+
+	}
+
 }
