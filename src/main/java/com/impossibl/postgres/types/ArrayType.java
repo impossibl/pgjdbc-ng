@@ -25,6 +25,11 @@ public class ArrayType extends Type {
 		this.elementType = elementType;
 	}
 	
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return PrimitiveType.Array;
+	}
+	
 	public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 		
 		return Array.newInstance(elementType.getJavaType(customizations), 0).getClass();

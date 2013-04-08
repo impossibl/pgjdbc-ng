@@ -22,6 +22,7 @@ public enum PrimitiveType {
 	Binary,
 	Array,
 	Record,
+	Domain,
 	Range,
 	ACLItem,
 	Unknown

@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
 
-import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -178,66 +177,85 @@ class SQLTypeMetaData {
 		
 	}
 	
+	public static int getSQLTypeIndex(int sqlType) {
+		return (((sqlType % 255) + 255) % 255);
+	}
+	
+	private static PrimitiveType[][] sqlToPrimitiveMatrix;
+	private static int[] primitiveToSQLTypeMatrix;
+	static {
+		primitiveToSQLTypeMatrix = new int[255];
+		primitiveToSQLTypeMatrix[PrimitiveType.Bool.ordinal()] = Types.BOOLEAN;
+		primitiveToSQLTypeMatrix[PrimitiveType.Int2.ordinal()] = Types.SMALLINT;
+		primitiveToSQLTypeMatrix[PrimitiveType.Int4.ordinal()] = Types.INTEGER;
+		primitiveToSQLTypeMatrix[PrimitiveType.Int8.ordinal()] = Types.BIGINT;
+		primitiveToSQLTypeMatrix[PrimitiveType.Float.ordinal()] = Types.REAL;
+		primitiveToSQLTypeMatrix[PrimitiveType.Double.ordinal()] = Types.DOUBLE;
+		primitiveToSQLTypeMatrix[PrimitiveType.Numeric.ordinal()] = Types.NUMERIC;
+		primitiveToSQLTypeMatrix[PrimitiveType.Money.ordinal()] = Types.OTHER;
+		primitiveToSQLTypeMatrix[PrimitiveType.String.ordinal()] = Types.VARCHAR;
+		primitiveToSQLTypeMatrix[PrimitiveType.Date.ordinal()] = Types.DATE;
+		primitiveToSQLTypeMatrix[PrimitiveType.Time.ordinal()] = Types.TIME;
+		primitiveToSQLTypeMatrix[PrimitiveType.TimeTZ.ordinal()] = Types.TIME;
+		primitiveToSQLTypeMatrix[PrimitiveType.Timestamp.ordinal()] = Types.TIMESTAMP;
+		primitiveToSQLTypeMatrix[PrimitiveType.TimestampTZ.ordinal()] = Types.TIMESTAMP;
+		primitiveToSQLTypeMatrix[PrimitiveType.Oid.ordinal()] = Types.ROWID;
+		primitiveToSQLTypeMatrix[PrimitiveType.Array.ordinal()] = Types.ARRAY;
+		primitiveToSQLTypeMatrix[PrimitiveType.Record.ordinal()] = Types.STRUCT;
+		primitiveToSQLTypeMatrix[PrimitiveType.Domain.ordinal()] = Types.DISTINCT;
+		primitiveToSQLTypeMatrix[PrimitiveType.Binary.ordinal()] = Types.BINARY;
+		primitiveToSQLTypeMatrix[PrimitiveType.Bits.ordinal()] = Types.OTHER;
+		primitiveToSQLTypeMatrix[PrimitiveType.Range.ordinal()] = Types.OTHER;
+		primitiveToSQLTypeMatrix[PrimitiveType.UUID.ordinal()] = Types.OTHER;
+		primitiveToSQLTypeMatrix[PrimitiveType.Interval.ordinal()] = Types.OTHER;
+		primitiveToSQLTypeMatrix[PrimitiveType.Unknown.ordinal()] = Types.OTHER;
+		
+		sqlToPrimitiveMatrix = new PrimitiveType[255][];
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NULL)] 					= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BOOLEAN)]				= new PrimitiveType[] {PrimitiveType.Bool};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BIT)] 						= new PrimitiveType[] {PrimitiveType.Bool};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TINYINT)] 				= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.SMALLINT)] 			= new PrimitiveType[] {PrimitiveType.Int2};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.INTEGER)] 				= new PrimitiveType[] {PrimitiveType.Int4};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BIGINT)] 				= new PrimitiveType[] {PrimitiveType.Int8};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.REAL)] 					= new PrimitiveType[] {PrimitiveType.Float};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.FLOAT)] 					= new PrimitiveType[] {PrimitiveType.Float};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DOUBLE)] 				= new PrimitiveType[] {PrimitiveType.Double};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NUMERIC)] 				= new PrimitiveType[] {PrimitiveType.Numeric};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DECIMAL)] 				= new PrimitiveType[] {PrimitiveType.Numeric};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.CHAR)] 					= new PrimitiveType[] {PrimitiveType.String};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.VARCHAR)] 				= new PrimitiveType[] {PrimitiveType.String};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGNVARCHAR)]		= new PrimitiveType[] {PrimitiveType.String};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DATE)] 					= new PrimitiveType[] {PrimitiveType.Date};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TIME)] 					= new PrimitiveType[] {PrimitiveType.Time, PrimitiveType.TimeTZ};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TIMESTAMP)]			= new PrimitiveType[] {PrimitiveType.Timestamp, PrimitiveType.TimestampTZ};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BINARY)] 				= new PrimitiveType[] {PrimitiveType.Binary};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.VARBINARY)] 			= new PrimitiveType[] {PrimitiveType.Binary};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGVARBINARY)]	= new PrimitiveType[] {PrimitiveType.Binary};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BLOB)]						= new PrimitiveType[] {PrimitiveType.Int4};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.CLOB)] 					= new PrimitiveType[] {PrimitiveType.Int4};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.SQLXML)] 				= new PrimitiveType[] {PrimitiveType.String};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ARRAY)] 					= new PrimitiveType[] {PrimitiveType.Array};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.STRUCT)] 				= new PrimitiveType[] {PrimitiveType.Record};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DISTINCT)] 			= new PrimitiveType[] {PrimitiveType.Domain};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DATALINK)] 			= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.JAVA_OBJECT)] 		= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NCHAR)] 					= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NVARCHAR)] 			= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGNVARCHAR)]		= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.REF)]						= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ROWID)]					= new PrimitiveType[] {};
+		sqlToPrimitiveMatrix[getSQLTypeIndex(Types.OTHER)]					= new PrimitiveType[] {};
+	}
+	
 	public static int getSQLType(Type type) {
-		
-		if(type instanceof ArrayType) {
-			return Types.ARRAY;
-		}
-		
-		if(type instanceof DomainType) {
-			return Types.DISTINCT;
-		}
-		
-		type = type.unwrap();
 		
 		PrimitiveType ptype = type.getPrimitiveType();
 		if(ptype == null) {
 			return Types.OTHER;
 		}
-		
-		switch(ptype) {
-		case Oid:
-			return Types.INTEGER;
-		case Bits:
-			return Types.OTHER;
-		case Bool:
-			return Types.BOOLEAN;
-		case Int2:
-			return Types.SMALLINT;
-		case Int4:
-			return Types.INTEGER;
-		case Int8:
-			return Types.BIGINT;
-		case Money:
-			return Types.OTHER;
-		case Float:
-			return Types.FLOAT;
-		case Double:
-			return Types.DOUBLE;
-		case Numeric:
-			return Types.NUMERIC;
-		case Date:
-			return Types.DATE;
-		case Time:
-		case TimeTZ:
-			return Types.TIME;
-		case Timestamp:
-		case TimestampTZ:
-			return Types.TIMESTAMP;
-		case Interval:
-			return Types.OTHER;
-		case String:
-			return Types.VARCHAR;
-		case Binary:
-			return Types.BINARY;
-		case UUID:
-			return Types.OTHER;
-		case Record:
-			return Types.STRUCT;
-		default:
-			return Types.OTHER;
-		}
-			
+
+		return primitiveToSQLTypeMatrix[ptype.ordinal()];
 	}
 	
 	public static int getSQLTypeAlias(int sqlType) {

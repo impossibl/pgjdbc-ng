@@ -33,6 +33,11 @@ public class DomainType extends Type {
 		this.nullable = nullable;
 	}
 
+	@Override
+	public PrimitiveType getPrimitiveType() {
+		return PrimitiveType.Domain;
+	}
+	
 	public Map<String, Object> getModifiers() {
 		return modifiers;
 	}

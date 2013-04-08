@@ -211,7 +211,8 @@ public class ProtocolImpl implements Protocol {
 
 		msg.writeShort(paramTypes.size());
 		for (Type paramType : paramTypes) {
-			msg.writeInt(paramType.getId());
+			int paramTypeOid = paramType != null ? paramType.getId() : 0;
+			msg.writeInt(paramTypeOid);
 		}
 
 		endMessage(msg);
