@@ -16,10 +16,10 @@ import com.impossibl.postgres.types.Type;
 public class Bits extends SimpleProcProvider {
 
 	public Bits() {
-		super(null, null, new Encoder(), new Decoder(), "bit_", "varbit_");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bit_", "varbit_");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Bits;
@@ -54,7 +54,7 @@ public class Bits extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return BitSet.class;

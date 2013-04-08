@@ -18,10 +18,10 @@ import com.impossibl.postgres.types.Type;
 public class Moneys extends SimpleProcProvider {
 
 	public Moneys() {
-		super(null, null, new Encoder(), new Decoder(), "cash_");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "cash_");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Money;
@@ -50,7 +50,7 @@ public class Moneys extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return BigDecimal.class;
@@ -78,6 +78,40 @@ public class Moneys extends SimpleProcProvider {
 				buffer.writeLong(dec.unscaledValue().longValue());
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Money;
+		}
+		
+		public Class<?> getOutputType() {
+			return BigDecimal.class;
+		}
+
+		public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			return new BigDecimal(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return BigDecimal.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Money;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {			
+
+			buffer.append(val.toString());
 		}
 
 	}
