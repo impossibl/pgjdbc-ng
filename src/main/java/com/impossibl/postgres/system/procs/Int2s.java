@@ -62,7 +62,7 @@ public class Int2s extends SimpleProcProvider {
 			else {
 				
 				buffer.writeInt(2);
-				buffer.writeByte((Short) val);
+				buffer.writeShort((Short) val);
 			}
 			
 		}
