@@ -207,7 +207,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 	public String getColumnClassName(int column) throws SQLException {
 		
 		ResultField field = get(column);
-		return field.getType().getJavaType(typeMap).getName();
+		return SQLTypeUtils.mapGetType(field.getType(), typeMap).getName();
 	}
 
 	@Override
