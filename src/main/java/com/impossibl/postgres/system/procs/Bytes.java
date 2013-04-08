@@ -20,7 +20,7 @@ public class Bytes extends SimpleProcProvider {
 	public static final BinEncoder BINARY_ENCODER = new BinEncoder();
 
 	public Bytes() {
-		super(null, null, new BinEncoder(), new BinDecoder(), "bytea", "xml_");
+		super(null, null, new BinEncoder(), new BinDecoder(), "bytea");
 	}
 
 	static class BinDecoder extends BinaryDecoder {

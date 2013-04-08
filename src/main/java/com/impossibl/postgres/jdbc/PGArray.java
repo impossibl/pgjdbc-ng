@@ -52,7 +52,7 @@ public class PGArray implements Array {
 	@Override
 	public Object getArray(Map<String, Class<?>> map) throws SQLException {
 		
-		Class<?> targetType = SQLTypeUtils.mapType(type, map);
+		Class<?> targetType = SQLTypeUtils.mapGetType(type, map);
 
 		return coerceToArray(value, type, targetType, map, connection);
 	}
@@ -69,7 +69,7 @@ public class PGArray implements Array {
 			 throw new SQLException("Invalid array slice");
 		}
 		
-		Class<?> targetType = SQLTypeUtils.mapType(type, map);
+		Class<?> targetType = SQLTypeUtils.mapGetType(type, map);
 
 		return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
 	}

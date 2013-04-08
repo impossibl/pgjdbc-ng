@@ -18,6 +18,7 @@ public enum PrimitiveType {
 	TimestampTZ,
 	Interval,
 	String,
+	XML,
 	Bits,
 	Binary,
 	Array,

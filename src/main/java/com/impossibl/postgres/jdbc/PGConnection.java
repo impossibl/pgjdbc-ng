@@ -56,8 +56,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
@@ -684,14 +686,21 @@ class PGConnection extends BasicContext implements Connection {
 		SQLTextEscapes.processEscapes(sqlText, this);
 		
 		String statementName = getNextStatementName();
+		
+		final int[] parameterCount = new int[1];
+		sqlText.process(new Processor() {
 
-		PrepareCommand prepare = protocol.createPrepare(statementName, sqlText.toString(), Collections.<Type> emptyList());
-
-		warningChain = execute(prepare, true);
+			@Override
+			public Node process(Node node) throws SQLException {
+				if(node instanceof ParameterPiece)
+					parameterCount[0] += 1;
+				return node;
+			}
+			
+		}, true);
 
 		PGPreparedStatement statement =
-				new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability,
-						statementName, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+				new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0]);
 		
 		activeStatements.add(new WeakReference<PGStatement>(statement));
 		

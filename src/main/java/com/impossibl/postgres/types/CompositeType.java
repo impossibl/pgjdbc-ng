@@ -83,7 +83,7 @@ public class CompositeType extends Type {
 	@Override
 	public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 
-		Class<?> type = customizations.get(getName());
+		Class<?> type = (customizations != null) ? customizations.get(getName()) : null;
 		if(type == null) {
 			type = super.getJavaType(customizations);
 		}

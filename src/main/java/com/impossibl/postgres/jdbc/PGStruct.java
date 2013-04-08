@@ -1,6 +1,7 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
 import java.sql.SQLException;
 import java.sql.Struct;
@@ -49,7 +50,9 @@ public class PGStruct implements Struct {
 			
 			Attribute attr = attrs.get(c);
 			
-			newValues[c] = coerce(values[c], attr.type, map, connection);
+			Class<?> targetType = mapGetType(type, map);
+			
+			newValues[c] = coerce(values[c], attr.type, targetType, map, connection);
 		}
 		
 		return newValues;

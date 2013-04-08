@@ -4,9 +4,12 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,6 +36,7 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -42,9 +46,12 @@ import java.util.TimeZone;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
 
 
@@ -53,17 +60,21 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	
 	
+	String sqlText;
 	List<Type> parameterTypes;
 	List<Object> parameterValues;
+	List<List<Type>> batchParameterTypes;
 	List<List<Object>> batchParameterValues;
 	boolean wantsGeneratedKeys;
+	boolean parsed;
 	
 	
 	
-	PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, List<Type> parameterTypes, List<ResultField> resultFields) {
-		super(connection, type, concurrency, holdability, name, resultFields);
-		this.parameterTypes = parameterTypes;
-		this.parameterValues = Arrays.asList(new Object[parameterTypes.size()]);
+	PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount) {
+		super(connection, type, concurrency, holdability, name, null);
+		this.sqlText = sqlText;
+		this.parameterTypes = asList(new Type[parameterCount]);
+		this.parameterValues = asList(new Object[parameterCount]);
 	}
 
 	public boolean getWantsGeneratedKeys() {
@@ -86,21 +97,34 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 	}
 	
-	void set(int parameterIdx, Object val) throws SQLException {
-		
-		set(parameterIdx, val, TimeZone.getDefault());
-	}
-	
-	void set(int parameterIdx, Object val, TimeZone zone) throws SQLException {
+	void set(int parameterIdx, Object val) throws SQLException {		
 		checkClosed();
 		checkParameterIndex(parameterIdx);
 		
 		parameterIdx -= 1;
+
+		parameterValues.set(parameterIdx, val);
+	}
+
+	void set(int parameterIdx, Object val, int targetSQLType) throws SQLException {
+		checkClosed();
+		checkParameterIndex(parameterIdx);
 		
+		parameterIdx -= 1;
+
 		Type paramType = parameterTypes.get(parameterIdx);
 		
-		if(val != null) {
-			val = coerce(val, paramType, Collections.<String,Class<?>>emptyMap(), zone, connection);
+		if(targetSQLType == Types.ARRAY || targetSQLType == Types.STRUCT || targetSQLType == Types.OTHER) {
+			targetSQLType = Types.NULL;
+		}
+		
+		if(paramType == null || targetSQLType != getSQLType(paramType)) {
+			
+			paramType = SQLTypeMetaData.getType(targetSQLType, connection.getRegistry());
+			
+			parameterTypes.set(parameterIdx, paramType);
+			
+			parsed = false;
 		}
 		
 		parameterValues.set(parameterIdx, val);
@@ -113,9 +137,47 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		parameterTypes = null;
 		parameterValues = null;
 	}
+	
+	void parseIfNeeded() throws SQLException {
+		
+		if(!parsed) {
+			
+			if(name != null) {
+				connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name), false);
+			}
+			
+			PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), parameterTypes);
+			
+			warningChain = connection.execute(prep, true);
+			
+			parameterTypes = prep.getDescribedParameterTypes();
+			resultFields = prep.getDescribedResultFields();
+			
+			parsed = true;
+		}
+				
+	}
 
 	@Override
 	public boolean execute() throws SQLException {
+		
+		parseIfNeeded();
+		
+		for(int c=0, sz=parameterTypes.size(); c < sz; ++c) {
+
+			Type parameterType = parameterTypes.get(c);
+			Object parameterValue = parameterValues.get(c);
+			
+			if(parameterValue != null) {
+
+				Class<?> targetType = mapSetType(parameterType);
+				
+				parameterValue = coerce(parameterValue, parameterType, targetType, Collections.<String,Class<?>>emptyMap(), TimeZone.getDefault(), connection);
+			}
+			
+			parameterValues.set(c, parameterValue);
+		}
+				
 		
 		boolean res = super.executeStatement(name, parameterTypes, parameterValues);
 		
@@ -146,10 +208,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	public void addBatch() throws SQLException {
 		checkClosed();
 		
+		if(batchParameterTypes == null) {
+			batchParameterTypes = new ArrayList<>();
+		}
+		
 		if(batchParameterValues == null) {
 			batchParameterValues = new ArrayList<>();
 		}
 		
+		batchParameterTypes.add(new ArrayList<>(parameterTypes));
 		batchParameterValues.add(new ArrayList<>(parameterValues));
 	}
 
@@ -175,12 +242,29 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			
 			List<Object[]> generatedKeys = new ArrayList<>();
 			
-			BindExecCommand command = connection.getProtocol().createBindExec(null, name, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+			BindExecCommand command = connection.getProtocol().createBindExec(null, null, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
 	
+			List<Type> lastParameterTypes = null;
+			List<ResultField> lastResultFields = null;
+
 			for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+				
+				List<Type> parameterTypes = mergeTypes(batchParameterTypes.get(c), lastParameterTypes);
+				
+				if(lastParameterTypes == null || lastParameterTypes.equals(parameterTypes) == false) {
+				
+					PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
+					
+					connection.execute(prep, true);
+					
+					parameterTypes = prep.getDescribedParameterTypes();
+					lastParameterTypes = parameterTypes;
+					lastResultFields = prep.getDescribedResultFields();
+				}
 				
 				List<Object> parameterValues = batchParameterValues.get(c);
 				
+				command.setParameterTypes(parameterTypes);
 				command.setParameterValues(parameterValues);
 				
 				SQLWarning warnings = connection.execute(command, true);
@@ -204,15 +288,33 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 				counts[c] = (int)(long)resultBatch.rowsAffected;
 			}
 			
-			generatedKeysResultSet = createResultSet(resultFields, generatedKeys);
+			generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys);
 
 			return counts;
 			
 		}
 		finally {
+			batchParameterTypes = null;
 			batchParameterValues = null;
 		}
 
+	}
+
+	private List<Type> mergeTypes(List<Type> list, List<Type> defaultTypes) {
+		
+		if(defaultTypes == null)
+			return list;
+		
+		for(int c=0, sz=list.size(); c < sz; ++c) {
+			
+			Type type = list.get(c);
+			if(type == null)
+				type = defaultTypes.get(c);
+			
+			list.set(c, type);
+		}
+		
+		return list;
 	}
 
 	@Override
@@ -231,12 +333,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	public ParameterMetaData getParameterMetaData() throws SQLException {
 		checkClosed();
 		
+		parseIfNeeded();
+		
 		return new PGParameterMetaData(parameterTypes, connection.getTypeMap());
 	}
 
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		checkClosed();
+
+		parseIfNeeded();
 		
 		return new PGResultSetMetaData(connection, resultFields, connection.getTypeMap());
 	}
@@ -316,7 +422,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, x, zone);
+		set(parameterIndex, Instants.fromDate(x, zone));
 	}
 
 	@Override
@@ -325,7 +431,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, x, zone);
+		set(parameterIndex, Instants.fromTime(x, zone));
 	}
 
 	@Override
@@ -335,7 +441,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, x, zone);
+		set(parameterIndex, Instants.fromTimestamp(x, zone));
 	}
 
 	@Override
@@ -475,7 +581,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		checkClosed();
 		checkParameterIndex(parameterIndex);
 
-		set(parameterIndex, x);
+		set(parameterIndex, x, targetSqlType);
 	}
 
 	@Override

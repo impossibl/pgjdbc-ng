@@ -38,6 +38,7 @@ public class Procs {
 		new TimestampMods(),
 		new Intervals(),
 		new UUIDs(),
+		new XMLs(),
 		new Moneys(),
 		new Arrays(),
 		new Records(),

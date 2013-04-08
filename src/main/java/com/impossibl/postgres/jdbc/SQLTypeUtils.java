@@ -12,6 +12,7 @@ import java.sql.Blob;
 import java.sql.Date;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -37,7 +38,14 @@ import com.impossibl.postgres.types.Type;
 
 class SQLTypeUtils {
 
-	public static Class<?> mapType(Type sourceType, Map<String, Class<?>> typeMap) {
+	public static Class<?> mapSetType(Type sourceType) {
+
+		Class<?> targetType = sourceType.getJavaType(null);
+
+		return targetType;
+	}
+
+	public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap) {
 
 		Class<?> targetType = sourceType.getJavaType(typeMap);
 
@@ -45,20 +53,33 @@ class SQLTypeUtils {
 		if(mappedType != null) {
 			targetType = mappedType;
 		}
+		else {
+			
+			switch(sourceType.getPrimitiveType()) {
+			case XML:
+				targetType = SQLXML.class;
+				break;
+				
+			case Time:
+			case TimeTZ:
+				targetType = Time.class;
+				break;
+				
+			case Date:
+				targetType = Date.class;
+				break;
+				
+			case Timestamp:
+			case TimestampTZ:
+				targetType = Timestamp.class;
+				break;
+				
+			default:
+			}
+			
+		}
 
 		return targetType;
-	}
-
-	public static Object coerce(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
-
-		return coerce(val, sourceType, typeMap, TimeZone.getDefault(), connection);
-	}
-
-	public static Object coerce(Object val, Type sourceType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
-
-		Class<?> targetType = mapType(sourceType, typeMap);
-
-		return coerce(val, sourceType, targetType, typeMap, zone, connection);
 	}
 
 	public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
@@ -130,6 +151,9 @@ class SQLTypeUtils {
 		}
 		else if(targetType == Record.class) {
 			return coerceToRecord(val, sourceType, typeMap, connection);
+		}
+		else if(SQLXML.class.isAssignableFrom(targetType)) {
+			return coerceToXML(val, connection);
 		}
 		else if(SQLData.class.isAssignableFrom(targetType)) {
 			return coerceToCustomType(val, sourceType, targetType, typeMap, connection);
@@ -809,6 +833,26 @@ class SQLTypeUtils {
 		}
 
 		throw createCoercionException(val.getClass(), targetType);
+	}
+
+	public static SQLXML coerceToXML(Object val, PGConnection connection) throws SQLException {
+
+		if(val == null) {
+			return null;
+		}
+		else if(val instanceof SQLXML) {
+			return (SQLXML) val;
+		}
+		if(val instanceof String) {
+			
+			return new PGSQLXML(connection, ((String)val).getBytes(connection.getCharset()));
+		}
+		else if(val instanceof byte[]) {
+			
+			return new PGSQLXML(connection, (byte[]) val);
+		}
+		
+		throw createCoercionException(val.getClass(), SQLXML.class);
 	}
 
 	public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {

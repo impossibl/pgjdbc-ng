@@ -24,6 +24,8 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -729,11 +731,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public SQLXML getSQLXML(int columnIndex) throws SQLException {
 		
-		byte[] data = getBytes(columnIndex);
-		if(data == null)
-			return null;
-		
-		return new PGSQLXML(statement.connection, data);
+		return coerceToXML(get(columnIndex), statement.connection);
 	}
 
 	@Override
@@ -749,7 +747,9 @@ class PGResultSet implements ResultSet {
 		
 		Type type = getType(columnIndex);
 		
-		return coerce(get(columnIndex), type, map, statement.connection);
+		Class<?> targetType = mapGetType(type, map);
+		
+		return coerce(get(columnIndex), type, targetType, map, statement.connection);
 	}
 
 	@Override

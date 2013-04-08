@@ -117,8 +117,6 @@ class SQLTypeMetaData {
 	public static Type getType(int sqlType, Registry reg) {
 	
 		switch(sqlType) {
-		case Types.NULL:
-			return reg.loadType("any");
 		case Types.BOOLEAN:
 		case Types.BIT:
 			return reg.loadType("bool");
@@ -128,9 +126,9 @@ class SQLTypeMetaData {
 			return reg.loadType("int4");
 		case Types.BIGINT:
 			return reg.loadType("int8");
-		case Types.FLOAT:
 		case Types.REAL:
 			return reg.loadType("float4");
+		case Types.FLOAT:
 		case Types.DOUBLE:
 			return reg.loadType("float8");
 		case Types.NUMERIC:

@@ -3,6 +3,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +25,7 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.io.ByteStreams;
@@ -57,7 +59,9 @@ public class PGSQLOutput implements SQLOutput {
 			throw new SQLException("invalid attribute access");
 		}
 		
-		attributeValues[currentAttributeIdx++] = coerce(val, attr.type, typeMap, connection);
+		Class<?> targetType = mapSetType(type);
+		
+		attributeValues[currentAttributeIdx++] = coerce(val, attr.type, targetType, Collections.<String,Class<?>>emptyMap(), connection);
 	}
 
 	@Override

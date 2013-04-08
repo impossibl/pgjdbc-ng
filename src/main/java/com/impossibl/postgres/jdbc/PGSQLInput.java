@@ -18,6 +18,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import java.io.ByteArrayInputStream;
@@ -178,7 +179,9 @@ public class PGSQLInput implements SQLInput {
 			throw new SQLException("Invalid input request (type not array)");
 		}
 		
-		return coerce(val, attr.type, typeMap, connection);
+		Class<?> targetType = mapGetType(type, typeMap);
+		
+		return coerce(val, attr.type, targetType, typeMap, connection);
 	}
 
 	@Override
