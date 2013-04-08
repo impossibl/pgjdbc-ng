@@ -15,10 +15,10 @@ import com.impossibl.postgres.types.Type;
 public class Int4s extends SimpleProcProvider {
 
 	public Int4s() {
-		super(null, null, new Encoder(), new Decoder(), "int4", "oid", "tid", "xid", "cid", "regproc");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "oid", "tid", "xid", "cid", "regproc");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Int4;
@@ -43,7 +43,7 @@ public class Int4s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Integer.class;
@@ -64,6 +64,40 @@ public class Int4s extends SimpleProcProvider {
 				buffer.writeInt((Integer) val);
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Int4;
+		}
+		
+		public Class<?> getOutputType() {
+			return Integer.class;
+		}
+
+		public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			return Integer.valueOf(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Integer.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Int4;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append((int)val);
 		}
 
 	}

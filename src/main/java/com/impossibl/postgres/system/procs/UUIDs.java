@@ -1,7 +1,5 @@
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.UUID;
-
 import java.io.IOException;
 import java.util.UUID;
 
@@ -15,13 +13,13 @@ import com.impossibl.postgres.types.Type;
 public class UUIDs extends SimpleProcProvider {
 
 	public UUIDs() {
-		super(null, null, new Encoder(), new Decoder(), "uuid_");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "uuid_");
 	}
 	
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
-			return UUID;
+			return PrimitiveType.UUID;
 		}
 		
 		public Class<?> getOutputType() {
@@ -43,14 +41,14 @@ public class UUIDs extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return UUID.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return UUID;
+			return PrimitiveType.UUID;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
@@ -68,6 +66,40 @@ public class UUIDs extends SimpleProcProvider {
 				buffer.writeLong(uval.getLeastSignificantBits());
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return PrimitiveType.UUID;
+		}
+		
+		public Class<?> getOutputType() {
+			return UUID.class;
+		}
+
+		public UUID decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+			return UUID.fromString(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return UUID.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return PrimitiveType.UUID;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append(val.toString());
 		}
 
 	}

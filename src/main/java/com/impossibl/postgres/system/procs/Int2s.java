@@ -15,10 +15,10 @@ import com.impossibl.postgres.types.Type;
 public class Int2s extends SimpleProcProvider {
 
 	public Int2s() {
-		super(null, null, new Encoder(), new Decoder(), "int2");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Int2;
@@ -43,7 +43,7 @@ public class Int2s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Short.class;
@@ -65,6 +65,40 @@ public class Int2s extends SimpleProcProvider {
 				buffer.writeShort((Short) val);
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Int2;
+		}
+		
+		public Class<?> getOutputType() {
+			return Short.class;
+		}
+
+		public Short decode(Type type, CharSequence buffer, Context context) throws IOException {
+			
+			return Short.valueOf(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Short.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Int2;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append((short)val);
 		}
 
 	}

@@ -1,7 +1,5 @@
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.Float;
-
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -15,13 +13,13 @@ import com.impossibl.postgres.types.Type;
 public class Float4s extends SimpleProcProvider {
 
 	public Float4s() {
-		super(null, null, new Encoder(), new Decoder(), "float4");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float4");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
-			return Float;
+			return PrimitiveType.Float;
 		}
 		
 		public Class<?> getOutputType() {
@@ -43,14 +41,14 @@ public class Float4s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Float.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return Float;
+			return PrimitiveType.Float;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
@@ -65,6 +63,40 @@ public class Float4s extends SimpleProcProvider {
 				buffer.writeFloat((Float) val);
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return PrimitiveType.Float;
+		}
+		
+		public Class<?> getOutputType() {
+			return Float.class;
+		}
+
+		public Float decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+			return Float.valueOf(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Float.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return PrimitiveType.Float;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append((float)val);
 		}
 
 	}

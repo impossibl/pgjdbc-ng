@@ -15,10 +15,10 @@ import com.impossibl.postgres.types.Type;
 public class Bools extends SimpleProcProvider {
 
 	public Bools() {
-		super(null, null, new Encoder(), new Decoder(), "bool");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bool");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
 			return Bool;
@@ -43,7 +43,7 @@ public class Bools extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Boolean.class;
@@ -65,6 +65,40 @@ public class Bools extends SimpleProcProvider {
 				buffer.writeByte(((Boolean) val) ? 1 : 0);
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return Bool;
+		}
+		
+		public Class<?> getOutputType() {
+			return Boolean.class;
+		}
+
+		public Boolean decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+			return Boolean.valueOf(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Boolean.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return Bool;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append((boolean)val);
 		}
 
 	}

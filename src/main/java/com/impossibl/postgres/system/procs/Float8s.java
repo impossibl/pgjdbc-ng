@@ -1,7 +1,5 @@
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.Double;
-
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -15,13 +13,13 @@ import com.impossibl.postgres.types.Type;
 public class Float8s extends SimpleProcProvider {
 
 	public Float8s() {
-		super(null, null, new Encoder(), new Decoder(), "float8");
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float8");
 	}
 
-	static class Decoder extends BinaryDecoder {
+	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
-			return Double;
+			return PrimitiveType.Double;
 		}
 		
 		public Class<?> getOutputType() {
@@ -43,14 +41,14 @@ public class Float8s extends SimpleProcProvider {
 
 	}
 
-	static class Encoder extends BinaryEncoder {
+	static class BinEncoder extends BinaryEncoder {
 
 		public Class<?> getInputType() {
 			return Double.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return Double;
+			return PrimitiveType.Double;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
@@ -65,6 +63,40 @@ public class Float8s extends SimpleProcProvider {
 				buffer.writeDouble((Double) val);
 			}
 			
+		}
+
+	}
+
+	static class TxtDecoder extends TextDecoder {
+
+		public PrimitiveType getInputPrimitiveType() {
+			return PrimitiveType.Double;
+		}
+		
+		public Class<?> getOutputType() {
+			return Double.class;
+		}
+
+		public Double decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+			return Double.valueOf(buffer.toString());
+		}
+
+	}
+
+	static class TxtEncoder extends TextEncoder {
+
+		public Class<?> getInputType() {
+			return Double.class;
+		}
+
+		public PrimitiveType getOutputPrimitiveType() {
+			return PrimitiveType.Double;
+		}
+		
+		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+			
+			buffer.append((double)val);
 		}
 
 	}
