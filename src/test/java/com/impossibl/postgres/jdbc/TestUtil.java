@@ -126,6 +126,25 @@ public class TestUtil {
 		}
 	}
 
+	/*
+	 * Helper - creates a test type for use by a test
+	 */
+	public static void createType(Connection con, String type, String attrs) throws SQLException {
+		Statement st = con.createStatement();
+		try {
+			// Drop the table
+			dropType(con, type);
+
+			// Now create the table
+			String sql = "CREATE TYPE " + type + " AS (" + attrs + ") ";
+
+			st.executeUpdate(sql);
+		}
+		finally {
+			st.close();
+		}
+	}
+
 	/**
 	 * Helper creates a temporary table
 	 * 
@@ -175,6 +194,25 @@ public class TestUtil {
 		Statement stmt = con.createStatement();
 		try {
 			String sql = "DROP TABLE " + table + " CASCADE ";
+			stmt.executeUpdate(sql);
+		}
+		catch(SQLException ex) {
+			// Since every create table issues a drop table
+			// it's easy to get a table doesn't exist error.
+			// we want to ignore these, but if we're in a
+			// transaction then we've got trouble
+			if(!con.getAutoCommit())
+				throw ex;
+		}
+	}
+
+	/*
+	 * Helper - drops a type
+	 */
+	public static void dropType(Connection con, String type) throws SQLException {
+		Statement stmt = con.createStatement();
+		try {
+			String sql = "DROP TYPE " + type + " CASCADE ";
 			stmt.executeUpdate(sql);
 		}
 		catch(SQLException ex) {
