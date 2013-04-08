@@ -26,7 +26,6 @@ import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
-import java.util.Map;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
@@ -37,14 +36,12 @@ public class PGSQLOutput implements SQLOutput {
 	
 	private PGConnection connection;
 	private CompositeType type;
-	private Map<String, Class<?>> typeMap;
 	private int currentAttributeIdx;
 	private Object[] attributeValues;
 	
-	public PGSQLOutput(PGConnection connection, CompositeType type, Map<String,Class<?>> typeMap) {
+	public PGSQLOutput(PGConnection connection, CompositeType type) {
 		this.connection = connection;
 		this.type = type;
-		this.typeMap = typeMap;
 		this.attributeValues = new Object[type.getAttributes().size()];
 	}
 

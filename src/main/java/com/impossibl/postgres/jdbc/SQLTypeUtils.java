@@ -740,7 +740,7 @@ class SQLTypeUtils {
 
 			CompositeType compType = (CompositeType) sourceType;
 
-			PGSQLOutput out = new PGSQLOutput(connection, compType, typeMap);
+			PGSQLOutput out = new PGSQLOutput(connection, compType);
 
 			((SQLData) val).writeSQL(out);
 
@@ -773,7 +773,7 @@ class SQLTypeUtils {
 			}
 			else if(SQLData.class.isInstance(val)) {
 
-				PGSQLOutput out = new PGSQLOutput(connection, compType, typeMap);
+				PGSQLOutput out = new PGSQLOutput(connection, compType);
 
 				((SQLData) val).writeSQL(out);
 
