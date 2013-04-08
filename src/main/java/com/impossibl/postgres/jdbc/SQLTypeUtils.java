@@ -779,10 +779,6 @@ class SQLTypeUtils {
 
 				attributeVals = out.getAttributeValues();
 			}
-			else if(val instanceof Object[]) {
-				
-				attributeVals = (Object[]) val;
-			}
 			else {
 
 				throw createCoercionException(val.getClass(), Record.class);

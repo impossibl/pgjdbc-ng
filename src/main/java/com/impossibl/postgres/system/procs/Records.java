@@ -133,21 +133,21 @@ public class Records extends SimpleProcProvider {
 		}
 		
 		public Class<?> getOutputType() {
-			return Object[].class;
+			return Record.class;
 		}
 
-		public Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+		public Record decode(Type type, CharSequence buffer, Context context) throws IOException {
 			
 			int length = buffer.length();
 			
-			Object instance = null;
+			Object[] instance = null;
 			
 			if(length != 0) {
 				
 				instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
 			}
 			
-			return instance;
+			return new Record((CompositeType)type, instance);
 		}
 		
 		Object readValue(CharSequence data, Type type, Context context) throws IOException {
@@ -164,7 +164,7 @@ public class Records extends SimpleProcProvider {
 
 		}
 		
-		Object readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
+		Object[] readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
 			
 			if(data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length()-1) != ')')) {
 				return null;
@@ -238,7 +238,7 @@ public class Records extends SimpleProcProvider {
 	static class TxtEncoder extends TextEncoder {
 
 		public Class<?> getInputType() {
-			return Object[].class;
+			return Record.class;
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
