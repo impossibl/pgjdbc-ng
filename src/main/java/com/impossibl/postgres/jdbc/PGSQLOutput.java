@@ -56,7 +56,7 @@ public class PGSQLOutput implements SQLOutput {
 			throw new SQLException("invalid attribute access");
 		}
 		
-		Class<?> targetType = mapSetType(type);
+		Class<?> targetType = mapSetType(attr.type);
 		
 		attributeValues[currentAttributeIdx++] = coerce(val, attr.type, targetType, Collections.<String,Class<?>>emptyMap(), connection);
 	}

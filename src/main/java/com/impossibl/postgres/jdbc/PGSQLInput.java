@@ -179,7 +179,7 @@ public class PGSQLInput implements SQLInput {
 			throw new SQLException("Invalid input request (type not array)");
 		}
 		
-		Class<?> targetType = mapGetType(type, typeMap);
+		Class<?> targetType = mapGetType(attr.type, typeMap);
 		
 		return coerce(val, attr.type, targetType, typeMap, connection);
 	}
