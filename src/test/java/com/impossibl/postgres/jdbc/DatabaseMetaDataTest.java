@@ -60,6 +60,9 @@ public class DatabaseMetaDataTest extends TestCase {
 		stmt.execute("CREATE DOMAIN nndom AS int not null");
 		stmt.execute("CREATE TABLE domaintable (id nndom)");
 
+		TestUtil.createType(con, "attr_test", "val1 text, val2 numeric(8,3), val3 nndom");
+		stmt.execute("comment on column attr_test.val1 is 'this is a attribute comment'");
+
 		stmt.close();
 	}
 
@@ -76,6 +79,7 @@ public class DatabaseMetaDataTest extends TestCase {
 		TestUtil.dropTable(con, "\"a\\\"");
 		TestUtil.dropTable(con, "\"a'\"");
 		TestUtil.dropTable(con, "arraytable");
+		TestUtil.dropType(con, "attr_test");
 
 		stmt.execute("DROP FUNCTION f1(int, varchar)");
 		stmt.execute("DROP FUNCTION f2(int, varchar)");
@@ -890,6 +894,64 @@ public class DatabaseMetaDataTest extends TestCase {
 			catch(Exception ex) {
 			}
 		}
+	}
+	
+	public void testAttributes() throws SQLException {
+		
+		DatabaseMetaData dbmd = con.getMetaData();
+		ResultSet rs = dbmd.getAttributes(null, null, "attr_test", null);
+		
+		assertTrue(rs.next());
+		assertEquals("public", rs.getString("TYPE_SCHEM"));
+		assertEquals("attr_test", rs.getString("TYPE_NAME"));
+		assertEquals("val1", rs.getString("ATTR_NAME"));
+		assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
+		assertEquals("text", rs.getString("ATTR_TYPE_NAME"));
+		assertEquals(-1, rs.getInt("ATTR_SIZE"));
+		assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+		assertEquals(0, rs.getInt("NUM_PREC_RADIX"));
+		assertEquals(DatabaseMetaData.attributeNullable, rs.getInt("NULLABLE"));
+		assertEquals("this is a attribute comment", rs.getString("REMARKS"));
+		assertEquals(null, rs.getString("ATTR_DEF"));
+		assertEquals(-1, rs.getInt("CHAR_OCTET_LENGTH"));
+		assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+		assertEquals("YES", rs.getString("IS_NULLABLE"));
+		assertEquals(null, rs.getObject("SOURCE_DATA_TYPE"));
+		
+		assertTrue(rs.next());
+		assertEquals("public", rs.getString("TYPE_SCHEM"));
+		assertEquals("attr_test", rs.getString("TYPE_NAME"));
+		assertEquals("val2", rs.getString("ATTR_NAME"));
+		assertEquals(Types.NUMERIC, rs.getInt("DATA_TYPE"));
+		assertEquals("numeric", rs.getString("ATTR_TYPE_NAME"));
+		assertEquals(8, rs.getInt("ATTR_SIZE"));
+		assertEquals(3, rs.getInt("DECIMAL_DIGITS"));
+		assertEquals(10, rs.getInt("NUM_PREC_RADIX"));
+		assertEquals(DatabaseMetaData.attributeNullable, rs.getInt("NULLABLE"));
+		assertEquals(null, rs.getString("REMARKS"));
+		assertEquals(null, rs.getString("ATTR_DEF"));
+		assertEquals(-1, rs.getInt("CHAR_OCTET_LENGTH"));
+		assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+		assertEquals("YES", rs.getString("IS_NULLABLE"));
+		assertEquals(null, rs.getObject("SOURCE_DATA_TYPE"));
+		
+		assertTrue(rs.next());
+		assertEquals("public", rs.getString("TYPE_SCHEM"));
+		assertEquals("attr_test", rs.getString("TYPE_NAME"));
+		assertEquals("val3", rs.getString("ATTR_NAME"));
+		assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
+		assertEquals("nndom", rs.getString("ATTR_TYPE_NAME"));
+		assertEquals(10, rs.getInt("ATTR_SIZE"));
+		assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+		assertEquals(10, rs.getInt("NUM_PREC_RADIX"));
+		assertEquals(DatabaseMetaData.attributeNoNulls, rs.getInt("NULLABLE"));
+		assertEquals(null, rs.getString("REMARKS"));
+		assertEquals(null, rs.getString("ATTR_DEF"));
+		assertEquals(4, rs.getInt("CHAR_OCTET_LENGTH"));
+		assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+		assertEquals("NO", rs.getString("IS_NULLABLE"));
+		assertEquals(Types.INTEGER, rs.getShort("SOURCE_DATA_TYPE"));
+		
 	}
 
 	public void testTypeInfoSigned() throws SQLException {
