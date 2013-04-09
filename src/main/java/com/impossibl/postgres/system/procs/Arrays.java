@@ -180,7 +180,7 @@ public class Arrays extends SimpleProcProvider {
 					buffer.writeInt(dimension);
 					
 					//Lower bounds
-					buffer.writeInt(0);
+					buffer.writeInt(1);
 
 					if(dimension == 0)
 						dim = null;
