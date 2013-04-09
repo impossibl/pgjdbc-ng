@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.UUID;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -435,11 +434,10 @@ class SQLTypeUtils {
 		else if(val instanceof byte[]) {
 			return new String((byte[]) val, context.getCharset());
 		}
-		else if(val instanceof UUID) {
+		else {
 			return val.toString();
 		}
 
-		throw createCoercionException(val.getClass(), String.class);
 	}
 
 	public static Date coerceToDate(Object val, TimeZone zone, Context context) throws SQLException {
