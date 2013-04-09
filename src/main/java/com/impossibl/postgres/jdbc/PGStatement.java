@@ -173,6 +173,8 @@ abstract class PGStatement implements Statement {
 		connection = null;
 		command = null;
 		resultFields = null;
+		resultBatches = null;
+		generatedKeysResultSet = null;
 	}
 	
 	boolean hasResults() {
