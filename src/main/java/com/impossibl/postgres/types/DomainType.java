@@ -72,7 +72,7 @@ public class DomainType extends Type {
 		super.load(source, attrs, registry);
 		
 		base = registry.loadType(source.domainBaseTypeId);
-		nullable = source.domainNotNull;
+		nullable = !source.domainNotNull;
 		modifiers = base.getModifierParser().parse(source.domainTypeMod);
 		numberOfDimensions = source.domainDimensions;
 		defaultValue = source.domainDefault != null ? source.domainDefault : "";
