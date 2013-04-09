@@ -199,12 +199,12 @@ public class BasicContext implements Context {
 		String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
 		List<PgProc.Row> pgProcs = execQuery(procsSQL, PgProc.Row.class);
 		
-		logger.info("query time: " + timer.getLap() + "ms");
+		logger.fine("query time: " + timer.getLap() + "ms");
 
 		//Update the registry with known types
 		registry.update(pgTypes, pgAttrs, pgProcs);
 		
-		logger.info("load time: " + timer.getLap() + "ms");
+		logger.fine("load time: " + timer.getLap() + "ms");
 	}
 	
 	private void start() throws IOException, NoticeException {
@@ -450,7 +450,7 @@ public class BasicContext implements Context {
 
 	public void updateSystemParameter(String name, String value) {
 		
-		logger.info("system paramter: " + name + "=" + value);
+		logger.config("system paramter: " + name + "=" + value);
 		
 		switch(name) {
 		
