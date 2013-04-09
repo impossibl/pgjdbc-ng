@@ -86,16 +86,24 @@ class SQLTypeMetaData {
 	
 	public static int isNullable(Type type, CompositeType relType, int relAttrNum) {
 		
+		int nullable = isNullable(type);
+		
 		//Check the relation attribute for nullability
 		if(relType != null && relAttrNum != 0) {
 			CompositeType.Attribute attr = relType.getAttribute(relAttrNum);
-			if(attr == null) {
-				return columnNullableUnknown;
+			if(attr != null) {
+
+				if(attr.nullable && nullable == columnNullableUnknown) {
+					nullable = columnNullable;
+				}
+				else if(!attr.nullable) {
+					nullable = columnNoNulls;
+				}
+				
 			}
-			return attr.nullable ? columnNullable : columnNoNulls;
 		}
 		
-		return isNullable(type);
+		return nullable;
 	}
 	
 	public static int isNullable(Type type) {

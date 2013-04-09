@@ -1210,7 +1210,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     resultFields[18] = new ResultField("SCOPE_CATLOG", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[19] = new ResultField("SCOPE_SCHEMA", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[20] = new ResultField("SCOPE_TABLE", 			0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
-    resultFields[21] = new ResultField("SOURCE_DATA_TYPE", 	0, (short)0, registry.loadType("short"), 	(short)0, 0, Format.Binary);
+    resultFields[21] = new ResultField("SOURCE_DATA_TYPE", 	0, (short)0, registry.loadType("int2"), 	(short)0, 0, Format.Binary);
     resultFields[22] = new ResultField("IS_AUTOINCREMENT",	0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
     resultFields[23] = new ResultField("IS_GENERATEDCOLUMN",0, (short)0, registry.loadType("text"), 	(short)0, 0, Format.Binary);
 
@@ -1248,14 +1248,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     	row[16] = columnData.relationAttrNum;
     	
     	String nullable = null;
-    	if(columnData.nullable == null) {
-    		nullable = "";
-    	}
-    	else if(columnData.nullable == true) {
-				nullable = "YES";
-			}
-			else if(columnData.nullable == false) {
+    	switch((int)row[10]) {
+    	case columnNoNulls:
 				nullable = "NO";
+    		break;
+    	case columnNullable:
+    		nullable = "YES";
+    		break;
+    	default:
+    		nullable = "";
+    		break;
 			}
     	
     	row[17] = nullable;
