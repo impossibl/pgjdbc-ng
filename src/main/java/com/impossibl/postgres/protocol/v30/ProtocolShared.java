@@ -13,8 +13,11 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioWorkerPool;
+import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
+import org.jboss.netty.util.Timer;
 
 
 
@@ -82,10 +85,11 @@ public class ProtocolShared {
 		
 		Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
 		Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
-
+		Timer timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
+		
 		int workerCount = getRuntime().availableProcessors();
 
-		ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, workerExecutorService, workerCount);
+		ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, 1, new NioWorkerPool(workerExecutorService, workerCount), timer);
 
 		bootstrap = new ClientBootstrap(channelFactory);
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -122,8 +126,7 @@ class NamedThreadFactory implements ThreadFactory {
 	@Override
 	public Thread newThread(Runnable r) {
 		Thread thread = new Thread(r, baseName + " (" + idx.getAndIncrement() + ")");
-		if(thread.isDaemon())
-			thread.setDaemon(false);
+		thread.setDaemon(true);
 		if(thread.getPriority() != Thread.NORM_PRIORITY)
 			thread.setPriority(Thread.NORM_PRIORITY);
 		return thread;
