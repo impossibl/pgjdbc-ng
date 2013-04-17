@@ -15,7 +15,9 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFutureListener;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
@@ -94,7 +96,17 @@ public class ProtocolImpl implements Protocol {
 	
 	@Override
 	public void shutdown() {
-		channel.disconnect();
+		
+		try {
+			ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+			writeTerminate(msg);
+			channel.write(msg).addListener(ChannelFutureListener.CLOSE);
+		}
+		catch(Exception e) {
+			//Close anyway...
+			channel.close().awaitUninterruptibly(100);
+		}
+		
 		sharedRef.release();
 	}
 	
