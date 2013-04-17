@@ -1,7 +1,5 @@
 package com.impossibl.postgres.system.procs;
 
-import java.util.ServiceLoader;
-
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
@@ -14,8 +12,34 @@ public class Procs {
 	
 	public static final Type.Codec.Decoder[] defaultDecoders = { Strings.BINARY_DECODER, Bytes.BINARY_DECODER };
 	
-	
-	private static final ServiceLoader<ProcProvider> PROVIDERS = ServiceLoader.load(ProcProvider.class);
+	private static ProcProvider[] PROVIDERS = {
+		new Bools(),
+		new Bits(),
+		new Bytes(),
+		new Float4s(),
+		new Float8s(),
+		new Int2s(),
+		new Int4s(),
+		new Int8s(),
+		new Numerics(),
+		new NumericMods(),
+		new Names(),
+		new Strings(),
+		new Dates(),
+		new TimesWithoutTZ(),
+		new TimesWithTZ(),
+		new TimeMods(),
+		new TimestampsWithoutTZ(),
+		new TimestampsWithTZ(),
+		new TimestampMods(),
+		new Intervals(),
+		new UUIDs(),
+		new XMLs(),
+		new Moneys(),
+		new Arrays(),
+		new Records(),
+		new ACLItems(),
+	};
 	
 	private static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
 	private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = { new Unknowns.TxtEncoder(), new Unknowns.BinEncoder() };
