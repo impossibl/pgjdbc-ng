@@ -172,7 +172,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 				Class<?> targetType = mapSetType(parameterType);
 				
-				parameterValue = coerce(parameterValue, parameterType, targetType, Collections.<String,Class<?>>emptyMap(), TimeZone.getDefault(), connection);
+				try {
+					parameterValue = coerce(parameterValue, parameterType, targetType, Collections.<String,Class<?>>emptyMap(), TimeZone.getDefault(), connection);
+				}
+				catch(SQLException coercionException) {
+					throw new SQLException("Error converting parameter " + c, coercionException);
+				}
 			}
 			
 			parameterValues.set(c, parameterValue);
