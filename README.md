@@ -8,7 +8,7 @@ Features Include:
 * JDBC 4.1 conformance (currently the goal but most likely not quite there)
 * UDT support through standard SQLData, SQLInput & SQLOutput
 * Support for JDBC custom type mappings
-* Pluggable custom type serialization through service architecture
+* Pluggable custom type serialization
 * Higher performance binary format with text format fallback
 * Database, ResultSet and Parameter meta data
 * Transactions / Savepoints
