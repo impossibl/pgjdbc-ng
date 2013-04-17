@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -151,6 +152,9 @@ class SQLTypeUtils {
 		}
 		else if(targetType == Record.class) {
 			return coerceToRecord(val, sourceType, typeMap, connection);
+		}
+		else if(targetType == UUID.class) {
+			return coerceToUUID(val, connection);
 		}
 		else if(SQLXML.class.isAssignableFrom(targetType)) {
 			return coerceToXML(val, connection);
@@ -821,6 +825,21 @@ class SQLTypeUtils {
 		}
 
 		throw createCoercionException(val.getClass(), targetType);
+	}
+	
+	public static UUID coerceToUUID(Object val, Context context) throws SQLException {
+		
+		if(val == null) { 
+			return null;
+		}
+		else if(val instanceof UUID) {
+			return (UUID) val;
+		}
+		else if(val instanceof String) {
+			return UUID.fromString((String)val);
+		}
+		
+		throw createCoercionException(val.getClass(), UUID.class);
 	}
 
 	public static SQLXML coerceToXML(Object val, PGConnection connection) throws SQLException {
