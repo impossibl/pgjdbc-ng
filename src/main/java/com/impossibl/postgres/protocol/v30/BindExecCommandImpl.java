@@ -58,6 +58,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		public void noData() {
 			resultBatch.fields = Collections.emptyList();
 			resultBatch.results = null;
+			status = Status.Completed;
 		}
 
 		@Override
@@ -87,6 +88,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 		@Override
 		public void emptyQuery() {
+			resultBatch.fields = Collections.emptyList();
+			resultBatch.results = null;
 			status = Status.Completed;
 		}
 
@@ -268,7 +271,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		}
 		
 		protocol.send(msg);
-
+		
 		waitFor(listener);
 		
 	}
