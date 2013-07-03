@@ -744,7 +744,7 @@ class PGResultSet implements ResultSet {
 		
 		Type type = getType(columnIndex);
 		
-		Class<?> targetType = mapGetType(type, map);
+		Class<?> targetType = mapGetType(type, map, statement.connection);
 		
 		return coerce(get(columnIndex), type, targetType, map, statement.connection);
 	}

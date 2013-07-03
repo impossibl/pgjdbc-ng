@@ -45,7 +45,7 @@ class SQLTypeUtils {
 		return targetType;
 	}
 
-	public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap) {
+	public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap, Context context) {
 
 		Class<?> targetType = sourceType.getJavaType(typeMap);
 

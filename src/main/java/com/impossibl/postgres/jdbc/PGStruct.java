@@ -50,7 +50,7 @@ public class PGStruct implements Struct {
 			
 			Attribute attr = attrs.get(c);
 			
-			Class<?> targetType = mapGetType(type, map);
+			Class<?> targetType = mapGetType(type, map, connection);
 			
 			newValues[c] = coerce(values[c], attr.type, targetType, map, connection);
 		}
