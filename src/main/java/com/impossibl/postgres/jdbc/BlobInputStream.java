@@ -40,6 +40,9 @@ public class BlobInputStream extends InputStream {
 
 	    if (pos >= buf.length) {
 	    	readNextRegion();
+	    	
+	    	if(len == left && buf.length == 0)
+	    		return -1;
 	    }
 	
 	    int avail = buf.length - pos;
