@@ -332,5 +332,94 @@ public class BlobTest extends TestCase {
 		catch (SQLException sqle) {
 		}
 	}
+	
+	public void testEOF() throws SQLException, IOException {
+		Statement stmt = _conn.createStatement();
+		
+		stmt.execute(INSERT);
+		
+		ResultSet rs = stmt.executeQuery("SELECT data FROM blobtest");
+		assertTrue(rs.next());
+
+		Blob blob = rs.getBlob(1);
+		
+		InputStream in = blob.getBinaryStream();
+		
+		assertEquals(-1, in.read());
+		assertEquals(-1, in.read(new byte[4], 0, 4));
+	}
+	
+	public void testWrapper() throws SQLException {
+		_conn.setAutoCommit(false);
+
+		PreparedStatement stmt = _conn.prepareStatement("INSERT INTO blobtest VALUES (1, ?)");
+		
+		final Blob blob = _conn.createBlob();
+		
+		Blob wrapper = new Blob() {
+
+			@Override
+			public long length() throws SQLException {
+				return blob.length();
+			}
+
+			@Override
+			public byte[] getBytes(long pos, int length) throws SQLException {
+				return blob.getBytes(pos, length);
+			}
+
+			@Override
+			public InputStream getBinaryStream() throws SQLException {
+				return blob.getBinaryStream();
+			}
+
+			@Override
+			public long position(byte[] pattern, long start) throws SQLException {
+				return blob.position(pattern, start);
+			}
+
+			@Override
+			public long position(Blob pattern, long start) throws SQLException {
+				return blob.position(pattern, start);
+			}
+
+			@Override
+			public int setBytes(long pos, byte[] bytes) throws SQLException {
+				return blob.setBytes(pos, bytes);
+			}
+
+			@Override
+			public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
+				return blob.setBytes(pos, bytes, offset, len);
+			}
+
+			@Override
+			public OutputStream setBinaryStream(long pos) throws SQLException {
+				return blob.setBinaryStream(pos);
+			}
+
+			@Override
+			public void truncate(long len) throws SQLException {
+				blob.truncate(len);
+			}
+
+			@Override
+			public void free() throws SQLException {
+				blob.free();
+			}
+
+			@Override
+			public InputStream getBinaryStream(long pos, long length) throws SQLException {
+				return blob.getBinaryStream(pos, length);
+			}
+			
+		};
+		
+		stmt.setBlob(1, wrapper);
+		
+		stmt.execute();
+		
+		_conn.commit();
+	}
 
 }
