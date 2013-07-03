@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -586,12 +587,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		checkClosed();
 		checkParameterIndex(parameterIndex);
 
-		set(parameterIndex, x, targetSqlType);
+		set(parameterIndex, unwrap(x), targetSqlType);
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, Blob x) throws SQLException {
-		set(parameterIndex, x); 
+	public void setBlob(int parameterIndex, Blob x) throws SQLException {		
+		set(parameterIndex, unwrap(x)); 
 	}
 
 	@Override
@@ -613,7 +614,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 		set(parameterIndex, blob);
 	}
-
+	
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
 		set(parameterIndex, x);
@@ -756,6 +757,42 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 	@Override
 	public void addBatch(String sql) throws SQLException {
 		throw NOT_ALLOWED_ON_PREP_STMT;
+	}
+
+	private Object unwrap(Object x) throws SQLException {
+		
+		if(x instanceof Blob) {
+			return unwrap((Blob)x);
+		}
+		
+		return x;
+	}
+	
+	private PGBlob unwrap(Blob x) throws SQLException {
+		
+		if(x instanceof PGBlob)
+			return (PGBlob) x;
+
+		InputStream in = x.getBinaryStream();
+		if(in instanceof BlobInputStream) {
+			return new PGBlob(connection, ((BlobInputStream) in).lo.oid);
+		}
+		
+		PGBlob nx = (PGBlob)connection.createBlob();
+		OutputStream out = nx.setBinaryStream(1);
+		
+		try {
+			
+			ByteStreams.copy(in, out);
+			
+			in.close();
+			out.close();
+		}
+		catch (IOException e) {
+			throw new SQLException(e);
+		}
+		
+		return nx;
 	}
 
 }

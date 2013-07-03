@@ -11,6 +11,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.ROW_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
@@ -721,11 +722,7 @@ class PGResultSet implements ResultSet {
 	@Override
 	public Blob getBlob(int columnIndex) throws SQLException {
 
-		Object loId = getObject(columnIndex);
-		if(loId == null)
-			return null;
-		
-		return new PGBlob(statement.connection, (int)loId);
+		return coerceToBlob(get(columnIndex), statement.connection);
 	}
 
 	@Override
