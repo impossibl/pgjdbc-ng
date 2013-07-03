@@ -13,6 +13,7 @@ public class Procs {
 	public static final Type.Codec.Decoder[] defaultDecoders = { Strings.BINARY_DECODER, Bytes.BINARY_DECODER };
 	
 	private static ProcProvider[] PROVIDERS = {
+		new Oids(),
 		new Bools(),
 		new Bits(),
 		new Bytes(),

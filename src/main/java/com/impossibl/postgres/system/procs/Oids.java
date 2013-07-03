@@ -1,6 +1,6 @@
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.Int4;
+import static com.impossibl.postgres.types.PrimitiveType.Oid;
 
 import java.io.IOException;
 
@@ -12,16 +12,23 @@ import com.impossibl.postgres.types.Type;
 
 
 
-public class Int4s extends SimpleProcProvider {
+public class Oids extends SimpleProcProvider {
 
-	public Int4s() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "tid", "xid", "cid", "regproc");
+	public Oids() {
+		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oid");
+	}
+
+	@Override
+	protected boolean hasName(String name, String suffix, Context context) {
+		if(context != null && name.equals(context.getSetting("blob.type", String.class)+suffix))
+			return true;
+		return super.hasName(name, suffix, context);
 	}
 
 	static class BinDecoder extends BinaryDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
-			return Int4;
+			return Oid;
 		}
 		
 		public Class<?> getOutputType() {
@@ -50,7 +57,7 @@ public class Int4s extends SimpleProcProvider {
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return Int4;
+			return Oid;
 		}
 		
 		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
@@ -71,7 +78,7 @@ public class Int4s extends SimpleProcProvider {
 	static class TxtDecoder extends TextDecoder {
 
 		public PrimitiveType getInputPrimitiveType() {
-			return Int4;
+			return Oid;
 		}
 		
 		public Class<?> getOutputType() {
@@ -92,7 +99,7 @@ public class Int4s extends SimpleProcProvider {
 		}
 
 		public PrimitiveType getOutputPrimitiveType() {
-			return Int4;
+			return Oid;
 		}
 		
 		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
