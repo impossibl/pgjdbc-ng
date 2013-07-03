@@ -78,17 +78,26 @@ public class BasicContext implements Context {
 	protected PreparedQuery[] refreshQueries;
 	
 	
+	Properties ensureDefaultSettings(Properties settings) {
+		
+		if(settings.getProperty("blob.type") == null)
+			settings.setProperty("blob.type", "loid");
+	
+		return settings;
+	}
+	
+	
 	public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
-		this.registry = new Registry(this);
 		this.targetTypeMap = new HashMap<>(targetTypeMap);
-		this.settings = settings;
+		this.settings = ensureDefaultSettings(settings);
 		this.charset = UTF_8;
 		this.timeZone = TimeZone.getTimeZone("UTC");
 		this.dateFormatter = new ISODateFormat();
 		this.timeFormatter = new ISOTimeFormat();
 		this.timestampFormatter = new ISOTimestampFormat();
-		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 		this.notificationListeners = new ConcurrentSkipListSet<>(); 
+		this.registry = new Registry(this);
+		this.protocol = new ProtocolFactoryImpl().connect(address, this);
 	}
 	
 	protected void shutdown() {		

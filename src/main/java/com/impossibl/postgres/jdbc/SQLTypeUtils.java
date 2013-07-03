@@ -56,6 +56,12 @@ class SQLTypeUtils {
 		else {
 			
 			switch(sourceType.getPrimitiveType()) {
+			case Oid:
+				if(sourceType.getName().equals(context.getSetting("blob.type"))) {
+					return targetType = Blob.class;
+				}
+				break;
+				
 			case XML:
 				targetType = SQLXML.class;
 				break;
