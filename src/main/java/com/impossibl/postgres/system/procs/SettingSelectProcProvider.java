@@ -36,13 +36,13 @@ public class SettingSelectProcProvider extends BaseProcProvider {
 	}
 
 	public Codec.Encoder findEncoder(String name, Context context) {
-		if(name.endsWith("recv") && hasName(name, "recv")) {
+		if(name.endsWith("recv") && hasName(name, "recv", context)) {
 			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedBinEncoder;
 			else
 				return unmatchedBinEncoder;
 		}
-		else if(name.endsWith("in") && hasName(name, "in")) {
+		else if(name.endsWith("in") && hasName(name, "in", context)) {
 			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedTxtEncoder;
 			else
@@ -52,13 +52,13 @@ public class SettingSelectProcProvider extends BaseProcProvider {
 	}
 
 	public Codec.Decoder findDecoder(String name, Context context) {
-		if(name.endsWith("send") && hasName(name, "send")) {
+		if(name.endsWith("send") && hasName(name, "send", context)) {
 			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedBinDecoder;
 			else
 				return unmatchedBinDecoder;
 		}
-		else if(name.endsWith("out") && hasName(name, "out")) {
+		else if(name.endsWith("out") && hasName(name, "out", context)) {
 			if(context != null && settingMatchValue.equals(context.getSetting(settingName)))
 				return matchedTxtDecoder;
 			else

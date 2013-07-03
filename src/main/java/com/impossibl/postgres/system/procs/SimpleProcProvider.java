@@ -33,20 +33,20 @@ public class SimpleProcProvider extends BaseProcProvider {
 	}
 	
 	public Codec.Encoder findEncoder(String name, Context context) {
-		if(name.endsWith("recv") && hasName(name, "recv")) {
+		if(name.endsWith("recv") && hasName(name, "recv", context)) {
 			return binEncoder;
 		}
-		else if(name.endsWith("in") && hasName(name, "in")) {
+		else if(name.endsWith("in") && hasName(name, "in", context)) {
 			return txtEncoder;
 		}
 		return null;
 	}
 
 	public Codec.Decoder findDecoder(String name, Context context) {
-		if(name.endsWith("send") && hasName(name, "send")) {
+		if(name.endsWith("send") && hasName(name, "send", context)) {
 			return binDecoder;
 		}
-		else if(name.endsWith("out") && hasName(name, "out")) {
+		else if(name.endsWith("out") && hasName(name, "out", context)) {
 			return txtDecoder;
 		}
 		return null;
@@ -54,10 +54,10 @@ public class SimpleProcProvider extends BaseProcProvider {
 
 	@Override
 	public Modifiers.Parser findModifierParser(String name, Context context) {
-		if(name.endsWith("typmodin") && hasName(name, "typmodin")) {
+		if(name.endsWith("typmodin") && hasName(name, "typmodin", context)) {
 			return modParser;
 		}
-		if(name.endsWith("typmodout") && hasName(name, "typmodout")) {
+		if(name.endsWith("typmodout") && hasName(name, "typmodout", context)) {
 			return modParser;
 		}
 		return null;

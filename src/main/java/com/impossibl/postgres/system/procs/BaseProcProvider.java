@@ -1,5 +1,7 @@
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+
 public abstract class BaseProcProvider implements ProcProvider {
 
 	
@@ -11,7 +13,7 @@ public abstract class BaseProcProvider implements ProcProvider {
 		this.baseNames = baseNames;
 	}
 
-	protected boolean hasName(String name, String suffix) {
+	protected boolean hasName(String name, String suffix, Context context) {
 		
 		for(String baseName : baseNames) {
 			if(name.equals(baseName+suffix))
