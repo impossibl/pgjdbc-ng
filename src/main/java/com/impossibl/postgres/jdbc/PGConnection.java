@@ -1,5 +1,6 @@
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
@@ -110,6 +111,15 @@ class PGConnection extends BasicContext implements Connection {
 	
 	protected void finalize() throws SQLException {
 		close();
+	}
+	
+	/**
+	 * Add warning to end of warning chain
+	 * 
+	 * @param warning
+	 */
+	public void addWarning(SQLWarning warning) {
+		warningChain = chainWarnings(warningChain, warning);
 	}
 
 	/**
