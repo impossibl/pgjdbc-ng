@@ -30,13 +30,27 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>com.impossibl</groupId>
+
 	<artifactId>pgjdbc-ng</artifactId>
+
 	<version>0.0.1-SNAPSHOT</version>
+
+	<packaging>jar</packaging>
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -55,6 +69,7 @@
 			<version>14.0</version>
 		</dependency>
 	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -94,6 +109,49 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>2.3</version>
+				<configuration>
+					<header>LICENSE</header>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
+
+	<name>PGJDBC-NG</name>
+	<url>http://impossibl.github.io/pgjdbc-ng/</url>
+	<description>An new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres. </description>
+	<inceptionYear>2013</inceptionYear>
+	<organization>
+		<name>impossibl.com</name>
+		<url>http://www.impossibl.com</url>
+	</organization>
+	<scm>
+		<url>https://github.com/impossibl/pgjdbc-ng</url>
+		<connection>scm:git:git@github.com:impossibl/pgjdbc-ng.git</connection>
+		<developerConnection>scm:git:git@github.com:impossibl/pgjdbc-ng.git</developerConnection>
+	</scm>
+	<developers>
+		<developer>
+			<id>kdubb</id>
+			<name>Kevin Wooten</name>
+		</developer>
+	</developers>
+	<licenses>
+		<license>
+			<name>BSD Revised</name>
+			<url>http://opensource.org/licenses/BSD-3-Clause</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
 </project>
