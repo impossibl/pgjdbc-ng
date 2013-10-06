@@ -384,13 +384,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsMinimumSQLGrammar() throws SQLException {
-		return false;
+		return true;
 	}
 
 	@Override
 	public boolean supportsCoreSQLGrammar() throws SQLException {
-		//TODO still correct as of 9 series?
-		return false;
+		return true;
 	}
 
 	@Override
