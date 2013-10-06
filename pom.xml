@@ -128,7 +128,7 @@
 
 	<name>PGJDBC-NG</name>
 	<url>http://impossibl.github.io/pgjdbc-ng/</url>
-	<description>An new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres. </description>
+	<description>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres. </description>
 	<inceptionYear>2013</inceptionYear>
 	<organization>
 		<name>impossibl.com</name>

@@ -1,38 +1,22 @@
-pgjdbc-ng
-=========
+# pgjdbc-ng
 
-A completely new PostgreSQL JDBC driver implementation
+## Building
+The driver is built with maven. Simply build with:
 
-Features Include:
-=========
-* JDBC 4.1 conformance (currently the goal but most likely not quite there)
-* UDT support through standard SQLData, SQLInput & SQLOutput
-* Support for JDBC custom type mappings
-* Pluggable custom type serialization
-* Higher performance binary format with text format fallback
-* Database, ResultSet and Parameter meta data
-* Transactions / Savepoints
-* Blobs
+	mvn clean package
 
+This will produce, in the target directory, two JAR files. One with dependencies
+packaged inside and another without.
 
-Planned Missing Features:
-=========
-* CallStatement support
-* Updatable ResultSets
-* SSL encryption
-* 
+## Testing
 
-Requirements:
-=========
-* Java 7
-* PostgreSQL 9.2
+The unit tests need a PostgreSQL database to execute against. The tests assume theses defaults:
 
+	DATABASE: test
+	SERVER: 	localhost
+	USERNAME:	postgres
+	PASSWORD:	test
 
+If you'd like to build the driver without running the unit tests use the command:
 
-Sponsors
-=========
-YourKit is kindly supporting open source projects with its full-featured Java Profiler.
-YourKit, LLC is the creator of innovative and intelligent tools for profiling
-Java and .NET applications. Take a look at YourKit's leading software products:
-<a href="http://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a> and
-<a href="http://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>
+	mvn clean package -DskipTests
