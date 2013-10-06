@@ -3,10 +3,6 @@ pgjdbc-ng
 
 A completely new PostgreSQL JDBC driver implementation
 
-Releases:
-=========
-[0.0.1-SNAPSHOT](https://github.com/kdubb/pgjdbc-ng/wiki/pgjdbc-ng-0.0.1-SNAPSHOT.jar)
-
 Features Include:
 =========
 * JDBC 4.1 conformance (currently the goal but most likely not quite there)
