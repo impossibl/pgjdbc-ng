@@ -1,0 +1,12 @@
+com.impossibl.postgres.data
+com.impossibl.postgres.datetime
+com.impossibl.postgres.datetime.instants
+com.impossibl.postgres.jdbc
+com.impossibl.postgres.mapper
+com.impossibl.postgres.protocol
+com.impossibl.postgres.protocol.v30
+com.impossibl.postgres.system
+com.impossibl.postgres.system.procs
+com.impossibl.postgres.system.tables
+com.impossibl.postgres.types
+com.impossibl.postgres.utils
