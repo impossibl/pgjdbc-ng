@@ -19,11 +19,10 @@ layout: default
 * Updatable ResultSets
 * SSL Encryption
 
-
 ## Releases
 
 {% for post in site.categories.releases %}
-* [ {{ post.title }} ]( {{ post.url }} )
+* [ {{ post.title }} ]( {{ site.baseurl }}{{ post.url }} )
 {% endfor %}
 
 ## Requirements

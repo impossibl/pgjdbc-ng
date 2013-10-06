@@ -20,7 +20,7 @@ Available in Maven Central:
 
 ### Snapshots
 Available in OSS repository:
-[https://oss.sonatype.org/content/repositories/snapshots/com/mycila/license-maven-plugin](https://oss.sonatype.org/content/repositories/snapshots/com/mycila/license-maven-plugin/)
+[https://oss.sonatype.org/content/repositories/snapshots/](https://oss.sonatype.org/content/repositories/snapshots/)
 
 	<dependency>
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
@@ -33,5 +33,5 @@ Available in OSS repository:
 Download jar file with dependencies:
 
 {% for post in site.categories.releases %}
-* [{{post.title}} JAR](releases/pgjdbc-ng-{{post.title}}-jar-with-dependencies.jar)
+* [{{post.title}} JAR](releases/pgjdbc-ng-{{latestRelVer}}-jar-with-dependencies.jar)
 {% endfor %}
