@@ -86,7 +86,7 @@ class SQLTypeUtils {
 			switch(sourceType.getPrimitiveType()) {
 			case Oid:
 				if(sourceType.getName().equals(context.getSetting("blob.type"))) {
-					return targetType = Blob.class;
+					targetType = Blob.class;
 				}
 				break;
 				
