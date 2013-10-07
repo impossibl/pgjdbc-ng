@@ -28,10 +28,10 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.utils.Factory.createInstance;
+import static java.util.Arrays.asList;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -259,7 +259,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
 	@Override
 	public List<ResultBatch> getResultBatches() {
-		return newArrayList(resultBatch);
+		return asList(resultBatch);
 	}
 
 	public void execute(ProtocolImpl protocol) throws IOException {

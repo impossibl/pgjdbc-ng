@@ -76,8 +76,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CharStreams;
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.Notice;
@@ -86,6 +84,8 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 
 
 

@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.system;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
@@ -272,15 +271,15 @@ public class BasicContext implements Context {
 		refreshQueries[0] = prepareQuery(sql0, "refresh-type", params0);
 		
 		String sql1 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
-		List<Type> params1 = newArrayList(registry.loadType("int4"));
+		List<Type> params1 = asList(registry.loadType("int4"));
 		refreshQueries[1] = prepareQuery(sql1, "refresh-type-attrs", params1);
 
 		String sql2 = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1";
-		List<Type> params2 = newArrayList(registry.loadType("int4"));
+		List<Type> params2 = asList(registry.loadType("int4"));
 		refreshQueries[2] = prepareQuery(sql2, "refresh-types", params2);
 
 		String sql3 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )";
-		List<Type> params3 = newArrayList(registry.loadType("int4[]"));
+		List<Type> params3 = asList(registry.loadType("int4[]"));
 		refreshQueries[3] = prepareQuery(sql3, "refresh-types-attrs", params3);
 		
 		String sql4 = PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1";

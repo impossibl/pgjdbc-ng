@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
@@ -48,7 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Joiner;
+import com.impossibl.postgres.utils.guava.Joiner;
 import com.impossibl.postgres.data.ACLItem;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;

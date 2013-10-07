@@ -38,7 +38,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.io.ByteStreams;
+import com.impossibl.postgres.utils.guava.ByteStreams;
 
 public class PGBlob implements Blob {
 	

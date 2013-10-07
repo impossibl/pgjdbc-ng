@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.data;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static com.google.common.base.Strings.nullToEmpty;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.sql.SQLException;
 import java.sql.Savepoint;

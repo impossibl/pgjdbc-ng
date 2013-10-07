@@ -237,7 +237,7 @@ abstract class PGStatement implements Statement {
 
 		warningChain = connection.execute(command, true);
 		
-		resultBatches = command.getResultBatches();
+		resultBatches = new ArrayList<>(command.getResultBatches());
 
 		return hasResults();
 	}
@@ -274,7 +274,7 @@ abstract class PGStatement implements Statement {
 		this.warningChain = connection.execute(command, true);
 		
 		this.command = command;
-		this.resultBatches = command.getResultBatches();
+		this.resultBatches = new ArrayList<>(command.getResultBatches());
 
 		return hasResults();		
 	}

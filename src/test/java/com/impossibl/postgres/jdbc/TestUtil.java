@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.base.Joiner;
+import com.impossibl.postgres.utils.guava.Joiner;
 
 
 

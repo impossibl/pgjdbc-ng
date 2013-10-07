@@ -39,7 +39,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import com.google.common.base.Strings;
+import com.impossibl.postgres.utils.guava.Strings;
 import com.impossibl.postgres.datetime.TimeZones;
 import com.impossibl.postgres.system.Context;
 

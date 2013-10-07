@@ -55,10 +55,10 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CharStreams;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 
 public class PGSQLOutput implements SQLOutput {
 	
