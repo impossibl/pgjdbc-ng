@@ -84,6 +84,11 @@ public class Notice {
 	private String routine;
 	private String file;
 	private String line;
+	private String schema;
+	private String table;
+	private String column;
+	private String datatype;
+	private String constraint;
 	
 	
 	public Notice() {
@@ -186,6 +191,46 @@ public class Notice {
 
 	public void setLine(String line) {
 		this.line = line;
+	}
+
+	public String getSchema() {
+		return schema;
+	}
+
+	public void setSchema(String schema) {
+		this.schema = schema;
+	}
+
+	public String getTable() {
+		return table;
+	}
+
+	public void setTable(String table) {
+		this.table = table;
+	}
+
+	public String getColumn() {
+		return column;
+	}
+
+	public void setColumn(String column) {
+		this.column = column;
+	}
+
+	public String getDatatype() {
+		return datatype;
+	}
+
+	public void setDatatype(String datatype) {
+		this.datatype = datatype;
+	}
+
+	public String getConstraint() {
+		return constraint;
+	}
+
+	public void setConstraint(String constraint) {
+		this.constraint = constraint;
 	}
 	
 }

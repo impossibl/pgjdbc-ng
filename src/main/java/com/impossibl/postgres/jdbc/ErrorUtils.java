@@ -133,7 +133,16 @@ public class ErrorUtils {
 	 */
 	public static SQLException makeSQLException(Notice notice) {
 
-		return new SQLException(notice.getMessage(), notice.getCode());
+		PGSQLException e = new PGSQLException(notice.getMessage(), notice.getCode());
+		
+		//Copy extended error information (9.3+)
+		e.setSchema(notice.getSchema());
+		e.setTable(notice.getTable());
+		e.setColumn(notice.getColumn());
+		e.setDatatype(notice.getDatatype());
+		e.setConstraint(notice.getConstraint());
+		
+		return e;
 	}
 
 	/**

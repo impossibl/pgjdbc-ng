@@ -512,7 +512,7 @@ public class ProtocolImpl implements Protocol {
 		case READY_FOR_QUERY_MSG_ID:
 			receiveReadyForQuery(msg.data);
 			break;
-
+			
 		default:
 				logger.fine("unsupported message type: " + (msg.id & 0xff));
 		}
@@ -892,7 +892,27 @@ public class ProtocolImpl implements Protocol {
 			case 'R':
 				notice.setRoutine(readCString(buffer, context.getCharset()));
 				break;
-
+				
+			case 's':
+				notice.setSchema(readCString(buffer, context.getCharset()));
+				break;
+				
+			case 't':
+				notice.setTable(readCString(buffer, context.getCharset()));
+				break;
+				
+			case 'c':
+				notice.setColumn(readCString(buffer, context.getCharset()));
+				break;
+				
+			case 'd':
+				notice.setDatatype(readCString(buffer, context.getCharset()));
+				break;
+				
+			case 'n':
+				notice.setConstraint(readCString(buffer, context.getCharset()));
+				break;
+				
 			default:
 				// Read and ignore
 				readCString(buffer, context.getCharset());
