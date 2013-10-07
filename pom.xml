@@ -109,6 +109,10 @@
 				<version>2.3</version>
 				<configuration>
 					<header>LICENSE</header>
+					<useDefaultExcludes>true</useDefaultExcludes>
+					<excludes>
+						<exclude>src/main/java/com/impossibl/postgres/utils/guava/**</exclude>
+					</excludes>
 				</configuration>
 				<executions>
 					<execution>
