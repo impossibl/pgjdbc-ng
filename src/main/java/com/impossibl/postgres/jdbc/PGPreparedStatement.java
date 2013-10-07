@@ -672,7 +672,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-		setBlob(parameterIndex, ByteStreams.limit(inputStream, length), Types.BINARY);
+		setBlob(parameterIndex, ByteStreams.limit(inputStream, length));
 	}
 
 	@Override
