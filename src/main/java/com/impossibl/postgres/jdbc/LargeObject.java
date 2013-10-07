@@ -48,7 +48,11 @@ class LargeObject {
 		if(fd == -1) {
 			throw new SQLException("Unable to open large object");
 		}
-		return new LargeObject(connection, oid, fd);
+		
+		if(connection.getServerVersion().compatible(9, 3, null))
+			return new LargeObject64(connection, oid, fd);
+		else
+			return new LargeObject(connection, oid, fd);
 	}
 	
 	LargeObject(PGConnection connection, int oid, int fd) {
@@ -78,7 +82,7 @@ class LargeObject {
 		return connection.executeForResult("select lo_close($1)", true, Integer.class, fd);
 	}
 	
-	int lseek(long offset, int whence) throws SQLException {
+	long lseek(long offset, int whence) throws SQLException {
 		return connection.executeForResult("select lo_lseek($1,$2,$3)", true, Integer.class, fd, (int)offset, whence);		
 	}
 	
