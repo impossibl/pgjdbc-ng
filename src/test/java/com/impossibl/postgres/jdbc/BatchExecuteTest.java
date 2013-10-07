@@ -95,7 +95,7 @@ public class BatchExecuteTest extends TestCase {
 		Statement stmt = con.createStatement();
 		stmt.clearBatch(); // No-op.
 
-		PreparedStatement ps = con.prepareStatement("SELECT ?::int");
+		PreparedStatement ps = con.prepareStatement("SELECT ?");
 		ps.clearBatch(); // No-op.
 	}
 

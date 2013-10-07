@@ -29,10 +29,13 @@
 package com.impossibl.postgres.jdbc;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.jdbc.ErrorUtils.isUnknownParameterTypeError;
+import static com.impossibl.postgres.jdbc.ErrorUtils.parseUnknownParameterTypeIndex;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
+import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -77,6 +80,7 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -87,7 +91,6 @@ import com.impossibl.postgres.types.Type;
 
 class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
-	
 	
 	String sqlText;
 	List<Type> parameterTypes;
@@ -126,15 +129,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 	}
 	
-	void set(int parameterIdx, Object val) throws SQLException {		
-		checkClosed();
-		checkParameterIndex(parameterIdx);
-		
-		parameterIdx -= 1;
-
-		parameterValues.set(parameterIdx, val);
-	}
-
 	void set(int parameterIdx, Object val, int targetSQLType) throws SQLException {
 		checkClosed();
 		checkParameterIndex(parameterIdx);
@@ -175,12 +169,65 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 				connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name), false);
 			}
 			
-			PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), parameterTypes);
+			/*
+			 * Prepare the query while handling the case of "could not determine data type".
+			 * 
+			 * This code loops around trying to prepare the query. It starts with no suggested
+			 * parameter data types (i.e. provides null for all of them). If the server fails
+			 * to prepare the query because it cannot determine a data type, then a suggested
+			 * type is located (provided by an setXXX calls) and provided.  If no suggested
+			 * type is available the code fails. The loop continues until all unknown type
+			 * errors are resolved.
+			 * 
+			 *  Yes it's slow! Hopefully the rarity of the case and that fact that this is
+			 *  only for "prepared" statements mitigate the cost.
+			 * 
+			 */
+			List<Type> suggestedParameterTypes = Arrays.asList(new Type[parameterTypes.size()]);
 			
-			warningChain = connection.execute(prep, true);
+			while(true) {
+				
+				PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), suggestedParameterTypes);
+				
+				try {
+					warningChain = connection.execute(prep, true);
+					
+					parameterTypes = prep.getDescribedParameterTypes();
+					resultFields = prep.getDescribedResultFields();
+
+					//succeeded so we break out "suggesting parameters loop"
+					break;
+				}
+				catch(Exception e) {
+					
+					Notice error = prep.getError();
+					
+					if(isUnknownParameterTypeError(error)) {
+						
+						//Attempt to locate suggested type for parameter...
+						
+						Integer paramIdx = parseUnknownParameterTypeIndex(error);
+						
+						if(paramIdx == null || paramIdx < 0 || paramIdx >= parameterTypes.size()) {
+							//abort and throw original exception
+							throw e;
+						}
+						
+						Type type = parameterTypes.get(paramIdx);
+						if(type == null) {
+							
+							type = getType(Types.VARCHAR, connection.getRegistry());
+							
+						}
+												
+						suggestedParameterTypes.set(paramIdx, type);
+						
+					}
+					
+				}
+				
+			}
 			
-			parameterTypes = prep.getDescribedParameterTypes();
-			resultFields = prep.getDescribedResultFields();
 			
 			parsed = true;
 		}
@@ -383,57 +430,57 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
-		set(parameterIndex, null);
+		set(parameterIndex, null, Types.NULL);
 	}
 
 	@Override
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.BOOLEAN);
 	}
 
 	@Override
 	public void setByte(int parameterIndex, byte x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.TINYINT);
 	}
 
 	@Override
 	public void setShort(int parameterIndex, short x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.SMALLINT);
 	}
 
 	@Override
 	public void setInt(int parameterIndex, int x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.INTEGER);
 	}
 
 	@Override
 	public void setLong(int parameterIndex, long x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.BIGINT);
 	}
 
 	@Override
 	public void setFloat(int parameterIndex, float x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.FLOAT);
 	}
 
 	@Override
 	public void setDouble(int parameterIndex, double x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.DOUBLE);
 	}
 
 	@Override
 	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.DECIMAL);
 	}
 
 	@Override
 	public void setString(int parameterIndex, String x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.VARCHAR);
 	}
 
 	@Override
 	public void setBytes(int parameterIndex, byte[] x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.BINARY);
 	}
 
 	@Override
@@ -456,7 +503,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, Instants.fromDate(x, zone));
+		set(parameterIndex, Instants.fromDate(x, zone), Types.DATE);
 	}
 
 	@Override
@@ -465,7 +512,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, Instants.fromTime(x, zone));
+		set(parameterIndex, Instants.fromTime(x, zone), Types.TIME);
 	}
 
 	@Override
@@ -475,7 +522,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 		TimeZone zone = cal.getTimeZone();
 		
-		set(parameterIndex, Instants.fromTimestamp(x, zone));
+		set(parameterIndex, Instants.fromTimestamp(x, zone), Types.TIMESTAMP);
 	}
 
 	@Override
@@ -524,7 +571,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		if(x == null) {
 			
-			set(parameterIndex, null);
+			set(parameterIndex, null, Types.BINARY);
 		}
 		else {
 			
@@ -542,7 +589,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 				throw new SQLException(e);
 			}
 	
-			set(parameterIndex, out.toByteArray());
+			set(parameterIndex, out.toByteArray(), Types.BINARY);
 			
 		}
 		
@@ -595,12 +642,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw new SQLException(e);
 		}
 		
-		set(parameterIndex, writer.toString());
+		set(parameterIndex, writer.toString(), Types.VARCHAR);
 	}
 
 	@Override
 	public void setObject(int parameterIndex, Object x) throws SQLException {		
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.OTHER);
 	}
 
 	@Override
@@ -620,12 +667,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {		
-		set(parameterIndex, unwrap(x)); 
+		set(parameterIndex, unwrap(x), Types.BINARY); 
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-		setBlob(parameterIndex, ByteStreams.limit(inputStream, length));
+		setBlob(parameterIndex, ByteStreams.limit(inputStream, length), Types.BINARY);
 	}
 
 	@Override
@@ -640,22 +687,22 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 			throw new SQLException(e);
 		}
 
-		set(parameterIndex, blob);
+		set(parameterIndex, blob, Types.BINARY);
 	}
 	
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.ARRAY);
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-		set(parameterIndex, null);
+		set(parameterIndex, null, Types.NULL);
 	}
 
 	@Override
 	public void setURL(int parameterIndex, URL x) throws SQLException {
-		set(parameterIndex, x);
+		set(parameterIndex, x, Types.VARCHAR);
 	}
 
 	@Override
@@ -668,7 +715,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 		
 		PGSQLXML sqlXml = (PGSQLXML) xmlObject;
 		
-		set(parameterIndex, sqlXml.getData());
+		set(parameterIndex, sqlXml.getData(), Types.SQLXML);
 	}
 
 	@Override

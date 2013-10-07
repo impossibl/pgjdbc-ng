@@ -334,7 +334,7 @@ public class PreparedStatementTest extends TestCase {
 		assertEquals("$a$;$x $a$", rs.getString(1));
 		assertFalse(rs.next());
 		
-		st = conn.prepareStatement("SELECT ?::text");
+		st = conn.prepareStatement("SELECT ?");
 		st.setString(1, "$a$ $a$");
 		assertTrue(st.execute());
 		rs = st.getResultSet();
@@ -745,8 +745,8 @@ public class PreparedStatementTest extends TestCase {
 	 * protocol. This test just makes sure that works.
 	 */
 	public void testStatementDescribe() throws SQLException {
-		PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
-		pstmt.setObject(1, new Integer(2), Types.OTHER);
+		PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+		pstmt.setObject(1, new Integer(2));
 		for(int i = 0; i < 10; i++) {
 			ResultSet rs = pstmt.executeQuery();
 			assertTrue(rs.next());
