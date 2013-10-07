@@ -2,6 +2,13 @@ package com.impossibl.postgres.jdbc;
 
 import java.sql.SQLException;
 
+/**
+ * Postgres-specific SQL exception that carries and extended error information
+ * reported by the server.
+ * 
+ * @author kdubb
+ *
+ */
 public class PGSQLException extends SQLException {
 
 	private static final long serialVersionUID = -176414268626933865L;
