@@ -31,11 +31,16 @@ package com.impossibl.postgres.protocol;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+
+import org.jboss.netty.util.TimerTask;
 
 import com.impossibl.postgres.types.Type;
 
 
 public interface Protocol {
+	
+	boolean isConnected();
 	
 	TransactionStatus getTransactionStatus();
 
@@ -47,9 +52,13 @@ public interface Protocol {
 	
 	CloseCommand createClose(ServerObjectType objectType, String objectName);
 	
+	void enableExecutionTimer(TimerTask task, long timeout);
+	
 	void execute(Command cmd) throws IOException;
 	
 	void shutdown();
 
+	void abort(Executor executor);
 
+	
 }

@@ -41,6 +41,10 @@ import com.impossibl.postgres.protocol.TypeRef;
 
 
 public interface ProtocolListener {
+	
+	void abort();
+
+	boolean isAborted();
 
 	boolean isComplete();
 

@@ -123,11 +123,22 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 	String command;
 	List<ResultBatch> resultBatches;
 	ResultBatch resultBatch;
+	long queryTimeout;
 
 	
 	
 	public QueryCommandImpl(String command) {
 		this.command = command;
+	}
+
+	@Override
+	public long getQueryTimeout() {
+		return queryTimeout;
+	}
+
+	@Override
+	public void setQueryTimeout(long timeout) {
+		this.queryTimeout = timeout;
 	}
 
 	@Override
@@ -151,6 +162,8 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 		protocol.writeSync(msg);
 
 		protocol.send(msg);
+
+		enableCancelTimer(protocol, queryTimeout);
 
 		waitFor(listener);
 	}

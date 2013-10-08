@@ -28,21 +28,36 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.emptyList;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
+import org.jboss.netty.util.Timeout;
+import org.jboss.netty.util.TimerTask;
+
+import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Notice;
 
 
 
-public abstract class CommandImpl {
+public abstract class CommandImpl implements Command {
 
+	protected long networkTimeout;
 	protected Notice error;
 	protected List<Notice> notices;
 	
+	public long getNetworkTimeout() {
+		return networkTimeout;
+	}
+
+	public void setNetworkTimeout(long timeout) {
+		this.networkTimeout = timeout;
+	}
+
 	public Notice getError() {
 		return error;		
 	}
@@ -75,23 +90,54 @@ public abstract class CommandImpl {
 		return warnings;
 	}
 
-	public void waitFor(ProtocolListener listener) {
+	public void waitFor(ProtocolListener listener) throws IOException {
+		
+		long networkTimeout = this.networkTimeout;
+		
+		if(networkTimeout < 1) {
+			networkTimeout = MAX_VALUE;
+		}
 
 		synchronized(listener) {
 
-			while(listener.isComplete() == false) {
+			while(!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
 
+				long start = System.currentTimeMillis();
+				
 				try {
-					listener.wait();
+					
+					listener.wait(networkTimeout);
+					
 				}
 				catch(InterruptedException e) {
-					// Ignore
 				}
 
+				networkTimeout -= (System.currentTimeMillis() - start);
+				
+				if(networkTimeout < 1) {
+					throw new BlockingReadTimeoutException("network timeout reached");
+				}
+				
 			}
 
 		}
 
+	}
+	
+	public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
+		
+		if(timeout < 1)
+			return;
+		
+		protocol.enableExecutionTimer(new TimerTask() {
+
+			@Override
+			public void run(Timeout timeout) throws Exception {
+				protocol.sendCancelRequest();
+			}
+			
+		}, timeout);
+		
 	}
 
 	public abstract void execute(ProtocolImpl protocol) throws IOException;

@@ -53,7 +53,7 @@ public class ProtocolShared {
 
 	public class Ref {
 
-		boolean released;
+		private boolean released;
 
 		public ProtocolShared get() {
 			return ProtocolShared.this;
@@ -82,8 +82,13 @@ public class ProtocolShared {
 		return instance.addReference();
 	}
 
+	private Timer timer;
 	private ClientBootstrap bootstrap;
 	private int count = 0;
+
+	public Timer getTimer() {
+		return timer;
+	}
 
 	public ClientBootstrap getBootstrap() {
 		return bootstrap;
@@ -111,9 +116,10 @@ public class ProtocolShared {
 
 		ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
 		
+		timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
+		
 		Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
 		Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
-		Timer timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
 		
 		int workerCount = getRuntime().availableProcessors();
 

@@ -32,6 +32,9 @@ import java.util.List;
 
 public interface Command {
 	
+	long getNetworkTimeout();
+	void setNetworkTimeout(long timeout);
+	
 	Notice getError();
 	List<Notice> getWarnings();
 

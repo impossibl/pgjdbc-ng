@@ -461,7 +461,7 @@ public class StatementTest extends TestCase {
 				}
 			}, 2500);
 			stmt.setQueryTimeout(1);
-			stmt.execute("select pg_sleep(5)");
+			stmt.execute("select pg_sleep(10)");
 
 		}
 		catch(SQLException sqle) {

@@ -78,11 +78,6 @@ public class BasicContext implements Context {
 	private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 	
 	
-	public static class KeyData {
-		int processId;
-		int secretKey;
-	}
-	
 	public static class PreparedQuery {
 		String name;
 		List<Type> parameterTypes;
@@ -128,16 +123,7 @@ public class BasicContext implements Context {
 	}
 	
 	protected void shutdown() {		
-		
-		protocol.shutdown();
-		
-		//Release resources
-		protocol = null;
-		registry = null;
-		targetTypeMap = null;
-		settings = null;
-		serverVersion = null;
-		keyData = null;
+		protocol.shutdown();		
 	}
 
 	public Version getServerVersion() {
@@ -153,6 +139,7 @@ public class BasicContext implements Context {
 		return registry;
 	}
 
+	@Override
 	public Protocol getProtocol() {
 		return protocol;
 	}
@@ -177,6 +164,7 @@ public class BasicContext implements Context {
 		return false;
 	}
 
+	@Override
 	public Class<?> lookupInstanceType(Type type) {
 		
 		Class<?> cls = targetTypeMap.get(type.getName());
@@ -189,23 +177,33 @@ public class BasicContext implements Context {
 		
 		return cls;
 	}
-	
+
+	@Override
 	public Charset getCharset() {
 		return charset;
 	}
 
+	@Override
 	public TimeZone getTimeZone() {
 		return timeZone;
 	}
 
+	@Override
+	public KeyData getKeyData() {
+		return keyData;
+	}
+
+	@Override
 	public DateTimeFormat getDateFormatter() {
 		return dateFormatter;
 	}
 
+	@Override
 	public DateTimeFormat getTimeFormatter() {
 		return timeFormatter;
 	}
 
+	@Override
 	public DateTimeFormat getTimestampFormatter() {
 		return timestampFormatter;
 	}

@@ -35,6 +35,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -77,6 +78,7 @@ abstract class PGStatement implements Statement {
 	List<PGResultSet> activeResultSets;
 	PGResultSet generatedKeysResultSet;
 	SQLWarning warningChain;
+	int queryTimeout;
 
 	
 	
@@ -264,6 +266,10 @@ abstract class PGStatement implements Statement {
 		}
 
 		BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
+		
+		//Set query timeout
+		long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
+		command.setQueryTimeout(queryTimeoutMS);
 
 		if(fetchSize != null)
 			command.setMaxRows(fetchSize);
@@ -424,14 +430,18 @@ abstract class PGStatement implements Statement {
 	@Override
 	public int getQueryTimeout() throws SQLException {
 		checkClosed();
-		// TODO implement
-		return 0;
+		return queryTimeout;
 	}
 
 	@Override
-	public void setQueryTimeout(int seconds) throws SQLException {
+	public void setQueryTimeout(int queryTimeout) throws SQLException {
 		checkClosed();
-		throw NOT_IMPLEMENTED;
+
+		if(queryTimeout < 0) {
+			throw new SQLException("invalid query timeout");
+		}
+		
+		this.queryTimeout = queryTimeout;
 	}
 
 	@Override

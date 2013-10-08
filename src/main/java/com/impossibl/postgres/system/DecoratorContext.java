@@ -61,6 +61,11 @@ public class DecoratorContext implements Context {
 	}
 
 	@Override
+	public KeyData getKeyData() {
+		return base.getKeyData();
+	}
+	
+	@Override
 	public DateTimeFormat getDateFormatter() {
 		return base.getDateFormatter();
 	}

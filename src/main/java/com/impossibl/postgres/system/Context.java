@@ -37,12 +37,20 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 public interface Context {
+
+	public class KeyData {
+		public int processId;
+		public int secretKey;
+	}
 	
+
 	Registry getRegistry();
 	
 	TimeZone getTimeZone();
 	
 	Charset getCharset();
+	
+	KeyData getKeyData();
 	
 	DateTimeFormat getDateFormatter();
 	DateTimeFormat getTimeFormatter();

@@ -45,6 +45,9 @@ public interface QueryCommand extends Command {
 		public List<?> results;
 	}
 	
+	long getQueryTimeout();
+	void setQueryTimeout(long timeout);
+	
 	int getMaxRows();
 	void setMaxRows(int maxRows);
 	

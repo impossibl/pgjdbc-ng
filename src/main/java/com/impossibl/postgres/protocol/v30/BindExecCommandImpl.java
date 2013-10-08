@@ -170,7 +170,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 	private SettingsContext parsingContext;
 	private ResultBatch resultBatch;
 	private List<Format> resultFieldFormats;
-	
+	private long queryTimeout;
 	
 	
 	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
@@ -200,6 +200,14 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		resultBatch = new ResultBatch();
 		resultBatch.fields = resultFields;
 		resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
+	}
+
+	public long getQueryTimeout() {
+		return queryTimeout;
+	}
+
+	public void setQueryTimeout(long queryTimeout) {
+		this.queryTimeout = queryTimeout;
 	}
 
 	@Override
@@ -300,6 +308,8 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 		
 		protocol.send(msg);
 		
+		enableCancelTimer(protocol, queryTimeout);
+
 		waitFor(listener);
 		
 	}

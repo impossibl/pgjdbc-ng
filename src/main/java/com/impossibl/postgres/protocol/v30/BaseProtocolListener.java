@@ -41,6 +41,18 @@ import com.impossibl.postgres.protocol.TypeRef;
 
 
 public class BaseProtocolListener implements ProtocolListener {
+	
+	boolean aborted;
+	
+	@Override
+	public void abort() {
+		aborted = true;
+	}
+	
+	@Override
+	public boolean isAborted() {
+		return aborted;
+	}
 
 	@Override
 	public boolean isComplete() {

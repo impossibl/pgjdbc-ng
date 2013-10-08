@@ -34,18 +34,27 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.SEVERE;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.util.Timeout;
+import org.jboss.netty.util.TimerTask;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
@@ -63,6 +72,7 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Context.KeyData;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
@@ -104,12 +114,16 @@ public class ProtocolImpl implements Protocol {
 	private static final byte BIND_COMPLETE_MSG_ID = '2';
 	private static final byte CLOSE_COMPLETE_MSG_ID = '3';
 	private static final byte FUNCTION_RESULT_MSG_ID = 'V';
+	
+	private static final ProtocolListener NULL_LISTENER = new BaseProtocolListener() {};
 
+	AtomicBoolean connected = new AtomicBoolean(true);
 	ProtocolShared.Ref sharedRef;
 	Channel channel;
 	BasicContext context;
 	TransactionStatus txStatus;
 	ProtocolListener listener;
+	Timeout executionTimeout;
 
 	public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
 		this.sharedRef = sharedRef;
@@ -123,7 +137,17 @@ public class ProtocolImpl implements Protocol {
 	}
 	
 	@Override
+	public boolean isConnected() {
+		return connected.get();
+	}
+	
+	@Override
 	public void shutdown() {
+
+		//Ensure only one thread can ever succeed in calling shutdown
+		if(connected.getAndSet(false) == false) {
+			return;
+		}
 		
 		try {
 			ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
@@ -136,6 +160,40 @@ public class ProtocolImpl implements Protocol {
 		}
 		
 		sharedRef.release();
+	}
+	
+	@Override
+	public void abort(Executor executor) {
+
+		if(connected.get() == false)
+			return;
+			
+		//Shutdown socket (also guarantees no more commands begin execution)
+		shutdown();
+		
+		//Issue cancel request from separate socket (per Postgres protocol). This
+		//is a convenience to the server as the abort does not depend on its
+		//success to complete properly
+		
+		executor.execute(new Runnable() {
+			
+			public void run() {
+				
+				sendCancelRequest();
+				
+			}
+
+		});
+		
+		//Copy listener so canceling thread cannot nullify it
+		ProtocolListener localListener = this.listener;
+		synchronized(localListener) {
+		
+			localListener.abort();
+			localListener.notifyAll();
+			
+		}
+		
 	}
 	
 	void setListener(ProtocolListener listener) {
@@ -161,7 +219,7 @@ public class ProtocolImpl implements Protocol {
 	public QueryCommand createQuery(String sqlText) {
 		return new QueryCommandImpl(sqlText);
 	}
-
+	
 	@Override
 	public FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
 		return new FunctionCallCommandImpl(functionName, parameterTypes, parameterValues);
@@ -171,21 +229,42 @@ public class ProtocolImpl implements Protocol {
 	public CloseCommand createClose(ServerObjectType objectType, String objectName) {
 		return new CloseCommandImpl(objectType, objectName);
 	}
+	
+	@Override
+	public void enableExecutionTimer(TimerTask task, long timeout) {
+		executionTimeout = sharedRef.get().getTimer().newTimeout(task, timeout, MILLISECONDS);
+	}
 
+	@Override
 	public synchronized void execute(Command cmd) throws IOException {
 		
 		if(cmd instanceof CommandImpl == false)
 			throw new IllegalArgumentException();
+		
+		if(connected.get() == false) {
+			throw new InterruptedIOException("channel closed");
+		}
 		
 		try {
 			
 			((CommandImpl)cmd).execute(this);
 			
 		}
+		catch(InterruptedIOException e) {
+			
+			sendCancelRequest();
+			
+			throw e;
+		}
 		finally {
 			
+			//Cancel execution timer
+			if(executionTimeout != null)
+				executionTimeout.cancel();
+			executionTimeout = null;
+			
 			//Ensure listener is reset
-			listener = null;
+			listener = NULL_LISTENER;
 		}
 	}
 
@@ -368,6 +447,27 @@ public class ProtocolImpl implements Protocol {
 		channel.write(msg);
 	}
 
+	void sendCancelRequest() {
+		
+		InetSocketAddress serverAddress = (InetSocketAddress)channel.getRemoteAddress();
+		KeyData keyData = context.getKeyData();
+		
+		try(Socket abortSocket = new Socket(serverAddress.getAddress(), serverAddress.getPort())) {
+			
+			DataOutputStream os = new DataOutputStream(abortSocket.getOutputStream());
+			
+			os.writeInt(16);
+			os.writeInt(80877102);
+			os.writeInt(keyData.processId);
+			os.writeInt(keyData.secretKey);
+			
+		}
+		catch (IOException e) {
+			//Ignore...
+		}
+		
+	}
+	
 	protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
 		// Select format for parameters
@@ -439,7 +539,7 @@ public class ProtocolImpl implements Protocol {
 	 */
 
 	public void dispatch(ResponseMessage msg) throws IOException {
-
+		
 		switch (msg.id) {
 		case AUTHENTICATION_MSG_ID:
 			receiveAuthentication(msg.data);
@@ -840,8 +940,7 @@ public class ProtocolImpl implements Protocol {
 
 		logger.finest("READY: " + txStatus);
 		
-		if(listener != null)
-			listener.ready(txStatus);
+		listener.ready(txStatus);
 	}
 
 	private Notice parseNotice(ChannelBuffer buffer) {

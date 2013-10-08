@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
+import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_CONNECTION;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
@@ -57,8 +58,10 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.sql.Array;
@@ -72,6 +75,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
@@ -84,6 +88,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+
+import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
@@ -285,6 +291,10 @@ class PGConnection extends BasicContext implements Connection {
 		if(checkTxn) {
 			checkTransaction();
 		}
+
+		//Enable network timeout
+		long networkTimeoutMS = SECONDS.toMillis(networkTimeout);
+		cmd.setNetworkTimeout(networkTimeoutMS);
 		
 		try {
 			
@@ -297,6 +307,18 @@ class PGConnection extends BasicContext implements Connection {
 
 			return makeSQLWarningChain(cmd.getWarnings());
 
+		}
+		catch(BlockingReadTimeoutException e) {
+			
+			close();
+			
+			throw new SQLTimeoutException(e);
+		}
+		catch(InterruptedIOException e) {
+
+			close();
+			
+			throw CLOSED_CONNECTION;
 		}
 		catch(IOException e) {
 
@@ -323,6 +345,18 @@ class PGConnection extends BasicContext implements Connection {
 
 			execQuery(sql);
 
+		}
+		catch(BlockingReadTimeoutException e) {
+			
+			close();
+			
+			throw new SQLTimeoutException(e);
+		}
+		catch(InterruptedIOException e) {
+
+			close();
+			
+			throw CLOSED_CONNECTION;
 		}
 		catch(IOException e) {
 
@@ -357,6 +391,18 @@ class PGConnection extends BasicContext implements Connection {
 
 			return execQueryForString(sql);
 
+		}
+		catch(BlockingReadTimeoutException e) {
+			
+			close();
+			
+			throw new SQLTimeoutException(e);
+		}
+		catch(InterruptedIOException e) {
+
+			close();
+			
+			throw CLOSED_CONNECTION;
 		}
 		catch(IOException e) {
 
@@ -399,6 +445,18 @@ class PGConnection extends BasicContext implements Connection {
 			
 			return returnType.cast(resRow[0]);
 
+		}
+		catch(BlockingReadTimeoutException e) {
+			
+			close();
+			
+			throw new SQLTimeoutException(e);
+		}
+		catch(InterruptedIOException e) {
+
+			close();
+			
+			throw CLOSED_CONNECTION;
 		}
 		catch(IOException e) {
 
@@ -885,7 +943,7 @@ class PGConnection extends BasicContext implements Connection {
 
 	@Override
 	public boolean isClosed() throws SQLException {
-		return protocol == null;
+		return protocol.isConnected() == false;
 	}
 
 	@Override
@@ -900,7 +958,10 @@ class PGConnection extends BasicContext implements Connection {
 
 	@Override
 	public void abort(Executor executor) throws SQLException {
-		throw NOT_IMPLEMENTED;
+		
+		getProtocol().abort(executor);
+		
+		shutdown();
 	}
 
 	@Override
@@ -922,9 +983,14 @@ class PGConnection extends BasicContext implements Connection {
 	}
 
 	@Override
-	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+	public void setNetworkTimeout(Executor executor, int networkTimeout) throws SQLException {
 		checkClosed();
-		networkTimeout = milliseconds;
+		
+		if(networkTimeout < 0) {
+			throw new SQLException("invalid network timeout");
+		}
+		
+		this.networkTimeout = networkTimeout;
 	}
 
 	@Override
