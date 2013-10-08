@@ -35,6 +35,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import junit.framework.TestCase;
 
@@ -452,12 +453,13 @@ public class StatementTest extends TestCase {
 
 	public void testSetQueryTimeout() throws SQLException {
 		Statement stmt = con.createStatement();
+		final AtomicBoolean res = new AtomicBoolean();
 		Timer timer = new Timer(true);
 		try {
 
 			timer.schedule(new TimerTask() {
 				public void run() {
-					fail("Query timeout should have occured and cleaned this up");
+					res.set(true);
 				}
 			}, 2500);
 			stmt.setQueryTimeout(1);
@@ -469,6 +471,8 @@ public class StatementTest extends TestCase {
 			if(sqle.getSQLState() != null && sqle.getSQLState().compareTo("57014") == 0)
 				timer.cancel();
 		}
+
+		assertFalse("Query timeout should have canceled the task", res.get());
 	}
 
 	public void testResultSetTwice() throws SQLException {
