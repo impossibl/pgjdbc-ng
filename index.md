@@ -22,7 +22,13 @@ layout: default
 ## Releases
 
 {% for post in site.categories.releases %}
-* [ {{ post.title }} ]( {{ site.baseurl }}{{ post.url }} )
+* [ {{ post.title }} ]( {{ site.baseurl }}{{ post.url }} )  ( {{ post.date | date: "%b %d, %Y" }} )
+{% endfor %}
+
+## Snapshots
+
+{% for post in site.categories.snapshots %}
+* [ {{ post.title }}-SNAPSHOT ]( {{ site.baseurl }}{{ post.url }} ) ( {{ post.date | date: "%b %d, %Y" }} )
 {% endfor %}
 
 ## Requirements

@@ -20,6 +20,7 @@ Available in Maven Central:
 
 ### Snapshots
 Available in OSS repository:
+
 [https://oss.sonatype.org/content/repositories/snapshots/](https://oss.sonatype.org/content/repositories/snapshots/)
 
 	<dependency>
@@ -30,8 +31,14 @@ Available in OSS repository:
 
 
 ## DOWNLOAD
-Download jar file with dependencies:
+Download driver JAR:
 
+## Releases
 {% for post in site.categories.releases %}
-* [{{post.title}} JAR](releases/pgjdbc-ng-{{latestRelVer}}-jar-with-dependencies.jar)
+* [{{post.title}} JAR](releases/pgjdbc-ng-{{ post.title }}-complete.jar)
+{% endfor %}
+
+## Snapshots
+{% for post in site.categories.snapshots %}
+* [{{post.title}} JAR](snapshots/pgjdbc-ng-{{ post.title }}-SNAPSHOT-complete.jar)
 {% endfor %}
