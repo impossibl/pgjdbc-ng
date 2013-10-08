@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import org.jboss.netty.util.TimerTask;
-
 import com.impossibl.postgres.types.Type;
 
 
@@ -51,8 +49,6 @@ public interface Protocol {
 	FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues);
 	
 	CloseCommand createClose(ServerObjectType objectType, String objectName);
-	
-	void enableExecutionTimer(TimerTask task, long timeout);
 	
 	void execute(Command cmd) throws IOException;
 	

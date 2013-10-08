@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -81,6 +82,68 @@ import com.impossibl.postgres.types.Type;
 public class ProtocolImpl implements Protocol {
 
 	private static Logger logger = Logger.getLogger(ProtocolImpl.class.getName());
+	
+	public static abstract class ExecutionTimerTask implements TimerTask {
+		
+		enum State {
+			NotStarted,
+			Running,
+			Cancelling,
+			Completed
+		}
+		
+		private AtomicReference<State> state = new AtomicReference<>(State.NotStarted);
+		private Thread thread;
+		
+		public abstract void run();
+		
+		@Override
+		public void run(Timeout timeout) throws Exception {
+			
+			try {
+				
+				thread = Thread.currentThread();
+				
+				if(!state.compareAndSet(State.NotStarted, State.Running))
+					return;
+				
+				run();
+				
+			}
+			catch(Throwable e) {
+				//Ignore...
+			}
+			finally {
+				state.set(State.Completed);
+				synchronized(state) {
+					state.notify();
+				}
+			}
+
+		}
+
+		void cancel() {
+			
+			if(this.state.getAndSet(State.Cancelling) == State.Running) {
+				
+				thread.interrupt();
+				
+				synchronized(state) {
+					
+					while(state.get() == State.Cancelling) {
+						try {
+							state.wait();
+						}
+						catch (InterruptedException e) {
+						}
+					}
+				}
+				
+			}
+			
+		}
+		
+	}
 
 	// Frontend messages
 	private static final byte PASSWORD_MSG_ID = 'p';
@@ -230,9 +293,34 @@ public class ProtocolImpl implements Protocol {
 		return new CloseCommandImpl(objectType, objectName);
 	}
 	
-	@Override
-	public void enableExecutionTimer(TimerTask task, long timeout) {
+	public void enableExecutionTimer(ExecutionTimerTask task, long timeout) {
+		
+		if(executionTimeout != null) {
+			throw new IllegalStateException("execution timer already enabled");
+		}
+		
 		executionTimeout = sharedRef.get().getTimer().newTimeout(task, timeout, MILLISECONDS);
+	}
+
+	public void cancelExecutionTimer() {
+		
+		if(executionTimeout != null) {
+			
+			try {
+				executionTimeout.cancel();
+			
+				//Ensure any task that is currently running also gets
+				//completely cancelled, or finishes, before returning
+				ExecutionTimerTask task = (ExecutionTimerTask) executionTimeout.getTask();
+				task.cancel();
+				
+			}
+			finally {
+				executionTimeout = null;
+			}
+			
+		}
+		
 	}
 
 	@Override
@@ -257,11 +345,8 @@ public class ProtocolImpl implements Protocol {
 			throw e;
 		}
 		finally {
-			
-			//Cancel execution timer
-			if(executionTimeout != null)
-				executionTimeout.cancel();
-			executionTimeout = null;
+
+			cancelExecutionTimer();
 			
 			//Ensure listener is reset
 			listener = NULL_LISTENER;
@@ -449,10 +534,16 @@ public class ProtocolImpl implements Protocol {
 
 	void sendCancelRequest() {
 		
+		logger.finer("CANCEL");
+		
 		InetSocketAddress serverAddress = (InetSocketAddress)channel.getRemoteAddress();
 		KeyData keyData = context.getKeyData();
 		
+		logger.finest("OPEN-SOCKET");
+		
 		try(Socket abortSocket = new Socket(serverAddress.getAddress(), serverAddress.getPort())) {
+			
+			logger.finest("SEND-DATA");
 			
 			DataOutputStream os = new DataOutputStream(abortSocket.getOutputStream());
 			

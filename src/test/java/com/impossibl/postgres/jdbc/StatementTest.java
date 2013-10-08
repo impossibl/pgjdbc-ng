@@ -475,6 +475,38 @@ public class StatementTest extends TestCase {
 		assertFalse("Query timeout should have canceled the task", res.get());
 	}
 
+	/**
+	 * Race condition that could exist when the query timeout takes
+	 * longer to complete, once fired, than does the query it is
+	 * canceling. This could result in the inadvertent canceling of
+	 * the next query instead.
+	 * 
+	 * @throws SQLException
+	 */
+	public void testSetQueryTimeoutDisableRace() throws SQLException {
+		
+		Statement stmt = con.createStatement();
+
+		try {
+			stmt.setQueryTimeout(1);
+			stmt.execute("select pg_sleep(1.1)");
+		}		
+		catch(SQLException sqle) {
+			// state for cancel
+			if(sqle.getSQLState() == null || sqle.getSQLState().compareTo("57014") != 0)
+				fail("Should have received cancel exception");
+		}
+
+		try {
+			stmt.setQueryTimeout(0);
+			stmt.execute("select pg_sleep(3)");
+		}
+		catch(SQLException sqle) {
+			fail("Should not have received exception");
+		}
+		
+	}
+
 	public void testResultSetTwice() throws SQLException {
 		Statement stmt = con.createStatement();
 

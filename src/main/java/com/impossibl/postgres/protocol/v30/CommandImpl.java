@@ -36,11 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.TimerTask;
 
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
 
 
 
@@ -124,19 +123,29 @@ public abstract class CommandImpl implements Command {
 
 	}
 	
+	static class CancelExecutionTimerTask extends ExecutionTimerTask {
+
+		ProtocolImpl protocol;
+		
+		public CancelExecutionTimerTask(ProtocolImpl protocol) {
+			this.protocol = protocol;
+		}
+
+		@Override
+		public void run() {
+			
+			protocol.sendCancelRequest();
+			
+		}
+		
+	}
+	
 	public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
 		
 		if(timeout < 1)
 			return;
 		
-		protocol.enableExecutionTimer(new TimerTask() {
-
-			@Override
-			public void run(Timeout timeout) throws Exception {
-				protocol.sendCancelRequest();
-			}
-			
-		}, timeout);
+		protocol.enableExecutionTimer(new CancelExecutionTimerTask(protocol), timeout);
 		
 	}
 
