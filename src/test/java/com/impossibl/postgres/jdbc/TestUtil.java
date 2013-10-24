@@ -53,11 +53,15 @@ public class TestUtil {
 			query = "?" + Joiner.on("&").withKeyValueSeparator("=").join(params(urlParams));
 		}
 
-		return "jdbc:postgresql://" + getServer() + "/" + getDatabase() + query;
+		if(!"5432".equals(getPort())) {
+                	return "jdbc:postgresql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
+                } else {
+                	return "jdbc:postgresql://" + getServer() + "/" + getDatabase() + query;
+                }
 	}
 
 	public static String getServer() {
-		return System.getProperty("pgjdbc.test.server", "test");
+		return System.getProperty("pgjdbc.test.server", "localhost");
 	}
 
 	public static String getPort() {
@@ -79,7 +83,7 @@ public class TestUtil {
 	}
 
 	public static String getUser() {
-		return System.getProperty("pgjdbc.test.user", "postgres");
+		return System.getProperty("pgjdbc.test.user", "pgjdbc");
 	}
 
 	public static String getPassword() {
