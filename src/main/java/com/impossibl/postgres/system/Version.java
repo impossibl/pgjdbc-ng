@@ -29,30 +29,23 @@
 package com.impossibl.postgres.system;
 
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Version {
 	
-	//private static final Pattern VERSION_PATTERN = compile("(\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?");
-	private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?");
 	private static final HashMap<Version,Version> all = new HashMap<Version,Version>();
 	
-	int major;
-	Integer minor;
-	Integer revision;
+	private int major;
+	private Integer minor;
+	private Integer revision;
 	
 	public static Version parse(String versionString) {
+                String[] version = versionString.split("\\.");
 		
-		Matcher matcher = VERSION_PATTERN.matcher(versionString);
-		if(!matcher.find())
-			return null;
-		
-		int major = Integer.parseInt(matcher.group(1));
-		Integer minor = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : null;
-		Integer revision = matcher.group(3) != null ? Integer.parseInt(matcher.group(3)) : null;
-		
-		return get(major, minor, revision);
+		int major = Integer.parseInt(version[0]);
+		Integer minor = version.length > 1 ? Integer.valueOf(version[1]) : null;
+		Integer revision = version.length > 2 ? Integer.valueOf(version[2]) : null;
+
+                return get(major, minor, revision);
 	}
 
 	public static synchronized Version get(int major, Integer minor, Integer revision) {

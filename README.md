@@ -12,10 +12,19 @@ packaged inside and another without.
 
 The unit tests need a PostgreSQL database to execute against. The tests assume theses defaults:
 
-	DATABASE: test
 	SERVER: 	localhost
-	USERNAME:	postgres
+	PORT: 	        5432
+	DATABASE:       test
+	USERNAME:	pgjdbc
 	PASSWORD:	test
+
+The following system properties are supported in order to customize the setup
+
+	pgjdbc.test.server
+	pgjdbc.test.port
+	pgjdbc.test.db
+	pgjdbc.test.user
+	pgjdbc.test.password
 
 If you'd like to build the driver without running the unit tests use the command:
 
