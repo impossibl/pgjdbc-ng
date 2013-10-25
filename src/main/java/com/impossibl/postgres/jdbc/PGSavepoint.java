@@ -36,82 +36,82 @@ import java.sql.Savepoint;
 
 /**
  * Reference to a savepoint
- * 
+ *
  * @author kdubb
  *
  */
 class PGSavepoint implements Savepoint {
 
-	private Integer id;
-	private String name;
-	private boolean released;
+  private Integer id;
+  private String name;
+  private boolean released;
 
-	PGSavepoint(int id) {
-		this.id = id;
-	}
+  PGSavepoint(int id) {
+    this.id = id;
+  }
 
-	PGSavepoint(String name) {
-		this.name = name;
-	}
+  PGSavepoint(String name) {
+    this.name = name;
+  }
 
-	/**
-	 * Ensure the savepoint is valid
-	 * 
-	 * @throws SQLException
-	 * 					If the connection is invalid
-	 */
-	void checkValid() throws SQLException {
+  /**
+   * Ensure the savepoint is valid
+   *
+   * @throws SQLException
+   *          If the connection is invalid
+   */
+  void checkValid() throws SQLException {
 
-		if(!isValid())
-			throw new SQLException("Invalid savepoint");
-	}
+    if(!isValid())
+      throw new SQLException("Invalid savepoint");
+  }
 
-	@Override
-	public int getSavepointId() throws SQLException {
-		checkValid();
-		
-		if(id == null)
-			throw new SQLException("named savepoints have no id");
-		return id;
-	}
+  @Override
+  public int getSavepointId() throws SQLException {
+    checkValid();
 
-	@Override
-	public String getSavepointName() throws SQLException {
-		checkValid();
-		
-		if(name == null)
-			throw new SQLException("auto savepoints have no name");
-		return name;
-	}
+    if(id == null)
+      throw new SQLException("named savepoints have no id");
+    return id;
+  }
 
-	public String getId() {
-		if(id != null)
-			return "sp_" + id.toString();
-		if(name != null)
-			return Identifiers.escape(name);
-		throw new IllegalStateException();
-	}
+  @Override
+  public String getSavepointName() throws SQLException {
+    checkValid();
 
-	public boolean isValid() {
-		return id != null || name != null;
-	}
+    if(name == null)
+      throw new SQLException("auto savepoints have no name");
+    return name;
+  }
 
-	public void invalidate() {
-		id = null;
-		name = null;
-	}
-	
-	public boolean getReleased() {
-		return released;
-	}
-	
-	public void setReleased(boolean released) {
-		this.released = released;
-	}
+  public String getId() {
+    if(id != null)
+      return "sp_" + id.toString();
+    if(name != null)
+      return Identifiers.escape(name);
+    throw new IllegalStateException();
+  }
 
-	@Override
-	public String toString() {
-		return id != null ? id.toString() : nullToEmpty(name);
-	}
-	
+  public boolean isValid() {
+    return id != null || name != null;
+  }
+
+  public void invalidate() {
+    id = null;
+    name = null;
+  }
+
+  public boolean getReleased() {
+    return released;
+  }
+
+  public void setReleased(boolean released) {
+    this.released = released;
+  }
+
+  @Override
+  public String toString() {
+    return id != null ? id.toString() : nullToEmpty(name);
+  }
+
 }

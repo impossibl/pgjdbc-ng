@@ -37,398 +37,398 @@ import java.util.ListIterator;
 
 
 public class SQLTextTree {
-	
-	public interface Processor {
-		
-		public Node process(Node node) throws SQLException;
-		
-	}
-
-	public static abstract class Node {
-
-		private int startPos;
-		private int endPos;
-
-		public Node(int startPos, int endPos) {
-			this.startPos = startPos;
-			this.endPos = endPos;
-		}
-
-		public int getStartPos() {
-			return startPos;
-		}
-
-		public void setStartPos(int start) {
-			this.startPos = start;
-		}
-
-		public int getEndPos() {
-			return endPos;
-		}
-
-		public void setEndPos(int end) {
-			this.endPos = end;
-		}
-		
-		abstract void build(StringBuilder builder);
-		
-		public Node process(Processor processor, boolean recurse) throws SQLException {
-			return processor.process(this);
-		}
-
-		void removeAll(final Class<? extends Node> nodeType, boolean recurse) {
-			try {
-				process(new Processor() {
-
-					@Override
-					public Node process(Node node) throws SQLException {
-						if(nodeType.isInstance(node))
-							return null;
-						return node;
-					}
-				}, recurse);
-			}
-			catch(SQLException e) {
-			}
-		}
-
-		@Override
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			build(sb);
-			return sb.toString();
-		}
-
-	}
-
-	public static class CompositeNode extends Node {
-
-		protected List<Node> nodes = new ArrayList<>();
-
-		public CompositeNode(int startPos) {
-			super(startPos, -1);
-		}
-
-		public CompositeNode(List<Node> nodes, int startPos) {
-			super(startPos, -1);
-			this.nodes = nodes;
-		}
-
-		void build(StringBuilder builder) {
-
-			for(Node node : nodes) {
-				node.build(builder);
-			}
-
-		}
-		
-		int getNodeCount() {
-			return nodes.size();
-		}
-
-		Node get(int idx) {
-			return nodes.get(idx);
-		}
-
-		void set(int idx, Node node) {
-			nodes.set(idx, node);
-		}
-		
-		Iterator<Node> iterator() {
-			return nodes.iterator();
-		}
-		
-		List<Node> subList(int fromIndex) {
-			return subList(fromIndex, nodes.size());
-		}
-
-		List<Node> subList(int fromIndex, int toIndex) {
-			return nodes.subList(fromIndex, toIndex);
-		}
-		
-		public Node process(Processor processor, boolean recurse) throws SQLException {
-			
-			//Process each child node...
-			ListIterator<Node> nodeIter = nodes.listIterator();
-			while(nodeIter.hasNext()) {
-				
-				Node res;
-				if(recurse) {
-					res = nodeIter.next().process(processor, recurse);
-				}
-				else {
-					res = processor.process(nodeIter.next());					
-				}
-				
-				if(res != null) {
-					nodeIter.set(res);
-				}
-				else {
-					nodeIter.remove();
-				}
-			}
-			
-			return processor.process(this);
-		}
-
-		void add(Node node) {
-
-			this.nodes.add(node);
-		}
-
-		public boolean containsAll(Class<? extends Node> cls) {
-			
-			for(Node node : nodes) {
-				if(cls.isInstance(node) == false)
-					return false;
-			}
-			
-			return true;
-		}
-		
-		public void trim() {
-			
-			if(nodes.isEmpty())
-				return;
-			
-			//Prune starting and ending whitespace
-			if(nodes.get(0) instanceof WhitespacePiece) {
-				nodes.remove(0);
-			}
-			
-			if(nodes.isEmpty()) {
-				return;
-			}
-			
-			if(nodes.get(nodes.size()-1) instanceof WhitespacePiece) {
-				nodes.remove(nodes.size()-1);
-			}
-			
-		}
-
-		public Node getFirstNode() {
-			if(nodes.isEmpty())
-				return null;
-			return nodes.get(0);
-		}
-
-		public Node getLastNode() {
-			if(nodes.isEmpty())
-				return null;
-			return nodes.get(nodes.size()-1);
-		}
-
-	}
-
-	public static class MultiStatementNode extends CompositeNode {
-
-		public MultiStatementNode(int startPos) {
-			super(startPos);
-		}
-
-		public MultiStatementNode(List<Node> nodes, int startPos) {
-			super(nodes, startPos);
-		}
-
-		@Override
-		void build(StringBuilder builder) {
-
-			Iterator<Node> nodeIter = iterator();
-			while(nodeIter.hasNext()) {
-				nodeIter.next().build(builder);
-				if(nodeIter.hasNext())
-					builder.append(';');
-			}
-		}
-
-	}
-
-	public static class StatementNode extends CompositeNode {
-
-		public StatementNode(int startPos) {
-			super(startPos);
-		}
-
-	}
-
-	public static class EscapeNode extends CompositeNode {
-
-		public EscapeNode(int startPos) {
-			super(startPos);
-		}
-
-		@Override
-		void build(StringBuilder builder) {
-
-			builder.append('{');
-
-			super.build(builder);
-
-			builder.append('}');
-		}
-
-	}
-
-	public static class ParenGroupNode extends CompositeNode {
-
-		public ParenGroupNode(int startPos) {
-			super(startPos);
-		}
-		
-		@Override
-		void build(StringBuilder builder) {
-
-			builder.append('(');
-
-			super.build(builder);
-
-			builder.append(')');
-		}
-
-	}
-
-	public static class PieceNode extends Node {
-
-		private String text;
-
-		public PieceNode(String val, int startPos) {
-			super(startPos, startPos + val.length());
-			this.text = val;
-		}
-
-		public String getText() {
-			return text;
-		}
-
-		public void setText(String text) {
-			this.text = text;
-		}
-
-		void build(StringBuilder builder) {
-			builder.append(text);
-		}
-
-		@Override
-		public String toString() {
-			return text;
-		}
-
-	}
-	
-	public static class GrammarPiece extends PieceNode {
-
-		GrammarPiece(String val, int startPos) {
-			super(val, startPos);
-		}
-
-	}
-
-	public static class ParameterPiece extends PieceNode {
 
-		ParameterPiece(int idx, int pos) {
-			super("$"+idx, pos);
-		}
+  public interface Processor {
 
-	}
-	
-	public static class IdentifierPiece extends PieceNode {
+    public Node process(Node node) throws SQLException;
 
-		public IdentifierPiece(String val, int startPos) {
-			super(val, startPos);
-		}
-		
-	}
+  }
 
-	public static class UnquotedIdentifierPiece extends IdentifierPiece {
+  public static abstract class Node {
 
-		UnquotedIdentifierPiece(String val, int startPos) {
-			super(val, startPos);
-		}
+    private int startPos;
+    private int endPos;
 
-	}
+    public Node(int startPos, int endPos) {
+      this.startPos = startPos;
+      this.endPos = endPos;
+    }
 
-	public static class QuotedIdentifierPiece extends IdentifierPiece {
+    public int getStartPos() {
+      return startPos;
+    }
 
-		QuotedIdentifierPiece(String val, int startPos) {
-			super(val, startPos);
-		}
+    public void setStartPos(int start) {
+      this.startPos = start;
+    }
 
-		@Override
-		void build(StringBuilder builder) {
+    public int getEndPos() {
+      return endPos;
+    }
 
-			builder.append('"');
+    public void setEndPos(int end) {
+      this.endPos = end;
+    }
 
-			super.build(builder);
+    abstract void build(StringBuilder builder);
 
-			builder.append('"');
-		}
+    public Node process(Processor processor, boolean recurse) throws SQLException {
+      return processor.process(this);
+    }
 
-	}
-	
-	public static class LiteralPiece extends PieceNode {
+    void removeAll(final Class<? extends Node> nodeType, boolean recurse) {
+      try {
+        process(new Processor() {
 
-		public LiteralPiece(String val, int startPos) {
-			super(val, startPos);
-		}
-		
-	}
+          @Override
+          public Node process(Node node) throws SQLException {
+            if(nodeType.isInstance(node))
+              return null;
+            return node;
+          }
+        }, recurse);
+      }
+      catch(SQLException e) {
+      }
+    }
 
-	public static class StringLiteralPiece extends LiteralPiece {
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      build(sb);
+      return sb.toString();
+    }
 
-		String delimeter;
-		
-		StringLiteralPiece(String val, int startPos) {
-			super(val, startPos);
-			this.delimeter = "'";
-		}
+  }
 
-		StringLiteralPiece(String val, String delimeter, int startPos) {
-			super(val, startPos);
-			this.delimeter = delimeter;
-		}
+  public static class CompositeNode extends Node {
 
-		@Override
-		void build(StringBuilder builder) {
+    protected List<Node> nodes = new ArrayList<>();
 
-			builder.append(delimeter);
+    public CompositeNode(int startPos) {
+      super(startPos, -1);
+    }
 
-			super.build(builder);
+    public CompositeNode(List<Node> nodes, int startPos) {
+      super(startPos, -1);
+      this.nodes = nodes;
+    }
 
-			builder.append(delimeter);
-		}
+    void build(StringBuilder builder) {
 
-	}
+      for(Node node : nodes) {
+        node.build(builder);
+      }
 
-	public static class NumericLiteralPiece extends LiteralPiece {
+    }
 
-		NumericLiteralPiece(String val, int startPos) {
-			super(val, startPos);
-		}
+    int getNodeCount() {
+      return nodes.size();
+    }
 
-	}
+    Node get(int idx) {
+      return nodes.get(idx);
+    }
 
-	public static class ReplacementPiece extends PieceNode {
+    void set(int idx, Node node) {
+      nodes.set(idx, node);
+    }
 
-		ReplacementPiece(String val, int startPos) {
-			super(val, startPos);
-		}
+    Iterator<Node> iterator() {
+      return nodes.iterator();
+    }
 
-	}
+    List<Node> subList(int fromIndex) {
+      return subList(fromIndex, nodes.size());
+    }
 
-	public static class CommentPiece extends PieceNode {
+    List<Node> subList(int fromIndex, int toIndex) {
+      return nodes.subList(fromIndex, toIndex);
+    }
 
-		CommentPiece(String val, int startPos) {
-			super(val, startPos);
-		}
+    public Node process(Processor processor, boolean recurse) throws SQLException {
 
-	}
+      //Process each child node...
+      ListIterator<Node> nodeIter = nodes.listIterator();
+      while(nodeIter.hasNext()) {
 
-	public static class WhitespacePiece extends PieceNode {
+        Node res;
+        if(recurse) {
+          res = nodeIter.next().process(processor, recurse);
+        }
+        else {
+          res = processor.process(nodeIter.next());
+        }
 
-		WhitespacePiece(String val, int startPos) {
-			super(val, startPos);
-		}
+        if(res != null) {
+          nodeIter.set(res);
+        }
+        else {
+          nodeIter.remove();
+        }
+      }
 
-	}
+      return processor.process(this);
+    }
+
+    void add(Node node) {
+
+      this.nodes.add(node);
+    }
+
+    public boolean containsAll(Class<? extends Node> cls) {
+
+      for(Node node : nodes) {
+        if(cls.isInstance(node) == false)
+          return false;
+      }
+
+      return true;
+    }
+
+    public void trim() {
+
+      if(nodes.isEmpty())
+        return;
+
+      //Prune starting and ending whitespace
+      if(nodes.get(0) instanceof WhitespacePiece) {
+        nodes.remove(0);
+      }
+
+      if(nodes.isEmpty()) {
+        return;
+      }
+
+      if(nodes.get(nodes.size()-1) instanceof WhitespacePiece) {
+        nodes.remove(nodes.size()-1);
+      }
+
+    }
+
+    public Node getFirstNode() {
+      if(nodes.isEmpty())
+        return null;
+      return nodes.get(0);
+    }
+
+    public Node getLastNode() {
+      if(nodes.isEmpty())
+        return null;
+      return nodes.get(nodes.size()-1);
+    }
+
+  }
+
+  public static class MultiStatementNode extends CompositeNode {
+
+    public MultiStatementNode(int startPos) {
+      super(startPos);
+    }
+
+    public MultiStatementNode(List<Node> nodes, int startPos) {
+      super(nodes, startPos);
+    }
+
+    @Override
+    void build(StringBuilder builder) {
+
+      Iterator<Node> nodeIter = iterator();
+      while(nodeIter.hasNext()) {
+        nodeIter.next().build(builder);
+        if(nodeIter.hasNext())
+          builder.append(';');
+      }
+    }
+
+  }
+
+  public static class StatementNode extends CompositeNode {
+
+    public StatementNode(int startPos) {
+      super(startPos);
+    }
+
+  }
+
+  public static class EscapeNode extends CompositeNode {
+
+    public EscapeNode(int startPos) {
+      super(startPos);
+    }
+
+    @Override
+    void build(StringBuilder builder) {
+
+      builder.append('{');
+
+      super.build(builder);
+
+      builder.append('}');
+    }
+
+  }
+
+  public static class ParenGroupNode extends CompositeNode {
+
+    public ParenGroupNode(int startPos) {
+      super(startPos);
+    }
+
+    @Override
+    void build(StringBuilder builder) {
+
+      builder.append('(');
+
+      super.build(builder);
+
+      builder.append(')');
+    }
+
+  }
+
+  public static class PieceNode extends Node {
+
+    private String text;
+
+    public PieceNode(String val, int startPos) {
+      super(startPos, startPos + val.length());
+      this.text = val;
+    }
+
+    public String getText() {
+      return text;
+    }
+
+    public void setText(String text) {
+      this.text = text;
+    }
+
+    void build(StringBuilder builder) {
+      builder.append(text);
+    }
+
+    @Override
+    public String toString() {
+      return text;
+    }
+
+  }
+
+  public static class GrammarPiece extends PieceNode {
+
+    GrammarPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class ParameterPiece extends PieceNode {
+
+    ParameterPiece(int idx, int pos) {
+      super("$"+idx, pos);
+    }
+
+  }
+
+  public static class IdentifierPiece extends PieceNode {
+
+    public IdentifierPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class UnquotedIdentifierPiece extends IdentifierPiece {
+
+    UnquotedIdentifierPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class QuotedIdentifierPiece extends IdentifierPiece {
+
+    QuotedIdentifierPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+    @Override
+    void build(StringBuilder builder) {
+
+      builder.append('"');
+
+      super.build(builder);
+
+      builder.append('"');
+    }
+
+  }
+
+  public static class LiteralPiece extends PieceNode {
+
+    public LiteralPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class StringLiteralPiece extends LiteralPiece {
+
+    String delimeter;
+
+    StringLiteralPiece(String val, int startPos) {
+      super(val, startPos);
+      this.delimeter = "'";
+    }
+
+    StringLiteralPiece(String val, String delimeter, int startPos) {
+      super(val, startPos);
+      this.delimeter = delimeter;
+    }
+
+    @Override
+    void build(StringBuilder builder) {
+
+      builder.append(delimeter);
+
+      super.build(builder);
+
+      builder.append(delimeter);
+    }
+
+  }
+
+  public static class NumericLiteralPiece extends LiteralPiece {
+
+    NumericLiteralPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class ReplacementPiece extends PieceNode {
+
+    ReplacementPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class CommentPiece extends PieceNode {
+
+    CommentPiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
+
+  public static class WhitespacePiece extends PieceNode {
+
+    WhitespacePiece(String val, int startPos) {
+      super(val, startPos);
+    }
+
+  }
 
 }

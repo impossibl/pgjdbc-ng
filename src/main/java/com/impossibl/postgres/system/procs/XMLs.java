@@ -33,44 +33,44 @@ import com.impossibl.postgres.types.PrimitiveType;
 
 /*
  * XML codec
- * 
+ *
  */
 public class XMLs extends SimpleProcProvider {
 
-	public XMLs() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "xml_");
-	}
-	
-	static class BinDecoder extends Bytes.BinDecoder {
-		
-		public PrimitiveType getInputPrimitiveType() {
-			return PrimitiveType.XML;
-		}
-		
-	}
+  public XMLs() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "xml_");
+  }
 
-	static class BinEncoder extends Bytes.BinEncoder {
+  static class BinDecoder extends Bytes.BinDecoder {
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return PrimitiveType.XML;
-		}
-		
-	}
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.XML;
+    }
 
-	static class TxtDecoder extends Strings.TxtDecoder {
-		
-		public PrimitiveType getInputPrimitiveType() {
-			return PrimitiveType.XML;
-		}
-		
-	}
+  }
 
-	static class TxtEncoder extends Strings.TxtEncoder {
+  static class BinEncoder extends Bytes.BinEncoder {
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return PrimitiveType.XML;
-		}
-		
-	}
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.XML;
+    }
+
+  }
+
+  static class TxtDecoder extends Strings.TxtDecoder {
+
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.XML;
+    }
+
+  }
+
+  static class TxtEncoder extends Strings.TxtEncoder {
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.XML;
+    }
+
+  }
 
 }

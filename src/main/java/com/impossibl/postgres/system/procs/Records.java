@@ -49,234 +49,234 @@ import com.impossibl.postgres.types.Type;
 
 public class Records extends SimpleProcProvider {
 
-	public Records() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "record_");
-	}
+  public Records() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "record_");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Record;
-		}
-		
-		public Class<?> getOutputType() {
-			return Record.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Record;
+    }
 
-		public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Record.class;
+    }
 
-			CompositeType compType = (CompositeType) type;
+    public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			Record record = null;
+      CompositeType compType = (CompositeType) type;
 
-			int length = buffer.readInt();
-			
-			if(length != -1) {
-				
-				long readStart = buffer.readerIndex();
-	
-				int itemCount = buffer.readInt();
+      Record record = null;
 
-				Object[] attributeVals = new Object[itemCount];
-	
-				for (int c = 0; c < itemCount; ++c) {
-	
-					Attribute attribute = compType.getAttribute(c+1);
-	
-					Type attributeType = context.getRegistry().loadType(buffer.readInt());
-	
-					if (attributeType.getId() != attribute.type.getId()) {
-	
-						context.refreshType(attributeType.getId());
-					}
-	
-					Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
-	
-					attributeVals[c] = attributeVal;
-				}
-	
-				if (length != buffer.readerIndex() - readStart) {
-					throw new IllegalStateException();
-				}
-				
-				record = new Record(compType, attributeVals);
-			}
+      int length = buffer.readInt();
 
-			return record;
-		}
+      if(length != -1) {
 
-	}
+        long readStart = buffer.readerIndex();
 
-	static class BinEncoder extends BinaryEncoder {
+        int itemCount = buffer.readInt();
 
-		public Class<?> getInputType() {
-			return Record.class;
-		}
+        Object[] attributeVals = new Object[itemCount];
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Record;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+        for (int c = 0; c < itemCount; ++c) {
 
-			buffer.writeInt(-1);
+          Attribute attribute = compType.getAttribute(c+1);
 
-			if (val != null) {
+          Type attributeType = context.getRegistry().loadType(buffer.readInt());
 
-				int writeStart = buffer.writerIndex();
-				
-				Record record = (Record) val;
-				
-				Object[] attributeVals = record.getValues();
-				
-				CompositeType compType = (CompositeType) type;
-				
-				Collection<Attribute> attributes = compType.getAttributes();
+          if (attributeType.getId() != attribute.type.getId()) {
 
-				buffer.writeInt(attributes.size());
+            context.refreshType(attributeType.getId());
+          }
 
-				for(Attribute attribute : attributes) {
+          Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
 
-					Type attributeType = attribute.type;
+          attributeVals[c] = attributeVal;
+        }
 
-					buffer.writeInt(attributeType.getId());
+        if (length != buffer.readerIndex() - readStart) {
+          throw new IllegalStateException();
+        }
 
-					Object attributeVal = attributeVals[attribute.number-1];
+        record = new Record(compType, attributeVals);
+      }
 
-					attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
-				}
+      return record;
+    }
 
-				//Set length
-				buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
-			}
+  }
 
-		}
+  static class BinEncoder extends BinaryEncoder {
 
-	}
+    public Class<?> getInputType() {
+      return Record.class;
+    }
 
-	static class TxtDecoder extends TextDecoder {
-		
-		public PrimitiveType getInputPrimitiveType() {
-			return PrimitiveType.Record;
-		}
-		
-		public Class<?> getOutputType() {
-			return Record.class;
-		}
+    public PrimitiveType getOutputPrimitiveType() {
+      return Record;
+    }
 
-		public Record decode(Type type, CharSequence buffer, Context context) throws IOException {
-			
-			int length = buffer.length();
-			
-			Object[] instance = null;
-			
-			if(length != 0) {
-				
-				instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
-			}
-			
-			return new Record((CompositeType)type, instance);
-		}
-		
-		Object readValue(CharSequence data, Type type, Context context) throws IOException {
-			
-			if(type instanceof CompositeType) {
-				
-				
-				return readComposite(data, type.getDelimeter(), (CompositeType) type, context);
-			}
-			else {
-								
-				return type.getCodec(Format.Text).decoder.decode(type, data, context);
-			}
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-		}
-		
-		Object[] readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
-			
-			if(data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length()-1) != ')')) {
-				return null;
-			}
-			
-			data = data.subSequence(1, data.length()-1);
-			
-			List<Object> elements = new ArrayList<>();
-			StringBuilder elementTxt = new StringBuilder();
-			int elementIdx = 1;
-			
-			boolean string = false;
-			int opened = 0;
-			int c;
-			for(c=0; c < data.length(); ++c) {
-				
-				char ch = data.charAt(c);
-				switch(ch) {
-				case '(':
-					if(!string)
-						opened++;
-					else
-						elementTxt.append(ch);
-					break;
-					
-				case ')':
-					if(!string)
-						opened--;
-					else
-						elementTxt.append(ch);
-					break;
-					
-				case '"':
-					if(c < data.length() && data.charAt(c+1) == '"') {
-						elementTxt.append('"');
-						c++;
-					}
-					else {
-						string = !string;
-					}
-					break;
-					
-				default:
-					
-					if(ch == delim && opened == 0 && !string) {
-						
-						Object element = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
-						
-						elements.add(element);
-						
-						elementTxt = new StringBuilder();
-						elementIdx++;
-					}
-					else {
-						
-						elementTxt.append(ch);
-					}
-					
-				}
-				
-			}
-				
-			Object finalElement = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
-			elements.add(finalElement);
-			
-			return elements.toArray();
-		}
+      buffer.writeInt(-1);
 
-	}
+      if (val != null) {
 
-	static class TxtEncoder extends TextEncoder {
+        int writeStart = buffer.writerIndex();
 
-		public Class<?> getInputType() {
-			return Record.class;
-		}
+        Record record = (Record) val;
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return PrimitiveType.Record;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-		}
+        Object[] attributeVals = record.getValues();
 
-	}
+        CompositeType compType = (CompositeType) type;
+
+        Collection<Attribute> attributes = compType.getAttributes();
+
+        buffer.writeInt(attributes.size());
+
+        for(Attribute attribute : attributes) {
+
+          Type attributeType = attribute.type;
+
+          buffer.writeInt(attributeType.getId());
+
+          Object attributeVal = attributeVals[attribute.number-1];
+
+          attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
+        }
+
+        //Set length
+        buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
+      }
+
+    }
+
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Record;
+    }
+
+    public Class<?> getOutputType() {
+      return Record.class;
+    }
+
+    public Record decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      int length = buffer.length();
+
+      Object[] instance = null;
+
+      if(length != 0) {
+
+        instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
+      }
+
+      return new Record((CompositeType)type, instance);
+    }
+
+    Object readValue(CharSequence data, Type type, Context context) throws IOException {
+
+      if(type instanceof CompositeType) {
+
+
+        return readComposite(data, type.getDelimeter(), (CompositeType) type, context);
+      }
+      else {
+
+        return type.getCodec(Format.Text).decoder.decode(type, data, context);
+      }
+
+    }
+
+    Object[] readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
+
+      if(data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length()-1) != ')')) {
+        return null;
+      }
+
+      data = data.subSequence(1, data.length()-1);
+
+      List<Object> elements = new ArrayList<>();
+      StringBuilder elementTxt = new StringBuilder();
+      int elementIdx = 1;
+
+      boolean string = false;
+      int opened = 0;
+      int c;
+      for(c=0; c < data.length(); ++c) {
+
+        char ch = data.charAt(c);
+        switch(ch) {
+        case '(':
+          if(!string)
+            opened++;
+          else
+            elementTxt.append(ch);
+          break;
+
+        case ')':
+          if(!string)
+            opened--;
+          else
+            elementTxt.append(ch);
+          break;
+
+        case '"':
+          if(c < data.length() && data.charAt(c+1) == '"') {
+            elementTxt.append('"');
+            c++;
+          }
+          else {
+            string = !string;
+          }
+          break;
+
+        default:
+
+          if(ch == delim && opened == 0 && !string) {
+
+            Object element = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
+
+            elements.add(element);
+
+            elementTxt = new StringBuilder();
+            elementIdx++;
+          }
+          else {
+
+            elementTxt.append(ch);
+          }
+
+        }
+
+      }
+
+      Object finalElement = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
+      elements.add(finalElement);
+
+      return elements.toArray();
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Record.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Record;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+    }
+
+  }
 
 }

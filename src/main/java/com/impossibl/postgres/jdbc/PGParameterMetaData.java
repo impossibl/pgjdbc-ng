@@ -39,114 +39,114 @@ import java.util.Map;
 import com.impossibl.postgres.types.Type;
 
 public class PGParameterMetaData implements ParameterMetaData {
-	
-	
-	List<Type> parameterTypes;
-	Map<String, Class<?>> typeMap;
-	
-	
-	public PGParameterMetaData(List<Type> parameterTypes, Map<String, Class<?>> typeMap) {
-		super();
-		this.parameterTypes = parameterTypes;
-		this.typeMap = typeMap;
-	}
 
-	void checkParamIndex(int paramIndex) throws SQLException {
 
-		if(paramIndex < 1 || paramIndex > parameterTypes.size())
-			throw PARAMETER_INDEX_OUT_OF_BOUNDS;
-		
-	}
-	
-	Type getType(int paramIndex) throws SQLException {
-		checkParamIndex(paramIndex);
-		
-		return parameterTypes.get(paramIndex-1);
-	}
-	
-	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException {
-		if(!iface.isAssignableFrom(getClass())) {
-			throw UNWRAP_ERROR;
-		}
+  List<Type> parameterTypes;
+  Map<String, Class<?>> typeMap;
 
-		return iface.cast(this);
-	}
 
-	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		return iface.isAssignableFrom(getClass());
-	}
+  public PGParameterMetaData(List<Type> parameterTypes, Map<String, Class<?>> typeMap) {
+    super();
+    this.parameterTypes = parameterTypes;
+    this.typeMap = typeMap;
+  }
 
-	@Override
-	public int getParameterCount() throws SQLException {
-		return parameterTypes.size();
-	}
+  void checkParamIndex(int paramIndex) throws SQLException {
 
-	@Override
-	public int isNullable(int param) throws SQLException {
+    if(paramIndex < 1 || paramIndex > parameterTypes.size())
+      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 
-		Type paramType = getType(param);
-		
-		if(SQLTypeMetaData.isNullable(paramType) == parameterNoNulls) {
-			return parameterNoNulls;
-		}
-		
-		return ParameterMetaData.parameterNullable;
-	}
+  }
 
-	@Override
-	public boolean isSigned(int param) throws SQLException {
-		
-		Type type = getType(param);
-		
-		return SQLTypeMetaData.isSigned(type);
-	}
+  Type getType(int paramIndex) throws SQLException {
+    checkParamIndex(paramIndex);
 
-	@Override
-	public int getPrecision(int param) throws SQLException {
-		
-		Type paramType = getType(param);
-		
-		return SQLTypeMetaData.getPrecision(paramType, 0, 0);
-	}
+    return parameterTypes.get(paramIndex-1);
+  }
 
-	@Override
-	public int getScale(int param) throws SQLException {
+  @Override
+  public <T> T unwrap(Class<T> iface) throws SQLException {
+    if(!iface.isAssignableFrom(getClass())) {
+      throw UNWRAP_ERROR;
+    }
 
-		Type paramType = getType(param);
-		
-		return SQLTypeMetaData.getScale(paramType, 0, 0);
-	}
+    return iface.cast(this);
+  }
 
-	@Override
-	public int getParameterType(int param) throws SQLException {
-		
-		Type paramType = getType(param);
-		
-		return SQLTypeMetaData.getSQLType(paramType);
-	}
+  @Override
+  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    return iface.isAssignableFrom(getClass());
+  }
 
-	@Override
-	public String getParameterTypeName(int param) throws SQLException {
+  @Override
+  public int getParameterCount() throws SQLException {
+    return parameterTypes.size();
+  }
 
-		Type paramType = getType(param);
-		
-		return paramType.getName();
-	}
+  @Override
+  public int isNullable(int param) throws SQLException {
 
-	@Override
-	public String getParameterClassName(int param) throws SQLException {
+    Type paramType = getType(param);
 
-		Type paramType = getType(param);
-		
-		return paramType.getJavaType(typeMap).getName();
-	}
+    if(SQLTypeMetaData.isNullable(paramType) == parameterNoNulls) {
+      return parameterNoNulls;
+    }
 
-	@Override
-	public int getParameterMode(int param) throws SQLException {
+    return ParameterMetaData.parameterNullable;
+  }
 
-		return ParameterMetaData.parameterModeIn;
-	}
+  @Override
+  public boolean isSigned(int param) throws SQLException {
+
+    Type type = getType(param);
+
+    return SQLTypeMetaData.isSigned(type);
+  }
+
+  @Override
+  public int getPrecision(int param) throws SQLException {
+
+    Type paramType = getType(param);
+
+    return SQLTypeMetaData.getPrecision(paramType, 0, 0);
+  }
+
+  @Override
+  public int getScale(int param) throws SQLException {
+
+    Type paramType = getType(param);
+
+    return SQLTypeMetaData.getScale(paramType, 0, 0);
+  }
+
+  @Override
+  public int getParameterType(int param) throws SQLException {
+
+    Type paramType = getType(param);
+
+    return SQLTypeMetaData.getSQLType(paramType);
+  }
+
+  @Override
+  public String getParameterTypeName(int param) throws SQLException {
+
+    Type paramType = getType(param);
+
+    return paramType.getName();
+  }
+
+  @Override
+  public String getParameterClassName(int param) throws SQLException {
+
+    Type paramType = getType(param);
+
+    return paramType.getJavaType(typeMap).getName();
+  }
+
+  @Override
+  public int getParameterMode(int param) throws SQLException {
+
+    return ParameterMetaData.parameterModeIn;
+  }
 
 }

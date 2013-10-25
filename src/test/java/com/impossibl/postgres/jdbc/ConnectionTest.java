@@ -82,7 +82,7 @@ public class ConnectionTest extends TestCase
     protected void tearDown() throws Exception
     {
         TestUtil.closeDB(con);
-        
+
         con = TestUtil.openDB();
 
         TestUtil.dropTable(con, "test_a");
@@ -336,76 +336,76 @@ public class ConnectionTest extends TestCase
         con.close();
         con.close();
     }
-    
+
     /**
      * Network timeout enforcement
      */
     public void testNetworkTimeout() throws Exception {
-    	
-    	con = TestUtil.openDB();
-    	
-    	con.setNetworkTimeout(null, 1);
-    	
-    	Statement stmt = con.createStatement();
-    	
-    	try {
-    	
-    		stmt.execute("SELECT pg_sleep(10);");
-    		
-    		fail("Expected SQLTimeoutException");
-    	}
-    	catch(SQLTimeoutException e) {
-    	}
-    	
-    	assertTrue(con.isClosed());
+
+      con = TestUtil.openDB();
+
+      con.setNetworkTimeout(null, 1);
+
+      Statement stmt = con.createStatement();
+
+      try {
+
+        stmt.execute("SELECT pg_sleep(10);");
+
+        fail("Expected SQLTimeoutException");
+      }
+      catch(SQLTimeoutException e) {
+      }
+
+      assertTrue(con.isClosed());
     }
-    
+
     /**
      * Abort connection
      */
     public void testAbort() throws Exception {
-    	
-			con = TestUtil.openDB();
-			
-    	Thread queryThread = new Thread() {
 
-				@Override
-				public void run() {
-					
-					try {
-						
-						Statement stmt = con.createStatement();
-						
-						stmt.execute("SELECT pg_sleep(10);");
-						
-					}
-					catch(SQLException e) {
-						
-					}					
-					
-				}
-    		
-    	};
-    	
-    	queryThread.start();
-    	
-    	Executor executor = new Executor() {
-				
-				@Override
-				public void execute(Runnable command) {
-					command.run();
-				}
-			};
-			
-			long start = System.currentTimeMillis();
-			
-			con.abort(executor);
-			
-			queryThread.join();
-			
-			assertTrue(System.currentTimeMillis() - start < 10000);
-			assertTrue(con.isClosed());
-    	
+      con = TestUtil.openDB();
+
+      Thread queryThread = new Thread() {
+
+        @Override
+        public void run() {
+
+          try {
+
+            Statement stmt = con.createStatement();
+
+            stmt.execute("SELECT pg_sleep(10);");
+
+          }
+          catch(SQLException e) {
+
+          }
+
+        }
+
+      };
+
+      queryThread.start();
+
+      Executor executor = new Executor() {
+
+        @Override
+        public void execute(Runnable command) {
+          command.run();
+        }
+      };
+
+      long start = System.currentTimeMillis();
+
+      con.abort(executor);
+
+      queryThread.join();
+
+      assertTrue(System.currentTimeMillis() - start < 10000);
+      assertTrue(con.isClosed());
+
     }
-    
+
 }

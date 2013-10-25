@@ -42,93 +42,93 @@ import com.impossibl.postgres.types.Type;
 
 public class Bools extends SimpleProcProvider {
 
-	public Bools() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bool");
-	}
+  public Bools() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bool");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Bool;
-		}
-		
-		public Class<?> getOutputType() {
-			return Boolean.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Bool;
+    }
 
-		public Boolean decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Boolean.class;
+    }
 
-			int length = buffer.readInt();
-			if(length == -1) {
-				return null;
-			}
-			else if (length != 1) {
-				throw new IOException("invalid length");
-			}
-			
-			return buffer.readByte() != 0;
-		}
+    public Boolean decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-	}
+      int length = buffer.readInt();
+      if(length == -1) {
+        return null;
+      }
+      else if (length != 1) {
+        throw new IOException("invalid length");
+      }
 
-	static class BinEncoder extends BinaryEncoder {
+      return buffer.readByte() != 0;
+    }
 
-		public Class<?> getInputType() {
-			return Boolean.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Bool;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-			
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(1);
-				buffer.writeByte(((Boolean) val) ? 1 : 0);
-			}
-			
-		}
+  static class BinEncoder extends BinaryEncoder {
 
-	}
+    public Class<?> getInputType() {
+      return Boolean.class;
+    }
 
-	static class TxtDecoder extends TextDecoder {
+    public PrimitiveType getOutputPrimitiveType() {
+      return Bool;
+    }
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Bool;
-		}
-		
-		public Class<?> getOutputType() {
-			return Boolean.class;
-		}
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-		public Boolean decode(Type type, CharSequence buffer, Context context) throws IOException {
+      if (val == null) {
 
-			return Boolean.valueOf(buffer.toString());
-		}
+        buffer.writeInt(-1);
+      }
+      else {
 
-	}
+        buffer.writeInt(1);
+        buffer.writeByte(((Boolean) val) ? 1 : 0);
+      }
 
-	static class TxtEncoder extends TextEncoder {
+    }
 
-		public Class<?> getInputType() {
-			return Boolean.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Bool;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-			buffer.append((boolean)val);
-		}
+  static class TxtDecoder extends TextDecoder {
 
-	}
+    public PrimitiveType getInputPrimitiveType() {
+      return Bool;
+    }
+
+    public Class<?> getOutputType() {
+      return Boolean.class;
+    }
+
+    public Boolean decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return Boolean.valueOf(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Boolean.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return Bool;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append((boolean)val);
+    }
+
+  }
 
 }

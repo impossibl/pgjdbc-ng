@@ -34,29 +34,29 @@ import java.lang.reflect.Method;
 
 /**
  * PropertySetter for a bean using a reflection Method
- * 
+ *
  * @author kdubb
  *
  */
 public class MethodPropertySetter implements PropertySetter {
 
-	Method method;
+  Method method;
 
-	public MethodPropertySetter(Method method) {
-		super();
-		this.method = method;
-		this.method.setAccessible(true);
-	}
+  public MethodPropertySetter(Method method) {
+    super();
+    this.method = method;
+    this.method.setAccessible(true);
+  }
 
-	@Override
-	public void set(Object instance, Object value) {
+  @Override
+  public void set(Object instance, Object value) {
 
-		try {
-			method.invoke(instance, value);
-		}
-		catch(IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
-			// Ignore mapping errors (they shouldn't happen)
-		}
-	}
+    try {
+      method.invoke(instance, value);
+    }
+    catch(IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+      // Ignore mapping errors (they shouldn't happen)
+    }
+  }
 
 }

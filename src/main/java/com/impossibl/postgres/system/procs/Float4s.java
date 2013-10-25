@@ -40,93 +40,93 @@ import com.impossibl.postgres.types.Type;
 
 public class Float4s extends SimpleProcProvider {
 
-	public Float4s() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float4");
-	}
+  public Float4s() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float4");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return PrimitiveType.Float;
-		}
-		
-		public Class<?> getOutputType() {
-			return Float.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Float;
+    }
 
-		public Float decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Float.class;
+    }
 
-			int length = buffer.readInt();
-			if(length == -1) {
-				return null;
-			}
-			else if (length != 4) {
-				throw new IOException("invalid length");
-			}
-			
-			return buffer.readFloat();
-		}
+    public Float decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-	}
+      int length = buffer.readInt();
+      if(length == -1) {
+        return null;
+      }
+      else if (length != 4) {
+        throw new IOException("invalid length");
+      }
 
-	static class BinEncoder extends BinaryEncoder {
+      return buffer.readFloat();
+    }
 
-		public Class<?> getInputType() {
-			return Float.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return PrimitiveType.Float;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+  static class BinEncoder extends BinaryEncoder {
 
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(4);
-				buffer.writeFloat((Float) val);
-			}
-			
-		}
+    public Class<?> getInputType() {
+      return Float.class;
+    }
 
-	}
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Float;
+    }
 
-	static class TxtDecoder extends TextDecoder {
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return PrimitiveType.Float;
-		}
-		
-		public Class<?> getOutputType() {
-			return Float.class;
-		}
+      if (val == null) {
 
-		public Float decode(Type type, CharSequence buffer, Context context) throws IOException {
+        buffer.writeInt(-1);
+      }
+      else {
 
-			return Float.valueOf(buffer.toString());
-		}
+        buffer.writeInt(4);
+        buffer.writeFloat((Float) val);
+      }
 
-	}
+    }
 
-	static class TxtEncoder extends TextEncoder {
+  }
 
-		public Class<?> getInputType() {
-			return Float.class;
-		}
+  static class TxtDecoder extends TextDecoder {
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return PrimitiveType.Float;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-			buffer.append((float)val);
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Float;
+    }
 
-	}
+    public Class<?> getOutputType() {
+      return Float.class;
+    }
+
+    public Float decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return Float.valueOf(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Float.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Float;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append((float)val);
+    }
+
+  }
 
 }

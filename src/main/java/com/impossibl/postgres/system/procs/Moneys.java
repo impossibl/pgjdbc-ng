@@ -45,112 +45,112 @@ import com.impossibl.postgres.types.Type;
 
 public class Moneys extends SimpleProcProvider {
 
-	public Moneys() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "cash_");
-	}
+  public Moneys() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "cash_");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Money;
-		}
-		
-		public Class<?> getOutputType() {
-			return BigDecimal.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Money;
+    }
 
-		public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return BigDecimal.class;
+    }
 
-			int length = buffer.readInt();
-			if (length == -1) {
-				return null;
-			}
-			else if (length != 8) {
-				throw new IOException("invalid length");
-			}
+    public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			long val = buffer.readLong();
-			
-			int fracDigits = getFractionalDigits(context);
-			
-			return new BigDecimal(BigInteger.valueOf(val), fracDigits);
-		}
+      int length = buffer.readInt();
+      if (length == -1) {
+        return null;
+      }
+      else if (length != 8) {
+        throw new IOException("invalid length");
+      }
 
-	}
+      long val = buffer.readLong();
 
-	static class BinEncoder extends BinaryEncoder {
+      int fracDigits = getFractionalDigits(context);
 
-		public Class<?> getInputType() {
-			return BigDecimal.class;
-		}
+      return new BigDecimal(BigInteger.valueOf(val), fracDigits);
+    }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Money;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+  }
 
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				int fracDigits = getFractionalDigits(context);
-				
-				BigDecimal dec = (BigDecimal) val;
-				
-				dec = dec.setScale(fracDigits, HALF_UP);
-				
-				buffer.writeInt(8);
-				buffer.writeLong(dec.unscaledValue().longValue());
-			}
-			
-		}
+  static class BinEncoder extends BinaryEncoder {
 
-	}
+    public Class<?> getInputType() {
+      return BigDecimal.class;
+    }
 
-	static class TxtDecoder extends TextDecoder {
+    public PrimitiveType getOutputPrimitiveType() {
+      return Money;
+    }
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Money;
-		}
-		
-		public Class<?> getOutputType() {
-			return BigDecimal.class;
-		}
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-		public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
-			
-			return new BigDecimal(buffer.toString());
-		}
+      if (val == null) {
 
-	}
+        buffer.writeInt(-1);
+      }
+      else {
 
-	static class TxtEncoder extends TextEncoder {
+        int fracDigits = getFractionalDigits(context);
 
-		public Class<?> getInputType() {
-			return BigDecimal.class;
-		}
+        BigDecimal dec = (BigDecimal) val;
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Money;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {			
+        dec = dec.setScale(fracDigits, HALF_UP);
 
-			buffer.append(val.toString());
-		}
+        buffer.writeInt(8);
+        buffer.writeLong(dec.unscaledValue().longValue());
+      }
 
-	}
+    }
 
-	static int getFractionalDigits(Context context) {
-		
-		Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
-		if(val == null)
-			return 2;
-		
-		return (int)(Integer)val;
-	}
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    public PrimitiveType getInputPrimitiveType() {
+      return Money;
+    }
+
+    public Class<?> getOutputType() {
+      return BigDecimal.class;
+    }
+
+    public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return new BigDecimal(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return BigDecimal.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return Money;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append(val.toString());
+    }
+
+  }
+
+  static int getFractionalDigits(Context context) {
+
+    Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
+    if(val == null)
+      return 2;
+
+    return (int)(Integer)val;
+  }
 
 }

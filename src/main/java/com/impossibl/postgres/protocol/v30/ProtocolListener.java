@@ -41,61 +41,61 @@ import com.impossibl.postgres.protocol.TypeRef;
 
 
 public interface ProtocolListener {
-	
-	void abort();
 
-	boolean isAborted();
+  void abort();
 
-	boolean isComplete();
+  boolean isAborted();
 
-	void parseComplete() throws IOException;
+  boolean isComplete();
 
-	void parametersDescription(List<TypeRef> parameterTypes) throws IOException;
+  void parseComplete() throws IOException;
 
-	void noData() throws IOException;
+  void parametersDescription(List<TypeRef> parameterTypes) throws IOException;
 
-	void bindComplete() throws IOException;
+  void noData() throws IOException;
 
-	void rowDescription(List<ResultField> resultFields) throws IOException;
+  void bindComplete() throws IOException;
 
-	void rowData(ChannelBuffer buffer) throws IOException;
+  void rowDescription(List<ResultField> resultFields) throws IOException;
 
-	void functionResult(Object value) throws IOException;
+  void rowData(ChannelBuffer buffer) throws IOException;
 
-	void emptyQuery() throws IOException;
+  void functionResult(Object value) throws IOException;
 
-	void portalSuspended() throws IOException;
+  void emptyQuery() throws IOException;
 
-	void commandComplete(String command, Long rowsAffected, Long oid) throws IOException;
+  void portalSuspended() throws IOException;
 
-	void closeComplete() throws IOException;
+  void commandComplete(String command, Long rowsAffected, Long oid) throws IOException;
 
-	void ready(TransactionStatus txStatus) throws IOException;
+  void closeComplete() throws IOException;
 
-	void error(Notice error) throws IOException;
+  void ready(TransactionStatus txStatus) throws IOException;
 
-	void notice(Notice notice) throws IOException;
+  void error(Notice error) throws IOException;
 
-	void notification(int processId, String channelName, String payload) throws IOException;
+  void notice(Notice notice) throws IOException;
 
-	void backendKeyData(int processId, int secretKey) throws IOException;
+  void notification(int processId, String channelName, String payload) throws IOException;
 
-	void authenticated(ProtocolImpl protocol) throws IOException;
+  void backendKeyData(int processId, int secretKey) throws IOException;
 
-	void authenticateKerberos(ProtocolImpl protocol) throws IOException;
+  void authenticated(ProtocolImpl protocol) throws IOException;
 
-	void authenticateClear(ProtocolImpl protocol) throws IOException;
+  void authenticateKerberos(ProtocolImpl protocol) throws IOException;
 
-	void authenticateCrypt(ProtocolImpl protocol) throws IOException;
+  void authenticateClear(ProtocolImpl protocol) throws IOException;
 
-	void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException;
+  void authenticateCrypt(ProtocolImpl protocol) throws IOException;
 
-	void authenticateSCM(ProtocolImpl protocol) throws IOException;
+  void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException;
 
-	void authenticateGSS(ProtocolImpl protocol) throws IOException;
+  void authenticateSCM(ProtocolImpl protocol) throws IOException;
 
-	void authenticateGSSCont(ProtocolImpl protocol) throws IOException;
+  void authenticateGSS(ProtocolImpl protocol) throws IOException;
 
-	void authenticateSSPI(ProtocolImpl protocol) throws IOException;
+  void authenticateGSSCont(ProtocolImpl protocol) throws IOException;
+
+  void authenticateSSPI(ProtocolImpl protocol) throws IOException;
 
 }

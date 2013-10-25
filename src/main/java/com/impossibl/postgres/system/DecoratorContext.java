@@ -37,82 +37,82 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 public class DecoratorContext implements Context {
-	
-	Context base;
 
-	public DecoratorContext(Context base) {
-		super();
-		this.base = base;
-	}
+  Context base;
 
-	@Override
-	public Registry getRegistry() {
-		return base.getRegistry();
-	}
+  public DecoratorContext(Context base) {
+    super();
+    this.base = base;
+  }
 
-	@Override
-	public TimeZone getTimeZone() {
-		return base.getTimeZone();
-	}
+  @Override
+  public Registry getRegistry() {
+    return base.getRegistry();
+  }
 
-	@Override
-	public Charset getCharset() {
-		return base.getCharset();
-	}
+  @Override
+  public TimeZone getTimeZone() {
+    return base.getTimeZone();
+  }
 
-	@Override
-	public KeyData getKeyData() {
-		return base.getKeyData();
-	}
-	
-	@Override
-	public DateTimeFormat getDateFormatter() {
-		return base.getDateFormatter();
-	}
+  @Override
+  public Charset getCharset() {
+    return base.getCharset();
+  }
 
-	@Override
-	public DateTimeFormat getTimeFormatter() {
-		return base.getTimeFormatter();
-	}
+  @Override
+  public KeyData getKeyData() {
+    return base.getKeyData();
+  }
 
-	@Override
-	public DateTimeFormat getTimestampFormatter() {
-		return base.getTimestampFormatter();
-	}
+  @Override
+  public DateTimeFormat getDateFormatter() {
+    return base.getDateFormatter();
+  }
 
-	@Override
-	public Class<?> lookupInstanceType(Type type) {
-		return base.lookupInstanceType(type);
-	}
+  @Override
+  public DateTimeFormat getTimeFormatter() {
+    return base.getTimeFormatter();
+  }
 
-	@Override
-	public void refreshType(int typeId) {
-		base.refreshType(typeId);
-	}
+  @Override
+  public DateTimeFormat getTimestampFormatter() {
+    return base.getTimestampFormatter();
+  }
 
-	@Override
-	public void refreshRelationType(int relationId) {
-		base.refreshRelationType(relationId);
-	}
+  @Override
+  public Class<?> lookupInstanceType(Type type) {
+    return base.lookupInstanceType(type);
+  }
 
-	@Override
-	public Object getSetting(String name) {
-		return base.getSetting(name);
-	}
+  @Override
+  public void refreshType(int typeId) {
+    base.refreshType(typeId);
+  }
 
-	@Override
-	public <T> T getSetting(String name, Class<T> type) {
-		return base.getSetting(name, type);
-	}
+  @Override
+  public void refreshRelationType(int relationId) {
+    base.refreshRelationType(relationId);
+  }
 
-	@Override
-	public boolean isSettingEnabled(String name) {
-		return base.isSettingEnabled(name);
-	}
-	
-	@Override
-	public Protocol getProtocol() {
-		return base.getProtocol();
-	}
+  @Override
+  public Object getSetting(String name) {
+    return base.getSetting(name);
+  }
+
+  @Override
+  public <T> T getSetting(String name, Class<T> type) {
+    return base.getSetting(name, type);
+  }
+
+  @Override
+  public boolean isSettingEnabled(String name) {
+    return base.isSettingEnabled(name);
+  }
+
+  @Override
+  public Protocol getProtocol() {
+    return base.getProtocol();
+  }
 
 }

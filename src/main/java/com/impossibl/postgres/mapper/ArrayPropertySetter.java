@@ -29,25 +29,25 @@
 package com.impossibl.postgres.mapper;
 
 /**
- * PropertySetter for an Object array using an index 
- * 
+ * PropertySetter for an Object array using an index
+ *
  * @author kdubb
  *
  */
 public class ArrayPropertySetter implements PropertySetter {
 
-	int propertyIndex;
+  int propertyIndex;
 
-	public ArrayPropertySetter(int idx) {
-		this.propertyIndex = idx;
-	}
+  public ArrayPropertySetter(int idx) {
+    this.propertyIndex = idx;
+  }
 
-	@Override
-	public void set(Object instance, Object value) {
+  @Override
+  public void set(Object instance, Object value) {
 
-		Object[] array = (Object[]) instance;
+    Object[] array = (Object[]) instance;
 
-		array[propertyIndex] = value;
-	}
+    array[propertyIndex] = value;
+  }
 
 }

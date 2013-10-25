@@ -42,99 +42,99 @@ import com.impossibl.postgres.types.Type;
 
 public class Oids extends SimpleProcProvider {
 
-	public Oids() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oid");
-	}
+  public Oids() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oid");
+  }
 
-	@Override
-	protected boolean hasName(String name, String suffix, Context context) {
-		if(context != null && name.equals(context.getSetting("blob.type", String.class)+suffix))
-			return true;
-		return super.hasName(name, suffix, context);
-	}
+  @Override
+  protected boolean hasName(String name, String suffix, Context context) {
+    if(context != null && name.equals(context.getSetting("blob.type", String.class)+suffix))
+      return true;
+    return super.hasName(name, suffix, context);
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Oid;
-		}
-		
-		public Class<?> getOutputType() {
-			return Integer.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Oid;
+    }
 
-		public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Integer.class;
+    }
 
-			int length = buffer.readInt();
-			if(length == -1) {
-				return null;
-			}
-			else if (length != 4) {
-				throw new IOException("invalid length");
-			}
-			
-			return buffer.readInt();
-		}
+    public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-	}
+      int length = buffer.readInt();
+      if(length == -1) {
+        return null;
+      }
+      else if (length != 4) {
+        throw new IOException("invalid length");
+      }
 
-	static class BinEncoder extends BinaryEncoder {
+      return buffer.readInt();
+    }
 
-		public Class<?> getInputType() {
-			return Integer.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Oid;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(4);
-				buffer.writeInt((Integer) val);
-			}
-			
-		}
+  static class BinEncoder extends BinaryEncoder {
 
-	}
+    public Class<?> getInputType() {
+      return Integer.class;
+    }
 
-	static class TxtDecoder extends TextDecoder {
+    public PrimitiveType getOutputPrimitiveType() {
+      return Oid;
+    }
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Oid;
-		}
-		
-		public Class<?> getOutputType() {
-			return Integer.class;
-		}
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+      if (val == null) {
 
-		public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
-			
-			return Integer.valueOf(buffer.toString());
-		}
+        buffer.writeInt(-1);
+      }
+      else {
 
-	}
+        buffer.writeInt(4);
+        buffer.writeInt((Integer) val);
+      }
 
-	static class TxtEncoder extends TextEncoder {
+    }
 
-		public Class<?> getInputType() {
-			return Integer.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Oid;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-			buffer.append((int)val);
-		}
+  static class TxtDecoder extends TextDecoder {
 
-	}
+    public PrimitiveType getInputPrimitiveType() {
+      return Oid;
+    }
+
+    public Class<?> getOutputType() {
+      return Integer.class;
+    }
+
+    public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return Integer.valueOf(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Integer.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return Oid;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append((int)val);
+    }
+
+  }
 
 }

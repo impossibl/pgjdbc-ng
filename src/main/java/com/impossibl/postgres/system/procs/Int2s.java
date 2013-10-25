@@ -42,93 +42,93 @@ import com.impossibl.postgres.types.Type;
 
 public class Int2s extends SimpleProcProvider {
 
-	public Int2s() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2");
-	}
+  public Int2s() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Int2;
-		}
-		
-		public Class<?> getOutputType() {
-			return Short.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Int2;
+    }
 
-		public Short decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Short.class;
+    }
 
-			int length = buffer.readInt();
-			if(length == -1) {
-				return null;
-			}
-			else if (length != 2) {
-				throw new IOException("invalid length");
-			}
-			
-			return buffer.readShort();
-		}
+    public Short decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-	}
+      int length = buffer.readInt();
+      if(length == -1) {
+        return null;
+      }
+      else if (length != 2) {
+        throw new IOException("invalid length");
+      }
 
-	static class BinEncoder extends BinaryEncoder {
+      return buffer.readShort();
+    }
 
-		public Class<?> getInputType() {
-			return Short.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Int2;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+  static class BinEncoder extends BinaryEncoder {
 
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(2);
-				buffer.writeShort((Short) val);
-			}
-			
-		}
+    public Class<?> getInputType() {
+      return Short.class;
+    }
 
-	}
+    public PrimitiveType getOutputPrimitiveType() {
+      return Int2;
+    }
 
-	static class TxtDecoder extends TextDecoder {
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Int2;
-		}
-		
-		public Class<?> getOutputType() {
-			return Short.class;
-		}
+      if (val == null) {
 
-		public Short decode(Type type, CharSequence buffer, Context context) throws IOException {
-			
-			return Short.valueOf(buffer.toString());
-		}
+        buffer.writeInt(-1);
+      }
+      else {
 
-	}
+        buffer.writeInt(2);
+        buffer.writeShort((Short) val);
+      }
 
-	static class TxtEncoder extends TextEncoder {
+    }
 
-		public Class<?> getInputType() {
-			return Short.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Int2;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-			buffer.append((short)val);
-		}
+  static class TxtDecoder extends TextDecoder {
 
-	}
+    public PrimitiveType getInputPrimitiveType() {
+      return Int2;
+    }
+
+    public Class<?> getOutputType() {
+      return Short.class;
+    }
+
+    public Short decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return Short.valueOf(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Short.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return Int2;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append((short)val);
+    }
+
+  }
 
 }

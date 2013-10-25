@@ -46,149 +46,149 @@ import com.impossibl.postgres.types.Type;
 
 public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
-	class QueryListener extends BaseProtocolListener {
+  class QueryListener extends BaseProtocolListener {
 
-		Context context;
-	
-		public QueryListener(Context context) {
-			super();
-			this.context = context;
-		}
+    Context context;
 
-		@Override
-		public boolean isComplete() {
-			return !resultBatches.isEmpty() || error != null;
-		}
+    public QueryListener(Context context) {
+      super();
+      this.context = context;
+    }
 
-		@Override
-		public void rowDescription(List<ResultField> resultFields) {
-			resultBatch.fields = resultFields;
-			resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
-		}
+    @Override
+    public boolean isComplete() {
+      return !resultBatches.isEmpty() || error != null;
+    }
 
-		@Override
-		public void rowData(ChannelBuffer buffer) throws IOException {
-						
-			int fieldCount = buffer.readShort();
+    @Override
+    public void rowDescription(List<ResultField> resultFields) {
+      resultBatch.fields = resultFields;
+      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
+    }
 
-			Object[] rowInstance = new Object[fieldCount];
+    @Override
+    public void rowData(ChannelBuffer buffer) throws IOException {
 
-			for (int c = 0; c < fieldCount; ++c) {
+      int fieldCount = buffer.readShort();
 
-				ResultField field = resultBatch.fields.get(c);
+      Object[] rowInstance = new Object[fieldCount];
 
-				Type fieldType = field.typeRef.get();
-				
-				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
-				
-				Object fieldVal = decoder.decode(fieldType, buffer, context);
+      for (int c = 0; c < fieldCount; ++c) {
 
-				rowInstance[c] = fieldVal;
-			}
+        ResultField field = resultBatch.fields.get(c);
 
-			@SuppressWarnings("unchecked")
-			List<Object> res = (List<Object>) resultBatch.results;
-			res.add(rowInstance);
-		}
+        Type fieldType = field.typeRef.get();
 
-		@Override
-		public void commandComplete(String command, Long rowsAffected, Long oid) {
-			resultBatch.command = command;
-			resultBatch.rowsAffected = rowsAffected;
-			resultBatch.insertedOid = oid;
-			
-			resultBatches.add(resultBatch);
-			resultBatch = new ResultBatch();
-		}
+        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-		@Override
-		public void error(Notice error) {
-			QueryCommandImpl.this.error = error;
-		}
+        Object fieldVal = decoder.decode(fieldType, buffer, context);
 
-		@Override
-		public void notice(Notice notice) {
-			addNotice(notice);
-		}
+        rowInstance[c] = fieldVal;
+      }
 
-		@Override
-		public synchronized void ready(TransactionStatus txStatus) {
-			notifyAll();
-		}
+      @SuppressWarnings("unchecked")
+      List<Object> res = (List<Object>) resultBatch.results;
+      res.add(rowInstance);
+    }
 
-	};
+    @Override
+    public void commandComplete(String command, Long rowsAffected, Long oid) {
+      resultBatch.command = command;
+      resultBatch.rowsAffected = rowsAffected;
+      resultBatch.insertedOid = oid;
+
+      resultBatches.add(resultBatch);
+      resultBatch = new ResultBatch();
+    }
+
+    @Override
+    public void error(Notice error) {
+      QueryCommandImpl.this.error = error;
+    }
+
+    @Override
+    public void notice(Notice notice) {
+      addNotice(notice);
+    }
+
+    @Override
+    public synchronized void ready(TransactionStatus txStatus) {
+      notifyAll();
+    }
+
+  };
 
 
-	
-	String command;
-	List<ResultBatch> resultBatches;
-	ResultBatch resultBatch;
-	long queryTimeout;
 
-	
-	
-	public QueryCommandImpl(String command) {
-		this.command = command;
-	}
+  String command;
+  List<ResultBatch> resultBatches;
+  ResultBatch resultBatch;
+  long queryTimeout;
 
-	@Override
-	public long getQueryTimeout() {
-		return queryTimeout;
-	}
 
-	@Override
-	public void setQueryTimeout(long timeout) {
-		this.queryTimeout = timeout;
-	}
 
-	@Override
-	public List<ResultBatch> getResultBatches() {
-		return resultBatches;
-	}
+  public QueryCommandImpl(String command) {
+    this.command = command;
+  }
 
-	public void execute(ProtocolImpl protocol) throws IOException {
-		
-		resultBatch = new ResultBatch();
-		resultBatches = new ArrayList<>();
+  @Override
+  public long getQueryTimeout() {
+    return queryTimeout;
+  }
 
-		QueryListener listener = new QueryListener(protocol.getContext());
-		
-		protocol.setListener(listener);
+  @Override
+  public void setQueryTimeout(long timeout) {
+    this.queryTimeout = timeout;
+  }
 
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
-		protocol.writeQuery(msg, command);
-		
-		protocol.writeSync(msg);
+  @Override
+  public List<ResultBatch> getResultBatches() {
+    return resultBatches;
+  }
 
-		protocol.send(msg);
+  public void execute(ProtocolImpl protocol) throws IOException {
 
-		enableCancelTimer(protocol, queryTimeout);
+    resultBatch = new ResultBatch();
+    resultBatches = new ArrayList<>();
 
-		waitFor(listener);
-	}
+    QueryListener listener = new QueryListener(protocol.getContext());
 
-	@Override
-	public Status getStatus() {
-		return Status.Completed;
-	}
+    protocol.setListener(listener);
 
-	@Override
-	public int getMaxFieldLength() {
-		return 0;
-	}
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-	@Override
-	public void setMaxFieldLength(int maxFieldLength) {
-	}
+    protocol.writeQuery(msg, command);
 
-	@Override
-	public int getMaxRows() {
-		return 0;
-	}
+    protocol.writeSync(msg);
 
-	@Override
-	public void setMaxRows(int maxRows) {
-	}
+    protocol.send(msg);
+
+    enableCancelTimer(protocol, queryTimeout);
+
+    waitFor(listener);
+  }
+
+  @Override
+  public Status getStatus() {
+    return Status.Completed;
+  }
+
+  @Override
+  public int getMaxFieldLength() {
+    return 0;
+  }
+
+  @Override
+  public void setMaxFieldLength(int maxFieldLength) {
+  }
+
+  @Override
+  public int getMaxRows() {
+    return 0;
+  }
+
+  @Override
+  public void setMaxRows(int maxRows) {
+  }
 
 }

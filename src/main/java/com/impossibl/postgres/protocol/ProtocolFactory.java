@@ -35,6 +35,6 @@ import com.impossibl.postgres.system.BasicContext;
 
 public interface ProtocolFactory {
 
-	Protocol connect(SocketAddress address, BasicContext context) throws IOException;
-	
+  Protocol connect(SocketAddress address, BasicContext context) throws IOException;
+
 }

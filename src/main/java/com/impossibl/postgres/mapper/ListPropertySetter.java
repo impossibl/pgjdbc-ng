@@ -33,36 +33,36 @@ import java.util.List;
 
 /**
  * PropertySetter for a List based on an index
- * 
+ *
  * @author kdubb
  *
  */
 public class ListPropertySetter implements PropertySetter {
 
-	int propertyIndex;
+  int propertyIndex;
 
-	public ListPropertySetter(int idx) {
-		this.propertyIndex = idx;
-	}
+  public ListPropertySetter(int idx) {
+    this.propertyIndex = idx;
+  }
 
-	@Override
-	public void set(Object instance, Object value) {
+  @Override
+  public void set(Object instance, Object value) {
 
-		@SuppressWarnings("unchecked")
-		List<Object> list = (List<Object>) instance;
+    @SuppressWarnings("unchecked")
+    List<Object> list = (List<Object>) instance;
 
-		fill(list, propertyIndex + 1);
+    fill(list, propertyIndex + 1);
 
-		list.set(propertyIndex, value);
+    list.set(propertyIndex, value);
 
-	}
+  }
 
-	void fill(List<Object> list, int requiredSize) {
+  void fill(List<Object> list, int requiredSize) {
 
-		for(int c = list.size(); c < requiredSize; ++c) {
-			list.add(null);
-		}
+    for(int c = list.size(); c < requiredSize; ++c) {
+      list.add(null);
+    }
 
-	}
+  }
 
 }

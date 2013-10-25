@@ -43,82 +43,82 @@ import com.impossibl.postgres.types.Type;
 
 public class FunctionCallCommandImpl extends CommandImpl implements FunctionCallCommand {
 
-	private String functionName;
-	private List<Type> parameterTypes;
-	private List<Object> parameterValues;
-	private Object result;
-	private ProtocolListener listener = new BaseProtocolListener() {
+  private String functionName;
+  private List<Type> parameterTypes;
+  private List<Object> parameterValues;
+  private Object result;
+  private ProtocolListener listener = new BaseProtocolListener() {
 
-		@Override
-		public boolean isComplete() {
-			return result != null || error != null;
-		}
+    @Override
+    public boolean isComplete() {
+      return result != null || error != null;
+    }
 
-		@Override
-		public void functionResult(Object value) {
-			FunctionCallCommandImpl.this.result = value;
-		}
+    @Override
+    public void functionResult(Object value) {
+      FunctionCallCommandImpl.this.result = value;
+    }
 
-		@Override
-		public void error(Notice error) {
-			FunctionCallCommandImpl.this.error = error;
-		}
+    @Override
+    public void error(Notice error) {
+      FunctionCallCommandImpl.this.error = error;
+    }
 
-		@Override
-		public void notice(Notice notice) {
-			addNotice(notice);
-		}
+    @Override
+    public void notice(Notice notice) {
+      addNotice(notice);
+    }
 
-		@Override
-		public synchronized void ready(TransactionStatus txStatus) {
-			notifyAll();
-		}
+    @Override
+    public synchronized void ready(TransactionStatus txStatus) {
+      notifyAll();
+    }
 
-	};
+  };
 
-	public FunctionCallCommandImpl(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
+  public FunctionCallCommandImpl(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
 
-		this.functionName = functionName;
-		this.parameterTypes = parameterTypes;
-		this.parameterValues = parameterValues;
-	}
+    this.functionName = functionName;
+    this.parameterTypes = parameterTypes;
+    this.parameterValues = parameterValues;
+  }
 
-	@Override
-	public String getFunctionName() {
-		return functionName;
-	}
+  @Override
+  public String getFunctionName() {
+    return functionName;
+  }
 
-	public List<Type> getParameterTypes() {
-		return parameterTypes;
-	}
+  public List<Type> getParameterTypes() {
+    return parameterTypes;
+  }
 
-	public List<Object> getParameterValues() {
-		return parameterValues;
-	}
+  public List<Object> getParameterValues() {
+    return parameterValues;
+  }
 
-	@Override
-	public Object getResult() {
-		return result;
-	}
+  @Override
+  public Object getResult() {
+    return result;
+  }
 
-	public void execute(ProtocolImpl protocol) throws IOException {
+  public void execute(ProtocolImpl protocol) throws IOException {
 
-		protocol.setListener(listener);
+    protocol.setListener(listener);
 
-		int procId = protocol.getContext().getRegistry().lookupProcId(functionName);
-		if(procId == 0)
-			throw new IOException("invalid function name");
+    int procId = protocol.getContext().getRegistry().lookupProcId(functionName);
+    if(procId == 0)
+      throw new IOException("invalid function name");
 
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
-		protocol.writeFunctionCall(msg, procId, parameterTypes, parameterValues);
-		
-		protocol.writeSync(msg);
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-		protocol.send(msg);
+    protocol.writeFunctionCall(msg, procId, parameterTypes, parameterValues);
 
-		waitFor(listener);
+    protocol.writeSync(msg);
 
-	}
+    protocol.send(msg);
+
+    waitFor(listener);
+
+  }
 
 }

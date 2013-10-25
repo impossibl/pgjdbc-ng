@@ -31,21 +31,21 @@ package com.impossibl.postgres.jdbc;
 import java.sql.SQLException;
 
 class LargeObject64 extends LargeObject {
-	
-	LargeObject64(PGConnection connection, int oid, int fd) {
-		super(connection, oid, fd);
-	}
 
-	long lseek(long offset, int whence) throws SQLException {
-		return connection.executeForResult("select lo_lseek64($1,$2,$3)", true, Long.class, fd, offset, whence);		
-	}
-	
-	long tell() throws SQLException {
-		return connection.executeForResult("select lo_tell64($1)", true, Long.class, fd);
-	}
+  LargeObject64(PGConnection connection, int oid, int fd) {
+    super(connection, oid, fd);
+  }
 
-	int truncate(long len) throws SQLException {
-		return connection.executeForResult("select lo_truncate64($1,$2)", true, Integer.class, fd, len);		
-	}
-	
+  long lseek(long offset, int whence) throws SQLException {
+    return connection.executeForResult("select lo_lseek64($1,$2,$3)", true, Long.class, fd, offset, whence);
+  }
+
+  long tell() throws SQLException {
+    return connection.executeForResult("select lo_tell64($1)", true, Long.class, fd);
+  }
+
+  int truncate(long len) throws SQLException {
+    return connection.executeForResult("select lo_truncate64($1,$2)", true, Integer.class, fd, len);
+  }
+
 }

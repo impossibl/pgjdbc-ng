@@ -37,23 +37,23 @@ import com.impossibl.postgres.types.Modifiers;
 
 public class TimestampMods extends SimpleProcProvider {
 
-	public TimestampMods() {
-		super(new ModParser(), "timestamp", "timestamptz");
-	}
-	
-	static class ModParser implements Modifiers.Parser {
+  public TimestampMods() {
+    super(new ModParser(), "timestamp", "timestamptz");
+  }
 
-		@Override
-		public Map<String, Object> parse(long mod) {
-			
-			Map<String, Object> mods = new HashMap<String, Object>();
-			
-			if(mod >= 0)
-				mods.put(PRECISION, (int)mod);
-			
-			return mods;
-		}
-		
-	}
+  static class ModParser implements Modifiers.Parser {
+
+    @Override
+    public Map<String, Object> parse(long mod) {
+
+      Map<String, Object> mods = new HashMap<String, Object>();
+
+      if(mod >= 0)
+        mods.put(PRECISION, (int)mod);
+
+      return mods;
+    }
+
+  }
 
 }

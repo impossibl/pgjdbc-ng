@@ -33,29 +33,29 @@ import java.lang.reflect.Field;
 
 /**
  * PropertySetter for a bean using a reflection Field
- * 
+ *
  * @author kdubb
  *
  */
 public class FieldPropertySetter implements PropertySetter {
 
-	Field field;
+  Field field;
 
-	public FieldPropertySetter(Field field) {
-		super();
-		this.field = field;
-		this.field.setAccessible(true);
-	}
+  public FieldPropertySetter(Field field) {
+    super();
+    this.field = field;
+    this.field.setAccessible(true);
+  }
 
-	@Override
-	public void set(Object instance, Object value) {
+  @Override
+  public void set(Object instance, Object value) {
 
-		try {
-			field.set(instance, value);
-		}
-		catch(IllegalArgumentException | IllegalAccessException e) {
-			// Ignore mapping errors (they shouldn't happen)
-		}
-	}
+    try {
+      field.set(instance, value);
+    }
+    catch(IllegalArgumentException | IllegalAccessException e) {
+      // Ignore mapping errors (they shouldn't happen)
+    }
+  }
 
 }

@@ -50,110 +50,110 @@ import com.impossibl.postgres.types.Type;
 
 public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
-	private String statementName;
-	private String query;
-	private List<Type> parseParameterTypes;
-	private List<TypeRef> describedParameterTypes;
-	private List<ResultField> describedResultFields;
-	private ProtocolListener listener = new BaseProtocolListener() {
+  private String statementName;
+  private String query;
+  private List<Type> parseParameterTypes;
+  private List<TypeRef> describedParameterTypes;
+  private List<ResultField> describedResultFields;
+  private ProtocolListener listener = new BaseProtocolListener() {
 
-		@Override
-		public void parseComplete() {
-		}
+    @Override
+    public void parseComplete() {
+    }
 
-		@Override
-		public boolean isComplete() {
-			return describedResultFields != null || error != null;
-		}
+    @Override
+    public boolean isComplete() {
+      return describedResultFields != null || error != null;
+    }
 
-		@Override
-		public void parametersDescription(List<TypeRef> parameterTypes) {
-			PrepareCommandImpl.this.describedParameterTypes = parameterTypes;
-		}
+    @Override
+    public void parametersDescription(List<TypeRef> parameterTypes) {
+      PrepareCommandImpl.this.describedParameterTypes = parameterTypes;
+    }
 
-		@Override
-		public void rowDescription(List<ResultField> resultFields) {
+    @Override
+    public void rowDescription(List<ResultField> resultFields) {
 
-			// Ensure we are working with binary fields
-			for(ResultField field : resultFields)
-				field.format = Format.Binary;
+      // Ensure we are working with binary fields
+      for(ResultField field : resultFields)
+        field.format = Format.Binary;
 
-			PrepareCommandImpl.this.describedResultFields = resultFields;
-		}
+      PrepareCommandImpl.this.describedResultFields = resultFields;
+    }
 
-		@Override
-		public void noData() {
-			PrepareCommandImpl.this.describedResultFields = Collections.emptyList();
-		}
+    @Override
+    public void noData() {
+      PrepareCommandImpl.this.describedResultFields = Collections.emptyList();
+    }
 
-		@Override
-		public void error(Notice error) {
-			PrepareCommandImpl.this.error = error;
-		}
+    @Override
+    public void error(Notice error) {
+      PrepareCommandImpl.this.error = error;
+    }
 
-		@Override
-		public synchronized void ready(TransactionStatus txStatus) {
-			notifyAll();
-		}
+    @Override
+    public synchronized void ready(TransactionStatus txStatus) {
+      notifyAll();
+    }
 
-		@Override
-		public void notice(Notice notice) {
-			addNotice(notice);
-		}
+    @Override
+    public void notice(Notice notice) {
+      addNotice(notice);
+    }
 
-	};
+  };
 
-	public PrepareCommandImpl(String statementName, String query, List<Type> parseParameterTypes) {
-		this.statementName = statementName;
-		this.query = query;
-		this.parseParameterTypes = parseParameterTypes;
-	}
+  public PrepareCommandImpl(String statementName, String query, List<Type> parseParameterTypes) {
+    this.statementName = statementName;
+    this.query = query;
+    this.parseParameterTypes = parseParameterTypes;
+  }
 
-	public String getQuery() {
-		return query;
-	}
+  public String getQuery() {
+    return query;
+  }
 
-	@Override
-	public String getStatementName() {
-		return statementName;
-	}
+  @Override
+  public String getStatementName() {
+    return statementName;
+  }
 
-	@Override
-	public List<Type> getParseParameterTypes() {
-		return parseParameterTypes;
-	}
+  @Override
+  public List<Type> getParseParameterTypes() {
+    return parseParameterTypes;
+  }
 
-	@Override
-	public List<Type> getDescribedParameterTypes() {
-		List<Type> types = new ArrayList<>();
-		for(TypeRef typeRef : describedParameterTypes) {
-			types.add(typeRef.get());
-		}
-		return types;
-	}
+  @Override
+  public List<Type> getDescribedParameterTypes() {
+    List<Type> types = new ArrayList<>();
+    for(TypeRef typeRef : describedParameterTypes) {
+      types.add(typeRef.get());
+    }
+    return types;
+  }
 
-	@Override
-	public List<ResultField> getDescribedResultFields() {
-		return describedResultFields;
-	}
+  @Override
+  public List<ResultField> getDescribedResultFields() {
+    return describedResultFields;
+  }
 
-	@Override
-	public void execute(ProtocolImpl protocol) throws IOException {
+  @Override
+  public void execute(ProtocolImpl protocol) throws IOException {
 
-		protocol.setListener(listener);
+    protocol.setListener(listener);
 
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
-		protocol.writeParse(msg, statementName, query, parseParameterTypes);
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-		protocol.writeDescribe(msg, Statement, statementName);
+    protocol.writeParse(msg, statementName, query, parseParameterTypes);
 
-		protocol.writeSync(msg);
+    protocol.writeDescribe(msg, Statement, statementName);
 
-		protocol.send(msg);
+    protocol.writeSync(msg);
 
-		waitFor(listener);
-		
-	}
+    protocol.send(msg);
+
+    waitFor(listener);
+
+  }
 
 }

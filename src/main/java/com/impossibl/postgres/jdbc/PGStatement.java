@@ -59,505 +59,505 @@ import com.impossibl.postgres.types.Type;
 
 abstract class PGStatement implements Statement {
 
-	
-	
-	PGConnection connection;
-	int resultSetType;
-	int resultSetConcurrency;
-	int resultSetHoldability;
-	int fetchDirection;
-	String name;
-	boolean processEscapes;
-	List<ResultField> resultFields;
-	Integer maxRows;
-	Integer fetchSize;
-	Integer maxFieldSize;
-	QueryCommand command;
-	List<QueryCommand.ResultBatch> resultBatches;
-	boolean autoClose;
-	List<PGResultSet> activeResultSets;
-	PGResultSet generatedKeysResultSet;
-	SQLWarning warningChain;
-	int queryTimeout;
 
-	
-	
-	PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
-		this.connection = connection;
-		this.resultSetType = resultSetType;
-		this.resultSetConcurrency = resultSetConcurrency;
-		this.resultSetHoldability = resultSetHoldability;
-		this.name = name;
-		this.processEscapes = true;
-		this.resultFields = resultFields;
-		this.activeResultSets = new ArrayList<>();
-	}
 
-	protected void finalize() throws SQLException {
-		close();
-	}
+  PGConnection connection;
+  int resultSetType;
+  int resultSetConcurrency;
+  int resultSetHoldability;
+  int fetchDirection;
+  String name;
+  boolean processEscapes;
+  List<ResultField> resultFields;
+  Integer maxRows;
+  Integer fetchSize;
+  Integer maxFieldSize;
+  QueryCommand command;
+  List<QueryCommand.ResultBatch> resultBatches;
+  boolean autoClose;
+  List<PGResultSet> activeResultSets;
+  PGResultSet generatedKeysResultSet;
+  SQLWarning warningChain;
+  int queryTimeout;
 
-	/**
-	 * Ensure the connection is not closed
-	 * 
-	 * @throws SQLException
-	 * 					If the connection is closed
-	 */
-	void checkClosed() throws SQLException {
-		
-		if(isClosed())
-			throw CLOSED_STATEMENT;
-	}
-	
-	/**
-	 * Disposes of the named server object
-	 * 
-	 * @param objectType
-	 * 					Type of object to dispose of
-	 * @param objectName
-	 * 					Name of the object to dispose of
-	 * @throws SQLException
-	 * 					If an error occurs during disposal
-	 */
-	void dispose(ServerObjectType objectType, String objectName) throws SQLException {
-		
-		if(objectName == null)
-			return;
-	
-		CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
-		
-		connection.execute(close, false);		
-	}
-	
-	void dispose(Command command) throws SQLException {
-		
-		if(command instanceof BindExecCommand) {
-			
-			dispose(ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
-		}
-		
-	}
-	
-	/**
-	 * Closes all active result sets for this statement
-	 * 
-	 * @throws SQLException
-	 * 					If an error occurs closing a result set
-	 */
-	void closeResultSets() throws SQLException {
-		
-		for(PGResultSet rs : activeResultSets) {
-			rs.internalClose();			
-		}
-		
-		activeResultSets.clear();
-		generatedKeysResultSet = null;
-		
-	}
-	
-	/**
-	 * Called by result sets to notify the statement of their closure. Removes
-	 * the result set from the active set of result sets. If auto-close is
-	 * enabled this closes the statement when the last result set is closed.
-	 * 
-	 * @param resultSet
-	 * 					The result set that is closing
-	 * @throws SQLException
-	 * 					If an error occurs closing a result set
-	 */
-	void handleResultSetClosure(PGResultSet resultSet) throws SQLException {
-		
-		activeResultSets.remove(resultSet);
-		
-		if(autoClose && activeResultSets.isEmpty()) {
-			
-			close();
-			
-		}
-		
-	}
-	
-	/**
-	 * Determines whether or not the current statement state requires a named 
-	 * portal or could use the unnamed portal instead
-	 * 
-	 * @return true when a named portal is required and false when it is not
-	 */
-	boolean needsNamedPortal() {
 
-		return fetchSize != null;
-	}
 
-	/**
-	 * Cleans up all resources, including active result sets
-	 * 
-	 * @throws SQLException
-	 * 					If an error occurs closing result sets or 
-	 */
-	void internalClose() throws SQLException {
+  PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
+    this.connection = connection;
+    this.resultSetType = resultSetType;
+    this.resultSetConcurrency = resultSetConcurrency;
+    this.resultSetHoldability = resultSetHoldability;
+    this.name = name;
+    this.processEscapes = true;
+    this.resultFields = resultFields;
+    this.activeResultSets = new ArrayList<>();
+  }
 
-		closeResultSets();
-		
-		dispose(Statement, name);
-		
-		connection = null;
-		command = null;
-		resultFields = null;
-		resultBatches = null;
-		generatedKeysResultSet = null;
-	}
-	
-	boolean hasResults() {
-		return !resultBatches.isEmpty() &&
-				resultBatches.get(0).results != null;
-	}
+  protected void finalize() throws SQLException {
+    close();
+  }
 
-	boolean hasUpdateCount() {
-		return !resultBatches.isEmpty() &&
-				resultBatches.get(0).rowsAffected != null;
-	}
+  /**
+   * Ensure the connection is not closed
+   *
+   * @throws SQLException
+   *          If the connection is closed
+   */
+  void checkClosed() throws SQLException {
 
-	/**
-	 * Execute the named statement. It must have previously been parsed and
-	 * ready to be bound and executed.
-	 * 
-	 * @param statementName Name of backend statement to execute or null
-	 * @param parameterTypes List of parameter types
-	 * @param parameterValues List of parmaeter values
-	 * @return true if command returned results or false if not
-	 * @throws SQLException
-	 * 					If an error occurred durring statement execution
-	 */
-	public boolean executeSimple(String sql) throws SQLException {
-		
-		closeResultSets();
+    if(isClosed())
+      throw CLOSED_STATEMENT;
+  }
 
-		command = connection.getProtocol().createQuery(sql);
+  /**
+   * Disposes of the named server object
+   *
+   * @param objectType
+   *          Type of object to dispose of
+   * @param objectName
+   *          Name of the object to dispose of
+   * @throws SQLException
+   *          If an error occurs during disposal
+   */
+  void dispose(ServerObjectType objectType, String objectName) throws SQLException {
 
-		if(maxFieldSize != null)
-			command.setMaxFieldLength(maxFieldSize);
+    if(objectName == null)
+      return;
 
-		warningChain = connection.execute(command, true);
-		
-		resultBatches = new ArrayList<>(command.getResultBatches());
+    CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
 
-		return hasResults();
-	}
-	
-	/**
-	 * Execute the named statement. It must have previously been parsed and
-	 * ready to be bound and executed.
-	 * 
-	 * @param statementName Name of backend statement to execute or null
-	 * @param parameterTypes List of parameter types
-	 * @param parameterValues List of parmaeter values
-	 * @return true if command returned results or false if not
-	 * @throws SQLException
-	 * 					If an error occurred durring statement execution
-	 */
-	public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
-		
-		closeResultSets();
+    connection.execute(close, false);
+  }
 
-		String portalName = null;
-		
-		if (needsNamedPortal()) {
-			portalName = connection.getNextPortalName();
-		}
+  void dispose(Command command) throws SQLException {
 
-		BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
-		
-		//Set query timeout
-		long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
-		command.setQueryTimeout(queryTimeoutMS);
+    if(command instanceof BindExecCommand) {
 
-		if(fetchSize != null)
-			command.setMaxRows(fetchSize);
-		
-		if(maxFieldSize != null)
-			command.setMaxFieldLength(maxFieldSize);
+      dispose(ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
+    }
 
-		this.warningChain = connection.execute(command, true);
-		
-		this.command = command;
-		this.resultBatches = new ArrayList<>(command.getResultBatches());
+  }
 
-		return hasResults();		
-	}
-	
-	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
-		return createResultSet(resultFields, results, connection.getTypeMap());
-	}
-		
-	PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
-		
-		PGResultSet resultSet = new PGResultSet(this, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY, resultFields, results);
-		activeResultSets.add(resultSet);
-		return resultSet;
-	}
-	
-	@Override
-	public Connection getConnection() throws SQLException {
-		checkClosed();
-		
-		return connection;
-	}
+  /**
+   * Closes all active result sets for this statement
+   *
+   * @throws SQLException
+   *          If an error occurs closing a result set
+   */
+  void closeResultSets() throws SQLException {
 
-	@Override
-	public int getResultSetType() throws SQLException {
-		checkClosed();
-		
-		return resultSetType;
-	}
+    for(PGResultSet rs : activeResultSets) {
+      rs.internalClose();
+    }
 
-	@Override
-	public int getResultSetConcurrency() throws SQLException {
-		checkClosed();
-		
-		return resultSetConcurrency;
-	}
+    activeResultSets.clear();
+    generatedKeysResultSet = null;
 
-	@Override
-	public int getResultSetHoldability() throws SQLException {
-		checkClosed();
-		
-		return resultSetHoldability;
-	}
+  }
 
-	@Override
-	public boolean isPoolable() throws SQLException {
-		checkClosed();
-		// TODO implement
-		return false;
-	}
+  /**
+   * Called by result sets to notify the statement of their closure. Removes
+   * the result set from the active set of result sets. If auto-close is
+   * enabled this closes the statement when the last result set is closed.
+   *
+   * @param resultSet
+   *          The result set that is closing
+   * @throws SQLException
+   *          If an error occurs closing a result set
+   */
+  void handleResultSetClosure(PGResultSet resultSet) throws SQLException {
 
-	@Override
-	public void setPoolable(boolean poolable) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
+    activeResultSets.remove(resultSet);
 
-	@Override
-	public boolean isCloseOnCompletion() throws SQLException {
-		checkClosed();
-		
-		return autoClose;
-	}
+    if(autoClose && activeResultSets.isEmpty()) {
 
-	@Override
-	public void closeOnCompletion() throws SQLException {
-		checkClosed();
-		
-		autoClose = true;
-	}
+      close();
 
-	@Override
-	public int getMaxFieldSize() throws SQLException {
-		checkClosed();
-		
-		return maxFieldSize != null ? maxFieldSize : 0;
-	}
+    }
 
-	@Override
-	public void setMaxFieldSize(int max) throws SQLException {
-		checkClosed();
-		
-		if(max < 0)
-			throw ILLEGAL_ARGUMENT;
-		
-		maxFieldSize = max;
-	}
+  }
 
-	@Override
-	public int getMaxRows() throws SQLException {
-		checkClosed();
-		return maxRows != null ? maxRows : 0;
-	}
+  /**
+   * Determines whether or not the current statement state requires a named
+   * portal or could use the unnamed portal instead
+   *
+   * @return true when a named portal is required and false when it is not
+   */
+  boolean needsNamedPortal() {
 
-	@Override
-	public void setMaxRows(int max) throws SQLException {
-		checkClosed();
+    return fetchSize != null;
+  }
 
-		if(max < 0)
-			throw ILLEGAL_ARGUMENT;
-		
-		maxRows = max;
-	}
+  /**
+   * Cleans up all resources, including active result sets
+   *
+   * @throws SQLException
+   *          If an error occurs closing result sets or
+   */
+  void internalClose() throws SQLException {
 
-	@Override
-	public int getFetchDirection() throws SQLException {
-		checkClosed();
-		
-		return fetchDirection;
-	}
+    closeResultSets();
 
-	@Override
-	public void setFetchDirection(int direction) throws SQLException {
-		checkClosed();
-		
-		if (direction != ResultSet.FETCH_FORWARD &&
-				direction != ResultSet.FETCH_REVERSE &&
-				direction != ResultSet.FETCH_UNKNOWN)
-			throw ILLEGAL_ARGUMENT;
-			
-		fetchDirection = direction;
-	}
+    dispose(Statement, name);
 
-	@Override
-	public int getFetchSize() throws SQLException {
-		checkClosed();
-		
-		return fetchSize != null ? fetchSize : 0;
-	}
+    connection = null;
+    command = null;
+    resultFields = null;
+    resultBatches = null;
+    generatedKeysResultSet = null;
+  }
 
-	@Override
-	public void setFetchSize(int rows) throws SQLException {
-		checkClosed();
-		
-		if(rows < 0)
-			throw ILLEGAL_ARGUMENT;
-		
-		fetchSize = rows;
-	}
+  boolean hasResults() {
+    return !resultBatches.isEmpty() &&
+        resultBatches.get(0).results != null;
+  }
 
-	@Override
-	public void setEscapeProcessing(boolean enable) throws SQLException {
-		checkClosed();
+  boolean hasUpdateCount() {
+    return !resultBatches.isEmpty() &&
+        resultBatches.get(0).rowsAffected != null;
+  }
 
-		this.processEscapes = enable;
-	}
+  /**
+   * Execute the named statement. It must have previously been parsed and
+   * ready to be bound and executed.
+   *
+   * @param statementName Name of backend statement to execute or null
+   * @param parameterTypes List of parameter types
+   * @param parameterValues List of parmaeter values
+   * @return true if command returned results or false if not
+   * @throws SQLException
+   *          If an error occurred durring statement execution
+   */
+  public boolean executeSimple(String sql) throws SQLException {
 
-	@Override
-	public int getQueryTimeout() throws SQLException {
-		checkClosed();
-		return queryTimeout;
-	}
+    closeResultSets();
 
-	@Override
-	public void setQueryTimeout(int queryTimeout) throws SQLException {
-		checkClosed();
+    command = connection.getProtocol().createQuery(sql);
 
-		if(queryTimeout < 0) {
-			throw new SQLException("invalid query timeout");
-		}
-		
-		this.queryTimeout = queryTimeout;
-	}
+    if(maxFieldSize != null)
+      command.setMaxFieldLength(maxFieldSize);
 
-	@Override
-	public void setCursorName(String name) throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
+    warningChain = connection.execute(command, true);
 
-	@Override
-	public PGResultSet getResultSet() throws SQLException {
-		checkClosed();
+    resultBatches = new ArrayList<>(command.getResultBatches());
 
-		if (generatedKeysResultSet != null ||
-				command == null || 
-				!hasResults()) {
-			return null;
-		}
-		
-		QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+    return hasResults();
+  }
 
-		PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command, resultBatch.fields, resultBatch.results);
-		
-		this.activeResultSets.add(rs);
-		
-		return rs;
-	}
+  /**
+   * Execute the named statement. It must have previously been parsed and
+   * ready to be bound and executed.
+   *
+   * @param statementName Name of backend statement to execute or null
+   * @param parameterTypes List of parameter types
+   * @param parameterValues List of parmaeter values
+   * @return true if command returned results or false if not
+   * @throws SQLException
+   *          If an error occurred durring statement execution
+   */
+  public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
 
-	@Override
-	public int getUpdateCount() throws SQLException {
-		checkClosed();
+    closeResultSets();
 
-		if (command == null || !hasUpdateCount()) {
-			return -1;
-		}
-		
-		return (int) (long) resultBatches.get(0).rowsAffected;
-	}
+    String portalName = null;
 
-	@Override
-	public boolean getMoreResults() throws SQLException {
-		return getMoreResults(CLOSE_ALL_RESULTS);
-	}
+    if (needsNamedPortal()) {
+      portalName = connection.getNextPortalName();
+    }
 
-	@Override
-	public boolean getMoreResults(int current) throws SQLException {
-		checkClosed();
-		
-		if(resultBatches.isEmpty()) {
-			return false;
-		}
-		
-		resultBatches.remove(0);
-		
-		return hasResults();
-	}
+    BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
 
-	@Override
-	public ResultSet getGeneratedKeys() throws SQLException {
-		checkClosed();
-		
-		if(generatedKeysResultSet == null) {
-			return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
-		}
-		
-		return generatedKeysResultSet;
-	}
+    //Set query timeout
+    long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
+    command.setQueryTimeout(queryTimeoutMS);
 
-	@Override
-	public void cancel() throws SQLException {
-		checkClosed();
-		throw NOT_IMPLEMENTED;
-	}
+    if(fetchSize != null)
+      command.setMaxRows(fetchSize);
 
-	@Override
-	public boolean isClosed() throws SQLException {
-		return connection == null;
-	}
+    if(maxFieldSize != null)
+      command.setMaxFieldLength(maxFieldSize);
 
-	@Override
-	public void close() throws SQLException {
+    this.warningChain = connection.execute(command, true);
 
-		// Ignore multiple closes
-		if(isClosed())
-			return;
+    this.command = command;
+    this.resultBatches = new ArrayList<>(command.getResultBatches());
 
-		connection.handleStatementClosure(this);
-		
-		internalClose();
-	}
-	
-	@Override
-	public SQLWarning getWarnings() throws SQLException {
-		checkClosed();
-		
-		return warningChain;
-	}
+    return hasResults();
+  }
 
-	@Override
-	public void clearWarnings() throws SQLException {
-		checkClosed();
-		
-		warningChain = null;
-	}
+  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+    return createResultSet(resultFields, results, connection.getTypeMap());
+  }
 
-	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException {
-		if(!iface.isAssignableFrom(getClass())) {
-			throw UNWRAP_ERROR;
-		}
+  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
 
-		return iface.cast(this);
-	}
+    PGResultSet resultSet = new PGResultSet(this, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY, resultFields, results);
+    activeResultSets.add(resultSet);
+    return resultSet;
+  }
 
-	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		return iface.isAssignableFrom(getClass());
-	}
+  @Override
+  public Connection getConnection() throws SQLException {
+    checkClosed();
+
+    return connection;
+  }
+
+  @Override
+  public int getResultSetType() throws SQLException {
+    checkClosed();
+
+    return resultSetType;
+  }
+
+  @Override
+  public int getResultSetConcurrency() throws SQLException {
+    checkClosed();
+
+    return resultSetConcurrency;
+  }
+
+  @Override
+  public int getResultSetHoldability() throws SQLException {
+    checkClosed();
+
+    return resultSetHoldability;
+  }
+
+  @Override
+  public boolean isPoolable() throws SQLException {
+    checkClosed();
+    // TODO implement
+    return false;
+  }
+
+  @Override
+  public void setPoolable(boolean poolable) throws SQLException {
+    checkClosed();
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public boolean isCloseOnCompletion() throws SQLException {
+    checkClosed();
+
+    return autoClose;
+  }
+
+  @Override
+  public void closeOnCompletion() throws SQLException {
+    checkClosed();
+
+    autoClose = true;
+  }
+
+  @Override
+  public int getMaxFieldSize() throws SQLException {
+    checkClosed();
+
+    return maxFieldSize != null ? maxFieldSize : 0;
+  }
+
+  @Override
+  public void setMaxFieldSize(int max) throws SQLException {
+    checkClosed();
+
+    if(max < 0)
+      throw ILLEGAL_ARGUMENT;
+
+    maxFieldSize = max;
+  }
+
+  @Override
+  public int getMaxRows() throws SQLException {
+    checkClosed();
+    return maxRows != null ? maxRows : 0;
+  }
+
+  @Override
+  public void setMaxRows(int max) throws SQLException {
+    checkClosed();
+
+    if(max < 0)
+      throw ILLEGAL_ARGUMENT;
+
+    maxRows = max;
+  }
+
+  @Override
+  public int getFetchDirection() throws SQLException {
+    checkClosed();
+
+    return fetchDirection;
+  }
+
+  @Override
+  public void setFetchDirection(int direction) throws SQLException {
+    checkClosed();
+
+    if (direction != ResultSet.FETCH_FORWARD &&
+        direction != ResultSet.FETCH_REVERSE &&
+        direction != ResultSet.FETCH_UNKNOWN)
+      throw ILLEGAL_ARGUMENT;
+
+    fetchDirection = direction;
+  }
+
+  @Override
+  public int getFetchSize() throws SQLException {
+    checkClosed();
+
+    return fetchSize != null ? fetchSize : 0;
+  }
+
+  @Override
+  public void setFetchSize(int rows) throws SQLException {
+    checkClosed();
+
+    if(rows < 0)
+      throw ILLEGAL_ARGUMENT;
+
+    fetchSize = rows;
+  }
+
+  @Override
+  public void setEscapeProcessing(boolean enable) throws SQLException {
+    checkClosed();
+
+    this.processEscapes = enable;
+  }
+
+  @Override
+  public int getQueryTimeout() throws SQLException {
+    checkClosed();
+    return queryTimeout;
+  }
+
+  @Override
+  public void setQueryTimeout(int queryTimeout) throws SQLException {
+    checkClosed();
+
+    if(queryTimeout < 0) {
+      throw new SQLException("invalid query timeout");
+    }
+
+    this.queryTimeout = queryTimeout;
+  }
+
+  @Override
+  public void setCursorName(String name) throws SQLException {
+    checkClosed();
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public PGResultSet getResultSet() throws SQLException {
+    checkClosed();
+
+    if (generatedKeysResultSet != null ||
+        command == null ||
+        !hasResults()) {
+      return null;
+    }
+
+    QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+    PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command, resultBatch.fields, resultBatch.results);
+
+    this.activeResultSets.add(rs);
+
+    return rs;
+  }
+
+  @Override
+  public int getUpdateCount() throws SQLException {
+    checkClosed();
+
+    if (command == null || !hasUpdateCount()) {
+      return -1;
+    }
+
+    return (int) (long) resultBatches.get(0).rowsAffected;
+  }
+
+  @Override
+  public boolean getMoreResults() throws SQLException {
+    return getMoreResults(CLOSE_ALL_RESULTS);
+  }
+
+  @Override
+  public boolean getMoreResults(int current) throws SQLException {
+    checkClosed();
+
+    if(resultBatches.isEmpty()) {
+      return false;
+    }
+
+    resultBatches.remove(0);
+
+    return hasResults();
+  }
+
+  @Override
+  public ResultSet getGeneratedKeys() throws SQLException {
+    checkClosed();
+
+    if(generatedKeysResultSet == null) {
+      return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
+    }
+
+    return generatedKeysResultSet;
+  }
+
+  @Override
+  public void cancel() throws SQLException {
+    checkClosed();
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public boolean isClosed() throws SQLException {
+    return connection == null;
+  }
+
+  @Override
+  public void close() throws SQLException {
+
+    // Ignore multiple closes
+    if(isClosed())
+      return;
+
+    connection.handleStatementClosure(this);
+
+    internalClose();
+  }
+
+  @Override
+  public SQLWarning getWarnings() throws SQLException {
+    checkClosed();
+
+    return warningChain;
+  }
+
+  @Override
+  public void clearWarnings() throws SQLException {
+    checkClosed();
+
+    warningChain = null;
+  }
+
+  @Override
+  public <T> T unwrap(Class<T> iface) throws SQLException {
+    if(!iface.isAssignableFrom(getClass())) {
+      throw UNWRAP_ERROR;
+    }
+
+    return iface.cast(this);
+  }
+
+  @Override
+  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    return iface.isAssignableFrom(getClass());
+  }
 
 }

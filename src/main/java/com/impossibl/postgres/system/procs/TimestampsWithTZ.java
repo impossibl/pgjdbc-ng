@@ -32,8 +32,8 @@ import com.impossibl.postgres.types.PrimitiveType;
 
 public class TimestampsWithTZ extends Timestamps {
 
-	public TimestampsWithTZ() {
-		super(PrimitiveType.TimestampTZ, "timestamptz_");
-	}
+  public TimestampsWithTZ() {
+    super(PrimitiveType.TimestampTZ, "timestamptz_");
+  }
 
 }

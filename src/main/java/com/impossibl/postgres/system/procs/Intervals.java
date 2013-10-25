@@ -42,67 +42,67 @@ import com.impossibl.postgres.types.Type;
 
 public class Intervals extends SimpleProcProvider {
 
-	public Intervals() {
-		super(null, null, new Encoder(), new Decoder(), "interval_");
-	}
+  public Intervals() {
+    super(null, null, new Encoder(), new Decoder(), "interval_");
+  }
 
-	static class Decoder extends BinaryDecoder {
+  static class Decoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Interval;
-		}
-		
-		public Class<?> getOutputType() {
-			return Interval.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Interval;
+    }
 
-		public Interval decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Interval.class;
+    }
 
-			int length = buffer.readInt();
-			if (length == -1) {
-				return null;
-			}
-			else if (length != 16) {
-				throw new IOException("invalid length");
-			}
+    public Interval decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			long timeMicros = buffer.readLong();
-			int days = buffer.readInt();
-			int months = buffer.readInt();
-			
-			return new Interval(months, days, timeMicros);
-		}
+      int length = buffer.readInt();
+      if (length == -1) {
+        return null;
+      }
+      else if (length != 16) {
+        throw new IOException("invalid length");
+      }
 
-	}
+      long timeMicros = buffer.readLong();
+      int days = buffer.readInt();
+      int months = buffer.readInt();
 
-	static class Encoder extends BinaryEncoder {
+      return new Interval(months, days, timeMicros);
+    }
 
-		public Class<?> getInputType() {
-			return Interval.class;
-		}
+  }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Interval;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+  static class Encoder extends BinaryEncoder {
 
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				Interval interval = (Interval) val;
-				
-				buffer.writeInt(16);
-				buffer.writeLong(interval.getRawTime());
-				buffer.writeInt(interval.getRawDays());
-				buffer.writeInt(interval.getRawMonths());
-			}
-			
-		}
+    public Class<?> getInputType() {
+      return Interval.class;
+    }
 
-	}
+    public PrimitiveType getOutputPrimitiveType() {
+      return Interval;
+    }
+
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+
+      if (val == null) {
+
+        buffer.writeInt(-1);
+      }
+      else {
+
+        Interval interval = (Interval) val;
+
+        buffer.writeInt(16);
+        buffer.writeLong(interval.getRawTime());
+        buffer.writeInt(interval.getRawDays());
+        buffer.writeInt(interval.getRawMonths());
+      }
+
+    }
+
+  }
 
 }

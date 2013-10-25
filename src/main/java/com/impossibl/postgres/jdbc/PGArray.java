@@ -47,107 +47,107 @@ import com.impossibl.postgres.types.Type;
 
 public class PGArray implements Array {
 
-	PGConnection connection;
-	ArrayType type;
-	Object[] value;
+  PGConnection connection;
+  ArrayType type;
+  Object[] value;
 
-	public PGArray(PGConnection connection, ArrayType type, Object[] value) {
-		super();
-		this.connection = connection;
-		this.type = type;
-		this.value = value;
-	}
+  public PGArray(PGConnection connection, ArrayType type, Object[] value) {
+    super();
+    this.connection = connection;
+    this.type = type;
+    this.value = value;
+  }
 
-	public Object[] getValue() {
-		return value;
-	}
+  public Object[] getValue() {
+    return value;
+  }
 
-	@Override
-	public String getBaseTypeName() throws SQLException {
-		return type.getElementType().getName();
-	}
+  @Override
+  public String getBaseTypeName() throws SQLException {
+    return type.getElementType().getName();
+  }
 
-	@Override
-	public int getBaseType() throws SQLException {
-		return SQLTypeMetaData.getSQLType(type.getElementType());
-	}
+  @Override
+  public int getBaseType() throws SQLException {
+    return SQLTypeMetaData.getSQLType(type.getElementType());
+  }
 
-	@Override
-	public Object getArray() throws SQLException {
-		return getArray(connection.getTypeMap());
-	}
+  @Override
+  public Object getArray() throws SQLException {
+    return getArray(connection.getTypeMap());
+  }
 
-	@Override
-	public Object getArray(Map<String, Class<?>> map) throws SQLException {
-		
-		Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
+  @Override
+  public Object getArray(Map<String, Class<?>> map) throws SQLException {
 
-		return coerceToArray(value, type, targetType, map, connection);
-	}
+    Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
 
-	@Override
-	public Object getArray(long index, int count) throws SQLException {
-		return getArray(index, count, connection.getTypeMap());
-	}
+    return coerceToArray(value, type, targetType, map, connection);
+  }
 
-	@Override
-	public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  @Override
+  public Object getArray(long index, int count) throws SQLException {
+    return getArray(index, count, connection.getTypeMap());
+  }
 
-		if(index < 1 || index > value.length || (index + count) > (value.length + 1)) {
-			 throw new SQLException("Invalid array slice");
-		}
-		
-		Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
+  @Override
+  public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
-		return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
-	}
+    if(index < 1 || index > value.length || (index + count) > (value.length + 1)) {
+       throw new SQLException("Invalid array slice");
+    }
 
-	@Override
-	public ResultSet getResultSet() throws SQLException {
-		return getResultSet(connection.getTypeMap());
-	}
+    Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
 
-	@Override
-	public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
-		return getResultSet(1, value.length, map);
-	}
+    return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
+  }
 
-	@Override
-	public ResultSet getResultSet(long index, int count) throws SQLException {
-		return getResultSet(index, count, connection.getTypeMap());
-	}
+  @Override
+  public ResultSet getResultSet() throws SQLException {
+    return getResultSet(connection.getTypeMap());
+  }
 
-	@Override
-	public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  @Override
+  public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+    return getResultSet(1, value.length, map);
+  }
 
-		if(index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
-			 throw new SQLException("Invalid array slice");
-		}
+  @Override
+  public ResultSet getResultSet(long index, int count) throws SQLException {
+    return getResultSet(index, count, connection.getTypeMap());
+  }
 
-		Registry reg = connection.getRegistry();
-		
-		Type elementType = getDimensions(value) > 1 ? type : type.getElementType();
-		
-		ResultField[] fields = {
-				new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
-				new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
-		};
-		
-		List<Object[]> results = new ArrayList<Object[]>(value.length);
-		for(long c=index,end=index+count; c < end; ++c) {
-			results.add(new Object[]{c, value[(int) c-1]});
-		}
-		
-		PGStatement stmt = connection.createStatement();
-		stmt.closeOnCompletion();
-		return stmt.createResultSet(Arrays.asList(fields), results, map);
-	}
+  @Override
+  public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
-	@Override
-	public void free() throws SQLException {
-		connection = null;
-		type = null;
-		value = null;
-	}
+    if(index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
+       throw new SQLException("Invalid array slice");
+    }
+
+    Registry reg = connection.getRegistry();
+
+    Type elementType = getDimensions(value) > 1 ? type : type.getElementType();
+
+    ResultField[] fields = {
+        new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
+        new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
+    };
+
+    List<Object[]> results = new ArrayList<Object[]>(value.length);
+    for(long c=index,end=index+count; c < end; ++c) {
+      results.add(new Object[]{c, value[(int) c-1]});
+    }
+
+    PGStatement stmt = connection.createStatement();
+    stmt.closeOnCompletion();
+    return stmt.createResultSet(Arrays.asList(fields), results, map);
+  }
+
+  @Override
+  public void free() throws SQLException {
+    connection = null;
+    type = null;
+    value = null;
+  }
 
 }

@@ -42,22 +42,22 @@ import com.impossibl.postgres.system.BasicContext;
 
 public class ProtocolFactoryImpl implements ProtocolFactory {
 
-	@Override
-	public Protocol connect(SocketAddress address, BasicContext context) throws IOException {
+  @Override
+  public Protocol connect(SocketAddress address, BasicContext context) throws IOException {
 
-		ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
+    ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
 
-		ChannelFuture channelFuture = sharedRef.get().getBootstrap().connect(address).awaitUninterruptibly();
-		if(!channelFuture.isSuccess()) {
-			throw new IOException(channelFuture.getCause());
-		}
+    ChannelFuture channelFuture = sharedRef.get().getBootstrap().connect(address).awaitUninterruptibly();
+    if(!channelFuture.isSuccess()) {
+      throw new IOException(channelFuture.getCause());
+    }
 
-		Channel channel = channelFuture.getChannel();
-		Protocol protocol = new ProtocolImpl(sharedRef, channel, context);
+    Channel channel = channelFuture.getChannel();
+    Protocol protocol = new ProtocolImpl(sharedRef, channel, context);
 
-		channel.setAttachment(protocol);
+    channel.setAttachment(protocol);
 
-		return protocol;
-	}
+    return protocol;
+  }
 
 }

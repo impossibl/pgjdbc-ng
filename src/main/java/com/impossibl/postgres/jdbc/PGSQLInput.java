@@ -75,206 +75,206 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 
 public class PGSQLInput implements SQLInput {
-	
-	private PGConnection connection;
-	private CompositeType type;
-	private Map<String, Class<?>> typeMap;
-	private int currentAttrIdx;
-	private Object[] attributeValues;
-	private Boolean nullFlag;
-	
-	public PGSQLInput(PGConnection connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
-		this.connection = connection;
-		this.type = type;
-		this.typeMap = typeMap;
-		this.attributeValues = attributeValues;
-	}
 
-	public Object[] getAttributeValues() {
-		return attributeValues;
-	}
+  private PGConnection connection;
+  private CompositeType type;
+  private Map<String, Class<?>> typeMap;
+  private int currentAttrIdx;
+  private Object[] attributeValues;
+  private Boolean nullFlag;
 
-	private Object getNextAttributeValue() {
-		
-		Object val = attributeValues[currentAttrIdx++];
-		nullFlag = val == null;
-		return val;
-	}
+  public PGSQLInput(PGConnection connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
+    this.connection = connection;
+    this.type = type;
+    this.typeMap = typeMap;
+    this.attributeValues = attributeValues;
+  }
 
-	@Override
-	public String readString() throws SQLException {
-		return coerceToString(getNextAttributeValue(), connection);
-	}
+  public Object[] getAttributeValues() {
+    return attributeValues;
+  }
 
-	@Override
-	public boolean readBoolean() throws SQLException {
-		return coerceToBoolean(getNextAttributeValue());
-	}
+  private Object getNextAttributeValue() {
 
-	@Override
-	public byte readByte() throws SQLException {
-		return coerceToByte(getNextAttributeValue());
-	}
+    Object val = attributeValues[currentAttrIdx++];
+    nullFlag = val == null;
+    return val;
+  }
 
-	@Override
-	public short readShort() throws SQLException {
-		return coerceToShort(getNextAttributeValue());
-	}
+  @Override
+  public String readString() throws SQLException {
+    return coerceToString(getNextAttributeValue(), connection);
+  }
 
-	@Override
-	public int readInt() throws SQLException {
-		return coerceToInt(getNextAttributeValue());
-	}
+  @Override
+  public boolean readBoolean() throws SQLException {
+    return coerceToBoolean(getNextAttributeValue());
+  }
 
-	@Override
-	public long readLong() throws SQLException {
-		return coerceToLong(getNextAttributeValue());
-	}
+  @Override
+  public byte readByte() throws SQLException {
+    return coerceToByte(getNextAttributeValue());
+  }
 
-	@Override
-	public float readFloat() throws SQLException {
-		return coerceToFloat(getNextAttributeValue());
-	}
+  @Override
+  public short readShort() throws SQLException {
+    return coerceToShort(getNextAttributeValue());
+  }
 
-	@Override
-	public double readDouble() throws SQLException {
-		return coerceToDouble(getNextAttributeValue());
-	}
+  @Override
+  public int readInt() throws SQLException {
+    return coerceToInt(getNextAttributeValue());
+  }
 
-	@Override
-	public BigDecimal readBigDecimal() throws SQLException {
-		return coerceToBigDecimal(getNextAttributeValue());
-	}
+  @Override
+  public long readLong() throws SQLException {
+    return coerceToLong(getNextAttributeValue());
+  }
 
-	@Override
-	public byte[] readBytes() throws SQLException {
+  @Override
+  public float readFloat() throws SQLException {
+    return coerceToFloat(getNextAttributeValue());
+  }
 
-		Object val = getNextAttributeValue();
-		if(val == null) {
-			return null;
-		}
-		
-		Attribute attr = type.getAttribute(currentAttrIdx);
-		if(attr == null) {
-			throw new SQLException("Invalid input request (type not array)");
-		}
-		
-		return coerceToBytes(getNextAttributeValue(), attr.type, connection);
-	}
+  @Override
+  public double readDouble() throws SQLException {
+    return coerceToDouble(getNextAttributeValue());
+  }
 
-	@Override
-	public Date readDate() throws SQLException {
-		return coerceToDate(getNextAttributeValue(), TimeZone.getDefault(), connection);
-	}
+  @Override
+  public BigDecimal readBigDecimal() throws SQLException {
+    return coerceToBigDecimal(getNextAttributeValue());
+  }
 
-	@Override
-	public Time readTime() throws SQLException {
+  @Override
+  public byte[] readBytes() throws SQLException {
 
-		return coerceToTime(getNextAttributeValue(), TimeZone.getDefault(), connection);
-	}
+    Object val = getNextAttributeValue();
+    if(val == null) {
+      return null;
+    }
 
-	@Override
-	public Timestamp readTimestamp() throws SQLException {
+    Attribute attr = type.getAttribute(currentAttrIdx);
+    if(attr == null) {
+      throw new SQLException("Invalid input request (type not array)");
+    }
 
-		return coerceToTimestamp(getNextAttributeValue(), TimeZone.getDefault(), connection);
-	}
+    return coerceToBytes(getNextAttributeValue(), attr.type, connection);
+  }
 
-	@Override
-	public Reader readCharacterStream() throws SQLException {
-		return new StringReader(coerceToString(getNextAttributeValue(), connection));
-	}
+  @Override
+  public Date readDate() throws SQLException {
+    return coerceToDate(getNextAttributeValue(), TimeZone.getDefault(), connection);
+  }
 
-	@Override
-	public InputStream readAsciiStream() throws SQLException {
-		return new ByteArrayInputStream(coerceToString(getNextAttributeValue(), connection).getBytes(US_ASCII));
-	}
+  @Override
+  public Time readTime() throws SQLException {
 
-	@Override
-	public InputStream readBinaryStream() throws SQLException {
-		return new ByteArrayInputStream(readBytes());
-	}
+    return coerceToTime(getNextAttributeValue(), TimeZone.getDefault(), connection);
+  }
 
-	@Override
-	public Object readObject() throws SQLException {
+  @Override
+  public Timestamp readTimestamp() throws SQLException {
 
-		Object val = getNextAttributeValue();
-		if(val == null) {
-			return null;
-		}
-		
-		Attribute attr = type.getAttribute(currentAttrIdx);
-		if(attr == null) {
-			throw new SQLException("Invalid input request (type not array)");
-		}
-		
-		Class<?> targetType = mapGetType(attr.type, typeMap, connection);
-		
-		return coerce(val, attr.type, targetType, typeMap, connection);
-	}
+    return coerceToTimestamp(getNextAttributeValue(), TimeZone.getDefault(), connection);
+  }
 
-	@Override
-	public Ref readRef() throws SQLException {
-		throw NOT_IMPLEMENTED;
-	}
+  @Override
+  public Reader readCharacterStream() throws SQLException {
+    return new StringReader(coerceToString(getNextAttributeValue(), connection));
+  }
 
-	@Override
-	public Blob readBlob() throws SQLException {
-		return coerceToBlob(getNextAttributeValue(), connection);
-	}
+  @Override
+  public InputStream readAsciiStream() throws SQLException {
+    return new ByteArrayInputStream(coerceToString(getNextAttributeValue(), connection).getBytes(US_ASCII));
+  }
 
-	@Override
-	public Array readArray() throws SQLException {
+  @Override
+  public InputStream readBinaryStream() throws SQLException {
+    return new ByteArrayInputStream(readBytes());
+  }
 
-		Object val = getNextAttributeValue();
-		if(val == null) {
-			return null;
-		}
-		
-		Attribute attr = type.getAttribute(currentAttrIdx);
-		if(attr == null || attr.type instanceof ArrayType == false || val instanceof Object[] == false) {
-			throw new SQLException("Invalid input request (type not array)");
-		}
-		
-		return new PGArray(connection, (ArrayType)attr.type, (Object[])val);
-	}
+  @Override
+  public Object readObject() throws SQLException {
 
-	@Override
-	public URL readURL() throws SQLException {
-		return coerceToURL(getNextAttributeValue());
-	}
+    Object val = getNextAttributeValue();
+    if(val == null) {
+      return null;
+    }
 
-	@Override
-	public SQLXML readSQLXML() throws SQLException {
-		throw NOT_IMPLEMENTED;
-	}
+    Attribute attr = type.getAttribute(currentAttrIdx);
+    if(attr == null) {
+      throw new SQLException("Invalid input request (type not array)");
+    }
 
-	@Override
-	public RowId readRowId() throws SQLException {
-		throw NOT_IMPLEMENTED;
-	}
+    Class<?> targetType = mapGetType(attr.type, typeMap, connection);
 
-	@Override
-	public boolean wasNull() throws SQLException {
-		
-		if(nullFlag == null)
-			throw new SQLException("no value read");
-		
-		return nullFlag == true;
-	}
+    return coerce(val, attr.type, targetType, typeMap, connection);
+  }
 
-	@Override
-	public Clob readClob() throws SQLException {
-		throw NOT_IMPLEMENTED;
-	}
+  @Override
+  public Ref readRef() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 
-	@Override
-	public NClob readNClob() throws SQLException {
-		throw NOT_SUPPORTED;
-	}
+  @Override
+  public Blob readBlob() throws SQLException {
+    return coerceToBlob(getNextAttributeValue(), connection);
+  }
 
-	@Override
-	public String readNString() throws SQLException {
-		throw NOT_SUPPORTED;
-	}
+  @Override
+  public Array readArray() throws SQLException {
+
+    Object val = getNextAttributeValue();
+    if(val == null) {
+      return null;
+    }
+
+    Attribute attr = type.getAttribute(currentAttrIdx);
+    if(attr == null || attr.type instanceof ArrayType == false || val instanceof Object[] == false) {
+      throw new SQLException("Invalid input request (type not array)");
+    }
+
+    return new PGArray(connection, (ArrayType)attr.type, (Object[])val);
+  }
+
+  @Override
+  public URL readURL() throws SQLException {
+    return coerceToURL(getNextAttributeValue());
+  }
+
+  @Override
+  public SQLXML readSQLXML() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public RowId readRowId() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public boolean wasNull() throws SQLException {
+
+    if(nullFlag == null)
+      throw new SQLException("no value read");
+
+    return nullFlag == true;
+  }
+
+  @Override
+  public Clob readClob() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  @Override
+  public NClob readNClob() throws SQLException {
+    throw NOT_SUPPORTED;
+  }
+
+  @Override
+  public String readNString() throws SQLException {
+    throw NOT_SUPPORTED;
+  }
 
 }

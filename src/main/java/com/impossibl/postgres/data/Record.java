@@ -31,29 +31,29 @@ package com.impossibl.postgres.data;
 import com.impossibl.postgres.types.CompositeType;
 
 public class Record {
-	
-	CompositeType type;
-	Object[] values;
 
-	public Record(CompositeType type, Object[] values) {
-		this.type = type;
-		this.values = values;
-	}
+  CompositeType type;
+  Object[] values;
 
-	public CompositeType getType() {
-		return type;
-	}
+  public Record(CompositeType type, Object[] values) {
+    this.type = type;
+    this.values = values;
+  }
 
-	public void setType(CompositeType type) {
-		this.type = type;
-	}
+  public CompositeType getType() {
+    return type;
+  }
 
-	public Object[] getValues() {
-		return values;
-	}
+  public void setType(CompositeType type) {
+    this.type = type;
+  }
 
-	public void setValues(Object[] values) {
-		this.values = values;
-	}
+  public Object[] getValues() {
+    return values;
+  }
+
+  public void setValues(Object[] values) {
+    this.values = values;
+  }
 
 }

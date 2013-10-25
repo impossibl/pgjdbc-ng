@@ -33,32 +33,32 @@ import com.impossibl.postgres.system.Version;
 
 /**
  * Table for "pg_proc"
- * 
+ *
  * @author kdubb
  *
  */
 public class PgProc implements Table<PgProc.Row> {
 
-	public static class Row {
+  public static class Row {
 
-		public int oid;
-		public String name;
+    public int oid;
+    public String name;
 
-	}
+  }
 
-	public static final PgProc INSTANCE = new PgProc();
+  public static final PgProc INSTANCE = new PgProc();
 
-	private PgProc() {
-	}
+  private PgProc() {
+  }
 
-	public String getSQL(Version currentVersion) {
-		return Tables.getSQL(SQL, currentVersion);
-	}
+  public String getSQL(Version currentVersion) {
+    return Tables.getSQL(SQL, currentVersion);
+  }
 
-	public Row createRow() {
-		return new Row();
-	}
+  public Row createRow() {
+    return new Row();
+  }
 
-	private static final Object[] SQL = { Version.get(9, 0, 0), " select " + "		\"oid\", proname as \"name\"" + " from" + "		pg_proc" };
+  private static final Object[] SQL = { Version.get(9, 0, 0), " select " + "    \"oid\", proname as \"name\"" + " from" + "   pg_proc" };
 
 }

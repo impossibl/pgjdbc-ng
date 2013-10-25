@@ -37,15 +37,15 @@ import org.jboss.netty.handler.codec.replay.VoidEnum;
 
 public class MessageDecoder extends ReplayingDecoder<VoidEnum> {
 
-	@Override
-	protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer, VoidEnum state) throws Exception {
-		
-		byte id = buffer.readByte();
-		int length = buffer.readInt() - 4;
-		
-		ChannelBuffer dataBuffer = buffer.readBytes(length);
-		
-		return new ResponseMessage(id, dataBuffer);
-	}
+  @Override
+  protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer, VoidEnum state) throws Exception {
+
+    byte id = buffer.readByte();
+    int length = buffer.readInt() - 4;
+
+    ChannelBuffer dataBuffer = buffer.readBytes(length);
+
+    return new ResponseMessage(id, dataBuffer);
+  }
 
 }

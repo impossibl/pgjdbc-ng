@@ -33,85 +33,85 @@ import com.impossibl.postgres.system.Version;
 
 /**
  * Table for "pg_type"
- *  
+ *
  * @author kdubb
  *
  */
 public class PgType implements Table<PgType.Row> {
 
-	public static class Row {
+  public static class Row {
 
-		public int oid;
-		public String name;
-		public short length;
-		public String discriminator;
-		public String category;
-		public String deliminator;
-		public int relationId;
-		public int elementTypeId;
-		public int arrayTypeId;
-		public int inputId;
-		public int outputId;
-		public int receiveId;
-		public int sendId;
-		public int modInId;
-		public int modOutId;
-		public int analyzeId;
-		public String alignment;
-		public int domainBaseTypeId;
-		public int domainTypeMod;
-		public boolean domainNotNull;
-		public int domainDimensions;
-		public String namespace;
-		public String domainDefault;
+    public int oid;
+    public String name;
+    public short length;
+    public String discriminator;
+    public String category;
+    public String deliminator;
+    public int relationId;
+    public int elementTypeId;
+    public int arrayTypeId;
+    public int inputId;
+    public int outputId;
+    public int receiveId;
+    public int sendId;
+    public int modInId;
+    public int modOutId;
+    public int analyzeId;
+    public String alignment;
+    public int domainBaseTypeId;
+    public int domainTypeMod;
+    public boolean domainNotNull;
+    public int domainDimensions;
+    public String namespace;
+    public String domainDefault;
 
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			Row other = (Row) obj;
-			if (oid != other.oid)
-				return false;
-			return true;
-		}
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      Row other = (Row) obj;
+      if (oid != other.oid)
+        return false;
+      return true;
+    }
 
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + oid;
-			return result;
-		}
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + oid;
+      return result;
+    }
 
-	}
+  }
 
-	public static final PgType INSTANCE = new PgType();
+  public static final PgType INSTANCE = new PgType();
 
-	private PgType() {
-	}
+  private PgType() {
+  }
 
-	public String getSQL(Version currentVersion) {
-		return Tables.getSQL(SQL, currentVersion);
-	}
+  public String getSQL(Version currentVersion) {
+    return Tables.getSQL(SQL, currentVersion);
+  }
 
-	public Row createRow() {
-		return new Row();
-	}
+  public Row createRow() {
+    return new Row();
+  }
 
-	private static final Object[] SQL = {
-			Version.get(9, 0, 0),
-			" select"	+
-			"		t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-			"		typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\","	+
-			"		typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
-			"		typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +	
-			" from" +
-			"		pg_catalog.pg_type t" +
-			"	left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid)"	
-	};
+  private static final Object[] SQL = {
+      Version.get(9, 0, 0),
+      " select" +
+      "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
+      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
+      "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
+      "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
+      " from" +
+      "   pg_catalog.pg_type t" +
+      " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid)"
+  };
 
 }

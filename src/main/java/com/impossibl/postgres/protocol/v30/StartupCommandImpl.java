@@ -46,111 +46,111 @@ import com.impossibl.postgres.utils.MD5Authentication;
 
 public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
-	Map<String, Object> params;
-	boolean ready;
+  Map<String, Object> params;
+  boolean ready;
 
-	public StartupCommandImpl(Map<String, Object> params) {
-		this.params = params;
-	}
+  public StartupCommandImpl(Map<String, Object> params) {
+    this.params = params;
+  }
 
-	@Override
-	public void execute(final ProtocolImpl protocol) throws IOException {
+  @Override
+  public void execute(final ProtocolImpl protocol) throws IOException {
 
-		ProtocolListener listener = new BaseProtocolListener() {
+    ProtocolListener listener = new BaseProtocolListener() {
 
-			@Override
-			public boolean isComplete() {
-				return ready || error != null;
-			}
+      @Override
+      public boolean isComplete() {
+        return ready || error != null;
+      }
 
-			@Override
-			public synchronized void ready(TransactionStatus txStatus) {
-				StartupCommandImpl.this.ready = true;
-				notify();
-			}
+      @Override
+      public synchronized void ready(TransactionStatus txStatus) {
+        StartupCommandImpl.this.ready = true;
+        notify();
+      }
 
-			@Override
-			public synchronized void error(Notice error) {
-				setError(error);
-				notify();
-			}
+      @Override
+      public synchronized void error(Notice error) {
+        setError(error);
+        notify();
+      }
 
-			@Override
-			public void notice(Notice notice) {
-				addNotice(notice);
-			}
+      @Override
+      public void notice(Notice notice) {
+        addNotice(notice);
+      }
 
-			@Override
-			public void backendKeyData(int processId, int secretKey) {
-				protocol.context.setKeyData(processId, secretKey);
-			}
+      @Override
+      public void backendKeyData(int processId, int secretKey) {
+        protocol.context.setKeyData(processId, secretKey);
+      }
 
-			@Override
-			public void authenticated(ProtocolImpl protocol) {
-			}
+      @Override
+      public void authenticated(ProtocolImpl protocol) {
+      }
 
-			@Override
-			public void authenticateKerberos(ProtocolImpl protocol) {
-			}
+      @Override
+      public void authenticateKerberos(ProtocolImpl protocol) {
+      }
 
-			@Override
-			public void authenticateClear(ProtocolImpl protocol) throws IOException {
+      @Override
+      public void authenticateClear(ProtocolImpl protocol) throws IOException {
 
-				String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
+        String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
 
-				ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+        ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-				protocol.writePassword(msg, password);
-				
-				protocol.send(msg);
-			}
+        protocol.writePassword(msg, password);
 
-			@Override
-			public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
-			}
+        protocol.send(msg);
+      }
 
-			@Override
-			public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
+      @Override
+      public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
+      }
 
-				String username = protocol.context.getSetting(CREDENTIALS_USERNAME).toString();
-				String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
+      @Override
+      public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
 
-				String response = MD5Authentication.encode(password, username, salt);
+        String username = protocol.context.getSetting(CREDENTIALS_USERNAME).toString();
+        String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
 
-				ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+        String response = MD5Authentication.encode(password, username, salt);
 
-				protocol.writePassword(msg, response);
-				
-				protocol.send(msg);
-			}
+        ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-			@Override
-			public void authenticateSCM(ProtocolImpl protocol) {
-			}
+        protocol.writePassword(msg, response);
 
-			@Override
-			public void authenticateGSS(ProtocolImpl protocol) {
-			}
+        protocol.send(msg);
+      }
 
-			@Override
-			public void authenticateGSSCont(ProtocolImpl protocol) {
-			}
+      @Override
+      public void authenticateSCM(ProtocolImpl protocol) {
+      }
 
-			@Override
-			public void authenticateSSPI(ProtocolImpl protocol) {
-			}
+      @Override
+      public void authenticateGSS(ProtocolImpl protocol) {
+      }
 
-		};
+      @Override
+      public void authenticateGSSCont(ProtocolImpl protocol) {
+      }
 
-		protocol.setListener(listener);
+      @Override
+      public void authenticateSSPI(ProtocolImpl protocol) {
+      }
 
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
-		
-		protocol.writeStartup(msg, params);
+    };
 
-		protocol.send(msg);
+    protocol.setListener(listener);
 
-		waitFor(listener);
-	}
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+
+    protocol.writeStartup(msg, params);
+
+    protocol.send(msg);
+
+    waitFor(listener);
+  }
 
 }

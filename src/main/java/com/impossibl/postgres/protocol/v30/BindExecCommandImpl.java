@@ -55,275 +55,275 @@ import com.impossibl.postgres.types.Type;
 
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
-	
-	class BindExecCommandListener extends BaseProtocolListener {
-		
-		Context context;
-		
-		public BindExecCommandListener(Context context) {
-			this.context = context;
-		}
 
-		@Override
-		public boolean isComplete() {
-			return status != null || error != null;
-		}
+  class BindExecCommandListener extends BaseProtocolListener {
 
-		@Override
-		public void bindComplete() {
-		}
+    Context context;
 
-		@Override
-		public void rowDescription(List<ResultField> newResultFields) {
-			resultFields = newResultFields;
-			resultFieldFormats = getResultFieldFormats(newResultFields);
-			resultBatch.fields = newResultFields;
-			resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
-			resultSetters = Mapper.buildMapping(rowType, newResultFields);
-		}
+    public BindExecCommandListener(Context context) {
+      this.context = context;
+    }
 
-		@Override
-		public void noData() {
-			resultBatch.fields = Collections.emptyList();
-			resultBatch.results = null;
-			status = Status.Completed;
-		}
+    @Override
+    public boolean isComplete() {
+      return status != null || error != null;
+    }
 
-		@Override
-		public void rowData(ChannelBuffer buffer) throws IOException {
+    @Override
+    public void bindComplete() {
+    }
 
-			int itemCount = buffer.readShort();
+    @Override
+    public void rowDescription(List<ResultField> newResultFields) {
+      resultFields = newResultFields;
+      resultFieldFormats = getResultFieldFormats(newResultFields);
+      resultBatch.fields = newResultFields;
+      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
+      resultSetters = Mapper.buildMapping(rowType, newResultFields);
+    }
 
-			Object rowInstance = createInstance(rowType, itemCount);
+    @Override
+    public void noData() {
+      resultBatch.fields = Collections.emptyList();
+      resultBatch.results = null;
+      status = Status.Completed;
+    }
 
-			for (int c = 0; c < itemCount; ++c) {
+    @Override
+    public void rowData(ChannelBuffer buffer) throws IOException {
 
-				ResultField field = resultBatch.fields.get(c);
+      int itemCount = buffer.readShort();
 
-				Type fieldType = field.typeRef.get();
-				
-				Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
-				
-				Object fieldVal = decoder.decode(fieldType, buffer, context);
+      Object rowInstance = createInstance(rowType, itemCount);
 
-				resultSetters.get(c).set(rowInstance, fieldVal);
-			}
+      for (int c = 0; c < itemCount; ++c) {
 
-			@SuppressWarnings("unchecked")
-			List<Object> res = (List<Object>) resultBatch.results;
-			res.add(rowInstance);
-		}
+        ResultField field = resultBatch.fields.get(c);
 
-		@Override
-		public void emptyQuery() {
-			resultBatch.fields = Collections.emptyList();
-			resultBatch.results = null;
-			status = Status.Completed;
-		}
+        Type fieldType = field.typeRef.get();
 
-		@Override
-		public synchronized void portalSuspended() {
-			status = Status.Suspended;
-			notifyAll();
-		}
+        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-		@Override
-		public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
-			status = Status.Completed;
-			resultBatch.command = command;
-			resultBatch.rowsAffected = rowsAffected;
-			resultBatch.insertedOid = oid;
-			
-			if(maxRows > 0) {
-				notifyAll();
-			}
-		}
+        Object fieldVal = decoder.decode(fieldType, buffer, context);
 
-		@Override
-		public void error(Notice error) {
-			BindExecCommandImpl.this.error = error;
-		}
+        resultSetters.get(c).set(rowInstance, fieldVal);
+      }
 
-		@Override
-		public void notice(Notice notice) {
-			addNotice(notice);
-		}
+      @SuppressWarnings("unchecked")
+      List<Object> res = (List<Object>) resultBatch.results;
+      res.add(rowInstance);
+    }
 
-		@Override
-		public synchronized void ready(TransactionStatus txStatus) {
-			notifyAll();
-		}
+    @Override
+    public void emptyQuery() {
+      resultBatch.fields = Collections.emptyList();
+      resultBatch.results = null;
+      status = Status.Completed;
+    }
 
-	};
+    @Override
+    public synchronized void portalSuspended() {
+      status = Status.Suspended;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
+      status = Status.Completed;
+      resultBatch.command = command;
+      resultBatch.rowsAffected = rowsAffected;
+      resultBatch.insertedOid = oid;
+
+      if(maxRows > 0) {
+        notifyAll();
+      }
+    }
+
+    @Override
+    public void error(Notice error) {
+      BindExecCommandImpl.this.error = error;
+    }
+
+    @Override
+    public void notice(Notice notice) {
+      addNotice(notice);
+    }
+
+    @Override
+    public synchronized void ready(TransactionStatus txStatus) {
+      notifyAll();
+    }
+
+  };
 
 
-	private String statementName;
-	private String portalName;
-	private List<Type> parameterTypes;
-	private List<Object> parameterValues;
-	private List<ResultField> resultFields;
-	private Class<?> rowType;
-	private List<PropertySetter> resultSetters;
-	private int maxRows;
-	private int maxFieldLength;
-	private Status status;
-	private SettingsContext parsingContext;
-	private ResultBatch resultBatch;
-	private List<Format> resultFieldFormats;
-	private long queryTimeout;
-	
-	
-	public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+  private String statementName;
+  private String portalName;
+  private List<Type> parameterTypes;
+  private List<Object> parameterValues;
+  private List<ResultField> resultFields;
+  private Class<?> rowType;
+  private List<PropertySetter> resultSetters;
+  private int maxRows;
+  private int maxFieldLength;
+  private Status status;
+  private SettingsContext parsingContext;
+  private ResultBatch resultBatch;
+  private List<Format> resultFieldFormats;
+  private long queryTimeout;
 
-		this.statementName = statementName;
-		this.portalName = portalName;
-		this.parameterTypes = parameterTypes;
-		this.parameterValues = parameterValues;
-		this.resultFields = resultFields;
-		this.rowType = rowType;
-		this.maxRows = 0;
-		this.maxFieldLength = Integer.MAX_VALUE;
-		
-		if(resultFields != null) {
-			this.resultSetters = Mapper.buildMapping(rowType, resultFields);
-			this.resultFieldFormats = getResultFieldFormats(resultFields);
-		}
-		else {
-			this.resultSetters = Collections.emptyList();
-			this.resultFieldFormats = Collections.emptyList();
-		}
-		
-	}
 
-	public void reset() {
-		status = null;
-		resultBatch = new ResultBatch();
-		resultBatch.fields = resultFields;
-		resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
-	}
+  public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
 
-	public long getQueryTimeout() {
-		return queryTimeout;
-	}
+    this.statementName = statementName;
+    this.portalName = portalName;
+    this.parameterTypes = parameterTypes;
+    this.parameterValues = parameterValues;
+    this.resultFields = resultFields;
+    this.rowType = rowType;
+    this.maxRows = 0;
+    this.maxFieldLength = Integer.MAX_VALUE;
 
-	public void setQueryTimeout(long queryTimeout) {
-		this.queryTimeout = queryTimeout;
-	}
+    if(resultFields != null) {
+      this.resultSetters = Mapper.buildMapping(rowType, resultFields);
+      this.resultFieldFormats = getResultFieldFormats(resultFields);
+    }
+    else {
+      this.resultSetters = Collections.emptyList();
+      this.resultFieldFormats = Collections.emptyList();
+    }
 
-	@Override
-	public String getStatementName() {
-		return statementName;
-	}
+  }
 
-	@Override
-	public String getPortalName() {
-		return portalName;
-	}
+  public void reset() {
+    status = null;
+    resultBatch = new ResultBatch();
+    resultBatch.fields = resultFields;
+    resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
+  }
 
-	@Override
-	public Status getStatus() {
-		return status;
-	}
+  public long getQueryTimeout() {
+    return queryTimeout;
+  }
 
-	@Override
-	public List<Type> getParameterTypes() {
-		return parameterTypes;
-	}
+  public void setQueryTimeout(long queryTimeout) {
+    this.queryTimeout = queryTimeout;
+  }
 
-	@Override
-	public void setParameterTypes(List<Type> parameterTypes) {
-		this.parameterTypes = parameterTypes;
-	}
+  @Override
+  public String getStatementName() {
+    return statementName;
+  }
 
-	@Override
-	public List<Object> getParameterValues() {
-		return parameterValues;
-	}
+  @Override
+  public String getPortalName() {
+    return portalName;
+  }
 
-	@Override
-	public void setParameterValues(List<Object> parameterValues) {
-		this.parameterValues = parameterValues;
-	}
+  @Override
+  public Status getStatus() {
+    return status;
+  }
 
-	@Override
-	public int getMaxRows() {
-		return maxRows;
-	}
+  @Override
+  public List<Type> getParameterTypes() {
+    return parameterTypes;
+  }
 
-	@Override
-	public void setMaxRows(int maxRows) {
-		this.maxRows = maxRows;
-	}
+  @Override
+  public void setParameterTypes(List<Type> parameterTypes) {
+    this.parameterTypes = parameterTypes;
+  }
 
-	@Override
-	public int getMaxFieldLength() {
-		return maxFieldLength;
-	}
+  @Override
+  public List<Object> getParameterValues() {
+    return parameterValues;
+  }
 
-	@Override
-	public void setMaxFieldLength(int maxFieldLength) {
-		this.maxFieldLength = maxFieldLength;
-	}
+  @Override
+  public void setParameterValues(List<Object> parameterValues) {
+    this.parameterValues = parameterValues;
+  }
 
-	@Override
-	public List<ResultBatch> getResultBatches() {
-		return asList(resultBatch);
-	}
+  @Override
+  public int getMaxRows() {
+    return maxRows;
+  }
 
-	public void execute(ProtocolImpl protocol) throws IOException {
-		
-		// Setup context for parsing fields with customized parameters
-		//
-		parsingContext = new SettingsContext(protocol.getContext());
-		parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
+  @Override
+  public void setMaxRows(int maxRows) {
+    this.maxRows = maxRows;
+  }
 
-		BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
-		
-		protocol.setListener(listener);
-		
-		ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+  @Override
+  public int getMaxFieldLength() {
+    return maxFieldLength;
+  }
 
-		if(status != Status.Suspended) {
-			
-			protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+  @Override
+  public void setMaxFieldLength(int maxFieldLength) {
+    this.maxFieldLength = maxFieldLength;
+  }
 
-		}
+  @Override
+  public List<ResultBatch> getResultBatches() {
+    return asList(resultBatch);
+  }
 
-		reset();
+  public void execute(ProtocolImpl protocol) throws IOException {
 
-		if(resultFields == null) {
+    // Setup context for parsing fields with customized parameters
+    //
+    parsingContext = new SettingsContext(protocol.getContext());
+    parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
-			protocol.writeDescribe(msg, Portal, portalName);
+    BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
 
-		}
+    protocol.setListener(listener);
 
-		protocol.writeExecute(msg, portalName, maxRows);
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-		if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
-			protocol.writeFlush(msg);			
-		}
-		else {
-			protocol.writeSync(msg);			
-		}
-		
-		protocol.send(msg);
-		
-		enableCancelTimer(protocol, queryTimeout);
+    if(status != Status.Suspended) {
 
-		waitFor(listener);
-		
-	}
-	
-	static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
-		
-		List<Format> resultFieldFormats = new ArrayList<>();
-		
-		for(ResultField resultField : resultFields) {
-			resultField.format = resultField.typeRef.get().getResultFormat();
-			resultFieldFormats.add(resultField.format);
-		}
-		
-		return resultFieldFormats;
-	}
+      protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+
+    }
+
+    reset();
+
+    if(resultFields == null) {
+
+      protocol.writeDescribe(msg, Portal, portalName);
+
+    }
+
+    protocol.writeExecute(msg, portalName, maxRows);
+
+    if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+      protocol.writeFlush(msg);
+    }
+    else {
+      protocol.writeSync(msg);
+    }
+
+    protocol.send(msg);
+
+    enableCancelTimer(protocol, queryTimeout);
+
+    waitFor(listener);
+
+  }
+
+  static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
+
+    List<Format> resultFieldFormats = new ArrayList<>();
+
+    for(ResultField resultField : resultFields) {
+      resultField.format = resultField.typeRef.get().getResultFormat();
+      resultFieldFormats.add(resultField.format);
+    }
+
+    return resultFieldFormats;
+  }
 
 }

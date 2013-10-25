@@ -41,93 +41,93 @@ import com.impossibl.postgres.types.Type;
 
 public class Int8s extends SimpleProcProvider {
 
-	public Int8s() {
-		super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int8");
-	}
+  public Int8s() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int8");
+  }
 
-	static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Int8;
-		}
-		
-		public Class<?> getOutputType() {
-			return Long.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Int8;
+    }
 
-		public Long decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Long.class;
+    }
 
-			int length = buffer.readInt();
-			if (length == -1) {
-				return null;
-			}
-			else if (length != 8) {
-				throw new IOException("invalid length");
-			}
+    public Long decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			return buffer.readLong();
-		}
+      int length = buffer.readInt();
+      if (length == -1) {
+        return null;
+      }
+      else if (length != 8) {
+        throw new IOException("invalid length");
+      }
 
-	}
+      return buffer.readLong();
+    }
 
-	static class BinEncoder extends BinaryEncoder {
+  }
 
-		public Class<?> getInputType() {
-			return Long.class;
-		}
+  static class BinEncoder extends BinaryEncoder {
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Int8;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public Class<?> getInputType() {
+      return Long.class;
+    }
 
-			if (val == null) {
-				
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				buffer.writeInt(8);
-				buffer.writeLong((Long) val);
-			}
-			
-		}
+    public PrimitiveType getOutputPrimitiveType() {
+      return Int8;
+    }
 
-	}
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-	static class TxtDecoder extends TextDecoder {
+      if (val == null) {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return Int8;
-		}
-		
-		public Class<?> getOutputType() {
-			return Long.class;
-		}
+        buffer.writeInt(-1);
+      }
+      else {
 
-		public Long decode(Type type, CharSequence buffer, Context context) throws IOException {
-			
-			return Long.valueOf(buffer.toString());
-		}
+        buffer.writeInt(8);
+        buffer.writeLong((Long) val);
+      }
 
-	}
+    }
 
-	static class TxtEncoder extends TextEncoder {
+  }
 
-		public Class<?> getInputType() {
-			return Long.class;
-		}
+  static class TxtDecoder extends TextDecoder {
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return Int8;
-		}
-		
-		public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-			
-			buffer.append((long)val);
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return Int8;
+    }
 
-	}
+    public Class<?> getOutputType() {
+      return Long.class;
+    }
+
+    public Long decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return Long.valueOf(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    public Class<?> getInputType() {
+      return Long.class;
+    }
+
+    public PrimitiveType getOutputPrimitiveType() {
+      return Int8;
+    }
+
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      buffer.append((long)val);
+    }
+
+  }
 
 }

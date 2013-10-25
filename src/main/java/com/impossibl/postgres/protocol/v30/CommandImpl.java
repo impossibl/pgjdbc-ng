@@ -45,110 +45,110 @@ import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
 
 public abstract class CommandImpl implements Command {
 
-	protected long networkTimeout;
-	protected Notice error;
-	protected List<Notice> notices;
-	
-	public long getNetworkTimeout() {
-		return networkTimeout;
-	}
+  protected long networkTimeout;
+  protected Notice error;
+  protected List<Notice> notices;
 
-	public void setNetworkTimeout(long timeout) {
-		this.networkTimeout = timeout;
-	}
+  public long getNetworkTimeout() {
+    return networkTimeout;
+  }
 
-	public Notice getError() {
-		return error;		
-	}
+  public void setNetworkTimeout(long timeout) {
+    this.networkTimeout = timeout;
+  }
 
-	public void setError(Notice error) {
-		this.error = error;
-	}
-	
-	public void addNotice(Notice notice) {
-		
-		if(notices == null)
-			notices = new ArrayList<>();
-			
-		notices.add(notice);
-	}
-	
-	public List<Notice> getWarnings() {
-		
-		if(notices == null)
-			return emptyList();
-		
-		List<Notice> warnings = new ArrayList<>();
-		
-		for(Notice notice : notices) {
-			
-			if(notice.isWarning())
-				warnings.add(notice);
-		}
-		
-		return warnings;
-	}
+  public Notice getError() {
+    return error;
+  }
 
-	public void waitFor(ProtocolListener listener) throws IOException {
-		
-		long networkTimeout = this.networkTimeout;
-		
-		if(networkTimeout < 1) {
-			networkTimeout = MAX_VALUE;
-		}
+  public void setError(Notice error) {
+    this.error = error;
+  }
 
-		synchronized(listener) {
+  public void addNotice(Notice notice) {
 
-			while(!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
+    if(notices == null)
+      notices = new ArrayList<>();
 
-				long start = System.currentTimeMillis();
-				
-				try {
-					
-					listener.wait(networkTimeout);
-					
-				}
-				catch(InterruptedException e) {
-				}
+    notices.add(notice);
+  }
 
-				networkTimeout -= (System.currentTimeMillis() - start);
-				
-				if(networkTimeout < 1) {
-					throw new BlockingReadTimeoutException("network timeout reached");
-				}
-				
-			}
+  public List<Notice> getWarnings() {
 
-		}
+    if(notices == null)
+      return emptyList();
 
-	}
-	
-	static class CancelExecutionTimerTask extends ExecutionTimerTask {
+    List<Notice> warnings = new ArrayList<>();
 
-		ProtocolImpl protocol;
-		
-		public CancelExecutionTimerTask(ProtocolImpl protocol) {
-			this.protocol = protocol;
-		}
+    for(Notice notice : notices) {
 
-		@Override
-		public void run() {
-			
-			protocol.sendCancelRequest();
-			
-		}
-		
-	}
-	
-	public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
-		
-		if(timeout < 1)
-			return;
-		
-		protocol.enableExecutionTimer(new CancelExecutionTimerTask(protocol), timeout);
-		
-	}
+      if(notice.isWarning())
+        warnings.add(notice);
+    }
 
-	public abstract void execute(ProtocolImpl protocol) throws IOException;
+    return warnings;
+  }
+
+  public void waitFor(ProtocolListener listener) throws IOException {
+
+    long networkTimeout = this.networkTimeout;
+
+    if(networkTimeout < 1) {
+      networkTimeout = MAX_VALUE;
+    }
+
+    synchronized(listener) {
+
+      while(!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
+
+        long start = System.currentTimeMillis();
+
+        try {
+
+          listener.wait(networkTimeout);
+
+        }
+        catch(InterruptedException e) {
+        }
+
+        networkTimeout -= (System.currentTimeMillis() - start);
+
+        if(networkTimeout < 1) {
+          throw new BlockingReadTimeoutException("network timeout reached");
+        }
+
+      }
+
+    }
+
+  }
+
+  static class CancelExecutionTimerTask extends ExecutionTimerTask {
+
+    ProtocolImpl protocol;
+
+    public CancelExecutionTimerTask(ProtocolImpl protocol) {
+      this.protocol = protocol;
+    }
+
+    @Override
+    public void run() {
+
+      protocol.sendCancelRequest();
+
+    }
+
+  }
+
+  public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
+
+    if(timeout < 1)
+      return;
+
+    protocol.enableExecutionTimer(new CancelExecutionTimerTask(protocol), timeout);
+
+  }
+
+  public abstract void execute(ProtocolImpl protocol) throws IOException;
 
 }

@@ -38,25 +38,25 @@ import com.impossibl.postgres.types.Modifiers;
 
 public class NumericMods extends SimpleProcProvider {
 
-	public NumericMods() {
-		super(new ModParser(), "numeric");
-	}
-	
-	static class ModParser implements Modifiers.Parser {
+  public NumericMods() {
+    super(new ModParser(), "numeric");
+  }
 
-		@Override
-		public Map<String, Object> parse(long mod) {
-			
-			Map<String, Object> mods = new HashMap<String, Object>();
-			
-			if(mod > 4) {
-				mods.put(PRECISION, (int)((mod-4) >> 16) & 0xffff);
-				mods.put(SCALE, 		(int)((mod-4) >>  0) & 0xffff);
-			}
-			
-			return mods;
-		}
-		
-	}
+  static class ModParser implements Modifiers.Parser {
+
+    @Override
+    public Map<String, Object> parse(long mod) {
+
+      Map<String, Object> mods = new HashMap<String, Object>();
+
+      if(mod > 4) {
+        mods.put(PRECISION, (int)((mod-4) >> 16) & 0xffff);
+        mods.put(SCALE,     (int)((mod-4) >>  0) & 0xffff);
+      }
+
+      return mods;
+    }
+
+  }
 
 }

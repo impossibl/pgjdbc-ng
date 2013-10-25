@@ -34,9 +34,9 @@ import com.impossibl.postgres.types.Type;
 
 public interface FunctionCallCommand extends Command {
 
-	String getFunctionName();
-	List<Type> getParameterTypes();
-	List<Object> getParameterValues();
-	Object getResult();
+  String getFunctionName();
+  List<Type> getParameterTypes();
+  List<Object> getParameterValues();
+  Object getResult();
 
 }

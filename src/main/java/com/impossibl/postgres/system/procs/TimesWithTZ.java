@@ -49,74 +49,74 @@ import com.impossibl.postgres.types.Type;
 
 public class TimesWithTZ extends SettingSelectProcProvider {
 
-	public TimesWithTZ() {
-		super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
-				null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
-				null, null, null, null,
-				"timetz_");
-	}
+  public TimesWithTZ() {
+    super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
+        null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
+        null, null, null, null,
+        "timetz_");
+  }
 
-	static class BinIntegerDecoder extends BinaryDecoder {
+  static class BinIntegerDecoder extends BinaryDecoder {
 
-		public PrimitiveType getInputPrimitiveType() {
-			return TimeTZ;
-		}
-		
-		public Class<?> getOutputType() {
-			return Instant.class;
-		}
+    public PrimitiveType getInputPrimitiveType() {
+      return TimeTZ;
+    }
 
-		public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Class<?> getOutputType() {
+      return Instant.class;
+    }
 
-			int length = buffer.readInt();
-			if (length == -1) {
-				return null;
-			}
-			else if (length != 12) {
-				throw new IOException("invalid length");
-			}
+    public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
-			long micros = buffer.readLong();
-			int tzOffsetSecs = buffer.readInt();
-			
-			int tzOffsetMillis = (int)SECONDS.toMillis(-tzOffsetSecs);
-			TimeZone zone = TimeZones.getOffsetZone(tzOffsetMillis);
-			
-			return new PreciseInstant(Instant.Type.Time, micros, zone);
-		}
+      int length = buffer.readInt();
+      if (length == -1) {
+        return null;
+      }
+      else if (length != 12) {
+        throw new IOException("invalid length");
+      }
 
-	}
+      long micros = buffer.readLong();
+      int tzOffsetSecs = buffer.readInt();
 
-	static class BinIntegerEncoder extends BinaryEncoder {
+      int tzOffsetMillis = (int)SECONDS.toMillis(-tzOffsetSecs);
+      TimeZone zone = TimeZones.getOffsetZone(tzOffsetMillis);
 
-		public Class<?> getInputType() {
-			return Instant.class;
-		}
+      return new PreciseInstant(Instant.Type.Time, micros, zone);
+    }
 
-		public PrimitiveType getOutputPrimitiveType() {
-			return TimeTZ;
-		}
-		
-		public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-			if (val == null) {
+  }
 
-				buffer.writeInt(-1);
-			}
-			else {
-				
-				Instant inst = (Instant) val;
-				
-				long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
-				
-				int tzOffsetSecs = (int) -inst.getZoneOffsetSecs();
-				
-				buffer.writeInt(12);
-				buffer.writeLong(micros);
-				buffer.writeInt(tzOffsetSecs);
-			}
+  static class BinIntegerEncoder extends BinaryEncoder {
 
-		}
+    public Class<?> getInputType() {
+      return Instant.class;
+    }
 
-	}
-	
+    public PrimitiveType getOutputPrimitiveType() {
+      return TimeTZ;
+    }
+
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+      if (val == null) {
+
+        buffer.writeInt(-1);
+      }
+      else {
+
+        Instant inst = (Instant) val;
+
+        long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
+
+        int tzOffsetSecs = (int) -inst.getZoneOffsetSecs();
+
+        buffer.writeInt(12);
+        buffer.writeLong(micros);
+        buffer.writeInt(tzOffsetSecs);
+      }
+
+    }
+
+  }
+
 }

@@ -41,122 +41,122 @@ import com.impossibl.postgres.protocol.TypeRef;
 
 
 public class BaseProtocolListener implements ProtocolListener {
-	
-	boolean aborted;
-	
-	@Override
-	public void abort() {
-		aborted = true;
-	}
-	
-	@Override
-	public boolean isAborted() {
-		return aborted;
-	}
 
-	@Override
-	public boolean isComplete() {
-		return true;
-	}
+  boolean aborted;
 
-	@Override
-	public void ready(TransactionStatus txStatus) {
-	}
+  @Override
+  public void abort() {
+    aborted = true;
+  }
 
-	@Override
-	public void parseComplete() {
-	}
+  @Override
+  public boolean isAborted() {
+    return aborted;
+  }
 
-	@Override
-	public void parametersDescription(List<TypeRef> parameterTypes) {
-	}
+  @Override
+  public boolean isComplete() {
+    return true;
+  }
 
-	@Override
-	public void noData() {
-	}
+  @Override
+  public void ready(TransactionStatus txStatus) {
+  }
 
-	@Override
-	public void bindComplete() {
-	}
+  @Override
+  public void parseComplete() {
+  }
 
-	@Override
-	public void rowDescription(List<ResultField> asList) {
-	}
+  @Override
+  public void parametersDescription(List<TypeRef> parameterTypes) {
+  }
 
-	@Override
-	public void rowData(ChannelBuffer buffer) throws IOException {
-	}
+  @Override
+  public void noData() {
+  }
 
-	@Override
-	public void functionResult(Object value) {
-	}
+  @Override
+  public void bindComplete() {
+  }
 
-	@Override
-	public void emptyQuery() {
-	}
+  @Override
+  public void rowDescription(List<ResultField> asList) {
+  }
 
-	@Override
-	public void portalSuspended() {
-	}
+  @Override
+  public void rowData(ChannelBuffer buffer) throws IOException {
+  }
 
-	@Override
-	public void commandComplete(String command, Long rowsAffected, Long oid) {
-	}
+  @Override
+  public void functionResult(Object value) {
+  }
 
-	@Override
-	public void closeComplete() {
-	}
+  @Override
+  public void emptyQuery() {
+  }
 
-	@Override
-	public void notification(int processId, String channelName, String payload) {
-	}
-	
-	@Override
-	public void notice(Notice notice) {
-	}
+  @Override
+  public void portalSuspended() {
+  }
 
-	@Override
-	public void error(Notice error) {
-	}
+  @Override
+  public void commandComplete(String command, Long rowsAffected, Long oid) {
+  }
 
-	@Override
-	public void backendKeyData(int processId, int secretKey) {
-	}
+  @Override
+  public void closeComplete() {
+  }
 
-	@Override
-	public void authenticated(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void notification(int processId, String channelName, String payload) {
+  }
 
-	@Override
-	public void authenticateKerberos(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void notice(Notice notice) {
+  }
 
-	@Override
-	public void authenticateClear(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void error(Notice error) {
+  }
 
-	@Override
-	public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void backendKeyData(int processId, int secretKey) {
+  }
 
-	@Override
-	public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
-	}
+  @Override
+  public void authenticated(ProtocolImpl protocol) throws IOException {
+  }
 
-	@Override
-	public void authenticateSCM(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void authenticateKerberos(ProtocolImpl protocol) throws IOException {
+  }
 
-	@Override
-	public void authenticateGSS(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void authenticateClear(ProtocolImpl protocol) throws IOException {
+  }
 
-	@Override
-	public void authenticateGSSCont(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
+  }
 
-	@Override
-	public void authenticateSSPI(ProtocolImpl protocol) throws IOException {
-	}
+  @Override
+  public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
+  }
+
+  @Override
+  public void authenticateSCM(ProtocolImpl protocol) throws IOException {
+  }
+
+  @Override
+  public void authenticateGSS(ProtocolImpl protocol) throws IOException {
+  }
+
+  @Override
+  public void authenticateGSSCont(ProtocolImpl protocol) throws IOException {
+  }
+
+  @Override
+  public void authenticateSSPI(ProtocolImpl protocol) throws IOException {
+  }
 
 }

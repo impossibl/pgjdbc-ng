@@ -51,119 +51,119 @@ import org.jboss.netty.util.Timer;
 
 public class ProtocolShared {
 
-	public class Ref {
+  public class Ref {
 
-		private boolean released;
+    private boolean released;
 
-		public ProtocolShared get() {
-			return ProtocolShared.this;
-		}
+    public ProtocolShared get() {
+      return ProtocolShared.this;
+    }
 
-		public void release() {
-			if(!released) {
-				released = true;
-				ProtocolShared.this.release();
-			}
-		}
+    public void release() {
+      if(!released) {
+        released = true;
+        ProtocolShared.this.release();
+      }
+    }
 
-		@Override
-		protected void finalize() {
-			release();
-		}
+    @Override
+    protected void finalize() {
+      release();
+    }
 
-	}
+  }
 
-	static ProtocolShared instance;
+  static ProtocolShared instance;
 
-	public static synchronized Ref acquire() {
-		if(instance == null) {
-			instance = new ProtocolShared();
-		}
-		return instance.addReference();
-	}
+  public static synchronized Ref acquire() {
+    if(instance == null) {
+      instance = new ProtocolShared();
+    }
+    return instance.addReference();
+  }
 
-	private Timer timer;
-	private ClientBootstrap bootstrap;
-	private int count = 0;
+  private Timer timer;
+  private ClientBootstrap bootstrap;
+  private int count = 0;
 
-	public Timer getTimer() {
-		return timer;
-	}
+  public Timer getTimer() {
+    return timer;
+  }
 
-	public ClientBootstrap getBootstrap() {
-		return bootstrap;
-	}
+  public ClientBootstrap getBootstrap() {
+    return bootstrap;
+  }
 
-	private synchronized Ref addReference() {
-		if(count == 0) {
-			init();
-		}
-		count++;
-		return new Ref();
-	}
+  private synchronized Ref addReference() {
+    if(count == 0) {
+      init();
+    }
+    count++;
+    return new Ref();
+  }
 
-	private synchronized void release() {
-		if(count == 1) {
-			shutdown();
-			count = 0;
-		}
-		else {
-			count--;
-		}
-	}
+  private synchronized void release() {
+    if(count == 1) {
+      shutdown();
+      count = 0;
+    }
+    else {
+      count--;
+    }
+  }
 
-	private void init() {
+  private void init() {
 
-		ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
-		
-		timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
-		
-		Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
-		Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
-		
-		int workerCount = getRuntime().availableProcessors();
+    ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
 
-		ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, 1, new NioWorkerPool(workerExecutorService, workerCount), timer);
+    timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
 
-		bootstrap = new ClientBootstrap(channelFactory);
-		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+    Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
+    Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
 
-			@Override
-			public ChannelPipeline getPipeline() throws Exception {
-				return Channels.pipeline(new MessageDecoder(), new MessageHandler());
-			}
+    int workerCount = getRuntime().availableProcessors();
 
-		});
+    ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, 1, new NioWorkerPool(workerExecutorService, workerCount), timer);
 
-	}
+    bootstrap = new ClientBootstrap(channelFactory);
+    bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
 
-	private void shutdown() {
+      @Override
+      public ChannelPipeline getPipeline() throws Exception {
+        return Channels.pipeline(new MessageDecoder(), new MessageHandler());
+      }
 
-		bootstrap.shutdown();
+    });
 
-		bootstrap.releaseExternalResources();
-	}
+  }
+
+  private void shutdown() {
+
+    bootstrap.shutdown();
+
+    bootstrap.releaseExternalResources();
+  }
 
 }
 
 
 class NamedThreadFactory implements ThreadFactory {
 
-	private String baseName;
-	private AtomicInteger idx = new AtomicInteger(1);
-	
-	public NamedThreadFactory(String baseName) {
-		super();
-		this.baseName = baseName;
-	}
+  private String baseName;
+  private AtomicInteger idx = new AtomicInteger(1);
 
-	@Override
-	public Thread newThread(Runnable r) {
-		Thread thread = new Thread(r, baseName + " (" + idx.getAndIncrement() + ")");
-		thread.setDaemon(true);
-		if(thread.getPriority() != Thread.NORM_PRIORITY)
-			thread.setPriority(Thread.NORM_PRIORITY);
-		return thread;
-	}
-	
+  public NamedThreadFactory(String baseName) {
+    super();
+    this.baseName = baseName;
+  }
+
+  @Override
+  public Thread newThread(Runnable r) {
+    Thread thread = new Thread(r, baseName + " (" + idx.getAndIncrement() + ")");
+    thread.setDaemon(true);
+    if(thread.getPriority() != Thread.NORM_PRIORITY)
+      thread.setPriority(Thread.NORM_PRIORITY);
+    return thread;
+  }
+
 }
