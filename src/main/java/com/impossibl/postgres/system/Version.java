@@ -31,123 +31,172 @@ package com.impossibl.postgres.system;
 import java.util.HashMap;
 
 public class Version {
-	
-	private static final HashMap<Version,Version> all = new HashMap<Version,Version>();
-	
-	private int major;
-	private Integer minor;
-	private Integer revision;
-	
-	public static Version parse(String versionString) {
-                String[] version = versionString.split("\\.");
-		
-		int major = Integer.parseInt(version[0]);
-		Integer minor = version.length > 1 ? Integer.valueOf(version[1]) : null;
-		Integer revision = version.length > 2 ? Integer.valueOf(version[2]) : null;
 
-                return get(major, minor, revision);
-	}
+  private static final HashMap<Version,Version> all = new HashMap<Version,Version>();
 
-	public static synchronized Version get(int major, Integer minor, Integer revision) {
-		
-		Version test = new Version(major, minor, revision);
-		
-		Version found = all.get(test);
-		if(found == null) {
-			
-			all.put(test, test);
-			found = test;
-		}
-		
-		return found;
-	}	
-	
-	private Version(int major, Integer minor, Integer revision) {
+  private int major;
+  private Integer minor;
+  private Integer revision;
 
-		if(minor == null && revision != null)
-			throw new IllegalArgumentException();
-		
+  public static Version parse(String versionString) {
+    
+    String[] version = versionString.split("\\.");
 
-		this.major = major;
-		this.minor = minor;
-		this.revision = revision;
-	}
+    int major = parsePart(version, 0);
+    Integer minor = parsePart(version, 1);
+    Integer revision = parsePart(version, 2);
 
-	public int getMajor() {
-		return major;
-	}
+    return get(major, minor, revision);
+  }
+  
+  static private Integer parsePart(String[] version, int idx) {
+    
+    if(version.length <= idx)
+      return null;
+    
+    String part = version[idx];
+    if(part == null || part.isEmpty())
+      return null;
+    
+    return Integer.valueOf(part);
+  }
 
-	public Integer getMinor() {
-		return minor;
-	}
+  public static synchronized Version get(int major, Integer minor, Integer revision) {
 
-	public Integer getRevision() {
-		return revision;
-	}
+    Version test = new Version(major, minor, revision);
 
-	public boolean compatible(Version current) {
-		return compatible(current.major, current.minor, current.revision);
-	}
-	
-	public boolean compatible(int major, Integer minor, Integer revision) {
-		return this.major >= major 
-				&& (minor == null || this.minor == null || minor >= this.minor) 
-				&& (revision == null || this.revision == null || revision >= this.revision);
-	}
+    Version found = all.get(test);
+    if(found == null) {
 
-	public boolean equals(Version current) {
-		return equals(current.major, current.minor, current.revision);
-	}
-	
-	public boolean equals(int major, Integer minor, Integer revision) {
-		return this.major == major && (minor == null || minor.equals(this.minor)) && (revision == null || revision.equals(this.revision));
-	}
+      all.put(test, test);
+      found = test;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(major);
-		if(minor != null)
-			sb.append('.').append(minor);
-		if(revision != null)
-			sb.append('.').append(revision);
-		return sb.toString();
-	}
+    return found;
+  }
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + major;
-		result = prime * result + ((minor == null) ? 0 : minor.hashCode());
-		result = prime * result + ((revision == null) ? 0 : revision.hashCode());
-		return result;
-	}
+  private Version(int major, Integer minor, Integer revision) {
+    
+    if(minor == null && revision != null) {
+      throw new IllegalArgumentException("revision cannot have value when minor does not");
+    }
+    
+    this.major = major;
+    this.minor = minor;
+    this.revision = revision;
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Version other = (Version) obj;
-		if (major != other.major)
-			return false;
-		if (minor == null) {
-			if (other.minor != null)
-				return false;
-		}
-		else if (!minor.equals(other.minor))
-			return false;
-		if (revision == null) {
-			if (other.revision != null)
-				return false;
-		}
-		else if (!revision.equals(other.revision))
-			return false;
-		return true;
-	}
+  public int getMajor() {
+    return major;
+  }
+
+  public Integer getMinor() {
+    return minor;
+  }
+
+  public int getMinorValue() {
+    return minor != null ? minor : 0;
+  }
+
+  public Integer getRevision() {
+    return revision;
+  }
+  
+  public int getRevisionValue() {
+    return revision != null ? revision : 0;
+  }
+  
+  public boolean isMinimum(int major) {
+    return this.major >= major;
+  }
+
+  public boolean isMinimum(int major, int minor) {
+    if(this.major < major)
+      return false;
+    if(this.major > major)
+      return true;
+    return getMinorValue() >= minor;
+  }
+
+  public boolean isMinimum(int major, int minor, int revision) {
+    if(this.major < major)
+      return false;
+    if(this.major > major)
+      return true;
+    if(this.minor < minor)
+      return false;
+    if(this.minor > minor)
+      return true;
+    return getRevisionValue() >= revision;
+  }
+
+  public boolean isMinimum(Version ver) {
+    return isMinimum(ver.getMajor(), ver.getMinorValue(), ver.getRevisionValue());
+  }
+
+  public boolean isEqual(int major) {
+    return major == this.major;
+  }
+
+  public boolean isEqual(int major, int minor) {
+    return major == this.major && getMinorValue() == minor;
+  }
+
+  public boolean isEqual(int major, int minor, int revision) {
+    return major == this.major && getMinorValue() == minor && getRevisionValue() == revision;
+  }
+
+  public boolean isEqual(Version ver) {
+    return isEqual(ver.getMajor(), ver.getMinorValue(), ver.getRevisionValue());
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(major);
+    if(minor != null) {
+      sb.append('.').append(minor);
+      if(revision != null) {
+        sb.append('.').append(revision);
+      }
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + major;
+    result = prime * result + ((minor == null) ? 0 : minor.hashCode());
+    result = prime * result + ((revision == null) ? 0 : revision.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Version other = (Version) obj;
+    if (major != other.major)
+      return false;
+    if (minor == null) {
+      if (other.minor != null)
+        return false;
+    }
+    else if (!minor.equals(other.minor))
+      return false;
+    if (revision == null) {
+      if (other.revision != null)
+        return false;
+    }
+    else if (!revision.equals(other.revision))
+      return false;
+    return true;
+  }
 
 }

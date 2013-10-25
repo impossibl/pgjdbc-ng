@@ -34,6 +34,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+  VersionTest.class,
   SQLTextTests.class,
   ConnectionTest.class,
   DatabaseMetaDataTest.class,
