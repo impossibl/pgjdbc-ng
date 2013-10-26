@@ -28,18 +28,15 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Numeric;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Numerics extends SimpleProcProvider {
 
@@ -93,7 +90,7 @@ public class Numerics extends SimpleProcProvider {
 
         String num = decodeToString(info[0], info[1], info[2], digits);
 
-        if(length != buffer.readerIndex() - readStart) {
+        if (length != buffer.readerIndex() - readStart) {
           throw new IOException("invalid length");
         }
 
@@ -138,7 +135,7 @@ public class Numerics extends SimpleProcProvider {
           buffer.writeShort(digits[d]);
 
         //Set length
-        buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
+        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
 
       }
 
@@ -197,7 +194,8 @@ public class Numerics extends SimpleProcProvider {
     boolean haveDP = false;
 
     //Swallow leading zeros
-    while(numChars[ch] == '0') ch++;
+    while (numChars[ch] == '0')
+      ch++;
 
     short sign = NUMERIC_POS;
     short displayWeight = -1;
@@ -300,7 +298,7 @@ public class Numerics extends SimpleProcProvider {
           short d1 = (short) (dig / b);
           dig -= d1 * b;
           putIt |= (d1 > 0);
-          if(putIt)
+          if (putIt)
             sb.append((char) (d1 + '0'));
         }
 
@@ -331,7 +329,7 @@ public class Numerics extends SimpleProcProvider {
           sb.append((char) (d1 + '0'));
         }
 
-        if(sb.length() < length)
+        if (sb.length() < length)
           sb.append((char) (dig + '0'));
 
       }

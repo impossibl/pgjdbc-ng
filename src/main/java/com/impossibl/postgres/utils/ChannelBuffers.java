@@ -39,7 +39,7 @@ public class ChannelBuffers {
     byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
     buffer.readBytes(bytes);
 
-    String res = new String(bytes, 0, bytes.length-1, charset);
+    String res = new String(bytes, 0, bytes.length - 1, charset);
 
     return res;
   }

@@ -103,8 +103,8 @@ public class PgType implements Table<PgType.Row> {
   }
 
   private static final Object[] SQL = {
-      Version.get(9, 0, 0),
-      " select" +
+    Version.get(9, 0, 0),
+    " select" +
       "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
       "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +

@@ -28,12 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Type;
+
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
 
 public abstract class BinaryEncoder implements Type.Codec.Encoder {
 

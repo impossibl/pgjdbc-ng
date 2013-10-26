@@ -28,17 +28,14 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Int2;
 
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Int2s extends SimpleProcProvider {
 
@@ -59,7 +56,7 @@ public class Int2s extends SimpleProcProvider {
     public Short decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
       else if (length != 2) {

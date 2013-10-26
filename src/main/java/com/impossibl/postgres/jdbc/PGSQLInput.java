@@ -28,6 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.CompositeType.Attribute;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
@@ -47,7 +50,6 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -69,10 +71,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class PGSQLInput implements SQLInput {
 
@@ -150,12 +149,12 @@ public class PGSQLInput implements SQLInput {
   public byte[] readBytes() throws SQLException {
 
     Object val = getNextAttributeValue();
-    if(val == null) {
+    if (val == null) {
       return null;
     }
 
     Attribute attr = type.getAttribute(currentAttrIdx);
-    if(attr == null) {
+    if (attr == null) {
       throw new SQLException("Invalid input request (type not array)");
     }
 
@@ -198,12 +197,12 @@ public class PGSQLInput implements SQLInput {
   public Object readObject() throws SQLException {
 
     Object val = getNextAttributeValue();
-    if(val == null) {
+    if (val == null) {
       return null;
     }
 
     Attribute attr = type.getAttribute(currentAttrIdx);
-    if(attr == null) {
+    if (attr == null) {
       throw new SQLException("Invalid input request (type not array)");
     }
 
@@ -226,12 +225,12 @@ public class PGSQLInput implements SQLInput {
   public Array readArray() throws SQLException {
 
     Object val = getNextAttributeValue();
-    if(val == null) {
+    if (val == null) {
       return null;
     }
 
     Attribute attr = type.getAttribute(currentAttrIdx);
-    if(attr == null || attr.type instanceof ArrayType == false || val instanceof Object[] == false) {
+    if (attr == null || !(attr.type instanceof ArrayType) || !(val instanceof Object[])) {
       throw new SQLException("Invalid input request (type not array)");
     }
 
@@ -256,10 +255,10 @@ public class PGSQLInput implements SQLInput {
   @Override
   public boolean wasNull() throws SQLException {
 
-    if(nullFlag == null)
+    if (nullFlag == null)
       throw new SQLException("no value read");
 
-    return nullFlag == true;
+    return nullFlag;
   }
 
   @Override

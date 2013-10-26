@@ -28,15 +28,6 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.types.PrimitiveType.Date;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import java.io.IOException;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
@@ -44,8 +35,14 @@ import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.types.PrimitiveType.Date;
 
+import java.io.IOException;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Dates extends SimpleProcProvider {
 
@@ -66,7 +63,7 @@ public class Dates extends SimpleProcProvider {
     public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
       else if (length != 4) {
@@ -75,10 +72,10 @@ public class Dates extends SimpleProcProvider {
 
       int daysPg = buffer.readInt();
 
-      if(daysPg == Integer.MAX_VALUE) {
+      if (daysPg == Integer.MAX_VALUE) {
         return FutureInfiniteInstant.INSTANCE;
       }
-      else if(daysPg == Integer.MIN_VALUE) {
+      else if (daysPg == Integer.MIN_VALUE) {
         return PastInfiniteInstant.INSTANCE;
       }
 
@@ -110,7 +107,7 @@ public class Dates extends SimpleProcProvider {
 
         int daysPg;
 
-        if(inst.getType() == Instant.Type.Infinity) {
+        if (inst.getType() == Instant.Type.Infinity) {
           daysPg = inst.getMicrosLocal() < 0 ? Integer.MIN_VALUE : Integer.MAX_VALUE;
         }
         else {
@@ -144,9 +141,9 @@ public class Dates extends SimpleProcProvider {
 
     // Julian/Greagorian calendar cutoff point
 
-    if(secs < CUTOFF_1_START_SECS) {
+    if (secs < CUTOFF_1_START_SECS) {
       secs -= DAY_SECS * 10;
-      if(secs < CUTOFF_2_START_SECS) {
+      if (secs < CUTOFF_2_START_SECS) {
         int years = (int) ((secs - CUTOFF_2_START_SECS) / APPROX_YEAR_SECS1);
         years++;
         years -= years / 4;
@@ -165,9 +162,9 @@ public class Dates extends SimpleProcProvider {
 
     // Julian/Gregorian calendar cutoff point
 
-    if(secs < CUTOFF_1_END_SECS) {
+    if (secs < CUTOFF_1_END_SECS) {
       secs += DAY_SECS * 10;
-      if(secs < CUTOFF_2_END_SECS) {
+      if (secs < CUTOFF_2_END_SECS) {
         int extraLeaps = (int) ((secs - CUTOFF_2_END_SECS) / APPROX_YEAR_SECS2);
         extraLeaps--;
         extraLeaps -= extraLeaps / 4;

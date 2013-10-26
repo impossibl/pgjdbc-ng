@@ -28,16 +28,6 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
-import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import java.io.IOException;
-import java.util.Calendar;
-import java.util.TimeZone;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.datetime.TimeZones;
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
@@ -47,8 +37,15 @@ import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.TimeZone;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Timestamps extends SettingSelectProcProvider {
 
@@ -89,16 +86,16 @@ public class Timestamps extends SettingSelectProcProvider {
 
       long micros = buffer.readLong();
 
-      if(micros == Long.MAX_VALUE) {
+      if (micros == Long.MAX_VALUE) {
         return FutureInfiniteInstant.INSTANCE;
       }
-      else if(micros == Long.MIN_VALUE) {
+      else if (micros == Long.MIN_VALUE) {
         return PastInfiniteInstant.INSTANCE;
       }
 
       micros += PG_JAVA_EPOCH_DIFF_MICROS;
 
-      if(zone != null)
+      if (zone != null)
         return new PreciseInstant(Instant.Type.Timestamp, micros, zone);
       else
         return new AmbiguousInstant(Instant.Type.Timestamp, micros);
@@ -127,14 +124,14 @@ public class Timestamps extends SettingSelectProcProvider {
         val.toString();
 
         long micros;
-        if(primitiveType == PrimitiveType.TimestampTZ) {
+        if (primitiveType == PrimitiveType.TimestampTZ) {
           micros = inst.getMicrosUTC();
         }
         else {
           micros = inst.disambiguate(TimeZone.getDefault()).getMicrosLocal();
         }
 
-        if(!isInfinity(micros)) {
+        if (!isInfinity(micros)) {
 
           micros -= PG_JAVA_EPOCH_DIFF_MICROS;
         }

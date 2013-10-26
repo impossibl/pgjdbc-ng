@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
+    "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+
+<module name="Checker">
+  <module name="FileTabCharacter">
+    <property name="eachLine" value="true"/>
+  </module>
+
+  <!-- NewlineAtEndOfFile -->
+  <module name="NewlineAtEndOfFile">
+    <property name="lineSeparator" value="lf"/>
+  </module>
+
+  <module name="RegexpSingleline">
+    <!-- \s matches whitespace character, $ matches end of line. -->
+    <property name="format" value="\s+$"/>
+    <property name="message" value="Line has trailing spaces."/>
+  </module>
+
+  <module name="TreeWalker">
+
+    <!-- <property name="cacheFile" value="${checkstyle.cache.file}"/> -->
+
+    <!-- Checks for imports -->
+    <module name="AvoidStarImport">
+      <property name="allowStaticMemberImports" value="true"/>
+    </module>
+    <module name="RedundantImport"/>
+
+    <module name="UnusedImports" />
+
+    <module name="IllegalImport">
+      <property name="illegalPkgs" value="junit.framework"/>
+    </module>
+
+    <!-- Modifier Checks -->
+    <module name="ModifierOrder"/>
+    <module name="RedundantModifier"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+
+    <module name="ImportOrder">
+      <property name="groups" value="com.impossibl.postgres,java,javax"/>
+      <property name="ordered" value="true"/>
+      <property name="separated" value="true"/>
+    </module>
+
+    <!-- Checks for blocks. You know, those {}'s -->
+    <module name="LeftCurly"/>
+    <module name="RightCurly">
+      <property name="option" value="alone"/>
+    </module>
+    <module name="ParenPad"/>
+
+    <!-- Whitespace settings -->
+    <module name="NoWhitespaceAfter"/>
+    <module name="NoWhitespaceBefore"/>
+    <module name="WhitespaceAfter">
+      <property name="tokens" value="COMMA, SEMI"/>
+    </module>
+    <module name="WhitespaceAround"/>
+
+    <!-- Don't allow empty blocks -->
+    <module name="EmptyBlock">
+      <property name="option" value="text"/>
+    </module>
+
+    <!-- Checks for common coding problems -->
+    <module name="EmptyStatement"/>
+    <module name="EqualsHashCode"/>
+    <module name="IllegalInstantiation"/>
+    <module name="RedundantThrows">
+      <property name="allowUnchecked" value="true"/>
+    </module>
+
+    <!-- Miscellaneous other checks. -->
+    <module name="UpperEll"/>
+    <module name="PackageAnnotation"/>
+    <module name="CovariantEquals"/>
+    <module name="ArrayTypeStyle"/>
+
+    <!-- Indentation -->
+    <module name="Indentation">
+      <property name="basicOffset" value="2"/>
+      <property name="caseIndent" value="2"/>
+    </module>
+
+  </module>
+
+</module>
+

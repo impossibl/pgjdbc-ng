@@ -28,20 +28,18 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.system.Settings.FIELD_MONEY_FRACTIONAL_DIGITS;
 import static com.impossibl.postgres.types.PrimitiveType.Money;
-import static java.math.RoundingMode.HALF_UP;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import static java.math.RoundingMode.HALF_UP;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
 
 public class Moneys extends SimpleProcProvider {
 
@@ -147,7 +145,7 @@ public class Moneys extends SimpleProcProvider {
   static int getFractionalDigits(Context context) {
 
     Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
-    if(val == null)
+    if (val == null)
       return 2;
 
     return (int)(Integer)val;

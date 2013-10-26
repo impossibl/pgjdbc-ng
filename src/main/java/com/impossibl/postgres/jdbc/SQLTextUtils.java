@@ -28,17 +28,15 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
+
+import java.util.Iterator;
+import java.util.List;
 import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
 import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
-
-import java.util.Iterator;
-import java.util.List;
-
-import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
-import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
-
 
 /**
  * Utility functions for creating and transforming SQL text into and out of
@@ -80,14 +78,14 @@ class SQLTextUtils {
   public static String getIsolationLevelText(int level) {
 
     switch (level) {
-    case TRANSACTION_READ_UNCOMMITTED:
-      return "READ UNCOMMITTED";
-    case TRANSACTION_READ_COMMITTED:
-      return "READ COMMITTED";
-    case TRANSACTION_REPEATABLE_READ:
-      return "REPEATABLE READ";
-    case TRANSACTION_SERIALIZABLE:
-      return "SERIALIZABLE";
+      case TRANSACTION_READ_UNCOMMITTED:
+        return "READ UNCOMMITTED";
+      case TRANSACTION_READ_COMMITTED:
+        return "READ COMMITTED";
+      case TRANSACTION_REPEATABLE_READ:
+        return "REPEATABLE READ";
+      case TRANSACTION_SERIALIZABLE:
+        return "SERIALIZABLE";
     }
 
     throw new RuntimeException("unknown isolation level");
@@ -104,14 +102,14 @@ class SQLTextUtils {
   public static int getIsolationLevel(String level) {
 
     switch (level.toUpperCase()) {
-    case "READ UNCOMMITTED":
-      return TRANSACTION_READ_UNCOMMITTED;
-    case "READ COMMITTED":
-      return TRANSACTION_READ_COMMITTED;
-    case "REPEATABLE READ":
-      return TRANSACTION_REPEATABLE_READ;
-    case "SERIALIZABLE":
-      return TRANSACTION_SERIALIZABLE;
+      case "READ UNCOMMITTED":
+        return TRANSACTION_READ_UNCOMMITTED;
+      case "READ COMMITTED":
+        return TRANSACTION_READ_COMMITTED;
+      case "REPEATABLE READ":
+        return TRANSACTION_REPEATABLE_READ;
+      case "SERIALIZABLE":
+        return TRANSACTION_SERIALIZABLE;
     }
 
     throw new RuntimeException("unknown isolation level");
@@ -225,7 +223,7 @@ class SQLTextUtils {
    */
   public static boolean appendClause(SQLText sqlText, String clause) {
 
-    if(sqlText.getStatementCount() > 1)
+    if (sqlText.getStatementCount() > 1)
       return false;
 
     StatementNode statement = sqlText.getLastStatement();
@@ -272,11 +270,11 @@ class SQLTextUtils {
     StringBuilder sb = new StringBuilder();
     Iterator<String> columnIter = columns.iterator();
 
-    while(columnIter.hasNext()) {
+    while (columnIter.hasNext()) {
 
       sb.append(columnIter.next());
 
-      if(columnIter.hasNext()) {
+      if (columnIter.hasNext()) {
         sb.append(separator);
       }
 

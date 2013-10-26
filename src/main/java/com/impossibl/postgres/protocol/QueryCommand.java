@@ -52,7 +52,7 @@ public interface QueryCommand extends Command {
   void setMaxRows(int maxRows);
 
   int getMaxFieldLength();
-  public void setMaxFieldLength(int maxFieldLength);
+  void setMaxFieldLength(int maxFieldLength);
 
   List<ResultBatch> getResultBatches();
 

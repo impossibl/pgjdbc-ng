@@ -44,12 +44,12 @@ class LargeObject {
   PGConnection connection;
 
   static LargeObject open(PGConnection connection, int oid) throws SQLException {
-    int fd = open(connection, oid, INV_READ|INV_WRITE);
-    if(fd == -1) {
+    int fd = open(connection, oid, INV_READ | INV_WRITE);
+    if (fd == -1) {
       throw new SQLException("Unable to open large object");
     }
 
-    if(connection.getServerVersion().isMinimum(9, 3))
+    if (connection.getServerVersion().isMinimum(9, 3))
       return new LargeObject64(connection, oid, fd);
     else
       return new LargeObject(connection, oid, fd);
@@ -97,7 +97,7 @@ class LargeObject {
   int write(byte[] data, int off, int len) throws SQLException {
 
     //TODO optimize away by supporting passing of array sections as parameters
-    if(off != 0 || len != data.length) {
+    if (off != 0 || len != data.length) {
       byte[] sub = new byte[len];
       System.arraycopy(data, off, sub, 0, len);
       data = sub;

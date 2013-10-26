@@ -28,10 +28,9 @@
  */
 package com.impossibl.postgres.datetime;
 
+import java.util.TimeZone;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import java.util.TimeZone;
 
 public class TimeZones {
 

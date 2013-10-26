@@ -28,16 +28,14 @@
  */
 package com.impossibl.postgres.datetime.instants;
 
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import com.impossibl.postgres.datetime.TimeZones;
 
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.datetime.TimeZones;
-
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public abstract class InfiniteInstant implements Instant {
 

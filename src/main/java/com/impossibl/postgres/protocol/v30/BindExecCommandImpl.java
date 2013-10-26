@@ -28,19 +28,6 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.utils.Factory.createInstance;
-import static java.util.Arrays.asList;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-
 import com.impossibl.postgres.mapper.Mapper;
 import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
@@ -51,8 +38,18 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.utils.Factory.createInstance;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import static java.util.Arrays.asList;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
@@ -134,7 +131,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
       resultBatch.rowsAffected = rowsAffected;
       resultBatch.insertedOid = oid;
 
-      if(maxRows > 0) {
+      if (maxRows > 0) {
         notifyAll();
       }
     }
@@ -184,7 +181,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     this.maxRows = 0;
     this.maxFieldLength = Integer.MAX_VALUE;
 
-    if(resultFields != null) {
+    if (resultFields != null) {
       this.resultSetters = Mapper.buildMapping(rowType, resultFields);
       this.resultFieldFormats = getResultFieldFormats(resultFields);
     }
@@ -283,7 +280,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
-    if(status != Status.Suspended) {
+    if (status != Status.Suspended) {
 
       protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
 
@@ -291,7 +288,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     reset();
 
-    if(resultFields == null) {
+    if (resultFields == null) {
 
       protocol.writeDescribe(msg, Portal, portalName);
 
@@ -299,7 +296,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     protocol.writeExecute(msg, portalName, maxRows);
 
-    if(maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+    if (maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
       protocol.writeFlush(msg);
     }
     else {
@@ -318,7 +315,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     List<Format> resultFieldFormats = new ArrayList<>();
 
-    for(ResultField resultField : resultFields) {
+    for (ResultField resultField : resultFields) {
       resultField.format = resultField.typeRef.get().getResultFormat();
       resultFieldFormats.add(resultField.format);
     }

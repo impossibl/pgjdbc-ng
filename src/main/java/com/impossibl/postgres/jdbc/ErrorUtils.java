@@ -28,13 +28,12 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.Notice;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Iterator;
 import java.util.List;
-
-import com.impossibl.postgres.protocol.Notice;
-
 
 /**
  * Utilities for creating SQLException and SQLWarnings from PostgreSQL's
@@ -57,17 +56,17 @@ public class ErrorUtils {
 
     SQLWarning root = null;
 
-    if(noticeIter.hasNext()) {
+    if (noticeIter.hasNext()) {
 
       root = makeSQLWarning(noticeIter.next());
       SQLWarning current = root;
 
-      while(noticeIter.hasNext()) {
+      while (noticeIter.hasNext()) {
 
         Notice notice = noticeIter.next();
 
         // Only include warnings...
-        if(!notice.isWarning())
+        if (!notice.isWarning())
           continue;
 
         SQLWarning nextWarning = makeSQLWarning(notice);
@@ -92,12 +91,12 @@ public class ErrorUtils {
 
     SQLException root = null;
 
-    if(noticeIter.hasNext()) {
+    if (noticeIter.hasNext()) {
 
       root = makeSQLException(noticeIter.next());
       SQLException current = root;
 
-      while(noticeIter.hasNext()) {
+      while (noticeIter.hasNext()) {
 
         SQLException nextException = makeSQLException(noticeIter.next());
         current.setNextException(nextException);
@@ -117,7 +116,7 @@ public class ErrorUtils {
    */
   public static SQLWarning makeSQLWarning(Notice notice) {
 
-    if(notice.isWarning()) {
+    if (notice.isWarning()) {
       throw new IllegalArgumentException("notice not an error");
 
     }
@@ -155,11 +154,11 @@ public class ErrorUtils {
    */
   public static SQLWarning chainWarnings(SQLWarning base, SQLWarning add) {
 
-    if(base == null)
+    if (base == null)
       return add;
 
     SQLWarning current = base;
-    while(current.getNextWarning() != null) {
+    while (current.getNextWarning() != null) {
       current = current.getNextWarning();
     }
 
@@ -196,7 +195,7 @@ public class ErrorUtils {
     try {
       return Integer.valueOf(paramNumber) - 1;
     }
-    catch(NumberFormatException fmt) {
+    catch (NumberFormatException fmt) {
       return null;
     }
 

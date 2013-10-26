@@ -31,13 +31,13 @@ package com.impossibl.postgres.datetime;
 public class FormatUtils {
 
   static void checkOffset(String value, int offset, char expected) throws IndexOutOfBoundsException {
-    if(offset < 0) {
+    if (offset < 0) {
       throw new IndexOutOfBoundsException("Not enough characters");
     }
-    if(expected == '\0')
+    if (expected == '\0')
       return;
     char found = value.charAt(offset);
-    if(found != expected) {
+    if (found != expected) {
       throw new IndexOutOfBoundsException("Expected '" + expected + "' character but found '" + found + "'");
     }
   }
@@ -47,17 +47,17 @@ public class FormatUtils {
     int i = start, end = value.length();
     int result = 0;
     int digit;
-    if(i < end) {
+    if (i < end) {
       digit = Character.digit(value.charAt(i), 10);
-      if(digit < 0) {
+      if (digit < 0) {
         return ~i;
       }
       i++;
       result = -digit;
     }
-    while(i < end) {
+    while (i < end) {
       digit = Character.digit(value.charAt(i), 10);
-      if(digit < 0) {
+      if (digit < 0) {
         break;
       }
       i++;

@@ -28,17 +28,14 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Oid;
 
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Oids extends SimpleProcProvider {
 
@@ -48,7 +45,7 @@ public class Oids extends SimpleProcProvider {
 
   @Override
   protected boolean hasName(String name, String suffix, Context context) {
-    if(context != null && name.equals(context.getSetting("blob.type", String.class)+suffix))
+    if (context != null && name.equals(context.getSetting("blob.type", String.class) + suffix))
       return true;
     return super.hasName(name, suffix, context);
   }
@@ -66,7 +63,7 @@ public class Oids extends SimpleProcProvider {
     public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
       else if (length != 4) {

@@ -28,22 +28,20 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.types.Modifiers.LENGTH;
-import static com.impossibl.postgres.types.PrimitiveType.String;
-import static java.lang.Math.min;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.types.Modifiers.LENGTH;
+import static com.impossibl.postgres.types.PrimitiveType.String;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import static java.lang.Math.min;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Strings extends SimpleProcProvider {
 
@@ -67,14 +65,14 @@ public class Strings extends SimpleProcProvider {
     public String decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
 
       byte[] bytes;
 
       Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
-      if(maxLength != null) {
+      if (maxLength != null) {
         bytes = new byte[min(maxLength, length)];
       }
       else {
@@ -159,7 +157,7 @@ public class Strings extends SimpleProcProvider {
 
       Map<String, Object> mods = new HashMap<String, Object>();
 
-      if(mod > 4) {
+      if (mod > 4) {
         mods.put(LENGTH, (int)(mod - 4));
       }
 

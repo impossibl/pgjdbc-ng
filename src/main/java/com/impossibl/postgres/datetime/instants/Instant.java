@@ -28,13 +28,12 @@
  */
 package com.impossibl.postgres.datetime.instants;
 
+import com.impossibl.postgres.system.Context;
+
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.system.Context;
-
 
 public interface Instant {
 
@@ -53,10 +52,10 @@ public interface Instant {
   long getMillisUTC();
   long getMicrosUTC();
 
-  public TimeZone getZone();
-  public long getZoneOffsetSecs();
-  public long getZoneOffsetMicros();
-  public long getZoneOffsetMillis();
+  TimeZone getZone();
+  long getZoneOffsetSecs();
+  long getZoneOffsetMicros();
+  long getZoneOffsetMillis();
 
   Instant switchTo(TimeZone zone);
   Instant disambiguate(TimeZone zone);

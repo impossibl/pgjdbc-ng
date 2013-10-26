@@ -41,7 +41,8 @@ import java.nio.CharBuffer;
 public final class CharStreams {
   private static final int BUF_SIZE = 0x800; // 2K chars (4K bytes)
 
-  private CharStreams() {}
+  private CharStreams() {
+  }
 
   /**
    * Copies all characters between the {@link Readable} and {@link Appendable}
@@ -113,7 +114,8 @@ public final class CharStreams {
           throw new EOFException();
         }
         n--;
-      } else {
+      }
+      else {
         n -= amt;
       }
     }

@@ -28,12 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Type;
+
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
 
 public abstract class TextEncoder implements Type.Codec.Encoder {
 
@@ -42,7 +42,7 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
 
-    if(buffer instanceof ChannelBuffer) {
+    if (buffer instanceof ChannelBuffer) {
 
       ChannelBuffer channelBuffer = (ChannelBuffer) buffer;
 

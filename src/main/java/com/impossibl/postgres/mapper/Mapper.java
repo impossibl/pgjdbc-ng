@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.mapper;
 
-import static java.util.Arrays.asList;
+import com.impossibl.postgres.protocol.ResultField;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -38,8 +38,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
-import com.impossibl.postgres.protocol.ResultField;
-
+import static java.util.Arrays.asList;
 
 /**
  * Builds lists of PropertySetters that match the a list of result fields. This
@@ -61,13 +60,13 @@ public class Mapper {
 
     PropertySetter[] setters;
 
-    if(rowType.isArray() && rowType.getComponentType() == Object.class) {
+    if (rowType.isArray() && rowType.getComponentType() == Object.class) {
       setters = initArraySetters(fields);
     }
-    else if(List.class.isAssignableFrom(rowType)) {
+    else if (List.class.isAssignableFrom(rowType)) {
       setters = initListSetters(fields);
     }
-    else if(Map.class.isAssignableFrom(rowType)) {
+    else if (Map.class.isAssignableFrom(rowType)) {
       setters = initMapSetters(fields);
     }
     else {
@@ -87,7 +86,7 @@ public class Mapper {
 
     PropertySetter[] setters = new PropertySetter[fields.size()];
 
-    for(int c=0; c < setters.length; ++c) {
+    for (int c = 0; c < setters.length; ++c) {
       setters[c] = new ArrayPropertySetter(c);
     }
 
@@ -104,7 +103,7 @@ public class Mapper {
 
     PropertySetter[] setters = new PropertySetter[fields.size()];
 
-    for(int c=0; c < setters.length; ++c) {
+    for (int c = 0; c < setters.length; ++c) {
       setters[c] = new ListPropertySetter(c);
     }
 
@@ -121,7 +120,7 @@ public class Mapper {
 
     PropertySetter[] setters = new PropertySetter[fields.size()];
 
-    for(int c=0; c < setters.length; ++c) {
+    for (int c = 0; c < setters.length; ++c) {
       setters[c] = new MapPropertySetter(fields.get(c).name);
     }
 
@@ -145,23 +144,23 @@ public class Mapper {
       BeanInfo beanInfo = Introspector.getBeanInfo(instanceType);
       propDescs = beanInfo.getPropertyDescriptors();
     }
-    catch(IntrospectionException e) {
+    catch (IntrospectionException e) {
       //Ignore...
       propDescs = new PropertyDescriptor[0];
     }
 
-    for(int c=0; c < setters.length; ++c) {
+    for (int c = 0; c < setters.length; ++c) {
 
       //Look for a valid property to map to
       PropertyDescriptor propDesc = findPropertyDescriptor(propDescs, fields.get(c).name);
-      if(propDesc != null) {
+      if (propDesc != null) {
         setters[c] = new MethodPropertySetter(propDesc.getWriteMethod());
         continue;
       }
 
       //Look for a valid field to map to
       Field field = findField(instanceType, fields.get(c).name);
-      if(field != null) {
+      if (field != null) {
         setters[c] = new FieldPropertySetter(field);
         continue;
       }
@@ -178,7 +177,8 @@ public class Mapper {
     try {
       return instanceType.getField(name);
     }
-    catch(NoSuchFieldException | SecurityException e) {
+    catch (NoSuchFieldException | SecurityException e) {
+      // Ignore
     }
 
     return null;
@@ -186,9 +186,9 @@ public class Mapper {
 
   private static PropertyDescriptor findPropertyDescriptor(PropertyDescriptor[] propDescs, String name) {
 
-    for(PropertyDescriptor propDesc : propDescs) {
+    for (PropertyDescriptor propDesc : propDescs) {
 
-      if(propDesc.getName().equals(name)) {
+      if (propDesc.getName().equals(name)) {
         return propDesc;
       }
 

@@ -28,13 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.types.Modifiers;
 import static com.impossibl.postgres.types.Modifiers.PRECISION;
 import static com.impossibl.postgres.types.Modifiers.SCALE;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.impossibl.postgres.types.Modifiers;
 
 public class NumericMods extends SimpleProcProvider {
 
@@ -49,9 +48,9 @@ public class NumericMods extends SimpleProcProvider {
 
       Map<String, Object> mods = new HashMap<String, Object>();
 
-      if(mod > 4) {
-        mods.put(PRECISION, (int)((mod-4) >> 16) & 0xffff);
-        mods.put(SCALE,     (int)((mod-4) >>  0) & 0xffff);
+      if (mod > 4) {
+        mods.put(PRECISION, (int)((mod - 4) >> 16) & 0xffff);
+        mods.put(SCALE,     (int)((mod - 4) >>  0) & 0xffff);
       }
 
       return mods;

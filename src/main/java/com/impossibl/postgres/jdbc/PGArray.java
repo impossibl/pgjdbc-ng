@@ -28,6 +28,11 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
 
@@ -38,12 +43,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
 
 public class PGArray implements Array {
 
@@ -93,13 +92,13 @@ public class PGArray implements Array {
   @Override
   public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
-    if(index < 1 || index > value.length || (index + count) > (value.length + 1)) {
-       throw new SQLException("Invalid array slice");
+    if (index < 1 || index > value.length || (index + count) > (value.length + 1)) {
+      throw new SQLException("Invalid array slice");
     }
 
     Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
 
-    return coerceToArray(value, (int)index-1, count, type, targetType, map, connection);
+    return coerceToArray(value, (int)index - 1, count, type, targetType, map, connection);
   }
 
   @Override
@@ -120,8 +119,8 @@ public class PGArray implements Array {
   @Override
   public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
 
-    if(index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
-       throw new SQLException("Invalid array slice");
+    if (index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
+      throw new SQLException("Invalid array slice");
     }
 
     Registry reg = connection.getRegistry();
@@ -129,13 +128,13 @@ public class PGArray implements Array {
     Type elementType = getDimensions(value) > 1 ? type : type.getElementType();
 
     ResultField[] fields = {
-        new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
-        new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
+      new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
+      new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
     };
 
     List<Object[]> results = new ArrayList<Object[]>(value.length);
-    for(long c=index,end=index+count; c < end; ++c) {
-      results.add(new Object[]{c, value[(int) c-1]});
+    for (long c = index, end = index + count; c < end; ++c) {
+      results.add(new Object[]{c, value[(int) c - 1]});
     }
 
     PGStatement stmt = connection.createStatement();

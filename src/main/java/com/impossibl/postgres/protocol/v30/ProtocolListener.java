@@ -28,17 +28,15 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 
+import java.io.IOException;
+import java.util.List;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public interface ProtocolListener {
 

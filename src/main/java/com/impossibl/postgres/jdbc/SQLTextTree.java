@@ -40,11 +40,11 @@ public class SQLTextTree {
 
   public interface Processor {
 
-    public Node process(Node node) throws SQLException;
+    Node process(Node node) throws SQLException;
 
   }
 
-  public static abstract class Node {
+  public abstract static class Node {
 
     private int startPos;
     private int endPos;
@@ -82,13 +82,14 @@ public class SQLTextTree {
 
           @Override
           public Node process(Node node) throws SQLException {
-            if(nodeType.isInstance(node))
+            if (nodeType.isInstance(node))
               return null;
             return node;
           }
         }, recurse);
       }
-      catch(SQLException e) {
+      catch (SQLException e) {
+        // Ignore
       }
     }
 
@@ -116,7 +117,7 @@ public class SQLTextTree {
 
     void build(StringBuilder builder) {
 
-      for(Node node : nodes) {
+      for (Node node : nodes) {
         node.build(builder);
       }
 
@@ -150,17 +151,17 @@ public class SQLTextTree {
 
       //Process each child node...
       ListIterator<Node> nodeIter = nodes.listIterator();
-      while(nodeIter.hasNext()) {
+      while (nodeIter.hasNext()) {
 
         Node res;
-        if(recurse) {
+        if (recurse) {
           res = nodeIter.next().process(processor, recurse);
         }
         else {
           res = processor.process(nodeIter.next());
         }
 
-        if(res != null) {
+        if (res != null) {
           nodeIter.set(res);
         }
         else {
@@ -178,8 +179,8 @@ public class SQLTextTree {
 
     public boolean containsAll(Class<? extends Node> cls) {
 
-      for(Node node : nodes) {
-        if(cls.isInstance(node) == false)
+      for (Node node : nodes) {
+        if (!cls.isInstance(node))
           return false;
       }
 
@@ -188,34 +189,34 @@ public class SQLTextTree {
 
     public void trim() {
 
-      if(nodes.isEmpty())
+      if (nodes.isEmpty())
         return;
 
       //Prune starting and ending whitespace
-      if(nodes.get(0) instanceof WhitespacePiece) {
+      if (nodes.get(0) instanceof WhitespacePiece) {
         nodes.remove(0);
       }
 
-      if(nodes.isEmpty()) {
+      if (nodes.isEmpty()) {
         return;
       }
 
-      if(nodes.get(nodes.size()-1) instanceof WhitespacePiece) {
-        nodes.remove(nodes.size()-1);
+      if (nodes.get(nodes.size() - 1) instanceof WhitespacePiece) {
+        nodes.remove(nodes.size() - 1);
       }
 
     }
 
     public Node getFirstNode() {
-      if(nodes.isEmpty())
+      if (nodes.isEmpty())
         return null;
       return nodes.get(0);
     }
 
     public Node getLastNode() {
-      if(nodes.isEmpty())
+      if (nodes.isEmpty())
         return null;
-      return nodes.get(nodes.size()-1);
+      return nodes.get(nodes.size() - 1);
     }
 
   }
@@ -234,9 +235,9 @@ public class SQLTextTree {
     void build(StringBuilder builder) {
 
       Iterator<Node> nodeIter = iterator();
-      while(nodeIter.hasNext()) {
+      while (nodeIter.hasNext()) {
         nodeIter.next().build(builder);
-        if(nodeIter.hasNext())
+        if (nodeIter.hasNext())
           builder.append(';');
       }
     }
@@ -326,7 +327,7 @@ public class SQLTextTree {
   public static class ParameterPiece extends PieceNode {
 
     ParameterPiece(int idx, int pos) {
-      super("$"+idx, pos);
+      super("$" + idx, pos);
     }
 
   }

@@ -28,11 +28,11 @@
  */
 package com.impossibl.postgres.types;
 
-import java.util.Collection;
-import java.util.Map;
-
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
+
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * A database domain type.

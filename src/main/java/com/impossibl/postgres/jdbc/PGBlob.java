@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.ByteStreams;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_BLOB;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 
@@ -38,38 +39,33 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.impossibl.postgres.utils.guava.ByteStreams;
-
 public class PGBlob implements Blob {
 
-  private class LOByteIterator
-  {
-      private static final int MAX_BUFFER_SIZE = 8096;
-      private byte buffer[] = {};
-      private int idx = 0;
+  private class LOByteIterator {
+    private static final int MAX_BUFFER_SIZE = 8096;
+    private byte[] buffer = {};
+    private int idx = 0;
 
-      LOByteIterator(long start) throws SQLException {
-          lo.lseek(start, LargeObject.SEEK_SET);
-      }
+    LOByteIterator(long start) throws SQLException {
+      lo.lseek(start, LargeObject.SEEK_SET);
+    }
 
-      boolean hasNext() throws SQLException
-      {
-          boolean result = false;
-          if(idx < buffer.length) {
-              result = true;
-          }
-          else {
-              buffer = lo.read(MAX_BUFFER_SIZE);
-              idx = 0;
-              result = (buffer.length > 0);
-          }
-          return result;
+    boolean hasNext() throws SQLException {
+      boolean result = false;
+      if (idx < buffer.length) {
+        result = true;
       }
+      else {
+        buffer = lo.read(MAX_BUFFER_SIZE);
+        idx = 0;
+        result = (buffer.length > 0);
+      }
+      return result;
+    }
 
-      private byte next()
-      {
-          return buffer[idx++];
-      }
+    private byte next() {
+      return buffer[idx++];
+    }
   }
 
 
@@ -78,7 +74,7 @@ public class PGBlob implements Blob {
 
   PGBlob(PGConnection connection, int oid) throws SQLException {
 
-    if(connection.getAutoCommit() == true) {
+    if (connection.getAutoCommit()) {
       throw new SQLException("Blobs require connection to be in manual-commit mode... setAutoCommit(false)");
     }
 
@@ -87,13 +83,13 @@ public class PGBlob implements Blob {
   }
 
   private void checkClosed() throws SQLException {
-    if(lo == null) {
+    if (lo == null) {
       throw CLOSED_BLOB;
     }
   }
 
   private void checkPosition(long pos) throws SQLException {
-    if(pos < 1) {
+    if (pos < 1) {
       throw ILLEGAL_ARGUMENT;
     }
   }
@@ -114,7 +110,7 @@ public class PGBlob implements Blob {
     checkClosed();
     checkPosition(pos);
 
-    lo.lseek(pos-1, LargeObject.SEEK_SET);
+    lo.lseek(pos - 1, LargeObject.SEEK_SET);
     return lo.read(length);
   }
 
@@ -134,7 +130,7 @@ public class PGBlob implements Blob {
 
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
-    streamLo.lseek(pos-1, LargeObject.SEEK_SET);
+    streamLo.lseek(pos - 1, LargeObject.SEEK_SET);
     return ByteStreams.limit(new BlobInputStream(streamLo), length);
   }
 
@@ -143,23 +139,23 @@ public class PGBlob implements Blob {
     checkClosed();
     checkPosition(start);
 
-    LOByteIterator iter = new LOByteIterator(start-1);
-    long curPos=start, matchStartPos=0;
-    int patternIdx=0;
+    LOByteIterator iter = new LOByteIterator(start - 1);
+    long curPos = start, matchStartPos = 0;
+    int patternIdx = 0;
 
-    while(iter.hasNext()) {
+    while (iter.hasNext()) {
 
       byte b = iter.next();
 
-      if(b == pattern[patternIdx]) {
+      if (b == pattern[patternIdx]) {
 
-        if(patternIdx == 0) {
+        if (patternIdx == 0) {
           matchStartPos = curPos;
         }
 
         patternIdx++;
 
-        if(patternIdx == pattern.length) {
+        if (patternIdx == pattern.length) {
           return matchStartPos;
         }
       }
@@ -191,7 +187,7 @@ public class PGBlob implements Blob {
     checkClosed();
     checkPosition(pos);
 
-    lo.lseek(pos-1, LargeObject.SEEK_SET);
+    lo.lseek(pos - 1, LargeObject.SEEK_SET);
     return lo.write(bytes, offset, len);
   }
 
@@ -202,7 +198,7 @@ public class PGBlob implements Blob {
 
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
-    streamLo.lseek(pos-1, LargeObject.SEEK_SET);
+    streamLo.lseek(pos - 1, LargeObject.SEEK_SET);
     return new BlobOutputStream(this, streamLo);
   }
 
@@ -216,13 +212,13 @@ public class PGBlob implements Blob {
   @Override
   public void free() throws SQLException {
 
-    if(lo == null)
+    if (lo == null)
       return;
 
     lo.close();
     lo = null;
 
-    for(LargeObject streamLo : streamLos) {
+    for (LargeObject streamLo : streamLos) {
       streamLo.close();
     }
     streamLos.clear();

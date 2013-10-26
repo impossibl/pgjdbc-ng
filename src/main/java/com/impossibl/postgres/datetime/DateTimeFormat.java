@@ -28,10 +28,9 @@
  */
 package com.impossibl.postgres.datetime;
 
-import java.util.Map;
-
 import com.impossibl.postgres.datetime.instants.Instant;
 
+import java.util.Map;
 
 public interface DateTimeFormat {
 

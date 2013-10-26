@@ -28,13 +28,12 @@
  */
 package com.impossibl.postgres.protocol;
 
+import com.impossibl.postgres.types.Type;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-
-import com.impossibl.postgres.types.Type;
-
 
 public interface Protocol {
 
@@ -42,7 +41,7 @@ public interface Protocol {
 
   TransactionStatus getTransactionStatus();
 
-  StartupCommand createStartup(Map<String,Object> parameters);
+  StartupCommand createStartup(Map<String, Object> parameters);
   PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
   BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
   QueryCommand createQuery(String sqlText);

@@ -20,7 +20,6 @@ import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -40,7 +39,8 @@ import java.nio.channels.WritableByteChannel;
 public final class ByteStreams {
   private static final int BUF_SIZE = 0x1000; // 4K
 
-  private ByteStreams() {}
+  private ByteStreams() {
+  }
 
   /**
    * Copies all bytes from the input stream to the output stream.
@@ -52,7 +52,7 @@ public final class ByteStreams {
    * @throws IOException if an I/O error occurs
    */
   public static long copy(InputStream from, OutputStream to)
-      throws IOException {
+    throws IOException {
     checkNotNull(from);
     checkNotNull(to);
     byte[] buf = new byte[BUF_SIZE];
@@ -278,7 +278,8 @@ public final class ByteStreams {
               + skipped + " bytes; " + toSkip + " bytes expected");
         }
         n--;
-      } else {
+      }
+      else {
         n -= amt;
       }
     }
@@ -309,7 +310,7 @@ public final class ByteStreams {
    * @throws IOException if an I/O error occurs
    */
   public static int read(InputStream in, byte[] b, int off, int len)
-      throws IOException {
+    throws IOException {
     checkNotNull(in);
     checkNotNull(b);
     if (len < 0) {

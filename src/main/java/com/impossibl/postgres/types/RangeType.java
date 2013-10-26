@@ -28,11 +28,10 @@
  */
 package com.impossibl.postgres.types;
 
-import java.util.Collection;
-
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
+import java.util.Collection;
 
 /**
  * A database range type.

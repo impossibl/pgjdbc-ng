@@ -38,7 +38,7 @@ import com.impossibl.postgres.types.Type.Codec;
 public class Procs {
 
 
-  public static final Type.Codec.Decoder[] defaultDecoders = { Strings.BINARY_DECODER, Bytes.BINARY_DECODER };
+  public static final Type.Codec.Decoder[] defaultDecoders = {Strings.BINARY_DECODER, Bytes.BINARY_DECODER};
 
   private static ProcProvider[] PROVIDERS = {
     new Oids(),
@@ -70,8 +70,8 @@ public class Procs {
     new ACLItems(),
   };
 
-  private static final Type.Codec.Decoder[] DEFAULT_DECODERS = { new Unknowns.TxtDecoder(), new Unknowns.BinDecoder() };
-  private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = { new Unknowns.TxtEncoder(), new Unknowns.BinEncoder() };
+  private static final Type.Codec.Decoder[] DEFAULT_DECODERS = {new Unknowns.TxtDecoder(), new Unknowns.BinDecoder()};
+  private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = {new Unknowns.TxtEncoder(), new Unknowns.BinEncoder()};
   private static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
 
   public static Type.Codec.Decoder getDefaultDecoder(Format format) {
@@ -103,11 +103,11 @@ public class Procs {
 
   public static Codec.Encoder loadEncoderProc(String name, Context context, Type.Codec.Encoder defaultEncoder) {
 
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
       Codec.Encoder h;
 
-      for(ProcProvider pp : Procs.PROVIDERS) {
-        if((h = pp.findEncoder(name, context)) != null)
+      for (ProcProvider pp : Procs.PROVIDERS) {
+        if ((h = pp.findEncoder(name, context)) != null)
           return h;
       }
     }
@@ -117,11 +117,11 @@ public class Procs {
 
   public static Codec.Decoder loadDecoderProc(String name, Context context, Type.Codec.Decoder defaultDecoder) {
 
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
       Codec.Decoder h;
 
-      for(ProcProvider pp : Procs.PROVIDERS) {
-        if((h = pp.findDecoder(name, context)) != null)
+      for (ProcProvider pp : Procs.PROVIDERS) {
+        if ((h = pp.findDecoder(name, context)) != null)
           return h;
       }
     }
@@ -131,11 +131,11 @@ public class Procs {
 
   public static Modifiers.Parser loadModifierParserProc(String name, Context context) {
 
-    if(!name.isEmpty()) {
+    if (!name.isEmpty()) {
       Modifiers.Parser p;
 
-      for(ProcProvider pp : Procs.PROVIDERS) {
-        if((p = pp.findModifierParser(name, context)) != null)
+      for (ProcProvider pp : Procs.PROVIDERS) {
+        if ((p = pp.findModifierParser(name, context)) != null)
           return p;
       }
     }

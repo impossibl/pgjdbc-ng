@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.protocol;
 
-import java.util.List;
-
 import com.impossibl.postgres.types.Type;
+
+import java.util.List;
 
 public interface FunctionCallCommand extends Command {
 

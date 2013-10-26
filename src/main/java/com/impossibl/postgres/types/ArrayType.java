@@ -28,12 +28,10 @@
  */
 package com.impossibl.postgres.types;
 
-import java.lang.reflect.Array;
-import java.util.Map;
-
 import com.impossibl.postgres.protocol.ResultField.Format;
 
-
+import java.lang.reflect.Array;
+import java.util.Map;
 
 /**
  * A database array type.

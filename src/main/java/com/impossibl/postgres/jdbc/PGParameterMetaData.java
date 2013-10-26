@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 
@@ -35,8 +36,6 @@ import java.sql.ParameterMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.types.Type;
 
 public class PGParameterMetaData implements ParameterMetaData {
 
@@ -53,7 +52,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
   void checkParamIndex(int paramIndex) throws SQLException {
 
-    if(paramIndex < 1 || paramIndex > parameterTypes.size())
+    if (paramIndex < 1 || paramIndex > parameterTypes.size())
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 
   }
@@ -61,12 +60,12 @@ public class PGParameterMetaData implements ParameterMetaData {
   Type getType(int paramIndex) throws SQLException {
     checkParamIndex(paramIndex);
 
-    return parameterTypes.get(paramIndex-1);
+    return parameterTypes.get(paramIndex - 1);
   }
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 
@@ -88,7 +87,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    if(SQLTypeMetaData.isNullable(paramType) == parameterNoNulls) {
+    if (SQLTypeMetaData.isNullable(paramType) == parameterNoNulls) {
       return parameterNoNulls;
     }
 

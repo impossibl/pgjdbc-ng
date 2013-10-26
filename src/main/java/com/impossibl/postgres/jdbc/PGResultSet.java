@@ -28,6 +28,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.CURSOR_NOT_SCROLLABLE;
@@ -56,11 +60,6 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-import static java.math.RoundingMode.HALF_UP;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -87,13 +86,11 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.Type;
-
-
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.math.RoundingMode.HALF_UP;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 class PGResultSet implements ResultSet {
 
@@ -150,7 +147,7 @@ class PGResultSet implements ResultSet {
    */
   void checkClosed() throws SQLException {
 
-    if(isClosed())
+    if (isClosed())
       throw CLOSED_RESULT_SET;
 
   }
@@ -163,7 +160,7 @@ class PGResultSet implements ResultSet {
    */
   void checkColumnIndex(int columnIndex) throws SQLException {
 
-    if(columnIndex < 1 || columnIndex > resultFields.size())
+    if (columnIndex < 1 || columnIndex > resultFields.size())
       throw COLUMN_INDEX_OUT_OF_BOUNDS;
 
   }
@@ -184,7 +181,7 @@ class PGResultSet implements ResultSet {
    */
   void checkRow() throws SQLException {
 
-    if(!isValidRow())
+    if (!isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
 
   }
@@ -196,7 +193,7 @@ class PGResultSet implements ResultSet {
    */
   void checkScroll() throws SQLException {
 
-    if(type == TYPE_FORWARD_ONLY)
+    if (type == TYPE_FORWARD_ONLY)
       throw CURSOR_NOT_SCROLLABLE;
 
   }
@@ -209,13 +206,13 @@ class PGResultSet implements ResultSet {
    * @return Column value as Object
    */
   Object get(int columnIndex) {
-    Object val = results.get(currentRowIndex)[columnIndex-1];
+    Object val = results.get(currentRowIndex)[columnIndex - 1];
     nullFlag = val == null;
     return val;
   }
 
   Type getType(int columnIndex) {
-    return resultFields.get(columnIndex-1).typeRef.get();
+    return resultFields.get(columnIndex - 1).typeRef.get();
   }
 
   @Override
@@ -255,7 +252,7 @@ class PGResultSet implements ResultSet {
   @Override
   public void setFetchDirection(int direction) throws SQLException {
     checkClosed();
-    if(direction != FETCH_FORWARD) {
+    if (direction != FETCH_FORWARD) {
       checkScroll();
     }
     fetchDir = direction;
@@ -272,7 +269,7 @@ class PGResultSet implements ResultSet {
   public void setFetchSize(int rows) throws SQLException {
     checkClosed();
 
-    if(rows < 0)
+    if (rows < 0)
       throw ILLEGAL_ARGUMENT;
 
     fetchSize = rows;
@@ -342,7 +339,7 @@ class PGResultSet implements ResultSet {
   public int getRow() throws SQLException {
     checkClosed();
 
-    if(!isValidRow())
+    if (!isValidRow())
       return 0;
 
     return resultsIndexOffset + currentRowIndex + 1;
@@ -353,11 +350,11 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkScroll();
 
-    if(row < 0) {
+    if (row < 0) {
       row = results.size() + 1 + row;
     }
 
-    currentRowIndex = max(-1, min(results.size(), row-1));
+    currentRowIndex = max(-1, min(results.size(), row - 1));
     return isValidRow();
   }
 
@@ -377,15 +374,15 @@ class PGResultSet implements ResultSet {
 
     if (min(++currentRowIndex, results.size()) == results.size()) {
 
-      if(command != null && command.getStatus() != Completed) {
+      if (command != null && command.getStatus() != Completed) {
 
-        if(fetchSize != null)
+        if (fetchSize != null)
           command.setMaxRows(fetchSize);
 
         warningChain = statement.connection.execute(command, true);
 
         List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-        if(resultBatches.size() != 1) {
+        if (resultBatches.size() != 1) {
           throw new SQLException("Invalid result data");
         }
 
@@ -482,7 +479,7 @@ class PGResultSet implements ResultSet {
   public void close() throws SQLException {
 
     // Ignore multiple closes
-    if(isClosed())
+    if (isClosed())
       return;
 
     // Notify statement of our closure
@@ -495,7 +492,7 @@ class PGResultSet implements ResultSet {
 
     //Release resources
 
-    if(command != null) {
+    if (command != null) {
       statement.dispose(command);
     }
 
@@ -521,7 +518,7 @@ class PGResultSet implements ResultSet {
   public boolean wasNull() throws SQLException {
     checkClosed();
 
-    if(nullFlag == null)
+    if (nullFlag == null)
       throw new SQLException("no column fetched");
 
     return nullFlag;
@@ -603,7 +600,7 @@ class PGResultSet implements ResultSet {
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
 
     BigDecimal val = coerceToBigDecimal(columnIndex);
-    if(val == null) {
+    if (val == null) {
       return null;
     }
 
@@ -686,12 +683,12 @@ class PGResultSet implements ResultSet {
     checkColumnIndex(columnIndex);
 
     Object value = get(columnIndex);
-    if(value == null)
+    if (value == null)
       return null;
 
     Type type = getType(columnIndex);
 
-    if(type instanceof ArrayType == false) {
+    if (!(type instanceof ArrayType)) {
       throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
     }
 
@@ -711,7 +708,7 @@ class PGResultSet implements ResultSet {
   public Reader getCharacterStream(int columnIndex) throws SQLException {
 
     String data = getString(columnIndex);
-    if(data == null)
+    if (data == null)
       return null;
 
     return new StringReader(data);
@@ -721,7 +718,7 @@ class PGResultSet implements ResultSet {
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
 
     String data = getString(columnIndex);
-    if(data == null)
+    if (data == null)
       return null;
 
     return new ByteArrayInputStream(data.getBytes(US_ASCII));
@@ -731,7 +728,7 @@ class PGResultSet implements ResultSet {
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
 
     String data = getString(columnIndex);
-    if(data == null)
+    if (data == null)
       return null;
 
     return new ByteArrayInputStream(data.getBytes(UTF_8));
@@ -741,7 +738,7 @@ class PGResultSet implements ResultSet {
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
 
     byte[] data = getBytes(columnIndex);
-    if(data == null)
+    if (data == null)
       return null;
 
     return new ByteArrayInputStream(data);
@@ -829,7 +826,7 @@ class PGResultSet implements ResultSet {
     for (int c = 0; c < resultFields.size(); ++c) {
 
       if (resultFields.get(c).name.equalsIgnoreCase(columnLabel))
-        return c+1;
+        return c + 1;
     }
 
     throw INVALID_COLUMN_NAME;
@@ -1431,7 +1428,7 @@ class PGResultSet implements ResultSet {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 

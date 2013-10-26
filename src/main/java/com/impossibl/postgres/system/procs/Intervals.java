@@ -28,17 +28,15 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.data.Interval;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Interval;
 
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.data.Interval;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
 
 public class Intervals extends SimpleProcProvider {
 

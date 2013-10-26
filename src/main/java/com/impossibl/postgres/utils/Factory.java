@@ -36,7 +36,7 @@ public class Factory {
 
     try {
 
-      if(type.isArray()) {
+      if (type.isArray()) {
         return type.cast(Array.newInstance(type.getComponentType(), sizeIfArray));
       }
 

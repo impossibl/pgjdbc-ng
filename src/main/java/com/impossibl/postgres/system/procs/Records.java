@@ -28,6 +28,13 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.data.Record;
+import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Record;
 
 import java.io.IOException;
@@ -36,16 +43,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.data.Record;
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Records extends SimpleProcProvider {
 
@@ -71,7 +68,7 @@ public class Records extends SimpleProcProvider {
 
       int length = buffer.readInt();
 
-      if(length != -1) {
+      if (length != -1) {
 
         long readStart = buffer.readerIndex();
 
@@ -81,7 +78,7 @@ public class Records extends SimpleProcProvider {
 
         for (int c = 0; c < itemCount; ++c) {
 
-          Attribute attribute = compType.getAttribute(c+1);
+          Attribute attribute = compType.getAttribute(c + 1);
 
           Type attributeType = context.getRegistry().loadType(buffer.readInt());
 
@@ -135,19 +132,19 @@ public class Records extends SimpleProcProvider {
 
         buffer.writeInt(attributes.size());
 
-        for(Attribute attribute : attributes) {
+        for (Attribute attribute : attributes) {
 
           Type attributeType = attribute.type;
 
           buffer.writeInt(attributeType.getId());
 
-          Object attributeVal = attributeVals[attribute.number-1];
+          Object attributeVal = attributeVals[attribute.number - 1];
 
           attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
         }
 
         //Set length
-        buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
+        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
       }
 
     }
@@ -170,7 +167,7 @@ public class Records extends SimpleProcProvider {
 
       Object[] instance = null;
 
-      if(length != 0) {
+      if (length != 0) {
 
         instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
       }
@@ -180,7 +177,7 @@ public class Records extends SimpleProcProvider {
 
     Object readValue(CharSequence data, Type type, Context context) throws IOException {
 
-      if(type instanceof CompositeType) {
+      if (type instanceof CompositeType) {
 
 
         return readComposite(data, type.getDelimeter(), (CompositeType) type, context);
@@ -194,11 +191,11 @@ public class Records extends SimpleProcProvider {
 
     Object[] readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
 
-      if(data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length()-1) != ')')) {
+      if (data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length() - 1) != ')')) {
         return null;
       }
 
-      data = data.subSequence(1, data.length()-1);
+      data = data.subSequence(1, data.length() - 1);
 
       List<Object> elements = new ArrayList<>();
       StringBuilder elementTxt = new StringBuilder();
@@ -207,49 +204,49 @@ public class Records extends SimpleProcProvider {
       boolean string = false;
       int opened = 0;
       int c;
-      for(c=0; c < data.length(); ++c) {
+      for (c = 0; c < data.length(); ++c) {
 
         char ch = data.charAt(c);
         switch(ch) {
-        case '(':
-          if(!string)
-            opened++;
-          else
-            elementTxt.append(ch);
-          break;
+          case '(':
+            if (!string)
+              opened++;
+            else
+              elementTxt.append(ch);
+            break;
 
-        case ')':
-          if(!string)
-            opened--;
-          else
-            elementTxt.append(ch);
-          break;
+          case ')':
+            if (!string)
+              opened--;
+            else
+              elementTxt.append(ch);
+            break;
 
-        case '"':
-          if(c < data.length() && data.charAt(c+1) == '"') {
-            elementTxt.append('"');
-            c++;
-          }
-          else {
-            string = !string;
-          }
-          break;
+          case '"':
+            if (c < data.length() && data.charAt(c + 1) == '"') {
+              elementTxt.append('"');
+              c++;
+            }
+            else {
+              string = !string;
+            }
+            break;
 
-        default:
+          default:
 
-          if(ch == delim && opened == 0 && !string) {
+            if (ch == delim && opened == 0 && !string) {
 
-            Object element = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
+              Object element = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
 
-            elements.add(element);
+              elements.add(element);
 
-            elementTxt = new StringBuilder();
-            elementIdx++;
-          }
-          else {
+              elementTxt = new StringBuilder();
+              elementIdx++;
+            }
+            else {
 
-            elementTxt.append(ch);
-          }
+              elementTxt.append(ch);
+            }
 
         }
 

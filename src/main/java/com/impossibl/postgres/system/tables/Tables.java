@@ -47,12 +47,12 @@ public class Tables {
 
     try {
 
-      for(int c=0; c < sqlData.length; c += 2) {
+      for (int c = 0; c < sqlData.length; c += 2) {
 
         Version curSqlVersion = (Version) sqlData[c];
-        String curSql = (String) sqlData[c+1];
+        String curSql = (String) sqlData[c + 1];
 
-        if(currentVersion.isMinimum(curSqlVersion))
+        if (currentVersion.isMinimum(curSqlVersion))
           return curSql;
       }
 

@@ -28,20 +28,17 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import static java.lang.Long.MAX_VALUE;
-import static java.util.Collections.emptyList;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
-
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import static java.lang.Long.MAX_VALUE;
+import static java.util.Collections.emptyList;
 
+import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 public abstract class CommandImpl implements Command {
 
@@ -67,7 +64,7 @@ public abstract class CommandImpl implements Command {
 
   public void addNotice(Notice notice) {
 
-    if(notices == null)
+    if (notices == null)
       notices = new ArrayList<>();
 
     notices.add(notice);
@@ -75,14 +72,14 @@ public abstract class CommandImpl implements Command {
 
   public List<Notice> getWarnings() {
 
-    if(notices == null)
+    if (notices == null)
       return emptyList();
 
     List<Notice> warnings = new ArrayList<>();
 
-    for(Notice notice : notices) {
+    for (Notice notice : notices) {
 
-      if(notice.isWarning())
+      if (notice.isWarning())
         warnings.add(notice);
     }
 
@@ -93,13 +90,13 @@ public abstract class CommandImpl implements Command {
 
     long networkTimeout = this.networkTimeout;
 
-    if(networkTimeout < 1) {
+    if (networkTimeout < 1) {
       networkTimeout = MAX_VALUE;
     }
 
-    synchronized(listener) {
+    synchronized (listener) {
 
-      while(!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
+      while (!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
 
         long start = System.currentTimeMillis();
 
@@ -108,12 +105,13 @@ public abstract class CommandImpl implements Command {
           listener.wait(networkTimeout);
 
         }
-        catch(InterruptedException e) {
+        catch (InterruptedException e) {
+          // Ignore
         }
 
         networkTimeout -= (System.currentTimeMillis() - start);
 
-        if(networkTimeout < 1) {
+        if (networkTimeout < 1) {
           throw new BlockingReadTimeoutException("network timeout reached");
         }
 
@@ -142,7 +140,7 @@ public abstract class CommandImpl implements Command {
 
   public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
 
-    if(timeout < 1)
+    if (timeout < 1)
       return;
 
     protocol.enableExecutionTimer(new CancelExecutionTimerTask(protocol), timeout);

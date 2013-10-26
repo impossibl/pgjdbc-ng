@@ -28,8 +28,14 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.data.Record;
+import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.Instants;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
-import static java.math.RoundingMode.HALF_EVEN;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -50,18 +56,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+import static java.math.RoundingMode.HALF_EVEN;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-
-import com.impossibl.postgres.data.Record;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.Instants;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.Type;
-
 
 
 class SQLTypeUtils {
@@ -78,38 +76,38 @@ class SQLTypeUtils {
     Class<?> targetType = sourceType.getJavaType(typeMap);
 
     Class<?> mappedType = typeMap.get(sourceType.getName());
-    if(mappedType != null) {
+    if (mappedType != null) {
       targetType = mappedType;
     }
     else {
 
       switch(sourceType.getPrimitiveType()) {
-      case Oid:
-        if(sourceType.getName().equals(context.getSetting("blob.type"))) {
-          targetType = Blob.class;
-        }
-        break;
+        case Oid:
+          if (sourceType.getName().equals(context.getSetting("blob.type"))) {
+            targetType = Blob.class;
+          }
+          break;
 
-      case XML:
-        targetType = SQLXML.class;
-        break;
+        case XML:
+          targetType = SQLXML.class;
+          break;
 
-      case Time:
-      case TimeTZ:
-        targetType = Time.class;
-        break;
+        case Time:
+        case TimeTZ:
+          targetType = Time.class;
+          break;
 
-      case Date:
-        targetType = Date.class;
-        break;
+        case Date:
+          targetType = Date.class;
+          break;
 
-      case Timestamp:
-      case TimestampTZ:
-        targetType = Timestamp.class;
-        break;
+        case Timestamp:
+        case TimestampTZ:
+          targetType = Timestamp.class;
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
 
     }
@@ -124,76 +122,76 @@ class SQLTypeUtils {
 
   public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    if(targetType.isInstance(val)) {
+    if (targetType.isInstance(val)) {
       return val;
     }
-    else if(targetType == Byte.class || targetType == byte.class) {
+    else if (targetType == Byte.class || targetType == byte.class) {
       return coerceToByte(val);
     }
-    else if(targetType == Short.class || targetType == short.class) {
+    else if (targetType == Short.class || targetType == short.class) {
       return coerceToShort(val);
     }
-    else if(targetType == Integer.class || targetType == int.class) {
+    else if (targetType == Integer.class || targetType == int.class) {
       return coerceToInt(val);
     }
-    else if(targetType == Long.class || targetType == long.class) {
+    else if (targetType == Long.class || targetType == long.class) {
       return coerceToLong(val);
     }
-    else if(targetType == Float.class || targetType == float.class) {
+    else if (targetType == Float.class || targetType == float.class) {
       return coerceToFloat(val);
     }
-    else if(targetType == Double.class || targetType == double.class) {
+    else if (targetType == Double.class || targetType == double.class) {
       return coerceToDouble(val);
     }
-    else if(targetType == BigDecimal.class) {
+    else if (targetType == BigDecimal.class) {
       return coerceToBigDecimal(val);
     }
-    else if(targetType == Boolean.class || targetType == boolean.class) {
+    else if (targetType == Boolean.class || targetType == boolean.class) {
       return coerceToBoolean(val);
     }
-    else if(targetType == String.class) {
+    else if (targetType == String.class) {
       return coerceToString(val, connection);
     }
-    else if(targetType == Date.class) {
+    else if (targetType == Date.class) {
       return coerceToDate(val, zone, connection);
     }
-    else if(targetType == Time.class) {
+    else if (targetType == Time.class) {
       return coerceToTime(val, zone, connection);
     }
-    else if(targetType == Timestamp.class) {
+    else if (targetType == Timestamp.class) {
       return coerceToTimestamp(val, zone, connection);
     }
-    else if(targetType == Instant.class) {
+    else if (targetType == Instant.class) {
       return coerceToInstant(val, sourceType, zone, connection);
     }
-    else if(targetType == URL.class) {
+    else if (targetType == URL.class) {
       return coerceToURL(val);
     }
-    else if(targetType == Blob.class) {
+    else if (targetType == Blob.class) {
       return coerceToBlob(val, connection);
     }
-    else if(targetType == byte[].class) {
+    else if (targetType == byte[].class) {
       return coerceToBytes(val, sourceType, connection);
     }
-    else if(targetType.isArray()) {
+    else if (targetType.isArray()) {
       return coerceToArray(val, sourceType, targetType, typeMap, connection);
     }
-    else if(targetType == Struct.class) {
+    else if (targetType == Struct.class) {
       return coerceToStruct(val, sourceType, typeMap, connection);
     }
-    else if(targetType == Record.class) {
+    else if (targetType == Record.class) {
       return coerceToRecord(val, sourceType, typeMap, connection);
     }
-    else if(targetType == UUID.class) {
+    else if (targetType == UUID.class) {
       return coerceToUUID(val, connection);
     }
-    else if(SQLXML.class.isAssignableFrom(targetType)) {
+    else if (SQLXML.class.isAssignableFrom(targetType)) {
       return coerceToXML(val, connection);
     }
-    else if(SQLData.class.isAssignableFrom(targetType)) {
+    else if (SQLData.class.isAssignableFrom(targetType)) {
       return coerceToCustomType(val, sourceType, targetType, typeMap, connection);
     }
 
@@ -202,25 +200,25 @@ class SQLTypeUtils {
 
   public static byte coerceToByte(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Byte) {
+    else if (val instanceof Byte) {
       return (byte) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
 
       try {
         return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).byteValueExact();
       }
-      catch(ArithmeticException e) {
+      catch (ArithmeticException e) {
         throw new SQLException("Coercion error", e);
       }
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Byte.parseByte((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? (byte) 1 : (byte) 0;
     }
 
@@ -229,28 +227,28 @@ class SQLTypeUtils {
 
   public static short coerceToShort(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Short) {
+    else if (val instanceof Short) {
       return (short) val;
     }
-    else if(val instanceof Byte) {
+    else if (val instanceof Byte) {
       return (byte) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
 
       try {
         return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).shortValueExact();
       }
-      catch(ArithmeticException e) {
+      catch (ArithmeticException e) {
         throw new SQLException("Coercion error", e);
       }
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Short.parseShort((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? (short) 1 : (short) 0;
     }
 
@@ -259,34 +257,34 @@ class SQLTypeUtils {
 
   public static int coerceToInt(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Integer) {
+    else if (val instanceof Integer) {
       return (int) val;
     }
-    else if(val instanceof Short) {
+    else if (val instanceof Short) {
       return (short) val;
     }
-    else if(val instanceof Byte) {
+    else if (val instanceof Byte) {
       return (byte) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
 
       try {
         return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).intValueExact();
       }
-      catch(ArithmeticException e) {
+      catch (ArithmeticException e) {
         throw new SQLException("Coercion error", e);
       }
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Integer.parseInt((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1 : 0;
     }
-    else if(val instanceof PGBlob) {
+    else if (val instanceof PGBlob) {
       return ((PGBlob) val).lo.oid;
     }
 
@@ -295,37 +293,37 @@ class SQLTypeUtils {
 
   public static long coerceToLong(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Long) {
+    else if (val instanceof Long) {
       return (long) val;
     }
-    else if(val instanceof Integer) {
+    else if (val instanceof Integer) {
       return (int) val;
     }
-    else if(val instanceof Short) {
+    else if (val instanceof Short) {
       return (short) val;
     }
-    else if(val instanceof Byte) {
+    else if (val instanceof Byte) {
       return (byte) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
 
       try {
         return new BigDecimal(val.toString()).setScale(0, HALF_EVEN).longValueExact();
       }
-      catch(ArithmeticException e) {
+      catch (ArithmeticException e) {
         throw new SQLException("Coercion error", e);
       }
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Long.parseLong((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1 : 0;
     }
-    else if(val instanceof PGBlob) {
+    else if (val instanceof PGBlob) {
       return ((PGBlob) val).lo.oid;
     }
 
@@ -334,19 +332,19 @@ class SQLTypeUtils {
 
   public static float coerceToFloat(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Float) {
+    else if (val instanceof Float) {
       return (float) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
       return ((Number) val).floatValue();
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Float.parseFloat((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1.0f : 0.0f;
     }
 
@@ -355,19 +353,19 @@ class SQLTypeUtils {
 
   public static double coerceToDouble(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return 0;
     }
-    else if(val instanceof Double) {
+    else if (val instanceof Double) {
       return (double) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
       return ((Number) val).doubleValue();
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return Double.parseDouble((String) val);
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1.0 : 0.0;
     }
 
@@ -376,19 +374,19 @@ class SQLTypeUtils {
 
   public static BigDecimal coerceToBigDecimal(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof BigDecimal) {
+    else if (val instanceof BigDecimal) {
       return (BigDecimal) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
       return new BigDecimal(val.toString());
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return new BigDecimal((boolean) val ? "1.0" : "0.0");
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return new BigDecimal((String) val);
     }
 
@@ -397,39 +395,41 @@ class SQLTypeUtils {
 
   public static boolean coerceToBoolean(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return false;
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return (boolean) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
       return ((Number) val).byteValue() != 0;
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
 
       String str = ((String) val).toLowerCase();
 
       try {
         return Long.parseLong(str) != 0;
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ignore
       }
 
       try {
         return Double.parseDouble(str) != 0;
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ignore
       }
 
       switch(str) {
-      case "on":
-      case "true":
-      case "t":
-        return true;
+        case "on":
+        case "true":
+        case "t":
+          return true;
 
-      default:
-        return false;
+        default:
+          return false;
       }
 
     }
@@ -439,37 +439,37 @@ class SQLTypeUtils {
 
   public static String coerceToString(Object val, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return (String) val;
     }
-    else if(val instanceof Number) {
+    else if (val instanceof Number) {
       return ((Number) val).toString();
     }
-    else if(val instanceof Character) {
-      return new String(new char[] { (Character) val });
+    else if (val instanceof Character) {
+      return new String(new char[] {(Character) val });
     }
-    else if(val instanceof Boolean) {
+    else if (val instanceof Boolean) {
       return val.toString();
     }
-    else if(val instanceof URL) {
+    else if (val instanceof URL) {
       return val.toString();
     }
-    else if(val instanceof Time) {
+    else if (val instanceof Time) {
       return val.toString();
     }
-    else if(val instanceof Date) {
+    else if (val instanceof Date) {
       return val.toString();
     }
-    else if(val instanceof Timestamp) {
+    else if (val instanceof Timestamp) {
       return val.toString();
     }
-    else if(val instanceof Instant) {
+    else if (val instanceof Instant) {
       return ((Instant) val).disambiguate(TimeZone.getDefault()).print(context);
     }
-    else if(val instanceof byte[]) {
+    else if (val instanceof byte[]) {
       return new String((byte[]) val, context.getCharset());
     }
     else {
@@ -480,17 +480,17 @@ class SQLTypeUtils {
 
   public static Date coerceToDate(Object val, TimeZone zone, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof Date) {
+    else if (val instanceof Date) {
       return (Date) val;
     }
-    else if(val instanceof Instant) {
+    else if (val instanceof Instant) {
 
       Instant inst = (Instant) val;
 
-      if(inst.getType() != Instant.Type.Time) {
+      if (inst.getType() != Instant.Type.Time) {
 
         return inst.switchTo(zone).toDate();
 
@@ -502,17 +502,17 @@ class SQLTypeUtils {
 
   public static Time coerceToTime(Object val, TimeZone zone, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof Time) {
+    else if (val instanceof Time) {
       return (Time) val;
     }
-    else if(val instanceof Instant) {
+    else if (val instanceof Instant) {
 
       Instant inst = (Instant) val;
 
-      if(inst.getType() != Instant.Type.Date && inst.getType() != Instant.Type.Infinity) {
+      if (inst.getType() != Instant.Type.Date && inst.getType() != Instant.Type.Infinity) {
 
         return ((Instant) val).switchTo(zone).toTime();
 
@@ -525,13 +525,13 @@ class SQLTypeUtils {
 
   public static Timestamp coerceToTimestamp(Object val, TimeZone zone, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof Timestamp) {
+    else if (val instanceof Timestamp) {
       return (Timestamp) val;
     }
-    else if(val instanceof Instant) {
+    else if (val instanceof Instant) {
       return ((Instant) val).switchTo(zone).toTimestamp();
     }
 
@@ -540,57 +540,57 @@ class SQLTypeUtils {
 
   public static Instant coerceToInstant(Object val, Type sourceType, TimeZone zone, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof Instant) {
+    else if (val instanceof Instant) {
       return ((Instant) val).disambiguate(zone);
     }
-    else if(val instanceof Date) {
+    else if (val instanceof Date) {
       return Instants.fromDate((Date) val, zone);
     }
-    else if(val instanceof Time) {
+    else if (val instanceof Time) {
       return Instants.fromTime((Time) val, zone);
     }
-    else if(val instanceof Timestamp) {
+    else if (val instanceof Timestamp) {
       return Instants.fromTimestamp((Timestamp) val, zone);
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
 
       String str = (String) val;
 
       switch(sourceType.getPrimitiveType()) {
 
-      case Date: {
-        Map<String, Object> pieces = new HashMap<>();
-        int offset = context.getDateFormatter().getParser().parse(str, 0, pieces);
-        if(offset < 0) {
-          throw createCoercionParseException(str, ~offset, Date.class);
+        case Date: {
+          Map<String, Object> pieces = new HashMap<>();
+          int offset = context.getDateFormatter().getParser().parse(str, 0, pieces);
+          if (offset < 0) {
+            throw createCoercionParseException(str, ~offset, Date.class);
+          }
+          return Instants.dateFromPieces(pieces, zone);
         }
-        return Instants.dateFromPieces(pieces, zone);
-      }
 
-      case Time:
-      case TimeTZ: {
-        Map<String, Object> pieces = new HashMap<>();
-        int offset = context.getTimeFormatter().getParser().parse(val.toString(), 0, pieces);
-        if(offset < 0) {
-          throw createCoercionParseException(str, ~offset, Time.class);
+        case Time:
+        case TimeTZ: {
+          Map<String, Object> pieces = new HashMap<>();
+          int offset = context.getTimeFormatter().getParser().parse(val.toString(), 0, pieces);
+          if (offset < 0) {
+            throw createCoercionParseException(str, ~offset, Time.class);
+          }
+          return Instants.timeFromPieces(pieces, zone);
         }
-        return Instants.timeFromPieces(pieces, zone);
-      }
 
-      case Timestamp:
-      case TimestampTZ: {
-        Map<String, Object> pieces = new HashMap<>();
-        int offset = context.getTimestampFormatter().getParser().parse(val.toString(), 0, pieces);
-        if(offset < 0) {
-          throw createCoercionParseException(str, ~offset, Timestamp.class);
+        case Timestamp:
+        case TimestampTZ: {
+          Map<String, Object> pieces = new HashMap<>();
+          int offset = context.getTimestampFormatter().getParser().parse(val.toString(), 0, pieces);
+          if (offset < 0) {
+            throw createCoercionParseException(str, ~offset, Timestamp.class);
+          }
+          return Instants.timestampFromPieces(pieces, zone);
         }
-        return Instants.timestampFromPieces(pieces, zone);
-      }
 
-      default:
+        default:
       }
 
     }
@@ -600,17 +600,17 @@ class SQLTypeUtils {
 
   public static URL coerceToURL(Object val) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof URL) {
+    else if (val instanceof URL) {
       return (URL) val;
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       try {
         return new URL((String) val);
       }
-      catch(MalformedURLException e) {
+      catch (MalformedURLException e) {
         throw createCoercionException(val.getClass(), URL.class, e);
       }
     }
@@ -620,16 +620,16 @@ class SQLTypeUtils {
 
   public static Blob coerceToBlob(Object val, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof Blob) {
+    else if (val instanceof Blob) {
       return (Blob) val;
     }
-    else if(val instanceof Integer) {
+    else if (val instanceof Integer) {
       return new PGBlob(connection, (int) val);
     }
-    else if(val instanceof Long) {
+    else if (val instanceof Long) {
       return new PGBlob(connection, (int) (long) val);
     }
 
@@ -638,26 +638,26 @@ class SQLTypeUtils {
 
   public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof byte[]) {
+    else if (val instanceof byte[]) {
       return (byte[]) val;
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return ((String)val).getBytes(context.getCharset());
     }
-    else if(val instanceof PGSQLXML) {
+    else if (val instanceof PGSQLXML) {
       return ((PGSQLXML) val).getData();
     }
-    else if(sourceType.getJavaType(Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+    else if (sourceType.getJavaType(Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
 
       ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
 
       try {
         sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
       }
-      catch(IOException e) {
+      catch (IOException e) {
         throw createCoercionException(val.getClass(), byte[].class);
       }
 
@@ -670,13 +670,13 @@ class SQLTypeUtils {
 
   public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof PGArray) {
+    else if (val instanceof PGArray) {
       return coerceToArray(((PGArray) val).getValue(), type, targetType, typeMap, connection);
     }
-    else if(val.getClass().isArray()) {
+    else if (val.getClass().isArray()) {
       return coerceToArray(val, 0, Array.getLength(val), type, targetType, typeMap, connection);
     }
 
@@ -685,16 +685,16 @@ class SQLTypeUtils {
 
   public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof PGArray) {
+    else if (val instanceof PGArray) {
       return coerceToArray(((PGArray) val).getValue(), index, count, type, targetType, typeMap, connection);
     }
-    else if(val.getClass().isArray() && targetType.isArray()) {
+    else if (val.getClass().isArray() && targetType.isArray()) {
 
       int targetDims = getDimensions(targetType);
-      if(targetDims == 1) {
+      if (targetDims == 1) {
 
         targetDims = getDimensions(val);
 
@@ -702,7 +702,7 @@ class SQLTypeUtils {
         targetType = Array.newInstance(targetType.getComponentType(), new int[targetDims]).getClass();
       }
 
-      if(type instanceof ArrayType) {
+      if (type instanceof ArrayType) {
         type = ((ArrayType) type).getElementType();
       }
 
@@ -710,23 +710,23 @@ class SQLTypeUtils {
 
       Object dst;
 
-      if(count == 0) {
+      if (count == 0) {
         dst = Array.newInstance(targetType.getComponentType(), count);
       }
-      else if(val.getClass().getComponentType() == targetType.getComponentType()) {
+      else if (val.getClass().getComponentType() == targetType.getComponentType()) {
 
-        if(index == 0 && count == Array.getLength(val)) {
+        if (index == 0 && count == Array.getLength(val)) {
           dst = val;
         }
         else {
           dst = Arrays.copyOfRange((Object[]) val, index, index + count);
         }
       }
-      else if(Array.get(val, 0) != null && elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
+      else if (Array.get(val, 0) != null && elementClass.isAssignableFrom(Array.get(val, 0).getClass())) {
 
         dst = Array.newInstance(targetType.getComponentType(), count);
 
-        for(int i = 0; i < count; ++i) {
+        for (int i = 0; i < count; ++i) {
           Array.set(dst, i, Array.get(val, i));
         }
       }
@@ -734,7 +734,7 @@ class SQLTypeUtils {
 
         dst = Array.newInstance(targetType.getComponentType(), count);
 
-        for(int c = index, end = index + count; c < end; ++c) {
+        for (int c = index, end = index + count; c < end; ++c) {
 
           Array.set(dst, c, coerce(Array.get(val, c), type, elementClass, typeMap, connection));
 
@@ -750,19 +750,19 @@ class SQLTypeUtils {
 
   public static Struct coerceToStruct(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
 
       return null;
     }
-    else if(val instanceof Struct) {
+    else if (val instanceof Struct) {
 
       return (Struct) val;
     }
-    else if(val instanceof Record) {
+    else if (val instanceof Record) {
 
       return new PGStruct(connection, ((Record) val).getType(), ((Record) val).getValues());
     }
-    else if(SQLData.class.isInstance(val) && sourceType instanceof CompositeType) {
+    else if (SQLData.class.isInstance(val) && sourceType instanceof CompositeType) {
 
       CompositeType compType = (CompositeType) sourceType;
 
@@ -778,26 +778,26 @@ class SQLTypeUtils {
 
   public static Record coerceToRecord(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
 
       return null;
     }
-    else if(val instanceof Record) {
+    else if (val instanceof Record) {
 
       return (Record) val;
     }
-    else if(sourceType instanceof CompositeType) {
+    else if (sourceType instanceof CompositeType) {
 
       CompositeType compType = (CompositeType) sourceType;
 
       Object[] attributeVals;
 
-      if(val instanceof Struct) {
+      if (val instanceof Struct) {
 
         Struct struct = (Struct) val;
         attributeVals = struct.getAttributes();
       }
-      else if(SQLData.class.isInstance(val)) {
+      else if (SQLData.class.isInstance(val)) {
 
         PGSQLOutput out = new PGSQLOutput(connection, compType);
 
@@ -818,22 +818,22 @@ class SQLTypeUtils {
 
   public static Object coerceToCustomType(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
 
       return null;
     }
-    else if(sourceType instanceof CompositeType) {
+    else if (sourceType instanceof CompositeType) {
 
       CompositeType compType = (CompositeType) sourceType;
 
       Object[] attributeVals;
 
-      if(val instanceof Struct) {
+      if (val instanceof Struct) {
 
         Struct struct = (Struct) val;
         attributeVals = struct.getAttributes();
       }
-      else if(val instanceof Record) {
+      else if (val instanceof Record) {
 
         Record record = (Record) val;
         attributeVals = record.getValues();
@@ -847,7 +847,7 @@ class SQLTypeUtils {
       try {
         dst = targetType.newInstance();
       }
-      catch(InstantiationException | IllegalAccessException e) {
+      catch (InstantiationException | IllegalAccessException e) {
         throw createCoercionException(val.getClass(), targetType, e);
       }
 
@@ -863,13 +863,13 @@ class SQLTypeUtils {
 
   public static UUID coerceToUUID(Object val, Context context) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof UUID) {
+    else if (val instanceof UUID) {
       return (UUID) val;
     }
-    else if(val instanceof String) {
+    else if (val instanceof String) {
       return UUID.fromString((String)val);
     }
 
@@ -878,17 +878,17 @@ class SQLTypeUtils {
 
   public static SQLXML coerceToXML(Object val, PGConnection connection) throws SQLException {
 
-    if(val == null) {
+    if (val == null) {
       return null;
     }
-    else if(val instanceof SQLXML) {
+    else if (val instanceof SQLXML) {
       return (SQLXML) val;
     }
-    if(val instanceof String) {
+    if (val instanceof String) {
 
       return new PGSQLXML(connection, ((String)val).getBytes(connection.getCharset()));
     }
-    else if(val instanceof byte[]) {
+    else if (val instanceof byte[]) {
 
       return new PGSQLXML(connection, (byte[]) val);
     }
@@ -908,7 +908,7 @@ class SQLTypeUtils {
 
     String errorText = "";
     int parseErrorEndPos = Math.min(parseErrorPos + 15, val.length());
-    if(parseErrorEndPos < val.length()) {
+    if (parseErrorEndPos < val.length()) {
       parseErrorEndPos -= 3;
       errorText = "...";
     }

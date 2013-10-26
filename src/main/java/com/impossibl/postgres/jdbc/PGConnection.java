@@ -28,6 +28,15 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
+import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
+import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
@@ -51,14 +60,6 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityT
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
-import static java.lang.Boolean.parseBoolean;
-import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
-import static java.sql.ResultSet.CONCUR_READ_ONLY;
-import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
-import static java.sql.Statement.RETURN_GENERATED_KEYS;
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableMap;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -88,27 +89,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import static java.lang.Boolean.parseBoolean;
+import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
+import static java.sql.Statement.RETURN_GENERATED_KEYS;
+import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
-import com.impossibl.postgres.jdbc.SQLTextTree.Node;
-import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
-import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
-import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.system.BasicContext;
-import com.impossibl.postgres.system.NoticeException;
-import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.Type;
-
-
-
 class PGConnection extends BasicContext implements Connection {
-
-
-
-  long statementId = 0l;
-  long portalId = 0l;
+  long statementId = 0L;
+  long portalId = 0L;
   int savepointId;
   private int holdability;
   boolean autoCommit = true;
@@ -133,11 +127,11 @@ class PGConnection extends BasicContext implements Connection {
 
   void applySettings(Properties settings) throws IOException {
 
-    if(parseBoolean(settings.getProperty(CONNECTION_READONLY, "false"))) {
+    if (parseBoolean(settings.getProperty(CONNECTION_READONLY, "false"))) {
       try {
         setReadOnly(true);
       }
-      catch(SQLException e) {
+      catch (SQLException e) {
         throw new IOException(e);
       }
     }
@@ -164,7 +158,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   void checkClosed() throws SQLException {
 
-    if(isClosed())
+    if (isClosed())
       throw new SQLException("connection closed");
   }
 
@@ -176,7 +170,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   void checkManualCommit() throws SQLException {
 
-    if(autoCommit != false)
+    if (autoCommit)
       throw new SQLException("must not be in auto-commit mode");
   }
 
@@ -188,7 +182,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   void checkAutoCommit() throws SQLException {
 
-    if(autoCommit != false)
+    if (autoCommit)
       throw new SQLException("must be in auto-commit mode");
   }
 
@@ -199,14 +193,14 @@ class PGConnection extends BasicContext implements Connection {
    */
   void checkTransaction() throws SQLException {
 
-    if(!autoCommit && protocol.getTransactionStatus() == Idle) {
+    if (!autoCommit && protocol.getTransactionStatus() == Idle) {
       try {
         execQuery(getBeginText());
       }
-      catch(IOException e) {
+      catch (IOException e) {
         throw new SQLException(e);
       }
-      catch(NoticeException e) {
+      catch (NoticeException e) {
         throw makeSQLException(e.getNotice());
       }
     }
@@ -239,10 +233,10 @@ class PGConnection extends BasicContext implements Connection {
   void handleStatementClosure(PGStatement statement) {
 
     Iterator<WeakReference<PGStatement>> stmtRefIter = activeStatements.iterator();
-    while(stmtRefIter.hasNext()) {
+    while (stmtRefIter.hasNext()) {
 
       PGStatement stmt = stmtRefIter.next().get();
-      if(stmt == null || stmt == statement) {
+      if (stmt == null || stmt == statement) {
 
         stmtRefIter.remove();
       }
@@ -258,10 +252,10 @@ class PGConnection extends BasicContext implements Connection {
    */
   void closeStatements() throws SQLException {
 
-    for(WeakReference<PGStatement> stmtRef : activeStatements) {
+    for (WeakReference<PGStatement> stmtRef : activeStatements) {
 
       PGStatement statement = stmtRef.get();
-      if(statement != null)
+      if (statement != null)
         statement.internalClose();
     }
   }
@@ -270,7 +264,7 @@ class PGConnection extends BasicContext implements Connection {
     try {
       return new SQLText(sqlText);
     }
-    catch(ParseException e) {
+    catch (ParseException e) {
 
       throw new SQLException("Error parsing SQL at position " + e.getErrorOffset());
     }
@@ -288,7 +282,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   SQLWarning execute(Command cmd, boolean checkTxn) throws SQLException {
 
-    if(checkTxn) {
+    if (checkTxn) {
       checkTransaction();
     }
 
@@ -300,7 +294,7 @@ class PGConnection extends BasicContext implements Connection {
 
       protocol.execute(cmd);
 
-      if(cmd.getError() != null) {
+      if (cmd.getError() != null) {
 
         throw makeSQLException(cmd.getError());
       }
@@ -308,19 +302,19 @@ class PGConnection extends BasicContext implements Connection {
       return makeSQLWarningChain(cmd.getWarnings());
 
     }
-    catch(BlockingReadTimeoutException e) {
+    catch (BlockingReadTimeoutException e) {
 
       close();
 
       throw new SQLTimeoutException(e);
     }
-    catch(InterruptedIOException e) {
+    catch (InterruptedIOException e) {
 
       close();
 
       throw CLOSED_CONNECTION;
     }
-    catch(IOException e) {
+    catch (IOException e) {
 
       throw new SQLException(e);
     }
@@ -337,7 +331,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   void execute(String sql, boolean checkTxn) throws SQLException {
 
-    if(checkTxn) {
+    if (checkTxn) {
       checkTransaction();
     }
 
@@ -346,24 +340,24 @@ class PGConnection extends BasicContext implements Connection {
       execQuery(sql);
 
     }
-    catch(BlockingReadTimeoutException e) {
+    catch (BlockingReadTimeoutException e) {
 
       close();
 
       throw new SQLTimeoutException(e);
     }
-    catch(InterruptedIOException e) {
+    catch (InterruptedIOException e) {
 
       close();
 
       throw CLOSED_CONNECTION;
     }
-    catch(IOException e) {
+    catch (IOException e) {
 
       throw new SQLException(e);
 
     }
-    catch(NoticeException e) {
+    catch (NoticeException e) {
 
       throw makeSQLException(e.getNotice());
 
@@ -383,7 +377,7 @@ class PGConnection extends BasicContext implements Connection {
    */
   String executeForString(String sql, boolean checkTxn) throws SQLException {
 
-    if(checkTxn) {
+    if (checkTxn) {
       checkTransaction();
     }
 
@@ -392,24 +386,24 @@ class PGConnection extends BasicContext implements Connection {
       return execQueryForString(sql);
 
     }
-    catch(BlockingReadTimeoutException e) {
+    catch (BlockingReadTimeoutException e) {
 
       close();
 
       throw new SQLTimeoutException(e);
     }
-    catch(InterruptedIOException e) {
+    catch (InterruptedIOException e) {
 
       close();
 
       throw CLOSED_CONNECTION;
     }
-    catch(IOException e) {
+    catch (IOException e) {
 
       throw new SQLException(e);
 
     }
-    catch(NoticeException e) {
+    catch (NoticeException e) {
 
       throw makeSQLException(e.getNotice());
 
@@ -429,41 +423,41 @@ class PGConnection extends BasicContext implements Connection {
    */
   <T> T executeForResult(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
 
-    if(checkTxn) {
+    if (checkTxn) {
       checkTransaction();
     }
 
     try {
 
       List<Object[]> res = execQuery(sql, Object[].class, params);
-      if(res.isEmpty())
+      if (res.isEmpty())
         return null;
 
       Object[] resRow = res.get(0);
-      if(resRow.length == 0)
+      if (resRow.length == 0)
         return null;
 
       return returnType.cast(resRow[0]);
 
     }
-    catch(BlockingReadTimeoutException e) {
+    catch (BlockingReadTimeoutException e) {
 
       close();
 
       throw new SQLTimeoutException(e);
     }
-    catch(InterruptedIOException e) {
+    catch (InterruptedIOException e) {
 
       close();
 
       throw CLOSED_CONNECTION;
     }
-    catch(IOException e) {
+    catch (IOException e) {
 
       throw new SQLException(e);
 
     }
-    catch(NoticeException e) {
+    catch (NoticeException e) {
 
       throw makeSQLException(e.getNotice());
 
@@ -487,7 +481,7 @@ class PGConnection extends BasicContext implements Connection {
   public boolean isValid(int timeout) throws SQLException {
 
     //Not valid if connection is closed
-    if(isClosed())
+    if (isClosed())
       return false;
 
     return executeForString("SELECT '1'::char", false).equals("1");
@@ -518,7 +512,7 @@ class PGConnection extends BasicContext implements Connection {
   public void setHoldability(int holdability) throws SQLException {
     checkClosed();
 
-    if( holdability != ResultSet.CLOSE_CURSORS_AT_COMMIT &&
+    if (holdability != ResultSet.CLOSE_CURSORS_AT_COMMIT &&
         holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
       throw new SQLException("illegal argument");
     }
@@ -544,12 +538,12 @@ class PGConnection extends BasicContext implements Connection {
     checkClosed();
 
     // Do nothing if no change in state
-    if(this.autoCommit == autoCommit)
+    if (this.autoCommit == autoCommit)
       return;
 
     // Commit any in-flight transaction (cannot call commit as it will start a
     // new transaction since we would still be in manual commit mode)
-    if(!this.autoCommit && protocol.getTransactionStatus() != Idle) {
+    if (!this.autoCommit && protocol.getTransactionStatus() != Idle) {
       execute(getCommitText(), false);
     }
 
@@ -569,7 +563,7 @@ class PGConnection extends BasicContext implements Connection {
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
 
-    if(protocol.getTransactionStatus() != Idle) {
+    if (protocol.getTransactionStatus() != Idle) {
       throw new SQLException("cannot set read only during a transaction");
     }
 
@@ -589,7 +583,7 @@ class PGConnection extends BasicContext implements Connection {
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
-    if( level != Connection.TRANSACTION_NONE &&
+    if (level != Connection.TRANSACTION_NONE &&
         level != Connection.TRANSACTION_READ_UNCOMMITTED &&
         level != Connection.TRANSACTION_READ_COMMITTED &&
         level != Connection.TRANSACTION_REPEATABLE_READ &&
@@ -606,7 +600,7 @@ class PGConnection extends BasicContext implements Connection {
     checkManualCommit();
 
     // Commit the current transaction
-    if(protocol.getTransactionStatus() != Idle) {
+    if (protocol.getTransactionStatus() != Idle) {
       execute(getCommitText(), false);
     }
 
@@ -618,7 +612,7 @@ class PGConnection extends BasicContext implements Connection {
     checkManualCommit();
 
     // Roll back the current transaction
-    if(protocol.getTransactionStatus() != Idle) {
+    if (protocol.getTransactionStatus() != Idle) {
       execute(getRollbackText(), false);
     }
 
@@ -659,13 +653,13 @@ class PGConnection extends BasicContext implements Connection {
 
     PGSavepoint savepoint = (PGSavepoint) savepointParam;
 
-    if(!savepoint.isValid()) {
+    if (!savepoint.isValid()) {
       throw new SQLException("invalid savepoint");
     }
 
     try {
       // Rollback to save-point (if in transaction)
-      if(protocol.getTransactionStatus() != Idle) {
+      if (protocol.getTransactionStatus() != Idle) {
         execute(getRollbackToText(savepoint), false);
       }
     }
@@ -683,13 +677,13 @@ class PGConnection extends BasicContext implements Connection {
 
     PGSavepoint savepoint = (PGSavepoint) savepointParam;
 
-    if(!savepoint.isValid()) {
+    if (!savepoint.isValid()) {
       throw new SQLException("invalid savepoint");
     }
 
     try {
       // Release the save-point (if in a transaction)
-      if(!savepoint.getReleased() && protocol.getTransactionStatus() != Idle) {
+      if (!savepoint.getReleased() && protocol.getTransactionStatus() != Idle) {
         execute(getReleaseSavepointText((PGSavepoint) savepoint), false);
       }
     }
@@ -788,7 +782,7 @@ class PGConnection extends BasicContext implements Connection {
 
       @Override
       public Node process(Node node) throws SQLException {
-        if(node instanceof ParameterPiece)
+        if (node instanceof ParameterPiece)
           parameterCount[0] += 1;
         return node;
       }
@@ -809,11 +803,11 @@ class PGConnection extends BasicContext implements Connection {
 
     SQLText sqlText = parseSQL(sql);
 
-    if(autoGeneratedKeys != RETURN_GENERATED_KEYS) {
+    if (autoGeneratedKeys != RETURN_GENERATED_KEYS) {
       return prepareStatement(sql);
     }
 
-    if(appendReturningClause(sqlText) == false) {
+    if (!appendReturningClause(sqlText)) {
       throw INVALID_COMMAND_FOR_GENERATED_KEYS;
     }
 
@@ -836,7 +830,7 @@ class PGConnection extends BasicContext implements Connection {
 
     SQLText sqlText = parseSQL(sql);
 
-    if(appendReturningClause(sqlText, asList(columnNames)) == false) {
+    if (!appendReturningClause(sqlText, asList(columnNames))) {
       throw INVALID_COMMAND_FOR_GENERATED_KEYS;
     }
 
@@ -886,7 +880,7 @@ class PGConnection extends BasicContext implements Connection {
     checkClosed();
 
     Type type = getRegistry().loadType(typeName + "[]");
-    if(type == null) {
+    if (type == null) {
       throw new SQLException("Array type not found");
     }
 
@@ -898,7 +892,7 @@ class PGConnection extends BasicContext implements Connection {
     checkClosed();
 
     Type type = getRegistry().loadType(typeName);
-    if(type instanceof CompositeType == false) {
+    if (!(type instanceof CompositeType)) {
       throw new SQLException("Invalid type for struct");
     }
 
@@ -943,14 +937,14 @@ class PGConnection extends BasicContext implements Connection {
 
   @Override
   public boolean isClosed() throws SQLException {
-    return protocol.isConnected() == false;
+    return !protocol.isConnected();
   }
 
   @Override
   public void close() throws SQLException {
 
     // Ignore multiple closes
-    if(isClosed())
+    if (isClosed())
       return;
 
     internalClose();
@@ -986,7 +980,7 @@ class PGConnection extends BasicContext implements Connection {
   public void setNetworkTimeout(Executor executor, int networkTimeout) throws SQLException {
     checkClosed();
 
-    if(networkTimeout < 0) {
+    if (networkTimeout < 0) {
       throw new SQLException("invalid network timeout");
     }
 
@@ -995,7 +989,7 @@ class PGConnection extends BasicContext implements Connection {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 

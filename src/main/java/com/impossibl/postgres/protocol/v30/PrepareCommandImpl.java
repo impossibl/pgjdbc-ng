@@ -28,6 +28,13 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.PrepareCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.protocol.TypeRef;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.io.IOException;
@@ -37,16 +44,6 @@ import java.util.List;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-
-import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
@@ -75,7 +72,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
     public void rowDescription(List<ResultField> resultFields) {
 
       // Ensure we are working with binary fields
-      for(ResultField field : resultFields)
+      for (ResultField field : resultFields)
         field.format = Format.Binary;
 
       PrepareCommandImpl.this.describedResultFields = resultFields;
@@ -126,7 +123,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
   @Override
   public List<Type> getDescribedParameterTypes() {
     List<Type> types = new ArrayList<>();
-    for(TypeRef typeRef : describedParameterTypes) {
+    for (TypeRef typeRef : describedParameterTypes) {
       types.add(typeRef.get());
     }
     return types;

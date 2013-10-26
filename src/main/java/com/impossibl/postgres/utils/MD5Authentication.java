@@ -28,11 +28,10 @@
  */
 package com.impossibl.postgres.utils;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
@@ -47,7 +46,7 @@ public class MD5Authentication {
    * @param salt Salt to generate token from
    * @return MD5 authentication token
    */
-  public static String encode(String password, String user, byte salt[]) {
+  public static String encode(String password, String user, byte[] salt) {
 
     HexBinaryAdapter hex = new HexBinaryAdapter();
     byte[] tempDigest, passDigest;

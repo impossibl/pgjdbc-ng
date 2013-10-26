@@ -49,7 +49,7 @@ public class MessageHandler extends SimpleChannelUpstreamHandler {
   public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 
     ProtocolImpl protocol = (ProtocolImpl) ctx.getChannel().getAttachment();
-    if(protocol != null) {
+    if (protocol != null) {
       protocol.dispatchException(e.getCause());
     }
   }

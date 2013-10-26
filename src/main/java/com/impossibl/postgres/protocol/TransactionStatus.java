@@ -32,8 +32,7 @@ public enum TransactionStatus {
 
   Idle    ('I'),
   Active  ('T'),
-  Failed  ('E')
-  ;
+  Failed  ('E');
 
   byte code;
 

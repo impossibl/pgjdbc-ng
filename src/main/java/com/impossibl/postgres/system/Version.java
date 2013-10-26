@@ -32,14 +32,13 @@ import java.util.HashMap;
 
 public class Version {
 
-  private static final HashMap<Version,Version> all = new HashMap<Version,Version>();
+  private static final HashMap<Version, Version> all = new HashMap<Version, Version>();
 
   private int major;
   private Integer minor;
   private Integer revision;
 
   public static Version parse(String versionString) {
-    
     String[] version = versionString.split("\\.");
 
     int major = parsePart(version, 0);
@@ -48,16 +47,15 @@ public class Version {
 
     return get(major, minor, revision);
   }
-  
-  static private Integer parsePart(String[] version, int idx) {
-    
-    if(version.length <= idx)
+
+  private static Integer parsePart(String[] version, int idx) {
+    if (version.length <= idx)
       return null;
-    
+
     String part = version[idx];
-    if(part == null || part.isEmpty())
+    if (part == null || part.isEmpty())
       return null;
-    
+
     return Integer.valueOf(part);
   }
 
@@ -66,7 +64,7 @@ public class Version {
     Version test = new Version(major, minor, revision);
 
     Version found = all.get(test);
-    if(found == null) {
+    if (found == null) {
 
       all.put(test, test);
       found = test;
@@ -76,11 +74,10 @@ public class Version {
   }
 
   private Version(int major, Integer minor, Integer revision) {
-    
-    if(minor == null && revision != null) {
+    if (minor == null && revision != null) {
       throw new IllegalArgumentException("revision cannot have value when minor does not");
     }
-    
+
     this.major = major;
     this.minor = minor;
     this.revision = revision;
@@ -101,31 +98,31 @@ public class Version {
   public Integer getRevision() {
     return revision;
   }
-  
+
   public int getRevisionValue() {
     return revision != null ? revision : 0;
   }
-  
+
   public boolean isMinimum(int major) {
     return this.major >= major;
   }
 
   public boolean isMinimum(int major, int minor) {
-    if(this.major < major)
+    if (this.major < major)
       return false;
-    if(this.major > major)
+    if (this.major > major)
       return true;
     return getMinorValue() >= minor;
   }
 
   public boolean isMinimum(int major, int minor, int revision) {
-    if(this.major < major)
+    if (this.major < major)
       return false;
-    if(this.major > major)
+    if (this.major > major)
       return true;
-    if(this.minor < minor)
+    if (this.minor < minor)
       return false;
-    if(this.minor > minor)
+    if (this.minor > minor)
       return true;
     return getRevisionValue() >= revision;
   }
@@ -154,9 +151,9 @@ public class Version {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(major);
-    if(minor != null) {
+    if (minor != null) {
       sb.append('.').append(minor);
-      if(revision != null) {
+      if (revision != null) {
         sb.append('.').append(revision);
       }
     }

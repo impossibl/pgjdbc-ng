@@ -56,19 +56,19 @@ public class ACLItem {
 
     StringBuilder sb = new StringBuilder();
 
-    if(user != null && !user.equals("PUBLIC")) {
+    if (user != null && !user.equals("PUBLIC")) {
       sb.append(user);
     }
 
     sb.append('=');
 
-    if(privileges != null) {
+    if (privileges != null) {
       sb.append(privileges);
     }
 
     sb.append('/');
 
-    if(grantor != null) {
+    if (grantor != null) {
       sb.append(grantor);
     }
 
@@ -82,12 +82,12 @@ public class ACLItem {
     ACLItem aclItem = null;
 
     Matcher aclMatcher = ACL_PATTERN.matcher(aclItemStr);
-    if(aclMatcher.matches()) {
+    if (aclMatcher.matches()) {
 
       aclItem = new ACLItem();
 
       aclItem.user = aclMatcher.group(1);
-      if(isNullOrEmpty(aclItem.user)) {
+      if (isNullOrEmpty(aclItem.user)) {
         aclItem.user = "PUBLIC";
       }
 

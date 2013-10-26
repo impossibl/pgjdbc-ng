@@ -47,7 +47,7 @@ public class SettingsContext extends DecoratorContext {
 
   public Object getSetting(String name) {
     Object res = settings.get(name);
-    if(res != null)
+    if (res != null)
       return res;
     return super.getSetting(name);
   }
