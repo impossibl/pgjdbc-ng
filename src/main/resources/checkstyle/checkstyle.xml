@@ -38,7 +38,7 @@
     <!-- Modifier Checks -->
     <module name="ModifierOrder"/>
     <module name="RedundantModifier"/>
-    <module name="SimplifyBooleanExpression"/>
+    <!-- <module name="SimplifyBooleanExpression"/> -->
     <module name="SimplifyBooleanReturn"/>
 
     <module name="ImportOrder">
