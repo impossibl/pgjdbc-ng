@@ -34,32 +34,35 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-
-
-public class GeneratedKeysTest extends TestCase {
+@RunWith(JUnit4.class)
+public class GeneratedKeysTest {
 
   private Connection _conn;
 
-  public GeneratedKeysTest(String name) throws Exception {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     _conn = TestUtil.openDB();
     Statement stmt = _conn.createStatement();
     stmt.execute("CREATE TEMP TABLE genkeys(a serial, b text, c int)");
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DROP TABLE genkeys");
     stmt.close();
     TestUtil.closeDB(_conn);
   }
 
+  @Test
   public void testExecuteUpdateAllColumns() throws SQLException {
     Statement stmt = _conn.createStatement();
     int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)", Statement.RETURN_GENERATED_KEYS);
@@ -75,6 +78,7 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testStatementUpdateCount() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)", Statement.RETURN_GENERATED_KEYS);
@@ -83,6 +87,7 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!stmt.getMoreResults());
   }
 
+  @Test
   public void testCloseStatementClosesRS() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)", Statement.RETURN_GENERATED_KEYS);
@@ -92,10 +97,12 @@ public class GeneratedKeysTest extends TestCase {
       rs.next();
       fail("Can't operate on a closed result set.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testReturningWithTrailingSemicolon() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", Statement.RETURN_GENERATED_KEYS);
@@ -105,6 +112,7 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testEmptyRSWithoutReturning() throws SQLException {
     Statement stmt = _conn.createStatement();
     int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", Statement.NO_GENERATED_KEYS);
@@ -113,9 +121,10 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testColumnsByName() throws SQLException {
     Statement stmt = _conn.createStatement();
-    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", new String[] { "c", "a" });
+    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", new String[] {"c", "a"});
     assertEquals(1, count);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
@@ -126,9 +135,10 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testMultipleRows() throws SQLException {
     Statement stmt = _conn.createStatement();
-    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2), (3, 'b', 4); ", new String[] { "c" });
+    int count = stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2), (3, 'b', 4); ", new String[] {"c"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
@@ -138,9 +148,10 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testSerialWorks() throws SQLException {
     Statement stmt = _conn.createStatement();
-    int count = stmt.executeUpdate("INSERT INTO genkeys (b,c) VALUES ('a', 2), ('b', 4); ", new String[] { "a" });
+    int count = stmt.executeUpdate("INSERT INTO genkeys (b,c) VALUES ('a', 2), ('b', 4); ", new String[] {"a"});
     assertEquals(2, count);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
@@ -150,11 +161,12 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testUpdate() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
     stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
-    stmt.executeUpdate("UPDATE genkeys SET c=3 WHERE a = 1", new String[] { "c", "b" });
+    stmt.executeUpdate("UPDATE genkeys SET c=3 WHERE a = 1", new String[] {"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
@@ -162,11 +174,12 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testDelete() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
     stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
-    stmt.executeUpdate("DELETE FROM genkeys WHERE a = 1", new String[] { "c", "b" });
+    stmt.executeUpdate("DELETE FROM genkeys WHERE a = 1", new String[] {"c", "b"});
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
@@ -174,13 +187,14 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testPSUpdate() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
     stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
     stmt.close();
 
-    PreparedStatement ps = _conn.prepareStatement("UPDATE genkeys SET c=? WHERE a = ?", new String[] { "c", "b" });
+    PreparedStatement ps = _conn.prepareStatement("UPDATE genkeys SET c=? WHERE a = ?", new String[] {"c", "b"});
     ps.setInt(1, 3);
     ps.setInt(2, 1);
     assertEquals(1, ps.executeUpdate());
@@ -191,13 +205,14 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testPSDelete() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
     stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
     stmt.close();
 
-    PreparedStatement ps = _conn.prepareStatement("DELETE FROM genkeys WHERE a = ?", new String[] { "c", "b" });
+    PreparedStatement ps = _conn.prepareStatement("DELETE FROM genkeys WHERE a = ?", new String[] {"c", "b"});
 
     ps.setInt(1, 1);
     assertEquals(1, ps.executeUpdate());
@@ -216,6 +231,7 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testGeneratedKeysCleared() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", Statement.RETURN_GENERATED_KEYS);
@@ -226,6 +242,7 @@ public class GeneratedKeysTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testBatchGeneratedKeys() throws SQLException {
     PreparedStatement ps = _conn.prepareStatement("INSERT INTO genkeys(c) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
     ps.setInt(1, 4);

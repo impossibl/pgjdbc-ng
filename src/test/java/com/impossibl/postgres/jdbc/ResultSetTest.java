@@ -36,21 +36,22 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Locale;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * ResultSet tests.
  */
-public class ResultSetTest extends TestCase {
+@RunWith(JUnit4.class)
+public class ResultSetTest {
   private Connection con;
 
-  public ResultSetTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     con = TestUtil.openDB();
     Statement stmt = con.createStatement();
 
@@ -117,7 +118,8 @@ public class ResultSetTest extends TestCase {
 
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     TestUtil.dropTable(con, "testrs");
     TestUtil.dropTable(con, "teststring");
     TestUtil.dropTable(con, "testint");
@@ -128,6 +130,7 @@ public class ResultSetTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testBackward() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
@@ -137,6 +140,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testAbsolute() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
@@ -163,6 +167,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testEmptyResult() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
@@ -173,6 +178,7 @@ public class ResultSetTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testMaxFieldSize() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setMaxFieldSize(2);
@@ -194,6 +200,7 @@ public class ResultSetTest extends TestCase {
     assertEquals("12", new String(rs.getBytes(1)));
   }
 
+  @Test
   public void testBoolean() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
 
@@ -210,7 +217,7 @@ public class ResultSetTest extends TestCase {
     pstmt.executeUpdate();
 
     ResultSet rs = con.createStatement().executeQuery("select * from testbool");
-    for(int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++) {
       assertTrue(rs.next());
       assertEquals(false, rs.getBoolean(1));
       assertTrue(rs.next());
@@ -239,7 +246,7 @@ public class ResultSetTest extends TestCase {
 
     rs = con.createStatement().executeQuery("select * from testboolstring");
 
-    for(int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
       assertTrue(rs.next());
       assertEquals(true, rs.getBoolean(1));
       assertTrue(rs.next());
@@ -247,6 +254,7 @@ public class ResultSetTest extends TestCase {
     }
   }
 
+  @Test
   public void testgetByte() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -265,17 +273,19 @@ public class ResultSetTest extends TestCase {
     assertTrue(rs.next());
     assertEquals(-2, rs.getByte(1));
 
-    while(rs.next()) {
+    while (rs.next()) {
       try {
         rs.getByte(1);
         fail("Exception expected.");
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ok
       }
     }
     rs.close();
   }
 
+  @Test
   public void testgetShort() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -294,17 +304,19 @@ public class ResultSetTest extends TestCase {
     assertTrue(rs.next());
     assertEquals(-2, rs.getShort(1));
 
-    while(rs.next()) {
+    while (rs.next()) {
       try {
         rs.getShort(1);
         fail("Exception expected.");
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ok
       }
     }
     rs.close();
   }
 
+  @Test
   public void testgetInt() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -341,17 +353,19 @@ public class ResultSetTest extends TestCase {
     assertTrue(rs.next());
     assertEquals(Integer.MIN_VALUE, rs.getInt(1));
 
-    while(rs.next()) {
+    while (rs.next()) {
       try {
         rs.getInt(1);
         fail("Exception expected." + rs.getString(1));
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ok
       }
     }
     rs.close();
   }
 
+  @Test
   public void testgetLong() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -400,17 +414,19 @@ public class ResultSetTest extends TestCase {
     assertTrue(rs.next());
     assertEquals(Long.MIN_VALUE, rs.getLong(1));
 
-    while(rs.next()) {
+    while (rs.next()) {
       try {
         rs.getLong(1);
         fail("Exception expected." + rs.getString(1));
       }
-      catch(Exception e) {
+      catch (Exception e) {
+        // Ok
       }
     }
     rs.close();
   }
 
+  @Test
   public void testParameters() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
     stmt.setFetchSize(100);
@@ -435,6 +451,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testZeroRowResultPositioning() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='nonexistantdatabase'");
@@ -459,6 +476,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testRowResultPositioning() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     // Create a one row result set.
@@ -515,6 +533,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testForwardOnlyExceptions() throws SQLException {
     // Test that illegal operations on a TYPE_FORWARD_ONLY resultset
     // correctly result in throwing an exception.
@@ -526,63 +545,73 @@ public class ResultSetTest extends TestCase {
       rs.absolute(1);
       fail("absolute() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.afterLast();
       fail("afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.beforeFirst();
       fail("beforeFirst() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.first();
       fail("first() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.last();
       fail("last() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.previous();
       fail("previous() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.relative(1);
       fail("relative() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
 
     try {
       rs.setFetchDirection(ResultSet.FETCH_REVERSE);
       fail("setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
 
     try {
       rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
       fail("setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
 
     rs.close();
     stmt.close();
   }
 
+  @Test
   public void testCaseInsensitiveFindColumn() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT id, id AS \"ID2\" FROM testrs");
@@ -596,10 +625,12 @@ public class ResultSetTest extends TestCase {
       rs.findColumn("id3");
       fail("There isn't an id3 column in the ResultSet.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testGetOutOfBounds() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
@@ -608,16 +639,19 @@ public class ResultSetTest extends TestCase {
     try {
       rs.getInt(-9);
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     try {
       rs.getInt(1000);
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testClosedResult() throws SQLException {
     Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
@@ -628,73 +662,85 @@ public class ResultSetTest extends TestCase {
       rs.getInt(1);
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.getInt("id");
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.getType();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.wasNull();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.absolute(3);
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.isBeforeFirst();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.setFetchSize(10);
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.getMetaData();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.rowUpdated();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.updateInt(1, 1);
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.moveToInsertRow();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
     try {
       rs.clearWarnings();
       fail("Expected SQLException");
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
+      // Ok
     }
   }
 
@@ -702,6 +748,7 @@ public class ResultSetTest extends TestCase {
    * The JDBC spec says when you have duplicate column names, the first one
    * should be returned.
    */
+  @Test
   public void testDuplicateColumnNameOrder() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a");
@@ -709,6 +756,7 @@ public class ResultSetTest extends TestCase {
     assertEquals(1, rs.getInt("a"));
   }
 
+  @Test
   public void testTurkishLocale() throws SQLException {
     Locale current = Locale.getDefault();
     try {
@@ -716,7 +764,7 @@ public class ResultSetTest extends TestCase {
       Statement stmt = con.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
       int sum = 0;
-      while(rs.next()) {
+      while (rs.next()) {
         sum += rs.getInt("ID");
       }
       rs.close();

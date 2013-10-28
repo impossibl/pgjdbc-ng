@@ -39,9 +39,12 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * Tests for time and date types with calendars involved.
@@ -59,10 +62,11 @@ import junit.framework.TestCase;
  *
  * (this matches what we must support per JDBC 3.0, tables B-5 and B-6)
  */
-public class TimezoneTest extends TestCase {
+@RunWith(JUnit4.class)
+public class TimezoneTest {
   private static final int DAY = 24 * 3600 * 1000;
-  private Connection con;
   private static final TimeZone saveTZ = TimeZone.getDefault();;
+  private Connection con;
 
   //
   // We set up everything in different timezones to try to exercise many cases:
@@ -76,9 +80,8 @@ public class TimezoneTest extends TestCase {
   private Calendar cGMT05;
   private Calendar cGMT13;
 
-  public TimezoneTest(String name) {
-    super(name);
-
+  @Before
+  public void before() throws Exception {
     TimeZone UTC = TimeZone.getTimeZone("UTC");       // +0000 always
     TimeZone GMT03 = TimeZone.getTimeZone("GMT+03");  // +0300 always
     TimeZone GMT05 = TimeZone.getTimeZone("GMT-05");  // -0500 always
@@ -88,9 +91,7 @@ public class TimezoneTest extends TestCase {
     cGMT03 = Calendar.getInstance(GMT03);
     cGMT05 = Calendar.getInstance(GMT05);
     cGMT13 = Calendar.getInstance(GMT13);
-  }
 
-  protected void setUp() throws Exception {
     // We must change the default TZ before establishing the connection.
     TimeZone arb = TimeZone.getTimeZone("GMT+01");  // Arbitary timezone
                                                     // that doesn't match
@@ -108,7 +109,8 @@ public class TimezoneTest extends TestCase {
     // System.err.println("++++++ TESTS START (" + getName() + ") ++++++");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
     // System.err.println("++++++ TESTS END (" + getName() + ") ++++++");
     TimeZone.setDefault(saveTZ);
 
@@ -116,6 +118,7 @@ public class TimezoneTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testGetTimestamp() throws Exception {
     con.createStatement().executeUpdate(
         "INSERT INTO testtimezone(tstz,ts,t,tz,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300', '2005-01-01')");
@@ -123,8 +126,8 @@ public class TimezoneTest extends TestCase {
     ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz,d from testtimezone");
 
     assertTrue(rs.next());
-    checkDatabaseContents("SELECT tstz::text,ts::text,t::text,tz::text,d::text from testtimezone", new String[] { "2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00",
-        "15:00:00+03", "2005-01-01" });
+    checkDatabaseContents("SELECT tstz::text,ts::text,t::text,tz::text,d::text from testtimezone", new String[] {"2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00",
+      "15:00:00+03", "2005-01-01"});
 
     Timestamp ts;
 
@@ -191,13 +194,14 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testGetDate() throws Exception {
     con.createStatement().executeUpdate("INSERT INTO testtimezone(tstz,ts,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '2005-01-01')");
 
     ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,d from testtimezone");
 
     assertTrue(rs.next());
-    checkDatabaseContents("SELECT tstz::text,ts::text,d::text from testtimezone", new String[] { "2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "2005-01-01" });
+    checkDatabaseContents("SELECT tstz::text,ts::text,d::text from testtimezone", new String[] {"2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "2005-01-01"});
 
     Date d;
 
@@ -240,6 +244,7 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testGetTime() throws Exception {
 
     con.createStatement().executeUpdate("INSERT INTO testtimezone(tstz,ts,t,tz) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300')");
@@ -247,8 +252,8 @@ public class TimezoneTest extends TestCase {
     ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz from testtimezone");
 
     assertTrue(rs.next());
-    checkDatabaseContents("SELECT tstz::text,ts::text,t::text,tz::text,d::text from testtimezone", new String[] { "2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00",
-        "15:00:00+03" });
+    checkDatabaseContents("SELECT tstz::text,ts::text,t::text,tz::text,d::text from testtimezone", new String[] {"2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00",
+      "15:00:00+03"});
 
     Time t;
 
@@ -262,7 +267,7 @@ public class TimezoneTest extends TestCase {
     t = rs.getTime(1, cGMT05);
     assertEquals(43200000L, t.getTime()); // 2005-01-01 07:00:00 -0500 -> 1970-01-01 07:00:00 -0500
     t = rs.getTime(1, cGMT13);
-    assertEquals(-43200000L, t.getTime());// 2005-01-02 01:00:00 +1300 -> 1970-01-01 01:00:00 +1300
+    assertEquals(-43200000L, t.getTime()); // 2005-01-02 01:00:00 +1300 -> 1970-01-01 01:00:00 +1300
 
     // timestamp: 2005-01-01 15:00:00
     t = rs.getTime(2);
@@ -307,6 +312,7 @@ public class TimezoneTest extends TestCase {
    * largely unreadable. The time data type does not accept timestamp with time
    * zone style input on these servers.
    */
+  @Test
   public void testSetTimestampOnTime() throws Exception {
 
     PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,t) VALUES (?,?)");
@@ -340,8 +346,8 @@ public class TimezoneTest extends TestCase {
     insertTimestamp.setTimestamp(2, instant, cGMT13); // 01:00:00
     insertTimestamp.executeUpdate();
 
-    checkDatabaseContents("SELECT seq::text,t::text from testtimezone ORDER BY seq", new String[][] { new String[] { "1", "13:00:00" }, new String[] { "2", "12:00:00" },
-        new String[] { "3", "15:00:00" }, new String[] { "4", "07:00:00" }, new String[] { "5", "01:00:00" } });
+    checkDatabaseContents("SELECT seq::text,t::text from testtimezone ORDER BY seq", new String[][] {new String[] {"1", "13:00:00" }, new String[] {"2", "12:00:00"},
+      new String[] {"3", "15:00:00"}, new String[] {"4", "07:00:00"}, new String[] {"5", "01:00:00"}});
 
     seq = 1;
     ResultSet rs = con.createStatement().executeQuery("SELECT seq,t FROM testtimezone ORDER BY seq");
@@ -369,6 +375,7 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testSetTimestamp() throws Exception {
     PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,tstz,ts,tz,d) VALUES (?,?,?,?,?)");
     int seq = 1;
@@ -426,11 +433,11 @@ public class TimezoneTest extends TestCase {
 
     // check that insert went correctly by parsing the raw contents in UTC
     checkDatabaseContents("SELECT seq::text,tstz::text,ts::text,tz::text,d::text from testtimezone ORDER BY seq", new String[][] {
-        new String[] { "1", "2005-01-01 12:00:00+00", "2005-01-01 13:00:00", "13:00:00+01", "2005-01-01" },
-        new String[] { "2", "2005-01-01 12:00:00+00", "2005-01-01 12:00:00", "12:00:00+00", "2005-01-01" },
-        new String[] { "3", "2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00+03", "2005-01-01" },
-        new String[] { "4", "2005-01-01 12:00:00+00", "2005-01-01 07:00:00", "07:00:00-05", "2005-01-01" },
-        new String[] { "5", "2005-01-01 12:00:00+00", "2005-01-02 01:00:00", "01:00:00+13", "2005-01-02" } });
+      new String[] {"1", "2005-01-01 12:00:00+00", "2005-01-01 13:00:00", "13:00:00+01", "2005-01-01"},
+      new String[] {"2", "2005-01-01 12:00:00+00", "2005-01-01 12:00:00", "12:00:00+00", "2005-01-01"},
+      new String[] {"3", "2005-01-01 12:00:00+00", "2005-01-01 15:00:00", "15:00:00+03", "2005-01-01"},
+      new String[] {"4", "2005-01-01 12:00:00+00", "2005-01-01 07:00:00", "07:00:00-05", "2005-01-01"},
+      new String[] {"5", "2005-01-01 12:00:00+00", "2005-01-02 01:00:00", "01:00:00+13", "2005-01-02"}});
 
     //
     // check results
@@ -477,6 +484,7 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testSetDate() throws Exception {
     PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,tstz,ts,d) VALUES (?,?,?,?)");
 
@@ -528,11 +536,11 @@ public class TimezoneTest extends TestCase {
 
     // check that insert went correctly by parsing the raw contents in UTC
     checkDatabaseContents("SELECT seq::text,tstz::text,ts::text,d::text from testtimezone ORDER BY seq", new String[][] {
-        new String[] { "1", "2004-12-31 23:00:00+00", "2005-01-01 00:00:00", "2005-01-01" },
-        new String[] { "2", "2005-01-01 00:00:00+00", "2005-01-01 00:00:00", "2005-01-01" },
-        new String[] { "3", "2004-12-31 21:00:00+00", "2005-01-01 00:00:00", "2005-01-01" },
-        new String[] { "4", "2005-01-01 05:00:00+00", "2005-01-01 00:00:00", "2005-01-01" },
-        new String[] { "5", "2004-12-31 11:00:00+00", "2005-01-01 00:00:00", "2005-01-01" } });
+      new String[] {"1", "2004-12-31 23:00:00+00", "2005-01-01 00:00:00", "2005-01-01"},
+      new String[] {"2", "2005-01-01 00:00:00+00", "2005-01-01 00:00:00", "2005-01-01"},
+      new String[] {"3", "2004-12-31 21:00:00+00", "2005-01-01 00:00:00", "2005-01-01"},
+      new String[] {"4", "2005-01-01 05:00:00+00", "2005-01-01 00:00:00", "2005-01-01"},
+      new String[] {"5", "2004-12-31 11:00:00+00", "2005-01-01 00:00:00", "2005-01-01"}});
     //
     // check results
     //
@@ -573,6 +581,7 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testSetTime() throws Exception {
 
     PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,t,tz) VALUES (?,?,?)");
@@ -620,12 +629,12 @@ public class TimezoneTest extends TestCase {
 
     // check that insert went correctly by parsing the raw contents in UTC
     checkDatabaseContents("SELECT seq::text,t::text,tz::text from testtimezone ORDER BY seq",
-        new String[][] {
-          new String[] { "1", "15:00:00", "15:00:00+01", },
-          new String[] { "2", "15:00:00", "15:00:00+00", },
-          new String[] { "3", "15:00:00", "15:00:00+03", },
-          new String[] { "4", "15:00:00", "15:00:00-05", },
-          new String[] { "5", "15:00:00", "15:00:00+13", } });
+      new String[][] {
+        new String[] {"1", "15:00:00", "15:00:00+01", },
+        new String[] {"2", "15:00:00", "15:00:00+00", },
+        new String[] {"3", "15:00:00", "15:00:00+03", },
+        new String[] {"4", "15:00:00", "15:00:00-05", },
+        new String[] {"5", "15:00:00", "15:00:00+13", }});
 
     //
     // check results
@@ -662,6 +671,7 @@ public class TimezoneTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testHalfHourTimezone() throws Exception {
     Statement stmt = con.createStatement();
     stmt.execute("SET TimeZone = 'GMT+3:30'");
@@ -670,6 +680,7 @@ public class TimezoneTest extends TestCase {
     assertEquals(0L, rs.getTimestamp(1).getTime());
   }
 
+  @Test
   public void testTimezoneWithSeconds() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("SET TimeZone = 'Europe/Helsinki'");
@@ -691,7 +702,7 @@ public class TimezoneTest extends TestCase {
    *          The correct answers in UTC time zone as formatted by backend.
    */
   private void checkDatabaseContents(String query, String[] correct) throws Exception {
-    checkDatabaseContents(query, new String[][] { correct });
+    checkDatabaseContents(query, new String[][] {correct});
   }
 
   private void checkDatabaseContents(String query, String[][] correct) throws Exception {
@@ -700,9 +711,9 @@ public class TimezoneTest extends TestCase {
     assertFalse(s.execute("set time zone 'UTC'"));
     assertTrue(s.execute(query));
     ResultSet rs = s.getResultSet();
-    for(int j = 0; j < correct.length; ++j) {
+    for (int j = 0; j < correct.length; ++j) {
       assertTrue(rs.next());
-      for(int i = 0; i < correct[j].length; ++i) {
+      for (int i = 0; i < correct[j].length; ++i) {
         assertEquals("On row " + (j + 1), correct[j][i], rs.getString(i + 1));
       }
     }
@@ -730,13 +741,13 @@ public class TimezoneTest extends TestCase {
     long millis = t;
     long low = -tz.getOffset(millis);
     long high = low + DAY;
-    if(millis < low) {
+    if (millis < low) {
       do {
         millis += DAY;
       }
       while(millis < low);
     }
-    else if(millis >= high) {
+    else if (millis >= high) {
       do {
         millis -= DAY;
       }

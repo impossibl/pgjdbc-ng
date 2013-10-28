@@ -37,19 +37,20 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-
-
-public class ResultSetMetaDataTest extends TestCase {
+@RunWith(JUnit4.class)
+public class ResultSetMetaDataTest {
 
   private Connection conn;
 
-  public ResultSetMetaDataTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
     TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
@@ -67,7 +68,8 @@ public class ResultSetMetaDataTest extends TestCase {
     TestUtil.createTable(conn, "compositetest", "col rsmd1");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
     TestUtil.dropTable(conn, "compositetest");
     TestUtil.dropTable(conn, "rsmd1");
     TestUtil.dropTable(conn, "timetest");
@@ -79,6 +81,7 @@ public class ResultSetMetaDataTest extends TestCase {
     TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testStandardResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
@@ -87,6 +90,7 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testPreparedResultSet() throws SQLException {
 
     PreparedStatement pstmt = conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
@@ -129,6 +133,7 @@ public class ResultSetMetaDataTest extends TestCase {
 
   // verify that a prepared update statement returns no metadata and doesn't
   // execute.
+  @Test
   public void testPreparedUpdate() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO rsmd1(a,b) VALUES(?,?)");
     pstmt.setInt(1, 1);
@@ -145,6 +150,7 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testDatabaseMetaDataNames() throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     ResultSet resultSet = databaseMetaData.getTableTypes();
@@ -154,6 +160,7 @@ public class ResultSetMetaDataTest extends TestCase {
     resultSet.close();
   }
 
+  @Test
   public void testTimestampInfo() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT tm, tmtz, ts, tstz FROM timetest");
@@ -177,6 +184,7 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testColumnDisplaySize() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT fixedchar, fixedvarchar, unfixedvarchar, txt, bytearr, num64, num60, num, ip FROM sizetest");
@@ -193,6 +201,7 @@ public class ResultSetMetaDataTest extends TestCase {
     assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(9));
   }
 
+  @Test
   public void testIsAutoIncrement() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
@@ -208,18 +217,20 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testClassesMatch() throws SQLException, ClassNotFoundException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123')");
     ResultSet rs = stmt.executeQuery("SELECT * FROM alltypes");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertTrue(rs.next());
-    for(int i = 0; i < rsmd.getColumnCount(); i++) {
+    for (int i = 0; i < rsmd.getColumnCount(); i++) {
       Class<?> cls = Class.forName(rsmd.getColumnClassName(i + 1));
       assertTrue(cls.isAssignableFrom(rs.getObject(i + 1).getClass()));
     }
   }
 
+  @Test
   public void testComposite() throws Exception {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT col FROM compositetest");

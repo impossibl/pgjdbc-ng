@@ -36,32 +36,35 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.UUID;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-
-
-public class UUIDTest extends TestCase {
+@RunWith(JUnit4.class)
+public class UUIDTest {
 
   private Connection conn;
 
-  public UUIDTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     conn = TestUtil.openDB();
     Statement stmt = conn.createStatement();
     stmt.execute("CREATE TEMP TABLE uuidtest(id uuid)");
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("DROP TABLE uuidtest");
     stmt.close();
     TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testUUID() throws SQLException {
     UUID uuid = UUID.randomUUID();
     PreparedStatement ps = conn.prepareStatement("INSERT INTO uuidtest VALUES (?)");

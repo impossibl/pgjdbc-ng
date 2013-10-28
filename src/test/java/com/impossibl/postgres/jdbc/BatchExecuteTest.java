@@ -36,9 +36,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /* TODO tests that can be added to this test case
  * - SQLExceptions chained to a BatchUpdateException
@@ -48,22 +51,13 @@ import junit.framework.TestCase;
 /*
  * Test case for Statement.batchExecute()
  */
-public class BatchExecuteTest extends TestCase {
+@RunWith(JUnit4.class)
+public class BatchExecuteTest {
 
   private Connection con;
 
-  public BatchExecuteTest(String name) {
-    super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    }
-    catch(Exception ex) {
-    }
-  }
-
-  // Set up the fixture for this testcase: a connection to a database with
-  // a table for this test.
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     con = TestUtil.openDB();
     Statement stmt = con.createStatement();
 
@@ -78,19 +72,21 @@ public class BatchExecuteTest extends TestCase {
     con.setAutoCommit(false);
   }
 
-  // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
     con.setAutoCommit(true);
 
     TestUtil.dropTable(con, "testbatch");
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testSupportsBatchUpdates() throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
     assertTrue(dbmd.supportsBatchUpdates());
   }
 
+  @Test
   public void testEmptyClearBatch() throws Exception {
     Statement stmt = con.createStatement();
     stmt.clearBatch(); // No-op.
@@ -115,6 +111,7 @@ public class BatchExecuteTest extends TestCase {
     getCol1.close();
   }
 
+  @Test
   public void testExecuteEmptyBatch() throws Exception {
     Statement stmt = con.createStatement();
     int[] updateCount = stmt.executeBatch();
@@ -127,6 +124,7 @@ public class BatchExecuteTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testClearBatch() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -146,6 +144,7 @@ public class BatchExecuteTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testSelectThrowsException() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -157,18 +156,19 @@ public class BatchExecuteTest extends TestCase {
       stmt.executeBatch();
       fail("Should raise a BatchUpdateException because of the SELECT");
     }
-    catch(BatchUpdateException e) {
+    catch (BatchUpdateException e) {
       int[] updateCounts = e.getUpdateCounts();
       assertEquals(1, updateCounts.length);
       assertEquals(1, updateCounts[0]);
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
       fail("Should throw a BatchUpdateException instead of " + "a generic SQLException: " + e);
     }
 
     stmt.close();
   }
 
+  @Test
   public void testStringAddBatchOnPreparedStatement() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
     pstmt.setInt(1, 1);
@@ -179,12 +179,14 @@ public class BatchExecuteTest extends TestCase {
       pstmt.addBatch("UPDATE testbatch SET col1 = 3");
       fail("Should have thrown an exception about using the string addBatch method on a prepared statement.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     pstmt.close();
   }
 
+  @Test
   public void testPreparedStatement() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
 
@@ -223,6 +225,7 @@ public class BatchExecuteTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testTransactionalBehaviour() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -253,6 +256,7 @@ public class BatchExecuteTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testWarningsAreCleared() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.addBatch("CREATE TEMP TABLE unused (a int primary key)");
@@ -263,6 +267,7 @@ public class BatchExecuteTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testBatchEscapeProcessing() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE batchescape (d date)");
@@ -285,6 +290,7 @@ public class BatchExecuteTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testBatchWithEmbeddedNulls() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE batchstring (a text)");
@@ -303,7 +309,7 @@ public class BatchExecuteTest extends TestCase {
       pstmt.executeBatch();
       fail("Should have thrown an exception.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
       con.rollback();
     }
     pstmt.close();

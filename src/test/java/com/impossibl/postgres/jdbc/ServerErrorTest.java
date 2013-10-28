@@ -31,23 +31,24 @@ package com.impossibl.postgres.jdbc;
 import java.sql.Connection;
 import java.sql.Statement;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * Test that enhanced error reports return the correct origin
  * for constraint violation errors.
  */
-public class ServerErrorTest extends TestCase {
+@RunWith(JUnit4.class)
+public class ServerErrorTest {
 
   private Connection con;
 
-  public ServerErrorTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
 
     con = TestUtil.openDB();
 
@@ -60,7 +61,8 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
 
     TestUtil.dropTable(con, "testerr");
 
@@ -71,10 +73,11 @@ public class ServerErrorTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testPrimaryKey() throws Exception {
-  	
-  	if(!((PGConnection)con).getServerVersion().isMinimum(9, 3))
-  		return;
+
+    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+      return;
 
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
@@ -94,10 +97,11 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testColumn() throws Exception {
 
-    if(!((PGConnection)con).getServerVersion().isMinimum(9, 3))
-  		return;
+    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+      return;
 
     Statement stmt = con.createStatement();
 
@@ -116,10 +120,11 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testDatatype() throws Exception {
 
-    if(!((PGConnection)con).getServerVersion().isMinimum(9, 3))
-  		return;
+    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+      return;
 
     Statement stmt = con.createStatement();
 

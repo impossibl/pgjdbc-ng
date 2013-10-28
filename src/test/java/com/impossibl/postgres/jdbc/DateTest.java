@@ -34,29 +34,31 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will
  * help prevent previous problems from re-occuring ;-)
  *
  */
-public class DateTest extends TestCase {
+@RunWith(JUnit4.class)
+public class DateTest {
 
   private Connection con;
 
-  public DateTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testdate", "dt date");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
     TestUtil.dropTable(con, "testdate");
     TestUtil.closeDB(con);
   }
@@ -64,6 +66,7 @@ public class DateTest extends TestCase {
   /*
    * Tests the time methods in ResultSet
    */
+  @Test
   public void testGetDate() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -96,6 +99,7 @@ public class DateTest extends TestCase {
   /*
    * Tests the time methods in PreparedStatement
    */
+  @Test
   public void testSetDate() throws SQLException {
     Statement stmt = con.createStatement();
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
