@@ -28,15 +28,14 @@
  */
 package com.impossibl.postgres.datetime;
 
-import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-
-import java.util.Calendar;
-import java.util.Map;
-
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
+import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
+
+import java.util.Calendar;
+import java.util.Map;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 public class ISOTimestampFormat implements DateTimeFormat {
 
@@ -64,11 +63,11 @@ public class ISOTimestampFormat implements DateTimeFormat {
 
       try {
 
-        if(date.equals("infinity")) {
+        if (date.equals("infinity")) {
           pieces.put(INFINITY_PIECE, FutureInfiniteInstant.INSTANCE);
           offset = date.length();
         }
-        else if(date.equals("-infinity")) {
+        else if (date.equals("-infinity")) {
           pieces.put(INFINITY_PIECE, PastInfiniteInstant.INSTANCE);
           offset = date.length();
         }
@@ -77,15 +76,15 @@ public class ISOTimestampFormat implements DateTimeFormat {
           offset = dateParser.parse(date, offset, pieces);
           checkOffset(date, offset, '\0');
 
-          if(offset < date.length()) {
+          if (offset < date.length()) {
 
             char sep = date.charAt(offset);
-            if(sep != ' ' && sep != 'T') {
+            if (sep != ' ' && sep != 'T') {
               return ~offset;
             }
 
             offset = timeParser.parse(date, offset + 1, pieces);
-            if(offset < 0) {
+            if (offset < 0) {
               return offset;
             }
 
@@ -94,7 +93,8 @@ public class ISOTimestampFormat implements DateTimeFormat {
         }
 
       }
-      catch(IndexOutOfBoundsException | IllegalArgumentException e) {
+      catch (IndexOutOfBoundsException | IllegalArgumentException e) {
+        // Ignore
       }
 
       return offset;
@@ -115,15 +115,15 @@ public class ISOTimestampFormat implements DateTimeFormat {
       int month = cal.get(Calendar.MONTH) + 1;
       int day = cal.get(Calendar.DAY_OF_MONTH);
 
-      char buf[] = "2000-00-00".toCharArray();
-      buf[0] = Character.forDigit(year/1000,10);
-      buf[1] = Character.forDigit((year/100)%10,10);
-      buf[2] = Character.forDigit((year/10)%10,10);
-      buf[3] = Character.forDigit(year%10,10);
-      buf[5] = Character.forDigit(month/10,10);
-      buf[6] = Character.forDigit(month%10,10);
-      buf[8] = Character.forDigit(day/10,10);
-      buf[9] = Character.forDigit(day%10,10);
+      char[] buf = "2000-00-00".toCharArray();
+      buf[0] = Character.forDigit(year / 1000, 10);
+      buf[1] = Character.forDigit((year / 100) % 10, 10);
+      buf[2] = Character.forDigit((year / 10) % 10, 10);
+      buf[3] = Character.forDigit(year % 10, 10);
+      buf[5] = Character.forDigit(month / 10, 10);
+      buf[6] = Character.forDigit(month % 10, 10);
+      buf[8] = Character.forDigit(day / 10, 10);
+      buf[9] = Character.forDigit(day % 10, 10);
 
       return new String(buf);
     }

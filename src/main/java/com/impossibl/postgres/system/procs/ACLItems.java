@@ -28,14 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import java.io.IOException;
-
 import com.impossibl.postgres.data.ACLItem;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-
+import java.io.IOException;
 
 public class ACLItems extends SimpleProcProvider {
 

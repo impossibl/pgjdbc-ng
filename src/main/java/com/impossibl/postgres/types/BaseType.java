@@ -28,12 +28,11 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.system.tables.PgType.Row;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
 import java.util.Collection;
-
-import com.impossibl.postgres.system.tables.PgType.Row;
 
 /**
  * A database primitive type

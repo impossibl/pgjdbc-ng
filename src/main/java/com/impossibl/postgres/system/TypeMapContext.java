@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.system;
 
-import java.util.Map;
-
 import com.impossibl.postgres.types.Type;
+
+import java.util.Map;
 
 public class TypeMapContext extends DecoratorContext {
 
@@ -44,7 +44,7 @@ public class TypeMapContext extends DecoratorContext {
   @Override
   public Class<?> lookupInstanceType(Type type) {
     Class<?> instanceType = typeMap.get(type.getName());
-    if(instanceType == null)
+    if (instanceType == null)
       instanceType = super.lookupInstanceType(type);
     return instanceType;
   }

@@ -28,21 +28,18 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
-import static com.impossibl.postgres.types.PrimitiveType.Time;
-import static java.util.concurrent.TimeUnit.DAYS;
-
-import java.io.IOException;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.types.PrimitiveType.Time;
 
+import java.io.IOException;
+import static java.util.concurrent.TimeUnit.DAYS;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class TimesWithoutTZ extends SettingSelectProcProvider {
 

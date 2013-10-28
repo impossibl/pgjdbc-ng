@@ -28,6 +28,10 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.StartupCommand;
+import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.utils.MD5Authentication;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 
@@ -36,13 +40,6 @@ import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-
-import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.utils.MD5Authentication;
-
-
 
 public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 

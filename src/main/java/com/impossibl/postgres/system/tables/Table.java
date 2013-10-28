@@ -51,13 +51,13 @@ public interface Table<R> {
    * @param currentVersion Current version of the server that will execute it
    * @return SQL text of the query
    */
-  public String getSQL(Version currentVersion);
+  String getSQL(Version currentVersion);
 
   /**
    * Creates and instance of the row type of this table.
    *
    * @return An instance of the table's row type
    */
-  public R createRow();
+  R createRow();
 
 }

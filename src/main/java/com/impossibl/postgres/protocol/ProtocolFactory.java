@@ -28,10 +28,10 @@
  */
 package com.impossibl.postgres.protocol;
 
+import com.impossibl.postgres.system.BasicContext;
+
 import java.io.IOException;
 import java.net.SocketAddress;
-
-import com.impossibl.postgres.system.BasicContext;
 
 public interface ProtocolFactory {
 

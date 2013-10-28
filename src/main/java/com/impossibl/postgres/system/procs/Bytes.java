@@ -28,19 +28,16 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.types.PrimitiveType.Binary;
-import static java.lang.Math.min;
-
-import java.io.IOException;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
+import java.io.IOException;
+import static java.lang.Math.min;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Bytes extends SimpleProcProvider {
 
@@ -64,14 +61,14 @@ public class Bytes extends SimpleProcProvider {
     public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
 
       byte[] bytes;
 
       Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
-      if(maxLength != null) {
+      if (maxLength != null) {
         bytes = new byte[min(maxLength, length)];
       }
       else {

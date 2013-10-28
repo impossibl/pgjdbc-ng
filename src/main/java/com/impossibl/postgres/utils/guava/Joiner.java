@@ -118,9 +118,8 @@ public class Joiner {
   /**
    * Appends to {@code appendable} the string representation of each of the remaining arguments.
    */
-  public final <A extends Appendable> A appendTo(
-      A appendable, Object first, Object second, Object... rest)
-          throws IOException {
+  public final <A extends Appendable> A appendTo(A appendable, Object first, Object second, Object... rest)
+    throws IOException {
     return appendTo(appendable, iterable(first, second, rest));
   }
 
@@ -143,7 +142,8 @@ public class Joiner {
   public final StringBuilder appendTo(StringBuilder builder, Iterator<?> parts) {
     try {
       appendTo((Appendable) builder, parts);
-    } catch (IOException impossible) {
+    }
+    catch (IOException impossible) {
       throw new AssertionError(impossible);
     }
     return builder;
@@ -231,7 +231,7 @@ public class Joiner {
   public Joiner skipNulls() {
     return new Joiner(this) {
       @Override public <A extends Appendable> A appendTo(A appendable, Iterator<?> parts)
-          throws IOException {
+        throws IOException {
         checkNotNull(appendable, "appendable");
         checkNotNull(parts, "parts");
         while (parts.hasNext()) {
@@ -289,7 +289,7 @@ public class Joiner {
    *
    * @since 2.0 (imported from Google Collections Library)
    */
-  public final static class MapJoiner {
+  public static final class MapJoiner {
     private final Joiner joiner;
     private final String keyValueSeparator;
 
@@ -330,7 +330,7 @@ public class Joiner {
      * @since 10.0
      */
     public <A extends Appendable> A appendTo(A appendable, Iterable<? extends Entry<?, ?>> entries)
-        throws IOException {
+      throws IOException {
       return appendTo(appendable, entries.iterator());
     }
 
@@ -341,7 +341,7 @@ public class Joiner {
      * @since 11.0
      */
     public <A extends Appendable> A appendTo(A appendable, Iterator<? extends Entry<?, ?>> parts)
-        throws IOException {
+      throws IOException {
       checkNotNull(appendable);
       if (parts.hasNext()) {
         Entry<?, ?> entry = parts.next();
@@ -380,7 +380,8 @@ public class Joiner {
     public StringBuilder appendTo(StringBuilder builder, Iterator<? extends Entry<?, ?>> entries) {
       try {
         appendTo((Appendable) builder, entries);
-      } catch (IOException impossible) {
+      }
+      catch (IOException impossible) {
         throw new AssertionError(impossible);
       }
       return builder;

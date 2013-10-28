@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.types;
 
-import java.util.Collection;
-
 import com.impossibl.postgres.system.tables.PgType.Row;
+
+import java.util.Collection;
 
 /**
  * A database psuedo type.

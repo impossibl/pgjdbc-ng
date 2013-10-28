@@ -51,7 +51,7 @@ public class BlobOutputStream extends OutputStream {
   @Override
   public void write(int b) throws IOException {
 
-    if(pos >= buf.length) {
+    if (pos >= buf.length) {
       writeNextRegion();
     }
 
@@ -68,14 +68,14 @@ public class BlobOutputStream extends OutputStream {
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
 
-    if(pos > 0) {
+    if (pos > 0) {
       writeNextRegion();
     }
 
     try {
       lo.write(b, off, len);
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
       throw new IOException(e);
     }
 
@@ -83,7 +83,7 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void flush() throws IOException {
-    if(pos > 0) {
+    if (pos > 0) {
       writeNextRegion();
     }
   }
@@ -108,7 +108,7 @@ public class BlobOutputStream extends OutputStream {
       lo.write(buf, 0, pos);
       pos = 0;
     }
-    catch(SQLException e) {
+    catch (SQLException e) {
       throw new IOException(e);
     }
 

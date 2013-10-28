@@ -28,6 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Version;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
@@ -48,11 +51,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.NoticeException;
-import com.impossibl.postgres.system.Version;
-
-
 public class PGDriver implements Driver {
 
   public static final Version VERSION = Version.get(0, 1, 0);
@@ -71,18 +69,18 @@ public class PGDriver implements Driver {
       StringBuilder hosts = new StringBuilder();
 
       Iterator<InetSocketAddress> addrIter = addresses.iterator();
-      while(addrIter.hasNext()) {
+      while (addrIter.hasNext()) {
 
         InetSocketAddress addr = addrIter.next();
 
         hosts.append(addr.getHostString());
 
-        if(addr.getPort() != 5432) {
+        if (addr.getPort() != 5432) {
           hosts.append(':');
           hosts.append(addr.getPort());
         }
 
-        if(addrIter.hasNext()) {
+        if (addrIter.hasNext()) {
           hosts.append(",");
         }
       }
@@ -103,7 +101,7 @@ public class PGDriver implements Driver {
   public PGConnection connect(String url, Properties info) throws SQLException {
 
     ConnectionSpecifier connSpec = parseURL(url);
-    if(connSpec == null) {
+    if (connSpec == null) {
       return null;
     }
 
@@ -113,7 +111,7 @@ public class PGDriver implements Driver {
 
     //Try to connect to each provided address in turn returning the first
     //successful connection
-    for(InetSocketAddress address : connSpec.addresses) {
+    for (InetSocketAddress address : connSpec.addresses) {
 
       try {
 
@@ -220,18 +218,18 @@ public class PGDriver implements Driver {
       //Get hosts, if provided, or use the default "localhost:5432"
 
       String hosts = urlMatcher.group(1);
-      if(hosts == null || hosts.isEmpty()) {
+      if (hosts == null || hosts.isEmpty()) {
         hosts = "localhost";
       }
 
       //Parse hosts into list of addresses
       Matcher hostsMatcher = ADDRESS_PATTERN.matcher(hosts);
-      while(hostsMatcher.find()) {
+      while (hostsMatcher.find()) {
 
         String name = hostsMatcher.group(1);
 
         String port = hostsMatcher.group(2);
-        if(port == null || port.isEmpty()) {
+        if (port == null || port.isEmpty()) {
           port = "5432";
         }
 
@@ -249,17 +247,17 @@ public class PGDriver implements Driver {
       //then assign them as extra parameters
 
       String params = urlMatcher.group(3);
-      if(params != null && !params.isEmpty()) {
+      if (params != null && !params.isEmpty()) {
 
-        for(String nameValue : params.split("&")) {
+        for (String nameValue : params.split("&")) {
 
           String[] items = nameValue.split("=");
 
-          if(items.length == 1) {
-            spec.parameters.put(items[0],"");
+          if (items.length == 1) {
+            spec.parameters.put(items[0], "");
           }
-          else if(items.length == 2) {
-            spec.parameters.put(items[0],items[1]);
+          else if (items.length == 2) {
+            spec.parameters.put(items[0], items[1]);
           }
 
         }
@@ -268,7 +266,7 @@ public class PGDriver implements Driver {
       return spec;
 
     }
-    catch(Throwable e) {
+    catch (Throwable e) {
       return null;
     }
 
@@ -280,15 +278,15 @@ public class PGDriver implements Driver {
     List<DriverPropertyInfo> propInfo = new ArrayList<>();
 
     ConnectionSpecifier spec = parseURL(url);
-    if(spec == null)
+    if (spec == null)
       spec = new ConnectionSpecifier();
 
-    if(spec.database == null || spec.database.isEmpty())
-      propInfo.add(new DriverPropertyInfo("database",""));
-    if(spec.parameters.get("username") == null || spec.parameters.get("username").toString().isEmpty())
-      propInfo.add(new DriverPropertyInfo("username",""));
-    if(spec.parameters.get("password") == null || spec.parameters.get("password").toString().isEmpty())
-      propInfo.add(new DriverPropertyInfo("password",""));
+    if (spec.database == null || spec.database.isEmpty())
+      propInfo.add(new DriverPropertyInfo("database", ""));
+    if (spec.parameters.get("username") == null || spec.parameters.get("username").toString().isEmpty())
+      propInfo.add(new DriverPropertyInfo("username", ""));
+    if (spec.parameters.get("password") == null || spec.parameters.get("password").toString().isEmpty())
+      propInfo.add(new DriverPropertyInfo("password", ""));
 
     return propInfo.toArray(new DriverPropertyInfo[propInfo.size()]);
   }

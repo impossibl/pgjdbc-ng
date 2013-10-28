@@ -59,7 +59,7 @@ public class ListPropertySetter implements PropertySetter {
 
   void fill(List<Object> list, int requiredSize) {
 
-    for(int c = list.size(); c < requiredSize; ++c) {
+    for (int c = list.size(); c < requiredSize; ++c) {
       list.add(null);
     }
 

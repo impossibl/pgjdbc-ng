@@ -64,20 +64,20 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
     @Override
     public boolean equals(Object obj) {
-      if(this == obj)
+      if (this == obj)
         return true;
-      if(obj == null)
+      if (obj == null)
         return false;
-      if(getClass() != obj.getClass())
+      if (getClass() != obj.getClass())
         return false;
       Row other = (Row) obj;
-      if(name == null) {
-        if(other.name != null)
+      if (name == null) {
+        if (other.name != null)
           return false;
       }
-      else if(!name.equals(other.name))
+      else if (!name.equals(other.name))
         return false;
-      if(typeId != other.typeId)
+      if (typeId != other.typeId)
         return false;
       return true;
     }
@@ -98,8 +98,8 @@ public class PgAttribute implements Table<PgAttribute.Row> {
   }
 
   private static final Object[] SQL = {
-      Version.get(9, 0, 0),
-      " select " +
+    Version.get(9, 0, 0),
+    " select " +
       "   attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
       "   attnum as \"number\", not attnotnull as \"nullable\", pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) like '%nextval(%' as \"autoIncrement\", " +
       "   attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\", reltype as \"relationTypeId\" " +

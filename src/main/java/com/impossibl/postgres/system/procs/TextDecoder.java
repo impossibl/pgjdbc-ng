@@ -28,12 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Type;
+
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
 
 public abstract class TextDecoder implements Type.Codec.Decoder {
 
@@ -42,10 +42,10 @@ public abstract class TextDecoder implements Type.Codec.Decoder {
   @Override
   public Object decode(Type type, Object buffer, Context context) throws IOException {
 
-    if(buffer instanceof ChannelBuffer)  {
+    if (buffer instanceof ChannelBuffer)  {
 
       CharSequence textBuffer = (CharSequence)Strings.BINARY_DECODER.decode(type, buffer, context);
-      if(textBuffer == null)
+      if (textBuffer == null)
         return null;
 
       return decode(type, textBuffer, context);

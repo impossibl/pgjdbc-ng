@@ -28,22 +28,20 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static java.lang.reflect.Array.newInstance;
-
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import static java.lang.reflect.Array.newInstance;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 
 /*
  * Array codec
@@ -73,7 +71,7 @@ public class Arrays extends SimpleProcProvider {
 
       Object instance = null;
 
-      if(length != -1) {
+      if (length != -1) {
 
         ArrayType atype = ((ArrayType)type);
 
@@ -88,7 +86,7 @@ public class Arrays extends SimpleProcProvider {
         //Each Dimension
         int[] dimensions = new int[dimensionCount];
         int[] lowerBounds = new int[dimensionCount];
-        for(int d=0; d < dimensionCount; ++d) {
+        for (int d = 0; d < dimensionCount; ++d) {
 
           //Dimension
           dimensions[d] = buffer.readInt();
@@ -97,7 +95,7 @@ public class Arrays extends SimpleProcProvider {
           lowerBounds[d] = buffer.readInt();
         }
 
-        if(atype.getElementType().getId() != elementType.getId()) {
+        if (atype.getElementType().getId() != elementType.getId()) {
           context.refreshType(atype.getId());
         }
 
@@ -108,7 +106,7 @@ public class Arrays extends SimpleProcProvider {
         instance = readArray(buffer, elementType, dimensions, context);
 
 
-        if(length != buffer.readerIndex() - readStart) {
+        if (length != buffer.readerIndex() - readStart) {
           throw new IOException("invalid length");
         }
 
@@ -119,10 +117,10 @@ public class Arrays extends SimpleProcProvider {
 
     Object readArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
 
-      if(dims.length == 0) {
+      if (dims.length == 0) {
         return readElements(buffer, type, 0, context);
       }
-      else if(dims.length == 1) {
+      else if (dims.length == 1) {
         return readElements(buffer, type, dims[0], context);
       }
       else {
@@ -133,12 +131,12 @@ public class Arrays extends SimpleProcProvider {
 
     Object readSubArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String,Class<?>>emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String, Class<?>>emptyMap());
       Object inst = newInstance(elementClass, dims);
 
       int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
 
-      for(int c=0; c < dims[0]; ++c) {
+      for (int c = 0; c < dims[0]; ++c) {
 
         Array.set(inst, c, readArray(buffer, type, subDims, context));
 
@@ -149,10 +147,10 @@ public class Arrays extends SimpleProcProvider {
 
     Object readElements(ChannelBuffer buffer, Type type, int len, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String,Class<?>>emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String, Class<?>>emptyMap());
       Object inst = newInstance(elementClass, len);
 
-      for(int c=0; c < len; ++c) {
+      for (int c = 0; c < len; ++c) {
 
         Array.set(inst, c, type.getBinaryCodec().decoder.decode(type, buffer, context));
 
@@ -177,7 +175,7 @@ public class Arrays extends SimpleProcProvider {
 
       buffer.writeInt(-1);
 
-      if(val != null) {
+      if (val != null) {
 
         int writeStart = buffer.writerIndex();
 
@@ -198,10 +196,10 @@ public class Arrays extends SimpleProcProvider {
 
         //each dimension
         Object dim = val;
-        for(int d=0; d < dimensionCount; ++d) {
+        for (int d = 0; d < dimensionCount; ++d) {
 
           int dimension = 0;
-          if(dim != null)
+          if (dim != null)
             dimension = Array.getLength(dim);
 
           //Dimension
@@ -210,9 +208,9 @@ public class Arrays extends SimpleProcProvider {
           //Lower bounds
           buffer.writeInt(1);
 
-          if(dimension == 0)
+          if (dimension == 0)
             dim = null;
-          else if(dim != null)
+          else if (dim != null)
             dim = Array.get(dim, 0);
         }
 
@@ -222,19 +220,19 @@ public class Arrays extends SimpleProcProvider {
         writeArray(buffer, elementType, val, context);
 
         //Set length
-        buffer.setInt(writeStart-4, buffer.writerIndex() - writeStart);
+        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
 
       }
 
     }
 
     int getDimensions(Object val) {
-       return 1 + val.getClass().getName().lastIndexOf('[');
+      return 1 + val.getClass().getName().lastIndexOf('[');
     }
 
     void writeArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
 
-      if(val.getClass().getComponentType().isArray()) {
+      if (val.getClass().getComponentType().isArray()) {
 
         writeSubArray(buffer, type, val, context);
       }
@@ -249,7 +247,7 @@ public class Arrays extends SimpleProcProvider {
 
       int len = Array.getLength(val);
 
-      for(int c=0; c < len; ++c) {
+      for (int c = 0; c < len; ++c) {
 
         type.getBinaryCodec().encoder.encode(type, buffer, Array.get(val, c), context);
       }
@@ -260,7 +258,7 @@ public class Arrays extends SimpleProcProvider {
 
       int len = Array.getLength(val);
 
-      for(int c=0; c < len; ++c) {
+      for (int c = 0; c < len; ++c) {
 
         writeArray(buffer, type, Array.get(val, c), context);
       }
@@ -269,8 +267,8 @@ public class Arrays extends SimpleProcProvider {
 
     boolean hasNulls(Object value) {
 
-      for(int c=0, sz = Array.getLength(value); c < sz; ++c) {
-        if(Array.get(value, c) == null)
+      for (int c = 0, sz = Array.getLength(value); c < sz; ++c) {
+        if (Array.get(value, c) == null)
           return true;
       }
 
@@ -295,7 +293,7 @@ public class Arrays extends SimpleProcProvider {
 
       Object instance = null;
 
-      if(length != 0) {
+      if (length != 0) {
 
         ArrayType atype = ((ArrayType)type);
 
@@ -307,11 +305,11 @@ public class Arrays extends SimpleProcProvider {
 
     Object readArray(CharSequence data, char delim, Type type, Context context) throws IOException {
 
-      if(data.length() < 2 || (data.charAt(0) != '{' && data.charAt(data.length()-1) != '}')) {
+      if (data.length() < 2 || (data.charAt(0) != '{' && data.charAt(data.length() - 1) != '}')) {
         return type.getCodec(Format.Text).decoder.decode(type, data, context);
       }
 
-      data = data.subSequence(1, data.length()-1);
+      data = data.subSequence(1, data.length() - 1);
 
       List<Object> elements = new ArrayList<>();
       StringBuilder elementTxt = new StringBuilder();
@@ -319,48 +317,48 @@ public class Arrays extends SimpleProcProvider {
       boolean string = false;
       int opened = 0;
       int c;
-      for(c=0; c < data.length(); ++c) {
+      for (c = 0; c < data.length(); ++c) {
 
         char ch = data.charAt(c);
         switch(ch) {
-        case '{':
-          if(!string)
-            opened++;
-          else
-            elementTxt.append(ch);
-          break;
+          case '{':
+            if (!string)
+              opened++;
+            else
+              elementTxt.append(ch);
+            break;
 
-        case '}':
-          if(!string)
-            opened--;
-          else
-            elementTxt.append(ch);
-          break;
+          case '}':
+            if (!string)
+              opened--;
+            else
+              elementTxt.append(ch);
+            break;
 
-        case '"':
-          string = !string;
-          break;
+          case '"':
+            string = !string;
+            break;
 
-        case '\\':
-          ++c;
-          if(c < data.length())
-            elementTxt.append(data.charAt(c));
-          break;
+          case '\\':
+            ++c;
+            if (c < data.length())
+              elementTxt.append(data.charAt(c));
+            break;
 
-        default:
+          default:
 
-          if(ch == delim && opened == 0 && !string) {
+            if (ch == delim && opened == 0 && !string) {
 
-            Object element = readArray(elementTxt.toString(), delim, type, context);
+              Object element = readArray(elementTxt.toString(), delim, type, context);
 
-            elements.add(element);
+              elements.add(element);
 
-            elementTxt = new StringBuilder();
-          }
-          else {
+              elementTxt = new StringBuilder();
+            }
+            else {
 
-            elementTxt.append(ch);
-          }
+              elementTxt.append(ch);
+            }
 
         }
 

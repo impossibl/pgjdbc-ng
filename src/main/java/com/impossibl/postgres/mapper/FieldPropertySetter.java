@@ -53,7 +53,7 @@ public class FieldPropertySetter implements PropertySetter {
     try {
       field.set(instance, value);
     }
-    catch(IllegalArgumentException | IllegalAccessException e) {
+    catch (IllegalArgumentException | IllegalAccessException e) {
       // Ignore mapping errors (they shouldn't happen)
     }
   }

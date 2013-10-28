@@ -28,18 +28,15 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Bits;
 
 import java.io.IOException;
 import java.util.BitSet;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Bits extends SimpleProcProvider {
 
@@ -134,19 +131,19 @@ public class Bits extends SimpleProcProvider {
 
       BitSet bits = new BitSet();
 
-      for(int c=0, sz=buffer.length(); c < sz; ++c) {
+      for (int c = 0, sz = buffer.length(); c < sz; ++c) {
 
         switch(buffer.charAt(c)) {
-        case '0':
-          bits.clear(c);
-          break;
+          case '0':
+            bits.clear(c);
+            break;
 
-        case '1':
-          bits.set(c);
-          break;
+          case '1':
+            bits.set(c);
+            break;
 
-        default:
-          throw new IOException("Invalid bits format");
+          default:
+            throw new IOException("Invalid bits format");
         }
       }
 
@@ -169,7 +166,7 @@ public class Bits extends SimpleProcProvider {
 
       BitSet bits = (BitSet) val;
 
-      for(int c=0, sz=bits.length(); c < sz; ++c) {
+      for (int c = 0, sz = bits.length(); c < sz; ++c) {
 
         buffer.append(bits.get(c) ? '1' : '0');
       }

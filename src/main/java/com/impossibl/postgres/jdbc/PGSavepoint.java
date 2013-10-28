@@ -62,7 +62,7 @@ class PGSavepoint implements Savepoint {
    */
   void checkValid() throws SQLException {
 
-    if(!isValid())
+    if (!isValid())
       throw new SQLException("Invalid savepoint");
   }
 
@@ -70,7 +70,7 @@ class PGSavepoint implements Savepoint {
   public int getSavepointId() throws SQLException {
     checkValid();
 
-    if(id == null)
+    if (id == null)
       throw new SQLException("named savepoints have no id");
     return id;
   }
@@ -79,15 +79,15 @@ class PGSavepoint implements Savepoint {
   public String getSavepointName() throws SQLException {
     checkValid();
 
-    if(name == null)
+    if (name == null)
       throw new SQLException("auto savepoints have no name");
     return name;
   }
 
   public String getId() {
-    if(id != null)
+    if (id != null)
       return "sp_" + id.toString();
-    if(name != null)
+    if (name != null)
       return Identifiers.escape(name);
     throw new IllegalStateException();
   }

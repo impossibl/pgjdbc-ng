@@ -50,7 +50,7 @@ public class DateStyle {
   public static String[] parse(String value) {
 
     String[] parsed = value.split(",");
-    if(parsed.length != 2)
+    if (parsed.length != 2)
       return null;
 
     parsed[0] = parsed[0].trim().toUpperCase();
@@ -68,14 +68,14 @@ public class DateStyle {
   public static DateTimeFormat getDateFormatter(String[] dateStyle) {
 
     switch(dateStyle[0]) {
-    case "ISO":
-      return new ISODateFormat();
+      case "ISO":
+        return new ISODateFormat();
 
-    case "POSTGRES":
-    case "SQL":
-    case "GERMAN":
-    default:
-      return null;
+      case "POSTGRES":
+      case "SQL":
+      case "GERMAN":
+      default:
+        return null;
     }
 
   }
@@ -89,14 +89,14 @@ public class DateStyle {
   public static DateTimeFormat getTimeFormatter(String[] dateStyle) {
 
     switch(dateStyle[0]) {
-    case "ISO":
-      return new ISOTimeFormat();
+      case "ISO":
+        return new ISOTimeFormat();
 
-    case "POSTGRES":
-    case "SQL":
-    case "GERMAN":
-    default:
-      return null;
+      case "POSTGRES":
+      case "SQL":
+      case "GERMAN":
+      default:
+        return null;
     }
 
   }
@@ -110,14 +110,14 @@ public class DateStyle {
   public static DateTimeFormat getTimestampFormatter(String[] dateStyle) {
 
     switch(dateStyle[0]) {
-    case "ISO":
-      return new ISOTimestampFormat();
+      case "ISO":
+        return new ISOTimestampFormat();
 
-    case "POSTGRES":
-    case "SQL":
-    case "GERMAN":
-    default:
-      return null;
+      case "POSTGRES":
+      case "SQL":
+      case "GERMAN":
+      default:
+        return null;
     }
 
   }

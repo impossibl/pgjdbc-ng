@@ -28,20 +28,17 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.data.Range;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.RangeType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Range;
 import static com.impossibl.postgres.types.PrimitiveType.Record;
 
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-
-import com.impossibl.postgres.data.Range;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.RangeType;
-import com.impossibl.postgres.types.Type;
-
-
 
 public class Ranges extends SimpleProcProvider {
 
@@ -68,17 +65,17 @@ public class Ranges extends SimpleProcProvider {
 
       int length = buffer.readInt();
 
-      if(length != -1) {
+      if (length != -1) {
 
         Range.Flags flags = new Range.Flags(buffer.readByte());
         Object[] values = new Object[2];
 
-        if(flags.hasLowerBound()) {
+        if (flags.hasLowerBound()) {
 
           values[0] = baseType.getBinaryCodec().decoder.decode(baseType, buffer, context);
         }
 
-        if(flags.hasUpperBound()) {
+        if (flags.hasUpperBound()) {
 
           values[1] = baseType.getBinaryCodec().decoder.decode(baseType, buffer, context);
         }
@@ -116,12 +113,12 @@ public class Ranges extends SimpleProcProvider {
 
         buffer.writeByte(range.getFlags().getValue());
 
-        if(range.getFlags().hasLowerBound()) {
+        if (range.getFlags().hasLowerBound()) {
 
           baseType.getBinaryCodec().encoder.encode(baseType, buffer, range.getLowerBound(), context);
         }
 
-        if(range.getFlags().hasUpperBound()) {
+        if (range.getFlags().hasUpperBound()) {
 
           baseType.getBinaryCodec().encoder.encode(baseType, buffer, range.getUpperBound(), context);
         }

@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.system.tables.PgAttribute;
+import com.impossibl.postgres.system.tables.PgType;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
@@ -37,10 +39,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
-
 
 /**
  * A database composite type.
@@ -86,14 +84,14 @@ public class CompositeType extends Type {
   public Attribute getAttribute(int number) {
 
     //First try the obvious
-    if(number > 0 && attributes.get(number-1).number == number) {
-      return attributes.get(number-1);
+    if (number > 0 && attributes.get(number - 1).number == number) {
+      return attributes.get(number - 1);
     }
 
     //Now search all
-    for(int c=0, sz=attributes.size(); c < sz; ++c) {
+    for (int c = 0, sz = attributes.size(); c < sz; ++c) {
       Attribute attr = attributes.get(c);
-      if(attr.number == number) {
+      if (attr.number == number) {
         return attr;
       }
     }
@@ -113,7 +111,7 @@ public class CompositeType extends Type {
   public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 
     Class<?> type = (customizations != null) ? customizations.get(getName()) : null;
-    if(type == null) {
+    if (type == null) {
       type = super.getJavaType(customizations);
     }
 
@@ -125,7 +123,7 @@ public class CompositeType extends Type {
 
     super.load(pgType, pgAttrs, registry);
 
-    if(pgAttrs == null) {
+    if (pgAttrs == null) {
 
       attributes = Collections.emptyList();
     }
@@ -141,7 +139,7 @@ public class CompositeType extends Type {
         attr.type = registry.loadType(pgAttr.typeId);
         attr.nullable = pgAttr.nullable;
         attr.hasDefault = pgAttr.hasDefault;
-        attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String,Object>emptyMap();
+        attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String, Object>emptyMap();
         attr.autoIncrement = pgAttr.autoIncrement;
 
         attributes.add(attr);

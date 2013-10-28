@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.CompositeType.Attribute;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
@@ -35,9 +37,6 @@ import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
 
 public class PGStruct implements Struct {
 
@@ -74,7 +73,7 @@ public class PGStruct implements Struct {
 
     List<Attribute> attrs = type.getAttributes();
 
-    for(int c=0; c < attrs.size(); c++) {
+    for (int c = 0; c < attrs.size(); c++) {
 
       Attribute attr = attrs.get(c);
 

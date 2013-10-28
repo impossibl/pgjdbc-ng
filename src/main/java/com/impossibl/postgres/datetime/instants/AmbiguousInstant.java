@@ -28,14 +28,13 @@
  */
 package com.impossibl.postgres.datetime.instants;
 
+import com.impossibl.postgres.system.Context;
 import static com.impossibl.postgres.datetime.TimeZones.UTC;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.Calendar;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.system.Context;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class AmbiguousInstant extends InstantBase {
 
@@ -85,14 +84,14 @@ public class AmbiguousInstant extends InstantBase {
   public String print(Context context) {
 
     switch(type) {
-    case Time:
-      return toTime().toString();
-    case Date:
-      return toDate().toString();
-    case Timestamp:
-      return toTimestamp().toString();
-    default:
-      return "";
+      case Time:
+        return toTime().toString();
+      case Date:
+        return toDate().toString();
+      case Timestamp:
+        return toTimestamp().toString();
+      default:
+        return "";
     }
 
   }

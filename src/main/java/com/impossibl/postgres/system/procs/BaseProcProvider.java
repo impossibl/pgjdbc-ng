@@ -43,8 +43,8 @@ public abstract class BaseProcProvider implements ProcProvider {
 
   protected boolean hasName(String name, String suffix, Context context) {
 
-    for(String baseName : baseNames) {
-      if(name.equals(baseName+suffix))
+    for (String baseName : baseNames) {
+      if (name.equals(baseName + suffix))
         return true;
     }
 

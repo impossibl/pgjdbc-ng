@@ -44,7 +44,7 @@ public class Timer {
   }
 
   public float getLapSeconds() {
-    return getLap()/1000.f;
+    return getLap() / 1000.f;
   }
 
   public long getTotal() {
@@ -52,7 +52,7 @@ public class Timer {
   }
 
   public float getTotalSeconds() {
-    return getTotal()/1000.f;
+    return getTotal() / 1000.f;
   }
 
 }

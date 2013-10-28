@@ -28,13 +28,20 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
+import com.impossibl.postgres.data.ACLItem;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.DomainType;
+import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.Joiner;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
-import static java.util.Arrays.asList;
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -47,15 +54,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.utils.guava.Joiner;
-import com.impossibl.postgres.data.ACLItem;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.DomainType;
-import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
+import static java.util.Arrays.asList;
 
 class PGDatabaseMetaData implements DatabaseMetaData {
 
@@ -80,14 +79,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   private int execForInteger(String query) throws SQLException {
 
     String res = connection.executeForString(query, false);
-    if(res == null) {
+    if (res == null) {
       throw SERVER_VERSION_NOT_SUPPORTED;
     }
 
     try {
       return Integer.parseInt(res);
     }
-    catch(NumberFormatException e) {
+    catch (NumberFormatException e) {
       throw SERVER_VERSION_NOT_SUPPORTED;
     }
 
@@ -103,8 +102,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     PGPreparedStatement ps = connection.prepareStatement(sql);
     ps.closeOnCompletion();
 
-    for(int c=0; c < params.size(); ++c) {
-      ps.setObject(c+1, params.get(c));
+    for (int c = 0; c < params.size(); ++c) {
+      ps.setObject(c + 1, params.get(c));
     }
 
     return ps.executeQuery();
@@ -119,7 +118,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   private int getMaxNameLength() throws SQLException {
 
-    if(maxNameLength == 0) {
+    if (maxNameLength == 0) {
 
       maxNameLength =
           execForInteger("SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'");
@@ -131,7 +130,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   protected int getMaxIndexKeys() throws SQLException {
 
-    if(maxIndexKeys == 0) {
+    if (maxIndexKeys == 0) {
 
       maxIndexKeys = execForInteger("SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'");
 
@@ -142,7 +141,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 
@@ -150,7 +149,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor (Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
@@ -167,7 +166,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public String getURL() throws SQLException {
     Object val = connection.getSetting(DATABASE_URL);
-    if(val == null)
+    if (val == null)
       throw new SQLException("invalid connection");
     return val.toString();
   }
@@ -175,7 +174,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public String getUserName() throws SQLException {
     Object val = connection.getSetting(CREDENTIALS_USERNAME);
-    if(val == null)
+    if (val == null)
       throw new SQLException("invalid connection");
     return val.toString();
   }
@@ -729,15 +728,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
 
     switch(level) {
-    case Connection.TRANSACTION_NONE:
-    case Connection.TRANSACTION_READ_UNCOMMITTED:
-    case Connection.TRANSACTION_READ_COMMITTED:
-    case Connection.TRANSACTION_REPEATABLE_READ:
-    case Connection.TRANSACTION_SERIALIZABLE:
-      return true;
+      case Connection.TRANSACTION_NONE:
+      case Connection.TRANSACTION_READ_UNCOMMITTED:
+      case Connection.TRANSACTION_READ_COMMITTED:
+      case Connection.TRANSACTION_REPEATABLE_READ:
+      case Connection.TRANSACTION_SERIALIZABLE:
+        return true;
 
-    default:
-      return false;
+      default:
+        return false;
     }
 
   }
@@ -777,11 +776,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') " +
         " WHERE p.pronamespace=n.oid");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
-    if(!isNullOrEmpty(procedureNamePattern)) {
+    if (!isNullOrEmpty(procedureNamePattern)) {
       sql.append(" AND p.proname LIKE ?");
       params.add(procedureNamePattern);
     }
@@ -829,18 +828,18 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
         " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
-    if(!isNullOrEmpty(procedureNamePattern)) {
+    if (!isNullOrEmpty(procedureNamePattern)) {
       sql.append(" AND p.proname LIKE ?");
       params.add(procedureNamePattern);
     }
 
     sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
 
-    try(PGResultSet rs = execForResultSet(sql.toString(), params)) {
+    try (PGResultSet rs = execForResultSet(sql.toString(), params)) {
       while (rs.next()) {
 
         String schema = rs.getString("nspname");
@@ -891,7 +890,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           row[1] = schema;
           row[2] = procedureName;
 
-          if(argNames != null) {
+          if (argNames != null) {
             row[3] = argNames[i];
           }
           else {
@@ -899,9 +898,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           }
 
           int columnMode = DatabaseMetaData.procedureColumnIn;
-          if(argModes != null) {
+          if (argModes != null) {
 
-            if(argModes[i].equals("o")) {
+            if (argModes[i].equals("o")) {
               columnMode = DatabaseMetaData.procedureColumnOut;
             }
             else if (argModes[i].equals("b")) {
@@ -935,13 +934,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         }
 
         // if we are returning a multi-column result.
-        if(returnTypeType.equals("c") ||
+        if (returnTypeType.equals("c") ||
             (returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
 
           String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
-          try(ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
+          try (ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
             while (columnrs.next()) {
-
               Type columnType = reg.loadType(columnrs.getInt("atttypid"));
 
               Object[] row = new Object[resultFields.length];
@@ -1020,24 +1018,23 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " LEFT JOIN pg_catalog.pg_namespace dn ON (dn.oid=dc.relnamespace AND dn.nspname='pg_catalog') " +
         " WHERE c.relnamespace = n.oid ");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
-    if(!isNullOrEmpty(tableNamePattern)) {
+    if (!isNullOrEmpty(tableNamePattern)) {
       sql.append(" AND c.relname LIKE ?");
       params.add(tableNamePattern);
     }
 
     if (types != null) {
       sql.append(" AND (false ");
-      for (int i = 0; i < types.length; i++)
-      {
-          String clause = tableTypeClauses.get(types[i]);
-          if (clause != null) {
-              sql.append(" OR ( " + clause + " ) ");
-          }
+      for (int i = 0; i < types.length; i++) {
+        String clause = tableTypeClauses.get(types[i]);
+        if (clause != null) {
+          sql.append(" OR ( " + clause + " ) ");
+        }
       }
       sql.append(") ");
     }
@@ -1047,24 +1044,24 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return execForResultSet(sql.toString(), params);
   }
 
-  private static final Map<String,String> tableTypeClauses;
+  private static final Map<String, String> tableTypeClauses;
   static {
-      tableTypeClauses = new HashMap<>();
-      tableTypeClauses.put("TABLE", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-      tableTypeClauses.put("VIEW", "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
-      tableTypeClauses.put("INDEX", "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-      tableTypeClauses.put("SEQUENCE", "c.relkind = 'S'");
-      tableTypeClauses.put("TYPE", "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
-      tableTypeClauses.put("SYSTEM TABLE", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
-      tableTypeClauses.put("SYSTEM TOAST TABLE", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
-      tableTypeClauses.put("SYSTEM TOAST INDEX", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
-      tableTypeClauses.put("SYSTEM VIEW", "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-      tableTypeClauses.put("SYSTEM INDEX", "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-      tableTypeClauses.put("TEMPORARY TABLE", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
-      tableTypeClauses.put("TEMPORARY INDEX", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
-      tableTypeClauses.put("TEMPORARY VIEW", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
-      tableTypeClauses.put("TEMPORARY SEQUENCE", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
-      tableTypeClauses.put("FOREIGN TABLE", "c.relkind = 'f'");
+    tableTypeClauses = new HashMap<>();
+    tableTypeClauses.put("TABLE", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    tableTypeClauses.put("VIEW", "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
+    tableTypeClauses.put("INDEX", "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    tableTypeClauses.put("SEQUENCE", "c.relkind = 'S'");
+    tableTypeClauses.put("TYPE", "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    tableTypeClauses.put("SYSTEM TABLE", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
+    tableTypeClauses.put("SYSTEM TOAST TABLE", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
+    tableTypeClauses.put("SYSTEM TOAST INDEX", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
+    tableTypeClauses.put("SYSTEM VIEW", "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
+    tableTypeClauses.put("SYSTEM INDEX", "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
+    tableTypeClauses.put("TEMPORARY TABLE", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
+    tableTypeClauses.put("TEMPORARY INDEX", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
+    tableTypeClauses.put("TEMPORARY VIEW", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
+    tableTypeClauses.put("TEMPORARY SEQUENCE", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
+    tableTypeClauses.put("FOREIGN TABLE", "c.relkind = 'f'");
   }
 
   @Override
@@ -1087,7 +1084,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))" +
         " )");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1111,7 +1108,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     List<Object[]> results = new ArrayList<>();
     results.add(new Object[] {connection.getCatalog()});
 
-    return createResultSet(Arrays.asList(resultFields),results);
+    return createResultSet(Arrays.asList(resultFields), results);
   }
 
   @Override
@@ -1122,12 +1119,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<Object[]> results = new ArrayList<>();
 
-    for(String tableType : tableTypeClauses.keySet()) {
+    for (String tableType : tableTypeClauses.keySet()) {
       results.add(new Object[] {tableType});
     }
 
 
-    return createResultSet(Arrays.asList(resultFields),results);
+    return createResultSet(Arrays.asList(resultFields), results);
   }
 
   static class ColumnData {
@@ -1167,19 +1164,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
         "   WHERE a.attnum > 0 AND NOT a.attisdropped ");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
-    if(!isNullOrEmpty(tableNamePattern)) {
+    if (!isNullOrEmpty(tableNamePattern)) {
       sql.append(" AND c.relname LIKE ?");
       params.add(tableNamePattern);
     }
 
     sql.append(") c");
 
-    if(!isNullOrEmpty(columnNamePattern)) {
+    if (!isNullOrEmpty(columnNamePattern)) {
       sql.append(" WHERE attname LIKE ?");
       params.add(columnNamePattern);
     }
@@ -1190,7 +1187,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<ColumnData> columnsData  = new ArrayList<>();
 
-    try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
 
       while (rs.next()) {
 
@@ -1240,11 +1237,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     resultFields[20] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[21] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, Format.Binary);
     resultFields[22] = new ResultField("IS_AUTOINCREMENT",  0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN",0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN", 0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
-    for(int c=0; c < columnsData.size(); ++c) {
+    for (int c = 0; c < columnsData.size(); ++c) {
 
       ColumnData columnData = columnsData.get(c);
 
@@ -1258,7 +1255,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[5] = SQLTypeMetaData.getTypeName(columnData.type, columnData.relationType, columnData.relationAttrNum);
 
       int size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
-      if(size == 0) {
+      if (size == 0) {
         size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
       }
 
@@ -1277,15 +1274,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
       String nullable = null;
       switch((int)row[10]) {
-      case columnNoNulls:
-        nullable = "NO";
-        break;
-      case columnNullable:
-        nullable = "YES";
-        break;
-      default:
-        nullable = "";
-        break;
+        case columnNoNulls:
+          nullable = "NO";
+          break;
+        case columnNullable:
+          nullable = "YES";
+          break;
+        default:
+          nullable = "";
+          break;
       }
 
       row[17] = nullable;
@@ -1305,11 +1302,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
 
-    if(table == null) {
+    if (table == null) {
       table = "%";
     }
 
-    if(columnNamePattern == null) {
+    if (columnNamePattern == null) {
       columnNamePattern = "%";
     }
 
@@ -1326,7 +1323,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "WHERE " +
         " c.relnamespace = n.oid AND c.relowner = r.oid AND c.oid = a.attrelid AND c.relkind = 'r' AND a.attnum > 0 AND NOT a.attisdropped ");
 
-    if(!isNullOrEmpty(schema)) {
+    if (!isNullOrEmpty(schema)) {
       sql.append(" AND n.nspname = ?");
       params.add(schema);
     }
@@ -1334,7 +1331,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     sql.append(" AND c.relname = ?");
     params.add(table);
 
-    if(!isNullOrEmpty(columnNamePattern)) {
+    if (!isNullOrEmpty(columnNamePattern)) {
       sql.append(" AND a.attname LIKE ?");
       params.add(columnNamePattern);
     }
@@ -1342,7 +1339,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     sql.append(" ORDER BY attname");
 
 
-    ResultField fields[] = new ResultField[8];
+    ResultField[] fields = new ResultField[8];
     fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
@@ -1354,9 +1351,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<Object[]> results = new ArrayList<>();
 
-    try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
 
-      while(rs.next()) {
+      while (rs.next()) {
 
         String schemaName = rs.getString("nspname");
         String tableName = rs.getString("relname");
@@ -1371,13 +1368,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         String[] privNames = new String[privileges.size()];
         Iterator<String> e = privileges.keySet().iterator();
         int i = 0;
-        while(e.hasNext()) {
+        while (e.hasNext()) {
           privNames[i++] = e.next();
         }
 
         Arrays.sort(privNames);
 
-        for(String privName : privNames) {
+        for (String privName : privNames) {
 
           Map<String, List<String[]>> grantees = privileges.get(privName);
 
@@ -1385,18 +1382,18 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           String[] granteeUsers = new String[grantees.size()];
           Iterator<String> g = grantees.keySet().iterator();
           int k = 0;
-          while(g.hasNext()) {
+          while (g.hasNext()) {
             granteeUsers[k++] = g.next();
           }
 
           //Add row for grantee
 
-          for(int j = 0; j < grantees.size(); j++) {
+          for (int j = 0; j < grantees.size(); j++) {
 
             List<String[]> grantors = grantees.get(granteeUsers[j]);
             String grantee = granteeUsers[j];
 
-            for(int l = 0; l < grantors.size(); l++) {
+            for (int l = 0; l < grantors.size(); l++) {
 
               String[] grants = grantors.get(l);
 
@@ -1443,12 +1440,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "WHERE" +
         " c.relnamespace = n.oid AND c.relowner = r.oid AND c.relkind = 'r' ");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
-    if(!isNullOrEmpty(tableNamePattern)) {
+    if (!isNullOrEmpty(tableNamePattern)) {
       sql.append(" AND c.relname LIKE ?");
       params.add(tableNamePattern);
     }
@@ -1456,7 +1453,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     sql.append(" ORDER BY nspname, relname ");
 
 
-    ResultField fields[] = new ResultField[7];
+    ResultField[] fields = new ResultField[7];
     fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
@@ -1467,9 +1464,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<Object[]> results = new ArrayList<>();
 
-    try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
 
-      while(rs.next()) {
+      while (rs.next()) {
 
         String schema = rs.getString("nspname");
         String table = rs.getString("relname");
@@ -1478,16 +1475,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         Map<String, Map<String, List<String[]>>> privileges = new HashMap<>();
         mapACLPrivileges(owner, rs.getObject("relacl", ACLItem[].class), privileges);
 
-        String privNames[] = new String[privileges.size()];
+        String[] privNames = new String[privileges.size()];
         Iterator<String> e = privileges.keySet().iterator();
         int i = 0;
-        while(e.hasNext()) {
+        while (e.hasNext()) {
           privNames[i++] = (String) e.next();
         }
 
         Arrays.sort(privNames);
 
-        for(String privName : privNames) {
+        for (String privName : privNames) {
 
           Map<String, List<String[]>> grantees = privileges.get(privName);
 
@@ -1495,16 +1492,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           String[] granteeUsers = new String[grantees.size()];
           Iterator<String> g = grantees.keySet().iterator();
           int k = 0;
-          while(g.hasNext()) {
+          while (g.hasNext()) {
             granteeUsers[k++] = g.next();
           }
 
-          for(int j = 0; j < granteeUsers.length; j++) {
+          for (int j = 0; j < granteeUsers.length; j++) {
 
             List<String[]> grantors = grantees.get(granteeUsers[j]);
             String grantee = granteeUsers[j];
 
-            for(int l = 0; l < grantors.size(); l++) {
+            for (int l = 0; l < grantors.size(); l++) {
 
               String[] grants = grantors.get(l);
 
@@ -1531,24 +1528,24 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return createResultSet(Arrays.asList(fields), results);
   }
 
-  private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String,Map<String,List<String[]>>> privileges) {
+  private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
 
-    if(aclItems == null) {
+    if (aclItems == null) {
       //Null is shortcut for owner having full privileges
       ACLItem fullPrivs = new ACLItem(owner, "arwdDxt", owner);
       aclItems = new ACLItem[] {fullPrivs};
     }
 
-    for(ACLItem aclItem : aclItems) {
+    for (ACLItem aclItem : aclItems) {
 
-      for(int i = 0; i < aclItem.privileges.length(); i++) {
+      for (int i = 0; i < aclItem.privileges.length(); i++) {
 
         char c = aclItem.privileges.charAt(i);
-        if(c != '*') {
+        if (c != '*') {
 
           String sqlpriv;
           String grantable;
-          if(i < aclItem.privileges.length() - 1 && aclItem.privileges.charAt(i + 1) == '*') {
+          if (i < aclItem.privileges.length() - 1 && aclItem.privileges.charAt(i + 1) == '*') {
             grantable = "YES";
           }
           else {
@@ -1556,59 +1553,59 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           }
 
           switch(c) {
-          case 'a':
-            sqlpriv = "INSERT";
-            break;
-          case 'r':
-            sqlpriv = "SELECT";
-            break;
-          case 'w':
-            sqlpriv = "UPDATE";
-            break;
-          case 'd':
-            sqlpriv = "DELETE";
-            break;
-          case 'D':
-            sqlpriv = "TRUNCATE";
-            break;
-          case 'R':
-            sqlpriv = "RULE";
-            break;
-          case 'x':
-            sqlpriv = "REFERENCES";
-            break;
-          case 't':
-            sqlpriv = "TRIGGER";
-            break;
-          case 'X':
-            sqlpriv = "EXECUTE";
-            break;
-          case 'U':
-            sqlpriv = "USAGE";
-            break;
-          case 'C':
-            sqlpriv = "CREATE";
-            break;
-          case 'T':
-            sqlpriv = "CREATE TEMP";
-            break;
-          default:
-            sqlpriv = "UNKNOWN";
+            case 'a':
+              sqlpriv = "INSERT";
+              break;
+            case 'r':
+              sqlpriv = "SELECT";
+              break;
+            case 'w':
+              sqlpriv = "UPDATE";
+              break;
+            case 'd':
+              sqlpriv = "DELETE";
+              break;
+            case 'D':
+              sqlpriv = "TRUNCATE";
+              break;
+            case 'R':
+              sqlpriv = "RULE";
+              break;
+            case 'x':
+              sqlpriv = "REFERENCES";
+              break;
+            case 't':
+              sqlpriv = "TRIGGER";
+              break;
+            case 'X':
+              sqlpriv = "EXECUTE";
+              break;
+            case 'U':
+              sqlpriv = "USAGE";
+              break;
+            case 'C':
+              sqlpriv = "CREATE";
+              break;
+            case 'T':
+              sqlpriv = "CREATE TEMP";
+              break;
+            default:
+              sqlpriv = "UNKNOWN";
           }
 
-          Map<String,List<String[]>> usersWithPermission = privileges.get(sqlpriv);
-          if(usersWithPermission == null) {
+          Map<String, List<String[]>> usersWithPermission = privileges.get(sqlpriv);
+          if (usersWithPermission == null) {
             usersWithPermission = new HashMap<>();
             privileges.put(sqlpriv, usersWithPermission);
           }
 
           List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.user);
-          if(permissionByGrantor == null) {
+          if (permissionByGrantor == null) {
             permissionByGrantor = new ArrayList<>();
             usersWithPermission.put(aclItem.user, permissionByGrantor);
           }
 
-          permissionByGrantor.add(new String[] { aclItem.grantor, grantable });
+          permissionByGrantor.add(new String[] {aclItem.grantor, grantable});
 
         }
 
@@ -1636,7 +1633,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "        FROM pg_catalog.pg_index i) i " +
         "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) ");
 
-    if(!isNullOrEmpty(schema)) {
+    if (!isNullOrEmpty(schema)) {
       sql.append(" WHERE n.nspname = ?");
       params.add(schema);
     }
@@ -1657,7 +1654,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       while (rs.next()) {
 
         Object[] row = new Object[8];
-        Type type= reg.loadType(rs.getInt("atttypid"));
+        Type type = reg.loadType(rs.getInt("atttypid"));
         int typeLen = rs.getInt("attlen");
         int typeMod = rs.getInt("atttypmod");
         int decimalDigits = SQLTypeMetaData.getScale(type, typeLen, typeMod);
@@ -1686,7 +1683,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     Registry reg = connection.getRegistry();
 
-    ResultField resultFields[] = new ResultField[8];
+    ResultField[] resultFields = new ResultField[8];
     List<Object[]> results = new ArrayList<>();
 
     resultFields[0] = new ResultField("SCOPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
@@ -1745,9 +1742,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) " +
         "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) ");
 
-    if(!isNullOrEmpty(schema)) {
-        sql.append(" WHERE n.nspname = ?");
-        params.add(schema);
+    if (!isNullOrEmpty(schema)) {
+      sql.append(" WHERE n.nspname = ?");
+      params.add(schema);
     }
 
     return execForResultSet(sql.toString(), params);
@@ -1792,19 +1789,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid " +
         " AND con.contype = 'f' AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND pkic.relkind = 'i' AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ");
 
-    if(!isNullOrEmpty(primarySchema)) {
+    if (!isNullOrEmpty(primarySchema)) {
       sql.append(" AND pkn.nspname = ?");
       params.add(primarySchema);
     }
-    if(!isNullOrEmpty(foreignSchema)) {
+    if (!isNullOrEmpty(foreignSchema)) {
       sql.append(" AND fkn.nspname = ?");
       params.add(foreignSchema);
     }
-    if(!isNullOrEmpty(primaryTable)) {
+    if (!isNullOrEmpty(primaryTable)) {
       sql.append(" AND pkc.relname = ?");
       params.add(primaryTable);
     }
-    if(!isNullOrEmpty(foreignTable)) {
+    if (!isNullOrEmpty(foreignTable)) {
       sql.append(" AND fkc.relname = ?");
       params.add(foreignTable);
     }
@@ -1878,8 +1875,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[2] = SQLTypeMetaData.getMaxPrecision(type);
 
       if (SQLTypeMetaData.requiresQuoting(type)) {
-          row[3] = "\'";
-          row[4] = "\'";
+        row[3] = "\'";
+        row[4] = "\'";
       }
 
       row[6] = SQLTypeMetaData.isNullable(type, null, 0);
@@ -1943,16 +1940,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) " +
         "WHERE true ");
 
-    if(!isNullOrEmpty(schema)) {
-        sql.append(" AND n.nspname = ?");
-        params.add(schema);
+    if (!isNullOrEmpty(schema)) {
+      sql.append(" AND n.nspname = ?");
+      params.add(schema);
     }
 
     sql.append(" AND ct.relname = ?");
     params.add(table);
 
     if (unique) {
-        sql.append(" AND i.indisunique ");
+      sql.append(" AND i.indisunique ");
     }
     sql.append(" ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ");
 
@@ -1963,12 +1960,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsResultSetType(int type) throws SQLException {
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return true;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return true;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -1976,13 +1973,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      //Support all types
-      return true;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        //Support all types
+        return true;
 
-    default:
-       return false;
+      default:
+        return false;
     }
   }
 
@@ -1992,12 +1989,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2007,12 +2004,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2022,12 +2019,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2037,12 +2034,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2052,12 +2049,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2067,12 +2064,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2082,12 +2079,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2097,12 +2094,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2112,12 +2109,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //TODO this depends of TX state & isolation level
 
     switch(type) {
-    case ResultSet.TYPE_FORWARD_ONLY:
-    case ResultSet.TYPE_SCROLL_INSENSITIVE:
-      return false;
+      case ResultSet.TYPE_FORWARD_ONLY:
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return false;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 
@@ -2145,20 +2142,20 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "WHERE" +
         " t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'");
 
-    if(types != null) {
+    if (types != null) {
 
       sql.append(" AND (false ");
 
-      for(int i = 0; i < types.length; i++) {
+      for (int i = 0; i < types.length; i++) {
         switch(types[i]) {
-        case java.sql.Types.STRUCT:
-          sql.append(" or t.typtype = 'c'");
-          break;
-        case java.sql.Types.DISTINCT:
-          sql.append(" or t.typtype = 'd'");
-          break;
-        default:
-          break;
+          case java.sql.Types.STRUCT:
+            sql.append(" or t.typtype = 'c'");
+            break;
+          case java.sql.Types.DISTINCT:
+            sql.append(" or t.typtype = 'd'");
+            break;
+          default:
+            break;
         }
       }
 
@@ -2172,16 +2169,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     // spec says that if typeNamePattern is a fully qualified name
     // then the schema and catalog are ignored
 
-    if(typeNamePattern != null) {
+    if (typeNamePattern != null) {
 
       // search for qualifier
       int firstQualifier = typeNamePattern.indexOf('.');
       int secondQualifier = typeNamePattern.lastIndexOf('.');
 
-      if(firstQualifier != -1) {
+      if (firstQualifier != -1) {
 
         // if one of them is -1 they both will be
-        if(firstQualifier != secondQualifier) {
+        if (firstQualifier != secondQualifier) {
           // we have a catalog.schema.typename, ignore catalog
           schemaPattern = typeNamePattern.substring(firstQualifier + 1, secondQualifier);
         }
@@ -2198,7 +2195,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     }
 
     // schemaPattern may have been modified above
-    if(schemaPattern != null) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -2217,7 +2214,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
 
     List<Object[]> results = new ArrayList<>();
-    while(rs.next()) {
+    while (rs.next()) {
 
       Object[] row = new Object[7];
 
@@ -2229,7 +2226,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[5] = rs.get(6);
 
       Type type = reg.loadType(rs.getInt(7));
-      if(type != null) {
+      if (type != null) {
         row[6] = SQLTypeMetaData.getSQLType(type);
       }
       else {
@@ -2275,19 +2272,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
         "   WHERE a.attnum > 0 AND NOT a.attisdropped AND t.typtype='c'");
 
-    if(!isNullOrEmpty(schemaPattern)) {
+    if (!isNullOrEmpty(schemaPattern)) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
-    if(!isNullOrEmpty(typeNamePattern)) {
+    if (!isNullOrEmpty(typeNamePattern)) {
       sql.append(" AND t.typname LIKE ?");
       params.add(typeNamePattern);
     }
 
     sql.append(") c");
 
-    if(!isNullOrEmpty(attributeNamePattern)) {
+    if (!isNullOrEmpty(attributeNamePattern)) {
       sql.append(" WHERE attname LIKE ?");
       params.add(attributeNamePattern);
     }
@@ -2298,7 +2295,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<AttributeData> attrsData  = new ArrayList<>();
 
-    try(ResultSet rs = execForResultSet(sql.toString(), params)) {
+    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
 
       while (rs.next()) {
 
@@ -2347,7 +2344,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     List<Object[]> results = new ArrayList<>();
 
-    for(int c=0; c < attrsData.size(); ++c) {
+    for (int c = 0; c < attrsData.size(); ++c) {
 
       AttributeData attrData = attrsData.get(c);
 
@@ -2361,7 +2358,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[5] = SQLTypeMetaData.getTypeName(attrData.type, attrData.relationType, attrData.relationAttrNum);
 
       int size = SQLTypeMetaData.getPrecision(attrData.type, attrData.typeLength, attrData.typeModifier);
-      if(size == 0) {
+      if (size == 0) {
         size = SQLTypeMetaData.getDisplaySize(attrData.type, attrData.typeLength, attrData.typeModifier);
       }
 
@@ -2379,15 +2376,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
       String nullable = null;
       switch((int)row[9]) {
-      case attributeNoNulls:
-        nullable = "NO";
-        break;
-      case attributeNullable:
-        nullable = "YES";
-        break;
-      default:
-        nullable = "";
-        break;
+        case attributeNoNulls:
+          nullable = "NO";
+          break;
+        case attributeNullable:
+          nullable = "YES";
+          break;
+        default:
+          nullable = "";
+          break;
       }
 
       row[16] = nullable;
@@ -2441,12 +2438,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsResultSetHoldability(int holdability) throws SQLException {
 
     switch(holdability) {
-    case ResultSet.CLOSE_CURSORS_AT_COMMIT:
-    case ResultSet.HOLD_CURSORS_OVER_COMMIT:
-      return true;
+      case ResultSet.CLOSE_CURSORS_AT_COMMIT:
+      case ResultSet.HOLD_CURSORS_OVER_COMMIT:
+        return true;
 
-    default:
-      return false;
+      default:
+        return false;
     }
   }
 

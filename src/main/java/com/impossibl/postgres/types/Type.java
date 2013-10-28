@@ -28,14 +28,14 @@
  */
 package com.impossibl.postgres.types;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
-
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  *
@@ -66,8 +66,7 @@ public abstract class Type {
     Timespan        ('T'),
     User            ('U'),
     BitString       ('V'),
-    Unknown         ('X')
-    ;
+    Unknown         ('X');
 
     private char id;
 
@@ -87,11 +86,11 @@ public abstract class Type {
      */
     public static Category findValue(String id) {
 
-      if(id == null || id.isEmpty())
+      if (id == null || id.isEmpty())
         return null;
 
-      for(Category cat : values()) {
-        if(cat.id == id.charAt(0))
+      for (Category cat : values()) {
+        if (cat.id == id.charAt(0))
           return cat;
       }
 
@@ -270,12 +269,12 @@ public abstract class Type {
     Codec codec;
 
     codec = getBinaryCodec();
-    if(codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
+    if (codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
       return codec.decoder.getInputPrimitiveType();
     }
 
     codec = getTextCodec();
-    if(codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
+    if (codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
       return codec.decoder.getInputPrimitiveType();
     }
 
@@ -286,12 +285,12 @@ public abstract class Type {
     Codec codec;
 
     codec = getBinaryCodec();
-    if(codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
+    if (codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
       return codec.decoder.getOutputType();
     }
 
     codec = getTextCodec();
-    if(codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
+    if (codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
       return codec.decoder.getOutputType();
     }
 
@@ -301,11 +300,11 @@ public abstract class Type {
   public Format getParameterFormat() {
 
     Codec binCodec = getBinaryCodec();
-    if(binCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
+    if (binCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
       return Format.Binary;
 
     Codec txtCodec = getTextCodec();
-    if(txtCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
+    if (txtCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
       return Format.Text;
 
     return Format.Text;
@@ -314,11 +313,11 @@ public abstract class Type {
   public Format getResultFormat() {
 
     Codec binCodec = getBinaryCodec();
-    if(binCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
+    if (binCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
       return Format.Binary;
 
     Codec txtCodec = getTextCodec();
-    if(txtCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
+    if (txtCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
       return Format.Text;
 
     return Format.Text;
@@ -358,18 +357,18 @@ public abstract class Type {
    */
   public static Byte getAlignment(Character align) {
 
-    if(align == null)
+    if (align == null)
       return null;
 
     switch(align) {
-    case 'c':
-      return 1;
-    case 's':
-      return 2;
-    case 'i':
-      return 4;
-    case 'd':
-      return 8;
+      case 'c':
+        return 1;
+      case 's':
+        return 2;
+      case 'i':
+        return 4;
+      case 'd':
+        return 8;
     }
 
     throw new IllegalStateException("invalid alignment character");

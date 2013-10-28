@@ -28,13 +28,6 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -42,7 +35,12 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 

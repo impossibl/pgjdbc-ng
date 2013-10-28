@@ -28,12 +28,11 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.types.Modifiers;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.impossibl.postgres.types.Modifiers;
 
 public class BitMods extends SimpleProcProvider {
 

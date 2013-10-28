@@ -28,6 +28,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
@@ -36,11 +40,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.system.Settings;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.Type;
 
 class PGResultSetMetaData implements ResultSetMetaData {
 
@@ -63,11 +62,11 @@ class PGResultSetMetaData implements ResultSetMetaData {
    */
   ResultField get(int columnIndex) throws SQLException {
 
-    if(columnIndex < 1 || columnIndex > resultFields.size()) {
+    if (columnIndex < 1 || columnIndex > resultFields.size()) {
       throw COLUMN_INDEX_OUT_OF_BOUNDS;
     }
 
-    return resultFields.get(columnIndex-1);
+    return resultFields.get(columnIndex - 1);
   }
 
   /**
@@ -80,7 +79,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   CompositeType getRelType(int columnIndex) throws SQLException {
 
     ResultField field = get(columnIndex);
-    if(field.relationId == 0)
+    if (field.relationId == 0)
       return null;
 
     return connection.getRegistry().loadRelationType(field.relationId);
@@ -98,7 +97,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
     ResultField field = get(columnIndex);
 
     CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
-    if(relType == null)
+    if (relType == null)
       return null;
 
     return relType.getAttribute(field.relationAttributeNumber);
@@ -106,7 +105,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 
@@ -169,7 +168,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public String getColumnLabel(int column) throws SQLException {
 
     String val = get(column).name;
-    if(val == null)
+    if (val == null)
       val = getColumnName(column);
 
     return val;
@@ -185,7 +184,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public String getSchemaName(int column) throws SQLException {
 
     Type relType = getRelType(column);
-    if(relType == null)
+    if (relType == null)
       return "";
 
     return relType.getNamespace();
@@ -200,7 +199,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
     //null since we never have the query table aliases
 
     CompositeType relType = getRelType(column);
-    if(relType == null)
+    if (relType == null)
       return "";
 
     return relType.getName();
@@ -210,7 +209,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public String getColumnName(int column) throws SQLException {
 
     CompositeType.Attribute attr = getRelAttr(column);
-    if(attr == null)
+    if (attr == null)
       return get(column).name;
 
     return attr.name;

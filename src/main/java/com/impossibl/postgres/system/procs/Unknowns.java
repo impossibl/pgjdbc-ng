@@ -28,13 +28,11 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import java.util.Collections;
-import java.util.Map;
-
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 
-
+import java.util.Collections;
+import java.util.Map;
 
 public class Unknowns {
 

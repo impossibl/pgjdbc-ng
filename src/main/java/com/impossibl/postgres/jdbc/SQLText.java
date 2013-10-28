@@ -28,12 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import java.sql.SQLException;
-import java.text.ParseException;
-import java.util.Stack;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.impossibl.postgres.jdbc.SQLTextTree.CommentPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
@@ -49,6 +43,12 @@ import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class SQLText {
 
   private MultiStatementNode root;
@@ -58,21 +58,21 @@ public class SQLText {
   }
 
   public int getStatementCount() {
-    if(root == null)
+    if (root == null)
       return 0;
     return root.getNodeCount();
   }
 
   public StatementNode getFirstStatement() {
-    if(root == null || root.getNodeCount() == 0)
+    if (root == null || root.getNodeCount() == 0)
       return null;
     return (StatementNode) root.get(0);
   }
 
   public StatementNode getLastStatement() {
-    if(root == null || root.getNodeCount() == 0)
+    if (root == null || root.getNodeCount() == 0)
       return null;
-    return (StatementNode) root.get(root.getNodeCount()-1);
+    return (StatementNode) root.get(root.getNodeCount() - 1);
   }
 
   public void addStatements(SQLText sqlText) {
@@ -128,10 +128,10 @@ public class SQLText {
 
     try {
 
-      while(matcher.find(startIdx)) {
+      while (matcher.find(startIdx)) {
 
         //Add the unmatched region as grammar...
-        if(startIdx != matcher.start()) {
+        if (startIdx != matcher.start()) {
           String txt = sql.substring(startIdx, matcher.start()).trim();
           parents.peek().add(new GrammarPiece(txt, matcher.start()));
         }
@@ -140,25 +140,25 @@ public class SQLText {
 
         //Add whatever we matched...
         String val;
-        if((val = matcher.group(1)) != null) {
+        if ((val = matcher.group(1)) != null) {
 
           parents.peek().add(new QuotedIdentifierPiece(val, matcher.start()));
         }
-        else if((val = matcher.group(2)) != null) {
+        else if ((val = matcher.group(2)) != null) {
 
           parents.peek().add(new StringLiteralPiece(val, matcher.start()));
         }
-        else if((val = matcher.group(3)) != null) {
+        else if ((val = matcher.group(3)) != null) {
 
           parents.peek().add(new CommentPiece(val, matcher.start()));
         }
-        else if((val = matcher.group(4)) != null) {
+        else if ((val = matcher.group(4)) != null) {
 
           parents.peek().add(new ParameterPiece(paramId++, matcher.start()));
         }
-        else if((val = matcher.group(5)) != null) {
+        else if ((val = matcher.group(5)) != null) {
 
-          if(parents.size() == 2) {
+          if (parents.size() == 2) {
 
             paramId = 1;
 
@@ -173,14 +173,14 @@ public class SQLText {
           }
 
         }
-        else if((val = matcher.group(6)) != null) {
+        else if ((val = matcher.group(6)) != null) {
 
-          if(val.equals("{")) {
+          if (val.equals("{")) {
             parents.push(new EscapeNode(matcher.start()));
           }
           else {
 
-            if(parents.peek() instanceof EscapeNode) {
+            if (parents.peek() instanceof EscapeNode) {
 
               EscapeNode tmp = (EscapeNode) parents.pop();
               tmp.setEndPos(matcher.end());
@@ -192,22 +192,22 @@ public class SQLText {
             }
           }
         }
-        else if((val = matcher.group(7)) != null) {
+        else if ((val = matcher.group(7)) != null) {
 
           parents.peek().add(new UnquotedIdentifierPiece(val, matcher.start()));
         }
-        else if((val = matcher.group(8)) != null) {
+        else if ((val = matcher.group(8)) != null) {
 
           parents.peek().add(new NumericLiteralPiece(val, matcher.start()));
         }
-        else if((val = matcher.group(9)) != null) {
+        else if ((val = matcher.group(9)) != null) {
 
-          if(val.equals("(")) {
+          if (val.equals("(")) {
             parents.push(new ParenGroupNode(matcher.start()));
           }
           else {
 
-            if(parents.peek() instanceof ParenGroupNode) {
+            if (parents.peek() instanceof ParenGroupNode) {
 
               ParenGroupNode tmp = (ParenGroupNode) parents.pop();
               tmp.setEndPos(matcher.end());
@@ -219,15 +219,15 @@ public class SQLText {
             }
           }
         }
-        else if((val = matcher.group(10)) != null) {
+        else if ((val = matcher.group(10)) != null) {
 
           parents.peek().add(new GrammarPiece(",", matcher.start()));
         }
-        else if((val = matcher.group(11)) != null) {
+        else if ((val = matcher.group(11)) != null) {
 
           parents.peek().add(new WhitespacePiece(val, matcher.start()));
         }
-        else if((val = matcher.group(12)) != null) {
+        else if ((val = matcher.group(12)) != null) {
 
           //Find the end of the $$ quoted block
           int pos = sql.indexOf(val, matcher.end());
@@ -239,7 +239,7 @@ public class SQLText {
           //  a) need to be closed
           //  b) must not be adjacent to an identifier
 
-          if(!ident && pos != -1) {
+          if (!ident && pos != -1) {
 
             String quotedText = sql.substring(matcher.end(), pos);
 
@@ -259,18 +259,18 @@ public class SQLText {
       }
 
       //Add last grammar node
-      if(startIdx != sql.length()) {
+      if (startIdx != sql.length()) {
         parents.peek().add(new GrammarPiece(sql.substring(startIdx), startIdx));
       }
 
       //Auto close last statement
-      if(parents.peek() instanceof StatementNode) {
+      if (parents.peek() instanceof StatementNode) {
 
         StatementNode stmt = (StatementNode) parents.peek();
 
         stmt.trim();
 
-        if(stmt.getNodeCount() > 0) {
+        if (stmt.getNodeCount() > 0) {
           CompositeNode tmp = parents.pop();
           tmp.setEndPos(startIdx);
           parents.peek().add(tmp);
@@ -280,13 +280,13 @@ public class SQLText {
       return (MultiStatementNode)parents.get(0);
 
     }
-    catch(ParseException e) {
+    catch (ParseException e) {
       throw e;
     }
-    catch(Exception e) {
+    catch (Exception e) {
 
       //Grab about 10 characters to report context of error
-      String errorTxt = sql.substring(startIdx, Math.min(sql.length(), startIdx+10));
+      String errorTxt = sql.substring(startIdx, Math.min(sql.length(), startIdx + 10));
 
       throw new ParseException("Error near: " + errorTxt, startIdx);
     }

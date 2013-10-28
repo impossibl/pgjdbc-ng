@@ -28,15 +28,13 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import java.io.IOException;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
+import java.io.IOException;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Float8s extends SimpleProcProvider {
 
@@ -57,7 +55,7 @@ public class Float8s extends SimpleProcProvider {
     public Double decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
-      if(length == -1) {
+      if (length == -1) {
         return null;
       }
       else if (length != 8) {

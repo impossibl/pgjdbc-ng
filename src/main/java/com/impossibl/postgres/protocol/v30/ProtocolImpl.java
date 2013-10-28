@@ -28,35 +28,6 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import static com.impossibl.postgres.protocol.TransactionStatus.Active;
-import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
-import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
-import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
-import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
-import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.logging.Level.FINEST;
-import static java.util.logging.Level.SEVERE;
-
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.TimerTask;
-
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
@@ -76,14 +47,40 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Context.KeyData;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.protocol.TransactionStatus.Active;
+import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
+import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
+import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
+import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
+import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.logging.Level.FINEST;
+import static java.util.logging.Level.SEVERE;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.util.Timeout;
+import org.jboss.netty.util.TimerTask;
 
 public class ProtocolImpl implements Protocol {
 
   private static Logger logger = Logger.getLogger(ProtocolImpl.class.getName());
 
-  public static abstract class ExecutionTimerTask implements TimerTask {
+  public abstract static class ExecutionTimerTask implements TimerTask {
 
     enum State {
       NotStarted,
@@ -104,18 +101,18 @@ public class ProtocolImpl implements Protocol {
 
         thread = Thread.currentThread();
 
-        if(!state.compareAndSet(State.NotStarted, State.Running))
+        if (!state.compareAndSet(State.NotStarted, State.Running))
           return;
 
         run();
 
       }
-      catch(Throwable e) {
+      catch (Throwable e) {
         //Ignore...
       }
       finally {
         state.set(State.Completed);
-        synchronized(state) {
+        synchronized (state) {
           state.notify();
         }
       }
@@ -124,17 +121,18 @@ public class ProtocolImpl implements Protocol {
 
     void cancel() {
 
-      if(this.state.getAndSet(State.Cancelling) == State.Running) {
+      if (this.state.getAndSet(State.Cancelling) == State.Running) {
 
         thread.interrupt();
 
-        synchronized(state) {
+        synchronized (state) {
 
-          while(state.get() == State.Cancelling) {
+          while (state.get() == State.Cancelling) {
             try {
               state.wait();
             }
             catch (InterruptedException e) {
+              // Ignore
             }
           }
         }
@@ -178,7 +176,7 @@ public class ProtocolImpl implements Protocol {
   private static final byte CLOSE_COMPLETE_MSG_ID = '3';
   private static final byte FUNCTION_RESULT_MSG_ID = 'V';
 
-  private static final ProtocolListener NULL_LISTENER = new BaseProtocolListener() {};
+  private static final ProtocolListener NULL_LISTENER = new BaseProtocolListener() { };
 
   AtomicBoolean connected = new AtomicBoolean(true);
   ProtocolShared.Ref sharedRef;
@@ -208,7 +206,7 @@ public class ProtocolImpl implements Protocol {
   public void shutdown() {
 
     //Ensure only one thread can ever succeed in calling shutdown
-    if(connected.getAndSet(false) == false) {
+    if (!connected.getAndSet(false)) {
       return;
     }
 
@@ -217,7 +215,7 @@ public class ProtocolImpl implements Protocol {
       writeTerminate(msg);
       channel.write(msg).addListener(ChannelFutureListener.CLOSE);
     }
-    catch(Exception e) {
+    catch (Exception e) {
       //Close anyway...
       channel.close().awaitUninterruptibly(100);
     }
@@ -228,7 +226,7 @@ public class ProtocolImpl implements Protocol {
   @Override
   public void abort(Executor executor) {
 
-    if(connected.get() == false)
+    if (!connected.get())
       return;
 
     //Shutdown socket (also guarantees no more commands begin execution)
@@ -250,7 +248,7 @@ public class ProtocolImpl implements Protocol {
 
     //Copy listener so canceling thread cannot nullify it
     ProtocolListener localListener = this.listener;
-    synchronized(localListener) {
+    synchronized (localListener) {
 
       localListener.abort();
       localListener.notifyAll();
@@ -295,7 +293,7 @@ public class ProtocolImpl implements Protocol {
 
   public void enableExecutionTimer(ExecutionTimerTask task, long timeout) {
 
-    if(executionTimeout != null) {
+    if (executionTimeout != null) {
       throw new IllegalStateException("execution timer already enabled");
     }
 
@@ -304,7 +302,7 @@ public class ProtocolImpl implements Protocol {
 
   public void cancelExecutionTimer() {
 
-    if(executionTimeout != null) {
+    if (executionTimeout != null) {
 
       try {
         executionTimeout.cancel();
@@ -326,10 +324,10 @@ public class ProtocolImpl implements Protocol {
   @Override
   public synchronized void execute(Command cmd) throws IOException {
 
-    if(cmd instanceof CommandImpl == false)
+    if (!(cmd instanceof CommandImpl))
       throw new IllegalArgumentException();
 
-    if(connected.get() == false) {
+    if (!connected.get()) {
       throw new InterruptedIOException("channel closed");
     }
 
@@ -338,7 +336,7 @@ public class ProtocolImpl implements Protocol {
       ((CommandImpl)cmd).execute(this);
 
     }
-    catch(InterruptedIOException e) {
+    catch (InterruptedIOException e) {
 
       sendCancelRequest();
 
@@ -360,7 +358,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeStartup(ChannelBuffer msg, Map<String, Object> params) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("STARTUP: " + params);
 
     beginMessage(msg, (byte) 0);
@@ -382,7 +380,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writePassword(ChannelBuffer msg, String password) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("PASSWORD: " + password);
 
     beginMessage(msg, PASSWORD_MSG_ID);
@@ -394,7 +392,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeQuery(ChannelBuffer msg, String query) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("QUERY: " + query);
 
     beginMessage(msg, QUERY_MSG_ID);
@@ -406,7 +404,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeParse(ChannelBuffer msg, String stmtName, String query, List<Type> paramTypes) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("PARSE (" + stmtName + "): " + query);
 
     beginMessage(msg, PARSE_MSG_ID);
@@ -425,7 +423,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
     beginMessage(msg, BIND_MSG_ID);
@@ -436,7 +434,7 @@ public class ProtocolImpl implements Protocol {
     loadParams(msg, parameterTypes, parameterValues);
 
     //Set format for results fields
-    if(resultFieldFormats.isEmpty()) {
+    if (resultFieldFormats.isEmpty()) {
       //Request all binary
       msg.writeShort(1);
       msg.writeShort(1);
@@ -444,7 +442,7 @@ public class ProtocolImpl implements Protocol {
     else {
       //Select result format for each
       msg.writeShort(resultFieldFormats.size());
-      for(Format format : resultFieldFormats) {
+      for (Format format : resultFieldFormats) {
         msg.writeShort(format.ordinal());
       }
     }
@@ -454,7 +452,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeDescribe(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("DESCRIBE " + target + " (" + targetName + ")");
 
     beginMessage(msg, DESCRIBE_MSG_ID);
@@ -467,7 +465,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeExecute(ChannelBuffer msg, String portalName, int maxRows) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("EXECUTE (" + portalName + "): " + maxRows);
 
     beginMessage(msg, EXECUTE_MSG_ID);
@@ -493,7 +491,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeClose(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("CLOSE " + target + ": " + targetName);
 
     beginMessage(msg, CLOSE_MSG_ID);
@@ -506,7 +504,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeFlush(ChannelBuffer msg) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("FLUSH");
 
     writeMessage(msg, FLUSH_MSG_ID);
@@ -514,7 +512,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeSync(ChannelBuffer msg) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("SYNC");
 
     writeMessage(msg, SYNC_MSG_ID);
@@ -522,7 +520,7 @@ public class ProtocolImpl implements Protocol {
 
   public void writeTerminate(ChannelBuffer msg) throws IOException {
 
-    if(logger.isLoggable(FINEST))
+    if (logger.isLoggable(FINEST))
       logger.finest("TERM");
 
     writeMessage(msg, TERMINATE_MSG_ID);
@@ -541,7 +539,7 @@ public class ProtocolImpl implements Protocol {
 
     logger.finest("OPEN-SOCKET");
 
-    try(Socket abortSocket = new Socket(serverAddress.getAddress(), serverAddress.getPort())) {
+    try (Socket abortSocket = new Socket(serverAddress.getAddress(), serverAddress.getPort())) {
 
       logger.finest("SEND-DATA");
 
@@ -562,13 +560,13 @@ public class ProtocolImpl implements Protocol {
   protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
     // Select format for parameters
-    if(paramTypes == null) {
+    if (paramTypes == null) {
       buffer.writeShort(1);
       buffer.writeShort(1);
     }
     else {
       buffer.writeShort(paramTypes.size());
-      for(Type paramType : paramTypes) {
+      for (Type paramType : paramTypes) {
         buffer.writeShort(paramType.getParameterFormat().ordinal());
       }
     }
@@ -599,11 +597,11 @@ public class ProtocolImpl implements Protocol {
 
   protected void beginMessage(ChannelBuffer msg, byte msgId) {
 
-    if(msg == null) {
+    if (msg == null) {
       throw new IllegalArgumentException("Parent message required");
     }
 
-    if(msgId != 0)
+    if (msgId != 0)
       msg.writeByte(msgId);
 
     msg.markWriterIndex();
@@ -632,79 +630,79 @@ public class ProtocolImpl implements Protocol {
   public void dispatch(ResponseMessage msg) throws IOException {
 
     switch (msg.id) {
-    case AUTHENTICATION_MSG_ID:
-      receiveAuthentication(msg.data);
-      break;
+      case AUTHENTICATION_MSG_ID:
+        receiveAuthentication(msg.data);
+        break;
 
-    case BACKEND_KEY_MSG_ID:
-      receiveBackendKeyData(msg.data);
-      break;
+      case BACKEND_KEY_MSG_ID:
+        receiveBackendKeyData(msg.data);
+        break;
 
-    case PARAMETER_DESC_MSG_ID:
-      receiveParameterDescriptions(msg.data);
-      break;
+      case PARAMETER_DESC_MSG_ID:
+        receiveParameterDescriptions(msg.data);
+        break;
 
-    case ROW_DESC_MSG_ID:
-      receiveRowDescription(msg.data);
-      break;
+      case ROW_DESC_MSG_ID:
+        receiveRowDescription(msg.data);
+        break;
 
-    case ROW_DATA_MSG_ID:
-      receiveRowData(msg.data);
-      break;
+      case ROW_DATA_MSG_ID:
+        receiveRowData(msg.data);
+        break;
 
-    case PORTAL_SUSPENDED_MSG_ID:
-      receivePortalSuspended(msg.data);
-      break;
+      case PORTAL_SUSPENDED_MSG_ID:
+        receivePortalSuspended(msg.data);
+        break;
 
-    case NO_DATA_MSG_ID:
-      receiveNoData(msg.data);
-      break;
+      case NO_DATA_MSG_ID:
+        receiveNoData(msg.data);
+        break;
 
-    case PARSE_COMPLETE_MSG_ID:
-      receiveParseComplete(msg.data);
-      break;
+      case PARSE_COMPLETE_MSG_ID:
+        receiveParseComplete(msg.data);
+        break;
 
-    case BIND_COMPLETE_MSG_ID:
-      receiveBindComplete(msg.data);
-      break;
+      case BIND_COMPLETE_MSG_ID:
+        receiveBindComplete(msg.data);
+        break;
 
-    case CLOSE_COMPLETE_MSG_ID:
-      receiveCloseComplete(msg.data);
-      break;
+      case CLOSE_COMPLETE_MSG_ID:
+        receiveCloseComplete(msg.data);
+        break;
 
-    case EMPTY_QUERY_MSG_ID:
-      receiveEmptyQuery(msg.data);
-      break;
+      case EMPTY_QUERY_MSG_ID:
+        receiveEmptyQuery(msg.data);
+        break;
 
-    case FUNCTION_RESULT_MSG_ID:
-      receiveFunctionResult(msg.data);
-      break;
+      case FUNCTION_RESULT_MSG_ID:
+        receiveFunctionResult(msg.data);
+        break;
 
-    case ERROR_MSG_ID:
-      receiveError(msg.data);
-      break;
+      case ERROR_MSG_ID:
+        receiveError(msg.data);
+        break;
 
-    case NOTICE_MSG_ID:
-      receiveNotice(msg.data);
-      break;
+      case NOTICE_MSG_ID:
+        receiveNotice(msg.data);
+        break;
 
-    case NOTIFICATION_MSG_ID:
-      receiveNotification(msg.data);
-      break;
+      case NOTIFICATION_MSG_ID:
+        receiveNotification(msg.data);
+        break;
 
-    case COMMAND_COMPLETE_MSG_ID:
-      receiveCommandComplete(msg.data);
-      break;
+      case COMMAND_COMPLETE_MSG_ID:
+        receiveCommandComplete(msg.data);
+        break;
 
-    case PARAMETER_STATUS_MSG_ID:
-      receiveParameterStatus(msg.data);
-      break;
+      case PARAMETER_STATUS_MSG_ID:
+        receiveParameterStatus(msg.data);
+        break;
 
-    case READY_FOR_QUERY_MSG_ID:
-      receiveReadyForQuery(msg.data);
-      break;
+      case READY_FOR_QUERY_MSG_ID:
+        receiveReadyForQuery(msg.data);
+        break;
 
-    default:
+      default:
         logger.fine("unsupported message type: " + (msg.id & 0xff));
     }
 
@@ -714,7 +712,7 @@ public class ProtocolImpl implements Protocol {
 
     logger.log(SEVERE, "Error dispatching message", cause);
 
-    if(listener != null) {
+    if (listener != null) {
       listener.error(new Notice("EXCEPTION", Notice.CONNECTION_EXC_CLASS, cause.getMessage()));
     }
   }
@@ -723,66 +721,65 @@ public class ProtocolImpl implements Protocol {
 
     int code = buffer.readInt();
     switch (code) {
-    case 0:
+      case 0:
 
-      // Ok
-      listener.authenticated(this);
-      return;
+        // Ok
+        listener.authenticated(this);
+        return;
 
-    case 2:
+      case 2:
 
-      // KerberosV5
-      listener.authenticateKerberos(this);
-      break;
+        // KerberosV5
+        listener.authenticateKerberos(this);
+        break;
 
-    case 3:
+      case 3:
 
-      // Cleartext
-      listener.authenticateClear(this);
-      return;
+        // Cleartext
+        listener.authenticateClear(this);
+        return;
 
-    case 4:
+      case 4:
 
-      // Crypt
-      listener.authenticateCrypt(this);
-      return;
+        // Crypt
+        listener.authenticateCrypt(this);
+        return;
 
-    case 5:
+      case 5:
 
-      // MD5
-      byte[] salt = new byte[4];
-      buffer.readBytes(salt);
+        // MD5
+        byte[] salt = new byte[4];
+        buffer.readBytes(salt);
+        listener.authenticateMD5(this, salt);
 
-      listener.authenticateMD5(this, salt);
+        return;
 
-      return;
+      case 6:
 
-    case 6:
+        // SCM Credential
+        listener.authenticateSCM(this);
+        break;
 
-      // SCM Credential
-      listener.authenticateSCM(this);
-      break;
+      case 7:
 
-    case 7:
+        // GSS
+        listener.authenticateGSS(this);
+        break;
 
-      // GSS
-      listener.authenticateGSS(this);
-      break;
+      case 8:
 
-    case 8:
+        // GSS Continue
+        listener.authenticateGSSCont(this);
+        break;
 
-      // GSS Continue
-      listener.authenticateGSSCont(this);
-      break;
+      case 9:
 
-    case 9:
+        // SSPI
+        listener.authenticateSSPI(this);
+        break;
 
-      // SSPI
-      listener.authenticateSSPI(this);
-      break;
-
-    default:
-      throw new UnsupportedOperationException("invalid authentication type");
+      default:
+        throw new UnsupportedOperationException("invalid authentication type");
     }
   }
 
@@ -910,83 +907,80 @@ public class ProtocolImpl implements Protocol {
 
     switch (command) {
 
-    case "INSERT":
+      case "INSERT":
 
-      if (parts.length == 3) {
+        if (parts.length == 3) {
 
-        oid = Long.parseLong(parts[1]);
-        rowsAffected = Long.parseLong(parts[2]);
-      }
-      else {
-        throw new IOException("error parsing command tag");
-      }
+          oid = Long.parseLong(parts[1]);
+          rowsAffected = Long.parseLong(parts[2]);
+        }
+        else {
+          throw new IOException("error parsing command tag");
+        }
 
-      break;
+        break;
 
-    case "SELECT":
+      case "SELECT":
 
-      if (parts.length == 2) {
+        if (parts.length == 2) {
 
-        rowsAffected = null;
-      }
-      else {
-        throw new IOException("error parsing command tag");
-      }
+          rowsAffected = null;
+        }
+        else {
+          throw new IOException("error parsing command tag");
+        }
 
-      break;
+        break;
 
-    case "UPDATE":
-    case "DELETE":
-    case "MOVE":
-    case "FETCH":
+      case "UPDATE":
+      case "DELETE":
+      case "MOVE":
+      case "FETCH":
 
-      if (parts.length == 2) {
+        if (parts.length == 2) {
+          rowsAffected = Long.parseLong(parts[1]);
+        }
+        else {
+          throw new IOException("error parsing command tag");
+        }
 
-        rowsAffected = Long.parseLong(parts[1]);
-      }
-      else {
-        throw new IOException("error parsing command tag");
-      }
+        break;
 
-      break;
+      case "COPY":
 
-    case "COPY":
+        if (parts.length == 1) {
+          // Nothing to parse but accepted
+        }
+        else if (parts.length == 2) {
+          rowsAffected = Long.parseLong(parts[1]);
+        }
+        else {
+          throw new IOException("error parsing command tag");
+        }
 
-      if (parts.length == 1) {
+        break;
 
-        // Nothing to parse but accepted
-      }
-      else if (parts.length == 2) {
+      case "CREATE":
+      case "DROP":
+      case "ALTER":
 
-        rowsAffected = Long.parseLong(parts[1]);
-      }
-      else {
-        throw new IOException("error parsing command tag");
-      }
+        if (parts.length == 2) {
 
-      break;
+          command += " " + parts[1];
+          rowsAffected = 0L;
+        }
+        else {
+          throw new IOException("error parsing command tag");
+        }
 
-    case "CREATE":
-    case "DROP":
-    case "ALTER":
+        break;
 
-      if(parts.length == 2) {
+      default:
 
-        command += " " + parts[1];
-        rowsAffected = 0l;
-      }
-      else {
-        throw new IOException("error parsing command tag");
-      }
+        if (parts.length != 1)
+          throw new IOException("error parsing command tag");
 
-      break;
-
-    default:
-
-      if(parts.length != 1)
-        throw new IOException("error parsing command tag");
-
-      rowsAffected = 0l;
+        rowsAffected = 0L;
     }
 
     logger.finest("COMPLETE: " + commandTag);
@@ -1016,17 +1010,17 @@ public class ProtocolImpl implements Protocol {
   private void receiveReadyForQuery(ChannelBuffer buffer) throws IOException {
 
     switch(buffer.readByte()) {
-    case 'T':
-      txStatus = Active;
-      break;
-    case 'E':
-      txStatus = Failed;
-      break;
-    case 'I':
-      txStatus = Idle;
-      break;
-    default:
-      throw new IllegalStateException("invalid transaction status");
+      case 'T':
+        txStatus = Active;
+        break;
+      case 'E':
+        txStatus = Failed;
+        break;
+      case 'I':
+        txStatus = Idle;
+        break;
+      default:
+        throw new IllegalStateException("invalid transaction status");
     }
 
     logger.finest("READY: " + txStatus);
@@ -1043,70 +1037,70 @@ public class ProtocolImpl implements Protocol {
     while ((msgId = buffer.readByte()) != 0) {
 
       switch (msgId) {
-      case 'S':
-        notice.setSeverity(readCString(buffer, context.getCharset()));
-        break;
+        case 'S':
+          notice.setSeverity(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'C':
-        notice.setCode(readCString(buffer, context.getCharset()));
-        break;
+        case 'C':
+          notice.setCode(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'M':
-        notice.setMessage(readCString(buffer, context.getCharset()));
-        break;
+        case 'M':
+          notice.setMessage(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'D':
-        notice.setDetail(readCString(buffer, context.getCharset()));
-        break;
+        case 'D':
+          notice.setDetail(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'H':
-        notice.setHint(readCString(buffer, context.getCharset()));
-        break;
+        case 'H':
+          notice.setHint(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'P':
-        notice.setPosition(readCString(buffer, context.getCharset()));
-        break;
+        case 'P':
+          notice.setPosition(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'W':
-        notice.setWhere(readCString(buffer, context.getCharset()));
-        break;
+        case 'W':
+          notice.setWhere(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'F':
-        notice.setFile(readCString(buffer, context.getCharset()));
-        break;
+        case 'F':
+          notice.setFile(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'L':
-        notice.setLine(readCString(buffer, context.getCharset()));
-        break;
+        case 'L':
+          notice.setLine(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'R':
-        notice.setRoutine(readCString(buffer, context.getCharset()));
-        break;
+        case 'R':
+          notice.setRoutine(readCString(buffer, context.getCharset()));
+          break;
 
-      case 's':
-        notice.setSchema(readCString(buffer, context.getCharset()));
-        break;
+        case 's':
+          notice.setSchema(readCString(buffer, context.getCharset()));
+          break;
 
-      case 't':
-        notice.setTable(readCString(buffer, context.getCharset()));
-        break;
+        case 't':
+          notice.setTable(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'c':
-        notice.setColumn(readCString(buffer, context.getCharset()));
-        break;
+        case 'c':
+          notice.setColumn(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'd':
-        notice.setDatatype(readCString(buffer, context.getCharset()));
-        break;
+        case 'd':
+          notice.setDatatype(readCString(buffer, context.getCharset()));
+          break;
 
-      case 'n':
-        notice.setConstraint(readCString(buffer, context.getCharset()));
-        break;
+        case 'n':
+          notice.setConstraint(readCString(buffer, context.getCharset()));
+          break;
 
-      default:
-        // Read and ignore
-        readCString(buffer, context.getCharset());
-        break;
+        default:
+          // Read and ignore
+          readCString(buffer, context.getCharset());
+          break;
       }
 
     }

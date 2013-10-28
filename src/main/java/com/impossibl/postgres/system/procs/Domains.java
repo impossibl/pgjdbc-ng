@@ -28,14 +28,14 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import java.io.IOException;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
+import java.io.IOException;
+
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Domains extends SimpleProcProvider {
 

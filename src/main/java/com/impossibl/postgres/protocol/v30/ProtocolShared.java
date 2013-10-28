@@ -28,12 +28,11 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import static java.lang.Runtime.getRuntime;
-
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import static java.lang.Runtime.getRuntime;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
@@ -47,8 +46,6 @@ import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.jboss.netty.util.Timer;
 
-
-
 public class ProtocolShared {
 
   public class Ref {
@@ -60,7 +57,7 @@ public class ProtocolShared {
     }
 
     public void release() {
-      if(!released) {
+      if (!released) {
         released = true;
         ProtocolShared.this.release();
       }
@@ -76,7 +73,7 @@ public class ProtocolShared {
   static ProtocolShared instance;
 
   public static synchronized Ref acquire() {
-    if(instance == null) {
+    if (instance == null) {
       instance = new ProtocolShared();
     }
     return instance.addReference();
@@ -95,7 +92,7 @@ public class ProtocolShared {
   }
 
   private synchronized Ref addReference() {
-    if(count == 0) {
+    if (count == 0) {
       init();
     }
     count++;
@@ -103,7 +100,7 @@ public class ProtocolShared {
   }
 
   private synchronized void release() {
-    if(count == 1) {
+    if (count == 1) {
       shutdown();
       count = 0;
     }
@@ -161,7 +158,7 @@ class NamedThreadFactory implements ThreadFactory {
   public Thread newThread(Runnable r) {
     Thread thread = new Thread(r, baseName + " (" + idx.getAndIncrement() + ")");
     thread.setDaemon(true);
-    if(thread.getPriority() != Thread.NORM_PRIORITY)
+    if (thread.getPriority() != Thread.NORM_PRIORITY)
       thread.setPriority(Thread.NORM_PRIORITY);
     return thread;
   }

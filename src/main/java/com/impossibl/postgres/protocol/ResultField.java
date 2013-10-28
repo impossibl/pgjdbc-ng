@@ -74,7 +74,7 @@ public class ResultField {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(name);
-    if(relationId != 0) {
+    if (relationId != 0) {
       sb.append(String.format(" (%s:%d)", relationId, relationAttributeNumber));
     }
     sb.append(" : ");

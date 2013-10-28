@@ -28,6 +28,16 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.datetime.instants.Instants;
+import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.PrepareCommand;
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.isUnknownParameterTypeError;
 import static com.impossibl.postgres.jdbc.ErrorUtils.parseUnknownParameterTypeIndex;
@@ -38,9 +48,6 @@ import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -75,19 +82,9 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.datetime.instants.Instants;
-import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObjectType;
-import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.guava.ByteStreams;
-import com.impossibl.postgres.utils.guava.CharStreams;
-
-
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 
 class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
@@ -125,7 +122,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
    */
   void checkParameterIndex(int idx) throws SQLException {
 
-    if(idx < 1 || idx > parameterValues.size())
+    if (idx < 1 || idx > parameterValues.size())
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
   }
 
@@ -137,11 +134,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     Type paramType = parameterTypes.get(parameterIdx);
 
-    if(targetSQLType == Types.ARRAY || targetSQLType == Types.STRUCT || targetSQLType == Types.OTHER) {
+    if (targetSQLType == Types.ARRAY || targetSQLType == Types.STRUCT || targetSQLType == Types.OTHER) {
       targetSQLType = Types.NULL;
     }
 
-    if(paramType == null || targetSQLType != getSQLType(paramType)) {
+    if (paramType == null || targetSQLType != getSQLType(paramType)) {
 
       paramType = SQLTypeMetaData.getType(targetSQLType, connection.getRegistry());
 
@@ -163,9 +160,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   void parseIfNeeded() throws SQLException {
 
-    if(!parsed) {
+    if (!parsed) {
 
-      if(name != null) {
+      if (name != null) {
         connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name), false);
       }
 
@@ -185,7 +182,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
        */
       List<Type> suggestedParameterTypes = Arrays.asList(new Type[parameterTypes.size()]);
 
-      while(true) {
+      while (true) {
 
         PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), suggestedParameterTypes);
 
@@ -198,23 +195,23 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           //succeeded so we break out "suggesting parameters loop"
           break;
         }
-        catch(Exception e) {
+        catch (Exception e) {
 
           Notice error = prep.getError();
 
-          if(isUnknownParameterTypeError(error)) {
+          if (isUnknownParameterTypeError(error)) {
 
             //Attempt to locate suggested type for parameter...
 
             Integer paramIdx = parseUnknownParameterTypeIndex(error);
 
-            if(paramIdx == null || paramIdx < 0 || paramIdx >= parameterTypes.size()) {
+            if (paramIdx == null || paramIdx < 0 || paramIdx >= parameterTypes.size()) {
               //abort and throw original exception
               throw e;
             }
 
             Type type = parameterTypes.get(paramIdx);
-            if(type == null) {
+            if (type == null) {
 
               type = getType(Types.VARCHAR, connection.getRegistry());
 
@@ -239,19 +236,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     parseIfNeeded();
 
-    for(int c=0, sz=parameterTypes.size(); c < sz; ++c) {
+    for (int c = 0, sz = parameterTypes.size(); c < sz; ++c) {
 
       Type parameterType = parameterTypes.get(c);
       Object parameterValue = parameterValues.get(c);
 
-      if(parameterValue != null) {
+      if (parameterValue != null) {
 
         Class<?> targetType = mapSetType(parameterType);
 
         try {
-          parameterValue = coerce(parameterValue, parameterType, targetType, Collections.<String,Class<?>>emptyMap(), TimeZone.getDefault(), connection);
+          parameterValue = coerce(parameterValue, parameterType, targetType, Collections.<String, Class<?>>emptyMap(), TimeZone.getDefault(), connection);
         }
-        catch(SQLException coercionException) {
+        catch (SQLException coercionException) {
           throw new SQLException("Error converting parameter " + c, coercionException);
         }
       }
@@ -262,7 +259,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     boolean res = super.executeStatement(name, parameterTypes, parameterValues);
 
-    if(wantsGeneratedKeys) {
+    if (wantsGeneratedKeys) {
       generatedKeysResultSet = getResultSet();
     }
 
@@ -289,11 +286,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public void addBatch() throws SQLException {
     checkClosed();
 
-    if(batchParameterTypes == null) {
+    if (batchParameterTypes == null) {
       batchParameterTypes = new ArrayList<>();
     }
 
-    if(batchParameterValues == null) {
+    if (batchParameterValues == null) {
       batchParameterValues = new ArrayList<>();
     }
 
@@ -314,7 +311,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     try {
 
-      if(batchParameterValues == null || batchParameterValues.isEmpty()) {
+      if (batchParameterValues == null || batchParameterValues.isEmpty()) {
         return new int[0];
       }
 
@@ -328,11 +325,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       List<Type> lastParameterTypes = null;
       List<ResultField> lastResultFields = null;
 
-      for(int c=0, sz=batchParameterValues.size(); c < sz; ++c) {
+      for (int c = 0, sz = batchParameterValues.size(); c < sz; ++c) {
 
         List<Type> parameterTypes = mergeTypes(batchParameterTypes.get(c), lastParameterTypes);
 
-        if(lastParameterTypes == null || lastParameterTypes.equals(parameterTypes) == false) {
+        if (lastParameterTypes == null || !lastParameterTypes.equals(parameterTypes)) {
 
           PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
 
@@ -353,16 +350,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         warningChain = chainWarnings(warningChain, warnings);
 
         List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-        if(resultBatches.size() != 1) {
+        if (resultBatches.size() != 1) {
           throw new BatchUpdateException(counts);
         }
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-        if(resultBatch.rowsAffected == null) {
+        if (resultBatch.rowsAffected == null) {
           throw new BatchUpdateException(counts);
         }
 
-        if(wantsGeneratedKeys) {
+        if (wantsGeneratedKeys) {
           generatedKeys.add((Object[])resultBatch.results.get(0));
         }
 
@@ -383,13 +380,13 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   private List<Type> mergeTypes(List<Type> list, List<Type> defaultTypes) {
 
-    if(defaultTypes == null)
+    if (defaultTypes == null)
       return list;
 
-    for(int c=0, sz=list.size(); c < sz; ++c) {
+    for (int c = 0, sz = list.size(); c < sz; ++c) {
 
       Type type = list.get(c);
-      if(type == null)
+      if (type == null)
         type = defaultTypes.get(c);
 
       list.set(c, type);
@@ -534,15 +531,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
 
-    if(length < 0) {
+    if (length < 0) {
       throw new SQLException("Invalid length");
     }
 
-    if(x != null) {
+    if (x != null) {
 
       x = ByteStreams.limit(x, length);
     }
-    else if(length != 0) {
+    else if (length != 0) {
       throw new SQLException("Invalid length");
     }
 
@@ -552,15 +549,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
 
-    if(length < 0) {
+    if (length < 0) {
       throw new SQLException("Invalid length");
     }
 
-    if(x != null) {
+    if (x != null) {
 
       x = ByteStreams.limit(x, length);
     }
-    else if(length != 0) {
+    else if (length != 0) {
       throw new SQLException("Invalid length");
     }
 
@@ -569,7 +566,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   public void _setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
 
-    if(x == null) {
+    if (x == null) {
 
       set(parameterIndex, null, Types.BINARY);
     }
@@ -580,12 +577,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         long read = ByteStreams.copy(x, out);
 
-        if(length != -1 && read != length) {
+        if (length != -1 && read != length) {
           throw new SQLException("Not enough data in stream");
         }
 
       }
-      catch(IOException e) {
+      catch (IOException e) {
         throw new SQLException(e);
       }
 
@@ -638,7 +635,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     try {
       CharStreams.copy(reader, writer);
     }
-    catch(IOException e) {
+    catch (IOException e) {
       throw new SQLException(e);
     }
 
@@ -683,7 +680,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     try {
       ByteStreams.copy(inputStream, blob.setBinaryStream(0));
     }
-    catch(IOException e) {
+    catch (IOException e) {
       throw new SQLException(e);
     }
 
@@ -709,7 +706,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     checkClosed();
 
-    if(xmlObject instanceof PGSQLXML == false) {
+    if (!(xmlObject instanceof PGSQLXML)) {
       throw new SQLException("SQLXML object not created by driver");
     }
 
@@ -836,7 +833,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   private Object unwrap(Object x) throws SQLException {
 
-    if(x instanceof Blob) {
+    if (x instanceof Blob) {
       return unwrap((Blob)x);
     }
 
@@ -845,11 +842,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   private PGBlob unwrap(Blob x) throws SQLException {
 
-    if(x instanceof PGBlob)
+    if (x instanceof PGBlob)
       return (PGBlob) x;
 
     InputStream in = x.getBinaryStream();
-    if(in instanceof BlobInputStream) {
+    if (in instanceof BlobInputStream) {
       return new PGBlob(connection, ((BlobInputStream) in).lo.oid);
     }
 

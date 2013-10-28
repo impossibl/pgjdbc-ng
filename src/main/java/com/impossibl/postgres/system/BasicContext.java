@@ -28,31 +28,6 @@
  */
 package com.impossibl.postgres.system;
 
-import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE;
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
-import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
-import static java.util.logging.Level.WARNING;
-
-import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.net.SocketAddress;
-import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.logging.Logger;
-
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
@@ -72,6 +47,31 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Timer;
+import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.Settings.DATABASE;
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
+
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.net.SocketAddress;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.logging.Logger;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
+import static java.util.logging.Level.WARNING;
+
 
 public class BasicContext implements Context {
 
@@ -102,7 +102,7 @@ public class BasicContext implements Context {
 
   Properties ensureDefaultSettings(Properties settings) {
 
-    if(settings.getProperty("blob.type") == null)
+    if (settings.getProperty("blob.type") == null)
       settings.setProperty("blob.type", "loid");
 
     return settings;
@@ -157,9 +157,9 @@ public class BasicContext implements Context {
   @Override
   public boolean isSettingEnabled(String name) {
     Object val = getSetting(name, Boolean.class);
-    if(val instanceof String)
+    if (val instanceof String)
       return ((String)val).toLowerCase().equals("on");
-    if(val instanceof Boolean)
+    if (val instanceof Boolean)
       return (Boolean) val;
     return false;
   }
@@ -168,8 +168,8 @@ public class BasicContext implements Context {
   public Class<?> lookupInstanceType(Type type) {
 
     Class<?> cls = targetTypeMap.get(type.getName());
-    if(cls == null) {
-      if(type.getCategory() == Category.Array)
+    if (cls == null) {
+      if (type.getCategory() == Category.Array)
         return Object[].class;
       else
         cls = HashMap.class;
@@ -302,7 +302,7 @@ public class BasicContext implements Context {
   public void refreshType(int typeId) {
 
     int latestKnownTypeId = registry.getLatestKnownTypeId();
-    if(latestKnownTypeId >= typeId) {
+    if (latestKnownTypeId >= typeId) {
       //Refresh this specific type
       refreshSpecificType(typeId);
     }
@@ -320,7 +320,7 @@ public class BasicContext implements Context {
       //Load types
       List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[0], PgType.Row.class, typeId);
 
-      if(pgTypes.isEmpty()) {
+      if (pgTypes.isEmpty()) {
         return;
       }
 
@@ -329,7 +329,7 @@ public class BasicContext implements Context {
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
-    catch(IOException | NoticeException e) {
+    catch (IOException | NoticeException e) {
       //Ignore errors
     }
 
@@ -342,12 +342,12 @@ public class BasicContext implements Context {
       //Load types
       List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[2], PgType.Row.class, latestTypeId);
 
-      if(pgTypes.isEmpty()) {
+      if (pgTypes.isEmpty()) {
         return;
       }
 
       Integer[] typeIds = new Integer[pgTypes.size()];
-      for(int c=0; c < pgTypes.size(); ++c)
+      for (int c = 0; c < pgTypes.size(); ++c)
         typeIds[c] = pgTypes.get(c).relationId;
 
       //Load attributes
@@ -355,7 +355,7 @@ public class BasicContext implements Context {
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
-    catch(IOException | NoticeException e) {
+    catch (IOException | NoticeException e) {
       logger.log(WARNING, "Error refreshing types", e);
     }
 
@@ -368,7 +368,7 @@ public class BasicContext implements Context {
       //Load types
       List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[4], PgType.Row.class, relationId);
 
-      if(pgTypes.isEmpty()) {
+      if (pgTypes.isEmpty()) {
         return;
       }
 
@@ -377,7 +377,7 @@ public class BasicContext implements Context {
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
-    catch(IOException | NoticeException e) {
+    catch (IOException | NoticeException e) {
       //Ignore errors
     }
 
@@ -389,7 +389,7 @@ public class BasicContext implements Context {
 
     protocol.execute(prepare);
 
-    if(prepare.getError() != null) {
+    if (prepare.getError() != null) {
       throw new NoticeException("Error preparing query", prepare.getError());
     }
 
@@ -407,7 +407,7 @@ public class BasicContext implements Context {
 
     protocol.execute(query);
 
-    if(query.getError() != null) {
+    if (query.getError() != null) {
       throw new NoticeException("Error executing query", query.getError());
     }
 
@@ -424,7 +424,7 @@ public class BasicContext implements Context {
 
     protocol.execute(query);
 
-    if(query.getError() != null) {
+    if (query.getError() != null) {
       throw new NoticeException("Error querying", query.getError());
     }
 
@@ -437,22 +437,22 @@ public class BasicContext implements Context {
 
     protocol.execute(query);
 
-    if(query.getError() != null) {
+    if (query.getError() != null) {
       throw new NoticeException("Error preparing query", query.getError());
     }
 
     List<QueryCommand.ResultBatch> res = query.getResultBatches();
-    if(res.isEmpty()) {
+    if (res.isEmpty()) {
       return null;
     }
 
     QueryCommand.ResultBatch resultBatch = res.get(0);
-    if(resultBatch.results.isEmpty()) {
+    if (resultBatch.results.isEmpty()) {
       return resultBatch.rowsAffected;
     }
 
     Object[] firstRow = (Object[]) resultBatch.results.get(0);
-    if(firstRow.length == 0)
+    if (firstRow.length == 0)
       return null;
 
     return firstRow[0];
@@ -461,15 +461,15 @@ public class BasicContext implements Context {
   protected String execQueryForString(String queryTxt) throws IOException, NoticeException {
 
     List<Object> res = execQuery(queryTxt);
-    if(res.isEmpty()) {
+    if (res.isEmpty()) {
       return "";
     }
 
     Object[] firstRow = (Object[]) res.get(0);
-    if(firstRow.length == 0)
+    if (firstRow.length == 0)
       return "";
 
-    if(firstRow[0] == null)
+    if (firstRow[0] == null)
       return "";
 
     return firstRow[0].toString();
@@ -488,62 +488,62 @@ public class BasicContext implements Context {
 
     switch(name) {
 
-    case "server_version":
+      case "server_version":
 
-      serverVersion = Version.parse(value);
-      break;
+        serverVersion = Version.parse(value);
+        break;
 
-    case "DateStyle":
+      case "DateStyle":
 
-      String[] parsedDateStyle = DateStyle.parse(value);
+        String[] parsedDateStyle = DateStyle.parse(value);
 
-      if(parsedDateStyle == null) {
-        logger.warning("Invalid DateStyle encountered");
-      }
-      else {
-
-        dateFormatter = DateStyle.getDateFormatter(parsedDateStyle);
-        if(dateFormatter == null) {
-          logger.warning("Unknown Date format, reverting to default");
-          dateFormatter = new ISODateFormat();
+        if (parsedDateStyle == null) {
+          logger.warning("Invalid DateStyle encountered");
         }
+        else {
 
-        timeFormatter = DateStyle.getTimeFormatter(parsedDateStyle);
-        if(timeFormatter == null) {
-          logger.warning("Unknown Time format, reverting to default");
-          timeFormatter = new ISOTimeFormat();
+          dateFormatter = DateStyle.getDateFormatter(parsedDateStyle);
+          if (dateFormatter == null) {
+            logger.warning("Unknown Date format, reverting to default");
+            dateFormatter = new ISODateFormat();
+          }
+
+          timeFormatter = DateStyle.getTimeFormatter(parsedDateStyle);
+          if (timeFormatter == null) {
+            logger.warning("Unknown Time format, reverting to default");
+            timeFormatter = new ISOTimeFormat();
+          }
+
+          timestampFormatter = DateStyle.getTimestampFormatter(parsedDateStyle);
+          if (timestampFormatter == null) {
+            logger.warning("Unknown Timestamp format, reverting to default");
+            timestampFormatter = new ISOTimestampFormat();
+          }
         }
+        break;
 
-        timestampFormatter = DateStyle.getTimestampFormatter(parsedDateStyle);
-        if(timestampFormatter == null) {
-          logger.warning("Unknown Timestamp format, reverting to default");
-          timestampFormatter = new ISOTimestampFormat();
-        }
-      }
-      break;
+      case "TimeZone":
 
-    case "TimeZone":
+        timeZone = TimeZone.getTimeZone(value);
+        break;
 
-      timeZone = TimeZone.getTimeZone(value);
-      break;
+      case "integer_datetimes":
 
-    case "integer_datetimes":
+        settings.put(FIELD_DATETIME_FORMAT_CLASS, Integer.class);
+        break;
 
-      settings.put(FIELD_DATETIME_FORMAT_CLASS, Integer.class);
-      break;
+      case "client_encoding":
 
-    case "client_encoding":
+        charset = Charset.forName(value);
+        break;
 
-      charset = Charset.forName(value);
-      break;
+      case STANDARD_CONFORMING_STRINGS:
 
-    case STANDARD_CONFORMING_STRINGS:
+        settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
+        break;
 
-      settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
-      break;
-
-    default:
-      break;
+      default:
+        break;
     }
 
   }
@@ -556,10 +556,10 @@ public class BasicContext implements Context {
   public void reportNotification(int processId, String channelName, String payload) {
 
     Iterator<WeakReference<NotificationListener>> iter = notificationListeners.iterator();
-    while(iter.hasNext()) {
+    while (iter.hasNext()) {
 
       NotificationListener listener = iter.next().get();
-      if(listener == null) {
+      if (listener == null) {
 
         iter.remove();
       }

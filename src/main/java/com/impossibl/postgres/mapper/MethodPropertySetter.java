@@ -54,7 +54,7 @@ public class MethodPropertySetter implements PropertySetter {
     try {
       method.invoke(instance, value);
     }
-    catch(IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+    catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
       // Ignore mapping errors (they shouldn't happen)
     }
   }

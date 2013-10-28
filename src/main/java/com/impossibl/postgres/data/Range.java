@@ -108,9 +108,9 @@ public class Range<T> {
 
   public void setLowerBound(T val) {
     values[0] = val;
-    if(val == null) {
+    if (val == null) {
       flags.value |= Flags.RANGE_LB_NULL;
-      if(!hasUpperBound())
+      if (!hasUpperBound())
         flags.value |= Flags.RANGE_EMPTY;
     }
   }
@@ -130,9 +130,9 @@ public class Range<T> {
 
   public void setUpperBound(T val) {
     values[1] = val;
-    if(val == null) {
+    if (val == null) {
       flags.value |= Flags.RANGE_UB_NULL;
-      if(!hasLowerBound())
+      if (!hasLowerBound())
         flags.value |= Flags.RANGE_EMPTY;
     }
   }

@@ -103,7 +103,7 @@ public class PGSQLXML implements SQLXML {
 
         transformer.transform(domSource, streamResult);
       }
-      catch(TransformerFactoryConfigurationError | TransformerException e) {
+      catch (TransformerFactoryConfigurationError | TransformerException e) {
         //Ignore exceptions until later
         PGSQLXML.this.data = null;
         PGSQLXML.this.initialized = true;
@@ -136,7 +136,7 @@ public class PGSQLXML implements SQLXML {
 
   byte[] getData() {
 
-    if(data == null) {
+    if (data == null) {
       return null;
     }
 
@@ -145,21 +145,21 @@ public class PGSQLXML implements SQLXML {
 
   private void checkFreed() throws SQLException {
 
-    if(connection == null) {
+    if (connection == null) {
       throw new SQLException("SQLXML object has already been freed");
     }
   }
 
   private void checkReadable() throws SQLException {
 
-    if(!initialized) {
+    if (!initialized) {
       throw new SQLException("SQLXML object has not been initialized");
     }
   }
 
   private void checkWritable() throws SQLException {
 
-    if(initialized) {
+    if (initialized) {
       throw new SQLException("SQLXML object has already been initialized");
     }
   }
@@ -173,7 +173,7 @@ public class PGSQLXML implements SQLXML {
     checkFreed();
     checkReadable();
 
-    if(data == null)
+    if (data == null)
       return null;
 
     return new ByteArrayInputStream(data, 0, dataLen);
@@ -183,7 +183,7 @@ public class PGSQLXML implements SQLXML {
     checkFreed();
     checkReadable();
 
-    if(data == null)
+    if (data == null)
       return null;
 
     return new InputStreamReader(new ByteArrayInputStream(data, 0, dataLen), connection.getCharset());
@@ -193,12 +193,12 @@ public class PGSQLXML implements SQLXML {
     checkFreed();
     checkReadable();
 
-    if(data == null)
+    if (data == null)
       return null;
 
     try {
 
-      if(sourceClass == null || DOMSource.class.equals(sourceClass)) {
+      if (sourceClass == null || DOMSource.class.equals(sourceClass)) {
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
@@ -222,17 +222,17 @@ public class PGSQLXML implements SQLXML {
 
         return sourceClass.cast(new DOMSource(builder.parse(input)));
       }
-      else if(SAXSource.class.equals(sourceClass)) {
+      else if (SAXSource.class.equals(sourceClass)) {
 
         InputSource is = new InputSource(getCharacterStream());
 
         return sourceClass.cast(new SAXSource(is));
       }
-      else if(StreamSource.class.equals(sourceClass)) {
+      else if (StreamSource.class.equals(sourceClass)) {
 
         return sourceClass.cast(new StreamSource(getCharacterStream()));
       }
-      else if(StAXSource.class.equals(sourceClass)) {
+      else if (StAXSource.class.equals(sourceClass)) {
 
         XMLInputFactory xif = XMLInputFactory.newInstance();
 
@@ -242,7 +242,7 @@ public class PGSQLXML implements SQLXML {
       }
 
     }
-    catch(XMLStreamException | SAXException | IOException | ParserConfigurationException e) {
+    catch (XMLStreamException | SAXException | IOException | ParserConfigurationException e) {
       throw new SQLException("Error initializing XML source");
     }
 
@@ -253,7 +253,7 @@ public class PGSQLXML implements SQLXML {
     checkFreed();
     checkReadable();
 
-    if(data == null)
+    if (data == null)
       return null;
 
     return new String(data, 0, dataLen, connection.getCharset());
@@ -279,15 +279,15 @@ public class PGSQLXML implements SQLXML {
 
     @SuppressWarnings("unchecked")
     Class<T> resultClass = (Class<T>) DOMResult.class;
-    if(resultClassIn != null) {
+    if (resultClassIn != null) {
       resultClass = resultClassIn;
     }
 
-    if(DOMResult.class.equals(resultClass)) {
+    if (DOMResult.class.equals(resultClass)) {
 
       return resultClass.cast(new InternalDOMResult());
     }
-    else if(SAXResult.class.equals(resultClass)) {
+    else if (SAXResult.class.equals(resultClass)) {
 
       try {
 
@@ -299,18 +299,18 @@ public class PGSQLXML implements SQLXML {
 
         return resultClass.cast(new SAXResult(transformerHandler));
       }
-      catch(TransformerException te) {
+      catch (TransformerException te) {
 
         throw new SQLException("Error initializing SAXResult");
       }
     }
-    else if(StreamResult.class.equals(resultClass)) {
+    else if (StreamResult.class.equals(resultClass)) {
 
       Writer writer = setCharacterStream();
 
       return resultClass.cast(new StreamResult(writer));
     }
-    else if(StAXResult.class.equals(resultClass)) {
+    else if (StAXResult.class.equals(resultClass)) {
 
       Writer writer = setCharacterStream();
 
@@ -321,7 +321,7 @@ public class PGSQLXML implements SQLXML {
 
         return resultClass.cast(new StAXResult(xsw));
       }
-      catch(XMLStreamException xse) {
+      catch (XMLStreamException xse) {
 
         throw new SQLException("Error initializing StAXResult");
       }
@@ -336,7 +336,7 @@ public class PGSQLXML implements SQLXML {
 
     initialized = true;
 
-    if(value != null) {
+    if (value != null) {
       data = value.getBytes(connection.getCharset());
     }
     else {

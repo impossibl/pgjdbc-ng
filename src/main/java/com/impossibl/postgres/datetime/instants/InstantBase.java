@@ -28,20 +28,19 @@
  */
 package com.impossibl.postgres.datetime.instants;
 
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.impossibl.postgres.datetime.TimeZones;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.utils.guava.Strings;
 
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
-
-import com.impossibl.postgres.utils.guava.Strings;
-import com.impossibl.postgres.datetime.TimeZones;
-import com.impossibl.postgres.system.Context;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public abstract class InstantBase implements Instant {
 
@@ -75,7 +74,7 @@ public abstract class InstantBase implements Instant {
 
     long millis = getMillisLocal();
 
-    if(type == Type.Timestamp) {
+    if (type == Type.Timestamp) {
       //Remove "date" portion of timestamp
       millis %= DAYS.toMillis(1);
     }
@@ -106,7 +105,7 @@ public abstract class InstantBase implements Instant {
     long millis = SECONDS.toMillis(MILLISECONDS.toSeconds(getMillisUTC()));
     int micros = (int) (getMicrosUTC() - MILLISECONDS.toMicros(millis));
 
-    if(micros < 0) {
+    if (micros < 0) {
       millis -= 1000;
       micros += 1000000;
     }
@@ -126,7 +125,7 @@ public abstract class InstantBase implements Instant {
 
     sb.append('.');
 
-    if(micros > 0) {
+    if (micros > 0) {
 
       String microString = Integer.toString(micros);
 
@@ -138,7 +137,7 @@ public abstract class InstantBase implements Instant {
       microString.getChars(0, microString.length(), nanosChar, 0);
       int truncIndex = 5;
       while (nanosChar[truncIndex] == '0') {
-          truncIndex--;
+        truncIndex--;
       }
 
       sb.append(nanosChar, 0, truncIndex + 1);
@@ -150,7 +149,7 @@ public abstract class InstantBase implements Instant {
 
     sb.append(" [");
 
-    if(getZone() != null) {
+    if (getZone() != null) {
       sb.append(TimeZones.getOffsetZoneID(zone.getRawOffset()));
     }
     else {

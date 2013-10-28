@@ -28,6 +28,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
@@ -55,11 +59,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
-import com.impossibl.postgres.utils.guava.ByteStreams;
-import com.impossibl.postgres.utils.guava.CharStreams;
-
 public class PGSQLOutput implements SQLOutput {
 
   private PGConnection connection;
@@ -79,14 +78,14 @@ public class PGSQLOutput implements SQLOutput {
 
   void writeNextAttributeValue(Object val) throws SQLException {
 
-    Attribute attr = type.getAttribute(currentAttributeIdx+1);
-    if(attr == null) {
+    Attribute attr = type.getAttribute(currentAttributeIdx + 1);
+    if (attr == null) {
       throw new SQLException("invalid attribute access");
     }
 
     Class<?> targetType = mapSetType(attr.type);
 
-    attributeValues[currentAttributeIdx++] = coerce(val, attr.type, targetType, Collections.<String,Class<?>>emptyMap(), connection);
+    attributeValues[currentAttributeIdx++] = coerce(val, attr.type, targetType, Collections.<String, Class<?>>emptyMap(), connection);
   }
 
   @Override
@@ -159,7 +158,7 @@ public class PGSQLOutput implements SQLOutput {
     try {
       writeNextAttributeValue(CharStreams.toString(x));
     }
-    catch(IOException e) {
+    catch (IOException e) {
       throw new SQLException(e);
     }
   }
@@ -169,7 +168,7 @@ public class PGSQLOutput implements SQLOutput {
     try {
       writeNextAttributeValue(new String(ByteStreams.toByteArray(x), StandardCharsets.US_ASCII));
     }
-    catch(IOException e) {
+    catch (IOException e) {
       throw new SQLException(e);
     }
   }
@@ -179,7 +178,7 @@ public class PGSQLOutput implements SQLOutput {
     try {
       writeNextAttributeValue(ByteStreams.toByteArray(x));
     }
-    catch(IOException e) {
+    catch (IOException e) {
       throw new SQLException(e);
     }
   }

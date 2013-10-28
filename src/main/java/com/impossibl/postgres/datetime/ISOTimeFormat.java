@@ -28,16 +28,13 @@
  */
 package com.impossibl.postgres.datetime;
 
+import com.impossibl.postgres.datetime.instants.Instant;
 import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
 import static com.impossibl.postgres.datetime.FormatUtils.parseInt;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 import java.util.Calendar;
 import java.util.Map;
-
-import com.impossibl.postgres.datetime.instants.Instant;
-
-
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 public class ISOTimeFormat implements DateTimeFormat {
 
@@ -76,7 +73,7 @@ public class ISOTimeFormat implements DateTimeFormat {
         pieces.put(MINUTE_PIECE, parseResult[0]);
 
         //Optional seconds
-        if(offset < date.length()) {
+        if (offset < date.length()) {
           checkOffset(date, offset, ':');
 
           offset = parseInt(date, offset + 1, parseResult);
@@ -84,18 +81,18 @@ public class ISOTimeFormat implements DateTimeFormat {
           pieces.put(SECOND_PIECE, parseResult[0]);
 
           //Optional fraction
-          if(offset < date.length()) {
+          if (offset < date.length()) {
 
-            if(date.charAt(offset) == '.') {
+            if (date.charAt(offset) == '.') {
 
               checkOffset(date, offset, '.');
 
-              int nanosStart = offset+1;
+              int nanosStart = offset + 1;
               offset = parseInt(date, nanosStart, parseResult);
               checkOffset(date, offset, '\0');
 
               int nanoDigits = offset - nanosStart;
-              if(nanoDigits > 9) {
+              if (nanoDigits > 9) {
                 return ~nanosStart;
               }
 
@@ -107,23 +104,24 @@ public class ISOTimeFormat implements DateTimeFormat {
         }
 
         // extract timezone
-        if(offset < date.length()) {
+        if (offset < date.length()) {
           String timeZoneId = null;
           char timeZoneIndicator = date.charAt(offset);
-          if(timeZoneIndicator == '+' || timeZoneIndicator == '-') {
+          if (timeZoneIndicator == '+' || timeZoneIndicator == '-') {
             timeZoneId = GMT_ID + date.substring(offset);
           }
-          else if(timeZoneIndicator == 'Z') {
+          else if (timeZoneIndicator == 'Z') {
             timeZoneId = GMT_ID;
           }
 
-          if(timeZoneId != null) {
+          if (timeZoneId != null) {
             pieces.put(ZONE_PIECE, timeZoneId);
           }
         }
 
       }
-      catch(IndexOutOfBoundsException | IllegalArgumentException e) {
+      catch (IndexOutOfBoundsException | IllegalArgumentException e) {
+        // Ignore
       }
 
       return offset;
@@ -143,7 +141,7 @@ public class ISOTimeFormat implements DateTimeFormat {
       int month = cal.get(Calendar.MONTH) + 1;
       int day = cal.get(Calendar.DAY_OF_MONTH);
 
-      char buf[] = "2000-00-00".toCharArray();
+      char[] buf = "2000-00-00".toCharArray();
       buf[0] = Character.forDigit(year / 1000, 10);
       buf[1] = Character.forDigit((year / 100) % 10, 10);
       buf[2] = Character.forDigit((year / 10) % 10, 10);

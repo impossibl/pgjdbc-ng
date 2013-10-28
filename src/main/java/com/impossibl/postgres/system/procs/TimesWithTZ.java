@@ -28,24 +28,21 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
-import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import java.io.IOException;
-import java.util.TimeZone;
-
-import org.jboss.netty.buffer.ChannelBuffer;
-
 import com.impossibl.postgres.datetime.TimeZones;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
 
+import java.io.IOException;
+import java.util.TimeZone;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class TimesWithTZ extends SettingSelectProcProvider {
 

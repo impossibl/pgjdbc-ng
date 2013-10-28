@@ -28,14 +28,18 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.CloseCommand;
+import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
-import static java.sql.ResultSet.CONCUR_READ_ONLY;
-import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -46,16 +50,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.CloseCommand;
-import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObjectType;
-import com.impossibl.postgres.types.Type;
-
-
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 abstract class PGStatement implements Statement {
 
@@ -105,7 +102,7 @@ abstract class PGStatement implements Statement {
    */
   void checkClosed() throws SQLException {
 
-    if(isClosed())
+    if (isClosed())
       throw CLOSED_STATEMENT;
   }
 
@@ -121,7 +118,7 @@ abstract class PGStatement implements Statement {
    */
   void dispose(ServerObjectType objectType, String objectName) throws SQLException {
 
-    if(objectName == null)
+    if (objectName == null)
       return;
 
     CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
@@ -131,7 +128,7 @@ abstract class PGStatement implements Statement {
 
   void dispose(Command command) throws SQLException {
 
-    if(command instanceof BindExecCommand) {
+    if (command instanceof BindExecCommand) {
 
       dispose(ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
     }
@@ -146,7 +143,7 @@ abstract class PGStatement implements Statement {
    */
   void closeResultSets() throws SQLException {
 
-    for(PGResultSet rs : activeResultSets) {
+    for (PGResultSet rs : activeResultSets) {
       rs.internalClose();
     }
 
@@ -169,7 +166,7 @@ abstract class PGStatement implements Statement {
 
     activeResultSets.remove(resultSet);
 
-    if(autoClose && activeResultSets.isEmpty()) {
+    if (autoClose && activeResultSets.isEmpty()) {
 
       close();
 
@@ -234,7 +231,7 @@ abstract class PGStatement implements Statement {
 
     command = connection.getProtocol().createQuery(sql);
 
-    if(maxFieldSize != null)
+    if (maxFieldSize != null)
       command.setMaxFieldLength(maxFieldSize);
 
     warningChain = connection.execute(command, true);
@@ -271,10 +268,10 @@ abstract class PGStatement implements Statement {
     long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
     command.setQueryTimeout(queryTimeoutMS);
 
-    if(fetchSize != null)
+    if (fetchSize != null)
       command.setMaxRows(fetchSize);
 
-    if(maxFieldSize != null)
+    if (maxFieldSize != null)
       command.setMaxFieldLength(maxFieldSize);
 
     this.warningChain = connection.execute(command, true);
@@ -362,7 +359,7 @@ abstract class PGStatement implements Statement {
   public void setMaxFieldSize(int max) throws SQLException {
     checkClosed();
 
-    if(max < 0)
+    if (max < 0)
       throw ILLEGAL_ARGUMENT;
 
     maxFieldSize = max;
@@ -378,7 +375,7 @@ abstract class PGStatement implements Statement {
   public void setMaxRows(int max) throws SQLException {
     checkClosed();
 
-    if(max < 0)
+    if (max < 0)
       throw ILLEGAL_ARGUMENT;
 
     maxRows = max;
@@ -414,7 +411,7 @@ abstract class PGStatement implements Statement {
   public void setFetchSize(int rows) throws SQLException {
     checkClosed();
 
-    if(rows < 0)
+    if (rows < 0)
       throw ILLEGAL_ARGUMENT;
 
     fetchSize = rows;
@@ -437,7 +434,7 @@ abstract class PGStatement implements Statement {
   public void setQueryTimeout(int queryTimeout) throws SQLException {
     checkClosed();
 
-    if(queryTimeout < 0) {
+    if (queryTimeout < 0) {
       throw new SQLException("invalid query timeout");
     }
 
@@ -489,7 +486,7 @@ abstract class PGStatement implements Statement {
   public boolean getMoreResults(int current) throws SQLException {
     checkClosed();
 
-    if(resultBatches.isEmpty()) {
+    if (resultBatches.isEmpty()) {
       return false;
     }
 
@@ -502,7 +499,7 @@ abstract class PGStatement implements Statement {
   public ResultSet getGeneratedKeys() throws SQLException {
     checkClosed();
 
-    if(generatedKeysResultSet == null) {
+    if (generatedKeysResultSet == null) {
       return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
     }
 
@@ -524,7 +521,7 @@ abstract class PGStatement implements Statement {
   public void close() throws SQLException {
 
     // Ignore multiple closes
-    if(isClosed())
+    if (isClosed())
       return;
 
     connection.handleStatementClosure(this);
@@ -548,7 +545,7 @@ abstract class PGStatement implements Statement {
 
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
-    if(!iface.isAssignableFrom(getClass())) {
+    if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
     }
 

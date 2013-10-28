@@ -36,7 +36,7 @@ public class TypeRef {
   Object val;
 
   public Type get() {
-    if(val instanceof Locator) {
+    if (val instanceof Locator) {
       val = ((Locator) val).locate();
     }
     return (Type) val;
