@@ -54,30 +54,31 @@ import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.w3c.dom.Node;
+import static org.junit.Assert.*;
 
-
-
-public class XmlTest extends TestCase {
+@RunWith(JUnit4.class)
+public class XmlTest {
 
   private Connection _conn;
-  private final Transformer _xslTransformer;
-  private final Transformer _identityTransformer;
-  private final static String _xsl = "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
-  private final static String _xmlDocument = "<a><b>1</b><b>2</b></a>";
-  private final static String _xmlFragment = "<a>f</a><b>g</b>";
+  private Transformer _xslTransformer;
+  private Transformer _identityTransformer;
+  private static final String _xsl = "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:output method=\"text\" indent=\"no\" /><xsl:template match=\"/a\"><xsl:for-each select=\"/a/b\">B<xsl:value-of select=\".\" /></xsl:for-each></xsl:template></xsl:stylesheet>";
+  private static final String _xmlDocument = "<a><b>1</b><b>2</b></a>";
+  private static final String _xmlFragment = "<a>f</a><b>g</b>";
 
-  public XmlTest(String name) throws Exception {
-    super(name);
+  @Before
+  public void before() throws Exception {
     TransformerFactory factory = TransformerFactory.newInstance();
     _xslTransformer = factory.newTransformer(new StreamSource(new StringReader(_xsl)));
     _xslTransformer.setErrorListener(new Ignorer());
     _identityTransformer = factory.newTransformer();
-  }
 
-  protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
     Statement stmt = _conn.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
@@ -86,7 +87,8 @@ public class XmlTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DROP TABLE xmltest");
     stmt.close();
@@ -107,7 +109,7 @@ public class XmlTest extends TestCase {
 //    rs.updateSQLXML(2, xml);
 //    rs.updateRow();
 //  }
-
+  @Test
   public void testDOMParse() throws SQLException {
     ResultSet rs = getRS();
 
@@ -130,7 +132,8 @@ public class XmlTest extends TestCase {
       source = xml.getSource(DOMSource.class);
       fail("Can't retrieve a fragment.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
@@ -156,22 +159,27 @@ public class XmlTest extends TestCase {
       transform(source);
       fail("Can't transform a fragment.");
     }
-    catch(Exception sqle) {
+    catch (Exception sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testDOMRead() throws Exception {
     testRead(DOMSource.class);
   }
 
+  @Test
   public void testSAXRead() throws Exception {
     testRead(SAXSource.class);
   }
 
+  @Test
   public void testStAXRead() throws Exception {
     testRead(StAXSource.class);
   }
 
+  @Test
   public void testStreamRead() throws Exception {
     testRead(StreamSource.class);
   }
@@ -199,7 +207,7 @@ public class XmlTest extends TestCase {
     // DOMResults tack on the additional <?xml ...?> header.
     //
     String header = "";
-    if(DOMResult.class.equals(resultClass)) {
+    if (DOMResult.class.equals(resultClass)) {
       header = "<?xml version=\"1.0\" standalone=\"no\"?>";
     }
 
@@ -210,22 +218,27 @@ public class XmlTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testDomWrite() throws Exception {
     testWrite(DOMResult.class);
   }
 
+  @Test
   public void testStAXWrite() throws Exception {
     testWrite(StAXResult.class);
   }
 
+  @Test
   public void testStreamWrite() throws Exception {
     testWrite(StreamResult.class);
   }
 
+  @Test
   public void testSAXWrite() throws Exception {
     testWrite(SAXResult.class);
   }
 
+  @Test
   public void testFree() throws SQLException {
     ResultSet rs = getRS();
     assertTrue(rs.next());
@@ -236,10 +249,12 @@ public class XmlTest extends TestCase {
       xml.getString();
       fail("Not freed.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testGetObject() throws SQLException {
     ResultSet rs = getRS();
     assertTrue(rs.next());
@@ -247,6 +262,7 @@ public class XmlTest extends TestCase {
     SQLXML xml = (SQLXML) rs.getObject(1);
   }
 
+  @Test
   public void testSetNull() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DELETE FROM xmltest");
@@ -276,6 +292,7 @@ public class XmlTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testEmpty() throws SQLException, IOException {
     SQLXML xml = _conn.createSQLXML();
 
@@ -283,17 +300,20 @@ public class XmlTest extends TestCase {
       xml.getString();
       fail("Cannot retrieve data from an uninitialized object.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     try {
       xml.getSource(null);
       fail("Cannot retrieve data from an uninitialized object.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testDoubleSet() throws SQLException {
     SQLXML xml = _conn.createSQLXML();
 
@@ -303,7 +323,8 @@ public class XmlTest extends TestCase {
       xml.setString("");
       fail("Can't set a value after its been initialized.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     ResultSet rs = getRS();
@@ -313,7 +334,8 @@ public class XmlTest extends TestCase {
       xml.setString("");
       fail("Can't set a value after its been initialized.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 

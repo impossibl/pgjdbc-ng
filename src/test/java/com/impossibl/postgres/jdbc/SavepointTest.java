@@ -35,25 +35,27 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-
-
-public class SavepointTest extends TestCase {
+@RunWith(JUnit4.class)
+public class SavepointTest {
 
   private Connection _conn;
 
-  public SavepointTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "savepointtable", "id int primary key");
     _conn.setAutoCommit(false);
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     _conn.setAutoCommit(true);
     TestUtil.dropTable(_conn, "savepointtable");
     TestUtil.closeDB(_conn);
@@ -75,6 +77,7 @@ public class SavepointTest extends TestCase {
     return count;
   }
 
+  @Test
   public void testAutoCommitFails() throws SQLException {
 
     _conn.setAutoCommit(true);
@@ -83,17 +86,20 @@ public class SavepointTest extends TestCase {
       _conn.setSavepoint();
       fail("Can't create a savepoint with autocommit.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     try {
       _conn.setSavepoint("spname");
       fail("Can't create a savepoint with autocommit.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testCantMixSavepointTypes() throws SQLException {
 
     Savepoint namedSavepoint = _conn.setSavepoint("named");
@@ -103,18 +109,21 @@ public class SavepointTest extends TestCase {
       namedSavepoint.getSavepointId();
       fail("Can't get id from named savepoint.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     try {
       unNamedSavepoint.getSavepointName();
       fail("Can't get name from unnamed savepoint.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
   }
 
+  @Test
   public void testRollingBackToSavepoints() throws SQLException {
 
     Savepoint empty = _conn.setSavepoint();
@@ -129,6 +138,7 @@ public class SavepointTest extends TestCase {
     assertEquals(0, countRows());
   }
 
+  @Test
   public void testGlobalRollbackWorks() throws SQLException {
 
     _conn.setSavepoint();
@@ -141,6 +151,7 @@ public class SavepointTest extends TestCase {
     assertEquals(0, countRows());
   }
 
+  @Test
   public void testContinueAfterError() throws SQLException {
 
     addRow(1);
@@ -149,7 +160,7 @@ public class SavepointTest extends TestCase {
       addRow(1);
       fail("Should have thrown duplicate key exception");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
       _conn.rollback(savepoint);
     }
 
@@ -158,6 +169,7 @@ public class SavepointTest extends TestCase {
     assertEquals(2, countRows());
   }
 
+  @Test
   public void testReleaseSavepoint() throws SQLException {
 
     Savepoint savepoint = _conn.setSavepoint("mysavepoint");
@@ -166,7 +178,8 @@ public class SavepointTest extends TestCase {
       savepoint.getSavepointName();
       fail("Can't use savepoint after release.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
 
     savepoint = _conn.setSavepoint();
@@ -175,10 +188,12 @@ public class SavepointTest extends TestCase {
       savepoint.getSavepointId();
       fail("Can't use savepoint after release.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testComplicatedSavepointName() throws SQLException {
 
     Savepoint savepoint = _conn.setSavepoint("name with spaces + \"quotes\"");
@@ -186,6 +201,7 @@ public class SavepointTest extends TestCase {
     _conn.releaseSavepoint(savepoint);
   }
 
+  @Test
   public void testRollingBackToInvalidSavepointFails() throws SQLException {
 
     Savepoint sp1 = _conn.setSavepoint();
@@ -196,10 +212,12 @@ public class SavepointTest extends TestCase {
       _conn.rollback(sp2);
       fail("Can't rollback to a savepoint that's invalid.");
     }
-    catch(SQLException sqle) {
+    catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testRollbackMultipleTimes() throws SQLException {
 
     addRow(1);

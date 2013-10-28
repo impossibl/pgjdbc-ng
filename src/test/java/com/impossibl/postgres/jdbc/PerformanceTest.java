@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.Timer;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -35,8 +37,6 @@ import java.sql.Statement;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.impossibl.postgres.utils.Timer;
 
 public class PerformanceTest {
 
@@ -58,13 +58,13 @@ public class PerformanceTest {
 
     Timer timer = new Timer();
 
-    for(int c=0; c < 100; ++c) {
+    for (int c = 0; c < 100; ++c) {
 
-      try(Statement st = conn.createStatement()) {
+      try (Statement st = conn.createStatement()) {
 
-        try(ResultSet rs = st.executeQuery("SELECT id, md5(random()::text) AS descr FROM (SELECT * FROM generate_series(1,100000) AS id) AS x;")) {
+        try (ResultSet rs = st.executeQuery("SELECT id, md5(random()::text) AS descr FROM (SELECT * FROM generate_series(1,100000) AS id) AS x;")) {
 
-          while(rs.next()) {
+          while (rs.next()) {
             rs.getString(1);
           }
 

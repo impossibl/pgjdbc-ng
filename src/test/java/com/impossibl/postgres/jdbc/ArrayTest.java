@@ -38,27 +38,30 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-
-
-public class ArrayTest extends TestCase {
+@RunWith(JUnit4.class)
+public class ArrayTest {
   private Connection conn;
 
-  public ArrayTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], str text");
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     TestUtil.dropTable(conn, "arrtest");
     TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testSetNull() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
     pstmt.setNull(1, Types.ARRAY);
@@ -79,6 +82,7 @@ public class ArrayTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testGetNull() throws SQLException {
     Statement stmt = conn.createStatement();
 
@@ -92,19 +96,20 @@ public class ArrayTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testSendRecvMultiple() throws SQLException {
 
     PreparedStatement ps = conn.prepareStatement("SELECT ?::int[], ?::decimal(2,1)[], ?::text[]");
-    ps.setObject(1, new Integer[]{1,2,3});
-    ps.setObject(2, new Float[]{3.1f,1.4f});
-    ps.setObject(3, new String[] {"abc","def"});
+    ps.setObject(1, new Integer[]{1, 2, 3});
+    ps.setObject(2, new Float[]{3.1f, 1.4f});
+    ps.setObject(3, new String[] {"abc", "def"});
 
     ResultSet rs = ps.executeQuery();
     assertTrue(rs.next());
 
     Array arr = rs.getArray(1);
     assertEquals(Types.INTEGER, arr.getBaseType());
-    Integer intarr[] = (Integer[]) arr.getArray();
+    Integer[] intarr = (Integer[]) arr.getArray();
     assertEquals(3, intarr.length);
     assertEquals(1, intarr[0].intValue());
     assertEquals(2, intarr[1].intValue());
@@ -112,18 +117,19 @@ public class ArrayTest extends TestCase {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal decarr[] = (BigDecimal[]) arr.getArray();
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
 
     arr = rs.getArray(3);
     assertEquals(Types.VARCHAR, arr.getBaseType());
-    String strarr[] = (String[]) arr.getArray();
+    String[] strarr = (String[]) arr.getArray();
     assertEquals("abc", strarr[0]);
     assertEquals("def", strarr[1]);
   }
 
+  @Test
   public void testRetrieveArrays() throws SQLException {
     Statement stmt = conn.createStatement();
 
@@ -135,7 +141,7 @@ public class ArrayTest extends TestCase {
 
     Array arr = rs.getArray(1);
     assertEquals(Types.INTEGER, arr.getBaseType());
-    Integer intarr[] = (Integer[]) arr.getArray();
+    Integer[] intarr = (Integer[]) arr.getArray();
     assertEquals(3, intarr.length);
     assertEquals(1, intarr[0].intValue());
     assertEquals(2, intarr[1].intValue());
@@ -143,14 +149,14 @@ public class ArrayTest extends TestCase {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal decarr[] = (BigDecimal[]) arr.getArray();
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
 
     arr = rs.getArray(3);
     assertEquals(Types.VARCHAR, arr.getBaseType());
-    String strarr[] = (String[]) arr.getArray(2, 2);
+    String[] strarr = (String[]) arr.getArray(2, 2);
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
     assertEquals("fa\"b", strarr[1]);
@@ -159,6 +165,7 @@ public class ArrayTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testRetrieveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
 
@@ -212,6 +219,7 @@ public class ArrayTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testSetArray() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet arrRS = stmt.executeQuery("SELECT '{1,2,3}'::int4[]");
@@ -235,13 +243,13 @@ public class ArrayTest extends TestCase {
     Statement select = conn.createStatement();
     ResultSet rs = select.executeQuery("SELECT intarr FROM arrtest");
     int resultCount = 0;
-    while(rs.next()) {
+    while (rs.next()) {
       resultCount++;
       Array result = rs.getArray(1);
       assertEquals(Types.INTEGER, result.getBaseType());
       assertEquals("int4", result.getBaseTypeName());
 
-      Integer intarr[] = (Integer[]) result.getArray();
+      Integer[] intarr = (Integer[]) result.getArray();
       assertEquals(3, intarr.length);
       assertEquals(1, intarr[0].intValue());
       assertEquals(2, intarr[1].intValue());
@@ -256,6 +264,7 @@ public class ArrayTest extends TestCase {
    * "[0:3]={0,1,2,3,4}" when queried. Older versions simply do not return the
    * bounds.
    */
+  @Test
   public void testNonStandardBounds() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("INSERT INTO arrtest (intarr) VALUES ('{1,2,3}')");
@@ -263,25 +272,26 @@ public class ArrayTest extends TestCase {
     ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
     assertTrue(rs.next());
     Array result = rs.getArray(1);
-    Integer intarr[] = (Integer[]) result.getArray();
+    Integer[] intarr = (Integer[]) result.getArray();
     assertEquals(4, intarr.length);
-    for(int i = 0; i < intarr.length; i++) {
+    for (int i = 0; i < intarr.length; i++) {
       assertEquals(i, intarr[i].intValue());
     }
   }
 
+  @Test
   public void testMultiDimensionalArray() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Object oa[] = (Object[]) arr.getArray();
+    Object[] oa = (Object[]) arr.getArray();
     assertEquals(2, oa.length);
-    Integer i0[] = (Integer[]) oa[0];
+    Integer[] i0 = (Integer[]) oa[0];
     assertEquals(2, i0.length);
     assertEquals(1, i0[0].intValue());
     assertEquals(2, i0[1].intValue());
-    Integer i1[] = (Integer[]) oa[1];
+    Integer[] i1 = (Integer[]) oa[1];
     assertEquals(2, i1.length);
     assertEquals(3, i1[0].intValue());
     assertEquals(4, i1[1].intValue());
@@ -289,19 +299,21 @@ public class ArrayTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testNullValues() throws SQLException {
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,3]");
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer i[] = (Integer[]) arr.getArray();
+    Integer[] i = (Integer[]) arr.getArray();
     assertEquals(3, i.length);
     assertEquals(1, i[0].intValue());
     assertNull(i[1]);
     assertEquals(3, i[2].intValue());
   }
 
+  @Test
   public void testUnknownArrayType() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT relacl FROM pg_class WHERE relacl IS NOT NULL LIMIT 1");
@@ -317,6 +329,7 @@ public class ArrayTest extends TestCase {
     assertEquals("aclitem", arrRSMD.getColumnTypeName(2));
   }
 
+  @Test
   public void testRecursiveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
@@ -360,18 +373,20 @@ public class ArrayTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testNullString() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '{a,NULL}'::text[]");
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
 
-    String s[] = (String[]) arr.getArray();
+    String[] s = (String[]) arr.getArray();
     assertEquals(2, s.length);
     assertEquals("a", s[0]);
     assertNull(s[1]);
   }
 
+  @Test
   public void testEscaping() throws SQLException {
     Statement stmt = conn.createStatement();
     String sql = "SELECT E'{{c\\\\\"d, ''}, {\"\\\\\\\\\",\"''\"}}'::text[]";
@@ -380,7 +395,7 @@ public class ArrayTest extends TestCase {
     assertTrue(rs.next());
 
     Array arr = rs.getArray(1);
-    String s[][] = (String[][]) arr.getArray();
+    String[][] s = (String[][]) arr.getArray();
     assertEquals("c\"d", s[0][0]);
     assertEquals("'", s[0][1]);
     assertEquals("\\", s[1][0]);
@@ -407,6 +422,7 @@ public class ArrayTest extends TestCase {
     assertTrue(!rs2.next());
   }
 
+  @Test
   public void testWriteMultiDimensional() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
@@ -423,17 +439,17 @@ public class ArrayTest extends TestCase {
     assertTrue(rs.next());
     arr = rs.getArray(1);
 
-    Integer i[][] = (Integer[][]) arr.getArray();
+    Integer[][] i = (Integer[][]) arr.getArray();
     assertEquals(1, i[0][0].intValue());
     assertEquals(2, i[0][1].intValue());
     assertEquals(3, i[1][0].intValue());
     assertEquals(4, i[1][1].intValue());
   }
 
-
+  @Test
   public void testCreateArrayOfInt() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int[]");
-    Integer in[] = new Integer[3];
+    Integer[] in = new Integer[3];
     in[0] = 0;
     in[1] = -1;
     in[2] = 2;
@@ -442,7 +458,7 @@ public class ArrayTest extends TestCase {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer out[] = (Integer[]) arr.getArray();
+    Integer[] out = (Integer[]) arr.getArray();
 
     assertEquals(3, out.length);
     assertEquals(0, out[0].intValue());
@@ -450,9 +466,10 @@ public class ArrayTest extends TestCase {
     assertEquals(2, out[2].intValue());
   }
 
+  @Test
   public void testCreateArrayOfMultiString() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::text[]");
-    String in[][] = new String[2][2];
+    String[][] in = new String[2][2];
     in[0][0] = "a";
     in[0][1] = "";
     in[1][0] = "\\";
@@ -462,7 +479,7 @@ public class ArrayTest extends TestCase {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    String out[][] = (String[][]) arr.getArray();
+    String[][] out = (String[][]) arr.getArray();
 
     assertEquals(2, out.length);
     assertEquals(2, out[0].length);
@@ -472,12 +489,13 @@ public class ArrayTest extends TestCase {
     assertEquals("\"\\'z", out[1][1]);
   }
 
+  @Test
   public void testCreateArrayOfNull() throws SQLException {
 
     String sql = "SELECT ?::int8[]";
 
     PreparedStatement pstmt = conn.prepareStatement(sql);
-    String in[] = new String[2];
+    String[] in = new String[2];
     in[0] = null;
     in[1] = null;
     pstmt.setArray(1, conn.createArrayOf("int8", in));
@@ -485,23 +503,24 @@ public class ArrayTest extends TestCase {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Long out[] = (Long[]) arr.getArray();
+    Long[] out = (Long[]) arr.getArray();
 
     assertEquals(2, out.length);
     assertNull(out[0]);
     assertNull(out[1]);
   }
 
+  @Test
   public void testCreateEmptyArrayOfIntViaAlias() throws SQLException {
 
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int[]");
-    Integer in[] = new Integer[0];
+    Integer[] in = new Integer[0];
     pstmt.setArray(1, conn.createArrayOf("integer", in));
 
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
-    Integer out[] = (Integer[]) arr.getArray();
+    Integer[] out = (Integer[]) arr.getArray();
 
     assertEquals(0, out.length);
 
@@ -509,15 +528,16 @@ public class ArrayTest extends TestCase {
     assertFalse(arrRs.next());
   }
 
+  @Test
   public void testCreateArrayWithoutServer() throws SQLException {
-    String in[][] = new String[2][2];
+    String[][] in = new String[2][2];
     in[0][0] = "a";
     in[0][1] = "";
     in[1][0] = "\\";
     in[1][1] = "\"\\'z";
 
     Array arr = conn.createArrayOf("varchar", in);
-    String out[][] = (String[][]) arr.getArray();
+    String[][] out = (String[][]) arr.getArray();
 
     assertEquals(2, out.length);
     assertEquals(2, out[0].length);
@@ -527,15 +547,16 @@ public class ArrayTest extends TestCase {
     assertEquals("\"\\'z", out[1][1]);
   }
 
+  @Test
   public void testCreatePrimitiveArray() throws SQLException {
-    double in[][] = new double[2][2];
+    double[][] in = new double[2][2];
     in[0][0] = 3.5;
     in[0][1] = -4.5;
     in[1][0] = 10.0 / 3;
     in[1][1] = 77;
 
     Array arr = conn.createArrayOf("float8", in);
-    Double out[][] = (Double[][]) arr.getArray();
+    Double[][] out = (Double[][]) arr.getArray();
 
     assertEquals(2, out.length);
     assertEquals(2, out[0].length);
@@ -545,8 +566,9 @@ public class ArrayTest extends TestCase {
     assertEquals(77, out[1][1], 0.00001);
   }
 
+  @Test
   public void testSetObjectFromJavaArray() throws SQLException {
-    String[] strArray = new String[] { "a", "b", "c" };
+    String[] strArray = new String[] {"a", "b", "c"};
 
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 

@@ -39,31 +39,33 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /**
  * @author Michael Barker <mailto:mike@middlesoft.co.uk>
  *
  */
-public class BlobTest extends TestCase {
-  Connection _conn;
-  private final static String TABLE = "blobtest";
-  private final static String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
-  private final static String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
+@RunWith(JUnit4.class)
+public class BlobTest {
+  private Connection _conn;
+  private static final String TABLE = "blobtest";
+  private static final String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
+  private static final String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
 
-  public BlobTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
     _conn.setAutoCommit(false);
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void after() throws SQLException {
     _conn.setAutoCommit(true);
     TestUtil.dropTable(_conn, TABLE);
     TestUtil.closeDB(_conn);
@@ -74,8 +76,9 @@ public class BlobTest extends TestCase {
    *
    * @throws SQLException
    */
+  @Test
   public void test1Byte() throws SQLException {
-    byte[] data = { (byte) 'a' };
+    byte[] data = {(byte) 'a'};
     readWrite(data);
   }
 
@@ -84,6 +87,7 @@ public class BlobTest extends TestCase {
    *
    * @throws SQLException
    */
+  @Test
   public void testManyBytes() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(data);
@@ -94,8 +98,9 @@ public class BlobTest extends TestCase {
    *
    * @throws SQLException
    */
+  @Test
   public void test1ByteOffset() throws SQLException {
-    byte[] data = { (byte) 'a' };
+    byte[] data = {(byte) 'a'};
     readWrite(10, data);
   }
 
@@ -104,6 +109,7 @@ public class BlobTest extends TestCase {
    *
    * @throws SQLException
    */
+  @Test
   public void testManyBytesOffset() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(10, data);
@@ -114,6 +120,7 @@ public class BlobTest extends TestCase {
    *
    * @throws SQLException
    */
+  @Test
   public void testAllBytes() throws SQLException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
@@ -122,9 +129,10 @@ public class BlobTest extends TestCase {
     readWrite(data);
   }
 
+  @Test
   public void testTruncate() throws SQLException {
 
-    byte data[] = new byte[100];
+    byte[] data = new byte[100];
     for (byte i = 0; i < data.length; i++) {
       data[i] = i;
     }
@@ -160,7 +168,7 @@ public class BlobTest extends TestCase {
    * @param data
    * @throws SQLException
    */
-  public void readWrite(byte[] data) throws SQLException {
+  private void readWrite(byte[] data) throws SQLException {
     readWrite(1, data);
   }
 
@@ -170,7 +178,7 @@ public class BlobTest extends TestCase {
    * @param data
    * @throws SQLException
    */
-  public void readWrite(int offset, byte[] data) throws SQLException {
+  private void readWrite(int offset, byte[] data) throws SQLException {
 
     PreparedStatement ps = _conn.prepareStatement(INSERT);
     ps.executeUpdate();
@@ -204,8 +212,9 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
+  @Test
   public void test1ByteStream() throws SQLException, IOException {
-    byte[] data = { (byte) 'a' };
+    byte[] data = {(byte) 'a'};
     readWriteStream(data);
   }
 
@@ -215,6 +224,7 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
+  @Test
   public void testManyBytesStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(data);
@@ -226,8 +236,9 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
+  @Test
   public void test1ByteOffsetStream() throws SQLException, IOException {
-    byte[] data = { (byte) 'a' };
+    byte[] data = {(byte) 'a'};
     readWriteStream(10, data);
   }
 
@@ -237,6 +248,7 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
+  @Test
   public void testManyBytesOffsetStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(10, data);
@@ -248,6 +260,7 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
+  @Test
   public void testAllBytesStream() throws SQLException, IOException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
@@ -256,7 +269,7 @@ public class BlobTest extends TestCase {
     readWriteStream(data);
   }
 
-  public void readWriteStream(byte[] data) throws SQLException, IOException {
+  private void readWriteStream(byte[] data) throws SQLException, IOException {
     readWriteStream(1, data);
   }
 
@@ -268,7 +281,7 @@ public class BlobTest extends TestCase {
    * @throws SQLException
    * @throws IOException
    */
-  public void readWriteStream(int offset, byte[] data) throws SQLException, IOException {
+  private void readWriteStream(int offset, byte[] data) throws SQLException, IOException {
 
     PreparedStatement ps = _conn.prepareStatement(INSERT);
     ps.executeUpdate();
@@ -304,6 +317,7 @@ public class BlobTest extends TestCase {
     ps.close();
   }
 
+  @Test
   public void testPattern() throws SQLException {
     byte[] data = "abcdefghijklmnopqrstuvwxyx0123456789".getBytes();
     byte[] pattern = "def".getBytes();
@@ -336,6 +350,7 @@ public class BlobTest extends TestCase {
 
   }
 
+  @Test
   public void testFree() throws SQLException {
     Statement stmt = _conn.createStatement();
 
@@ -351,9 +366,11 @@ public class BlobTest extends TestCase {
       fail("Should have thrown an Exception because it was freed.");
     }
     catch (SQLException sqle) {
+      // Ok
     }
   }
 
+  @Test
   public void testEOF() throws SQLException, IOException {
     Statement stmt = _conn.createStatement();
 
@@ -370,6 +387,7 @@ public class BlobTest extends TestCase {
     assertEquals(-1, in.read(new byte[4], 0, 4));
   }
 
+  @Test
   public void testWrapper() throws SQLException {
     _conn.setAutoCommit(false);
 

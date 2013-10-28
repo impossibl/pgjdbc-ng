@@ -38,30 +38,32 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import junit.framework.TestCase;
-
-
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will
  * help prevent previous problems from re-occuring ;-)
  *
  */
-public class TimeTest extends TestCase {
+@RunWith(JUnit4.class)
+public class TimeTest {
 
   private Connection con;
   private boolean testSetTime = false;
 
-  public TimeTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void before() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testtime", "tm time, tz time with time zone");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void after() throws Exception {
     TestUtil.dropTable(con, "testtime");
     TestUtil.closeDB(con);
   }
@@ -74,6 +76,7 @@ public class TimeTest extends TestCase {
    *
    * Test use of calendar
    */
+  @Test
   public void testGetTimeZone() throws Exception {
     @SuppressWarnings("deprecation")
     final Time midnight = new Time(0, 0, 0);
@@ -143,6 +146,7 @@ public class TimeTest extends TestCase {
   /*
    * Tests the time methods in ResultSet
    */
+  @Test
   public void testGetTime() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -165,6 +169,7 @@ public class TimeTest extends TestCase {
   /*
    * Tests the time methods in PreparedStatement
    */
+  @Test
   public void testSetTime() throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"));
     Statement stmt = con.createStatement();
@@ -263,7 +268,7 @@ public class TimeTest extends TestCase {
     assertEquals(makeTime(8, 46, 44), t);
 
     // If we're checking for timezones.
-    if(testSetTime) {
+    if (testSetTime) {
       assertTrue(rs.next());
       t = rs.getTime(1);
       assertNotNull(t);

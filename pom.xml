@@ -137,7 +137,8 @@
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>2.10</version>
           <configuration>
-            <configLocation>src/main/resources/checkstyle/checkstyle.xml</configLocation>
+            <configLocation>src/support/checkstyle.xml</configLocation>
+            <sourceDirectory>.</sourceDirectory>
             <consoleOutput>true</consoleOutput>
             <failsOnError>true</failsOnError>
             <useFile/>

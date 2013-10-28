@@ -32,35 +32,34 @@ import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-import junit.framework.TestCase;
-
-
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * Tests the dynamically created class PGDriver
  *
  */
-public class DriverTest extends TestCase {
-
-  public DriverTest(String name) {
-    super(name);
-  }
+@RunWith(JUnit4.class)
+public class DriverTest {
 
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed
    * jdbc urls.
    */
+  @Test
   public void testAcceptsURL() throws Exception {
     // Load the driver (note clients should never do it this way!)
     PGDriver drv = new PGDriver();
     assertNotNull(drv);
 
     // These are always correct
-    verifyUrl(drv, "jdbc:postgresql:test", "test", "localhost",5432);
-    verifyUrl(drv, "jdbc:postgresql://localhost/test", "test", "localhost",5432);
-    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "test", "localhost",5432);
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "anydbname", "127.0.0.1",5432);
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "hidden", "127.0.0.1",5433);
+    verifyUrl(drv, "jdbc:postgresql:test", "test", "localhost", 5432);
+    verifyUrl(drv, "jdbc:postgresql://localhost/test", "test", "localhost", 5432);
+    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "test", "localhost", 5432);
+    verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "anydbname", "127.0.0.1", 5432);
+    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "hidden", "127.0.0.1", 5433);
     verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "db", "0:0:0:0:0:0:0:1", 5740);
 
     // Badly formatted url's
@@ -80,11 +79,11 @@ public class DriverTest extends TestCase {
     assertTrue(url, drv.acceptsURL(url));
     PGDriver.ConnectionSpecifier connSpec = drv.parseURL(url);
     assertEquals(url, dbName, connSpec.database);
-    assertEquals(url, hosts.length/2, connSpec.addresses.size());
-    for(int c=0; c < hosts.length/2; ++c) {
+    assertEquals(url, hosts.length / 2, connSpec.addresses.size());
+    for (int c = 0; c < hosts.length / 2; ++c) {
       InetSocketAddress addr = connSpec.addresses.get(c);
-      assertEquals(url, hosts[c*2+0], addr.getHostString());
-      assertEquals(url, hosts[c*2+1], addr.getPort());
+      assertEquals(url, hosts[c * 2 + 0], addr.getHostString());
+      assertEquals(url, hosts[c * 2 + 1], addr.getPort());
     }
   }
 
@@ -94,6 +93,7 @@ public class DriverTest extends TestCase {
   /*
    * Tests the connect method by connecting to the test database
    */
+  @Test
   public void testConnect() throws Exception {
     // Test with the url, username & password
     Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
@@ -101,7 +101,7 @@ public class DriverTest extends TestCase {
     con.close();
 
     // Test with the username in the url
-    con = DriverManager.getConnection(TestUtil.getURL("user",TestUtil.getUser(),"password",TestUtil.getPassword()));
+    con = DriverManager.getConnection(TestUtil.getURL("user", TestUtil.getUser(), "password", TestUtil.getPassword()));
     assertNotNull(con);
     con.close();
 
@@ -116,6 +116,7 @@ public class DriverTest extends TestCase {
   /*
    * Test that the readOnly property works.
    */
+  @Test
   public void testReadOnly() throws Exception {
     Connection con = DriverManager.getConnection(TestUtil.getURL("readOnly", true), TestUtil.getUser(), TestUtil.getPassword());
     assertNotNull(con);

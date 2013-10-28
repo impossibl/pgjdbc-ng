@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.Joiner;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.sql.Connection;
@@ -40,24 +41,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.impossibl.postgres.utils.guava.Joiner;
-
-
-
 public class TestUtil {
 
   public static String getURL(Object... urlParams) {
 
     String query = "";
-    if(urlParams != null && urlParams.length > 0) {
+    if (urlParams != null && urlParams.length > 0) {
       query = "?" + Joiner.on("&").withKeyValueSeparator("=").join(params(urlParams));
     }
 
-    if(!"5432".equals(getPort())) {
-                  return "jdbc:postgresql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
-                } else {
-                  return "jdbc:postgresql://" + getServer() + "/" + getDatabase() + query;
-                }
+    if (!"5432".equals(getPort())) {
+      return "jdbc:postgresql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
+    }
+    else {
+      return "jdbc:postgresql://" + getServer() + "/" + getDatabase() + query;
+    }
   }
 
   public static String getServer() {
@@ -95,7 +93,7 @@ public class TestUtil {
     checkArgument(objs.length % 2 == 0);
 
     Map<String, Object> map = new HashMap<>();
-    for(int c = 0; c < objs.length; c += 2)
+    for (int c = 0; c < objs.length; c += 2)
       map.put((String) objs[c], objs[c + 1]);
 
     return map;
@@ -124,7 +122,7 @@ public class TestUtil {
    * Helper - closes an open connection.
    */
   public static void closeDB(Connection con) throws SQLException {
-    if(con != null)
+    if (con != null)
       con.close();
   }
 
@@ -148,7 +146,7 @@ public class TestUtil {
       // Now create the table
       String sql = "CREATE TABLE " + table + " (" + columns + ") ";
 
-      if(withOids) {
+      if (withOids) {
         sql += " WITH OIDS";
       }
       st.executeUpdate(sql);
@@ -213,8 +211,8 @@ public class TestUtil {
       String sql = "DROP SEQUENCE " + sequence;
       stmt.executeUpdate(sql);
     }
-    catch(SQLException sqle) {
-      if(!con.getAutoCommit())
+    catch (SQLException sqle) {
+      if (!con.getAutoCommit())
         throw sqle;
     }
   }
@@ -228,12 +226,12 @@ public class TestUtil {
       String sql = "DROP TABLE " + table + " CASCADE ";
       stmt.executeUpdate(sql);
     }
-    catch(SQLException ex) {
+    catch (SQLException ex) {
       // Since every create table issues a drop table
       // it's easy to get a table doesn't exist error.
       // we want to ignore these, but if we're in a
       // transaction then we've got trouble
-      if(!con.getAutoCommit())
+      if (!con.getAutoCommit())
         throw ex;
     }
   }
@@ -247,12 +245,12 @@ public class TestUtil {
       String sql = "DROP TYPE " + type + " CASCADE ";
       stmt.executeUpdate(sql);
     }
-    catch(SQLException ex) {
+    catch (SQLException ex) {
       // Since every create table issues a drop table
       // it's easy to get a table doesn't exist error.
       // we want to ignore these, but if we're in a
       // transaction then we've got trouble
-      if(!con.getAutoCommit())
+      if (!con.getAutoCommit())
         throw ex;
     }
   }
@@ -267,7 +265,7 @@ public class TestUtil {
   public static String insertSQL(String table, String columns, String values) {
     String s = "INSERT INTO " + table;
 
-    if(columns != null)
+    if (columns != null)
       s = s + " (" + columns + ")";
 
     return s + " VALUES (" + values + ")";
@@ -287,9 +285,9 @@ public class TestUtil {
   public static String selectSQL(String table, String columns, String where, String other) {
     String s = "SELECT " + columns + " FROM " + table;
 
-    if(where != null)
+    if (where != null)
       s = s + " WHERE " + where;
-    if(other != null)
+    if (other != null)
       s = s + " " + other;
 
     return s;
@@ -300,16 +298,16 @@ public class TestUtil {
    */
   public static void printResultSet(ResultSet rs) throws SQLException {
     ResultSetMetaData rsmd = rs.getMetaData();
-    for(int i = 1; i <= rsmd.getColumnCount(); i++) {
-      if(i != 1) {
+    for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+      if (i != 1) {
         System.out.print(", ");
       }
       System.out.print(rsmd.getColumnName(i));
     }
     System.out.println();
-    while(rs.next()) {
-      for(int i = 1; i <= rsmd.getColumnCount(); i++) {
-        if(i != 1) {
+    while (rs.next()) {
+      for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+        if (i != 1) {
           System.out.print(", ");
         }
         System.out.print(rs.getString(i));
@@ -324,7 +322,7 @@ public class TestUtil {
     stmt.closeOnCompletion();
 
     ResultSet rs = stmt.executeQuery("SHOW standard_conforming_strings");
-    if(rs.next()) {
+    if (rs.next()) {
       return rs.getBoolean(1);
     }
 

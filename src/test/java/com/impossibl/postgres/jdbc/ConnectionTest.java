@@ -26,13 +26,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
 package com.impossibl.postgres.jdbc;
 
 import java.sql.Connection;
@@ -46,246 +39,241 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection
  * and it's superclass.
  *
  */
+@RunWith(JUnit4.class)
+public class ConnectionTest {
 
-public class ConnectionTest extends TestCase
-{
+  private Connection con;
 
-    private Connection con;
+  @Before
+  public void before() throws Exception {
+    con = TestUtil.openDB();
 
-    /*
-     * Constructor
-     */
-    public ConnectionTest(String name)
-    {
-        super(name);
-    }
+    TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
+    TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
 
-    // Set up the fixture for this testcase: the tables for this test.
-    protected void setUp() throws Exception
-    {
-        con = TestUtil.openDB();
+    TestUtil.closeDB(con);
+  }
 
-        TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
-        TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
+  @After
+  public void after() throws Exception {
+    TestUtil.closeDB(con);
 
-        TestUtil.closeDB(con);
-    }
+    con = TestUtil.openDB();
 
-    // Tear down the fixture for this test case.
-    protected void tearDown() throws Exception
-    {
-        TestUtil.closeDB(con);
+    TestUtil.dropTable(con, "test_a");
+    TestUtil.dropTable(con, "test_c");
 
-        con = TestUtil.openDB();
+    TestUtil.closeDB(con);
+  }
 
-        TestUtil.dropTable(con, "test_a");
-        TestUtil.dropTable(con, "test_c");
+  /*
+   * Tests the two forms of createStatement()
+   */
+  @Test
+  public void testCreateStatement() throws Exception {
+    con = TestUtil.openDB();
 
-        TestUtil.closeDB(con);
-    }
+    // A standard Statement
+    Statement stat = con.createStatement();
+    assertNotNull(stat);
+    stat.close();
 
-    /*
-     * Tests the two forms of createStatement()
-     */
-    public void testCreateStatement() throws Exception
-    {
-        con = TestUtil.openDB();
+    // Ask for Updateable ResultSets
+    stat = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    assertNotNull(stat);
+    stat.close();
+  }
 
-        // A standard Statement
-        Statement stat = con.createStatement();
-        assertNotNull(stat);
-        stat.close();
+  /*
+   * Tests the two forms of prepareStatement()
+   */
+  @Test
+  public void testPrepareStatement() throws Exception {
+    con = TestUtil.openDB();
 
-        // Ask for Updateable ResultSets
-        stat = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        assertNotNull(stat);
-        stat.close();
-    }
+    String sql = "select source,cost,imageid from test_c";
 
-    /*
-     * Tests the two forms of prepareStatement()
-     */
-    public void testPrepareStatement() throws Exception
-    {
-        con = TestUtil.openDB();
+    // A standard Statement
+    PreparedStatement stat = con.prepareStatement(sql);
+    assertNotNull(stat);
+    stat.close();
 
-        String sql = "select source,cost,imageid from test_c";
+    // Ask for Updateable ResultSets
+    stat = con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    assertNotNull(stat);
+    stat.close();
+  }
 
-        // A standard Statement
-        PreparedStatement stat = con.prepareStatement(sql);
-        assertNotNull(stat);
-        stat.close();
+  /*
+   * Put the test for createPrepareCall here
+   */
+  @Ignore
+  public void testPrepareCall() {
+  }
 
-        // Ask for Updateable ResultSets
-        stat = con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        assertNotNull(stat);
-        stat.close();
-    }
+  /*
+   * Test nativeSQL
+   */
+  @Test
+  public void testNativeSQL() throws Exception {
+    // test a simple escape
+    con = TestUtil.openDB();
+    assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
+  }
 
-    /*
-     * Put the test for createPrepareCall here
-     */
-    public void testPrepareCall()
-    {
-    }
+  /*
+   * Test autoCommit (both get & set)
+   */
+  @Test
+  public void testTransactions() throws Exception {
+    con = TestUtil.openDB();
+    Statement st;
+    ResultSet rs;
 
-    /*
-     * Test nativeSQL
-     */
-    public void testNativeSQL() throws Exception
-    {
-        // test a simple escape
-        con = TestUtil.openDB();
-        assertEquals("DATE '2005-01-24'",con.nativeSQL("{d '2005-01-24'}"));
-    }
+    // Turn it off
+    con.setAutoCommit(false);
+    assertTrue(!con.getAutoCommit());
 
-    /*
-     * Test autoCommit (both get & set)
-     */
-    public void testTransactions() throws Exception
-    {
-        con = TestUtil.openDB();
-        Statement st;
-        ResultSet rs;
+    // Turn it back on
+    con.setAutoCommit(true);
+    assertTrue(con.getAutoCommit());
 
-        // Turn it off
-        con.setAutoCommit(false);
-        assertTrue(!con.getAutoCommit());
+    // Now test commit
+    st = con.createStatement();
+    st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
 
-        // Turn it back on
-        con.setAutoCommit(true);
-        assertTrue(con.getAutoCommit());
+    con.setAutoCommit(false);
 
-        // Now test commit
-        st = con.createStatement();
-        st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+    // Now update image to 9876 and commit
+    st.executeUpdate("update test_a set image=9876 where id=5678");
+    con.commit();
+    rs = st.executeQuery("select image from test_a where id=5678");
+    assertTrue(rs.next());
+    assertEquals(9876, rs.getInt(1));
+    rs.close();
 
-        con.setAutoCommit(false);
+    // Now try to change it but rollback
+    st.executeUpdate("update test_a set image=1111 where id=5678");
+    con.rollback();
+    rs = st.executeQuery("select image from test_a where id=5678");
+    assertTrue(rs.next());
+    assertEquals(9876, rs.getInt(1)); // Should not change!
+    rs.close();
 
-        // Now update image to 9876 and commit
-        st.executeUpdate("update test_a set image=9876 where id=5678");
-        con.commit();
-        rs = st.executeQuery("select image from test_a where id=5678");
-        assertTrue(rs.next());
-        assertEquals(9876, rs.getInt(1));
-        rs.close();
+    TestUtil.closeDB(con);
+  }
 
-        // Now try to change it but rollback
-        st.executeUpdate("update test_a set image=1111 where id=5678");
-        con.rollback();
-        rs = st.executeQuery("select image from test_a where id=5678");
-        assertTrue(rs.next());
-        assertEquals(9876, rs.getInt(1)); // Should not change!
-        rs.close();
+  /*
+   * Simple test to see if isClosed works.
+   */
+  @Test
+  public void testIsClosed() throws Exception {
+    con = TestUtil.openDB();
 
-        TestUtil.closeDB(con);
-    }
+    // Should not say closed
+    assertTrue(!con.isClosed());
 
-    /*
-     * Simple test to see if isClosed works.
-     */
-    public void testIsClosed() throws Exception
-    {
-        con = TestUtil.openDB();
+    TestUtil.closeDB(con);
 
-        // Should not say closed
-        assertTrue(!con.isClosed());
+    // Should now say closed
+    assertTrue(con.isClosed());
+  }
 
-        TestUtil.closeDB(con);
+  /*
+   * Test the warnings system
+   */
+  @Test
+  public void testWarnings() throws Exception {
+    con = TestUtil.openDB();
 
-        // Should now say closed
-        assertTrue(con.isClosed());
-    }
+    String testStr = "This Is OuR TeSt message";
 
-    /*
-     * Test the warnings system
-     */
-    public void testWarnings() throws Exception
-    {
-        con = TestUtil.openDB();
+    // The connection must be ours!
+    assertTrue(con instanceof PGConnection);
 
-        String testStr = "This Is OuR TeSt message";
+    // Clear any existing warnings
+    con.clearWarnings();
 
-        // The connection must be ours!
-        assertTrue(con instanceof PGConnection);
+    // Set the test warning
+    ((PGConnection)con).addWarning(new SQLWarning(testStr));
 
-        // Clear any existing warnings
-        con.clearWarnings();
+    // Retrieve it
+    SQLWarning warning = con.getWarnings();
+    assertNotNull(warning);
+    assertEquals(testStr, warning.getMessage());
 
-        // Set the test warning
-        ((PGConnection)con).addWarning(new SQLWarning(testStr));
+    // Finally test clearWarnings() this time there must be something to delete
+    con.clearWarnings();
+    assertTrue(con.getWarnings() == null);
 
-        // Retrieve it
-        SQLWarning warning = con.getWarnings();
-        assertNotNull(warning);
-        assertEquals(testStr, warning.getMessage());
+    TestUtil.closeDB(con);
+  }
 
-        // Finally test clearWarnings() this time there must be something to delete
-        con.clearWarnings();
-        assertTrue(con.getWarnings() == null);
+  /*
+   * Transaction Isolation Levels
+   */
+  @Test
+  public void testTransactionIsolation() throws Exception {
+    con = TestUtil.openDB();
 
-        TestUtil.closeDB(con);
-    }
+    int defaultLevel = con.getTransactionIsolation();
 
-    /*
-     * Transaction Isolation Levels
-     */
-    public void testTransactionIsolation() throws Exception
-    {
-        con = TestUtil.openDB();
+    // Begin a transaction
+    con.setAutoCommit(false);
 
-        int defaultLevel = con.getTransactionIsolation();
+    // The isolation level should not have changed
+    assertEquals(defaultLevel, con.getTransactionIsolation());
 
-        // Begin a transaction
-        con.setAutoCommit(false);
+    // Now run some tests with autocommit enabled.
+    con.setAutoCommit(true);
 
-        // The isolation level should not have changed
-        assertEquals(defaultLevel, con.getTransactionIsolation());
+    assertEquals(defaultLevel, con.getTransactionIsolation());
 
-        // Now run some tests with autocommit enabled.
-        con.setAutoCommit(true);
+    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                 con.getTransactionIsolation());
 
-        assertEquals(defaultLevel, con.getTransactionIsolation());
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
 
-        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                     con.getTransactionIsolation());
+    // Test if a change of isolation level before beginning the
+    // transaction affects the isolation level inside the transaction.
+    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                 con.getTransactionIsolation());
+    con.setAutoCommit(false);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                 con.getTransactionIsolation());
+    con.setAutoCommit(true);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                 con.getTransactionIsolation());
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                 con.getTransactionIsolation());
+    con.setAutoCommit(false);
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                 con.getTransactionIsolation());
+    con.commit();
 
-        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
+    // Test that getTransactionIsolation() does not actually start a new txn.
+    con.getTransactionIsolation(); // Shouldn't start a new transaction.
+    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); // Should be ok -- we're not in a transaction.
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
 
-        // Test if a change of isolation level before beginning the
-        // transaction affects the isolation level inside the transaction.
-        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                     con.getTransactionIsolation());
-        con.setAutoCommit(false);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                     con.getTransactionIsolation());
-        con.setAutoCommit(true);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                     con.getTransactionIsolation());
-        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                     con.getTransactionIsolation());
-        con.setAutoCommit(false);
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                     con.getTransactionIsolation());
-        con.commit();
-
-        // Test that getTransactionIsolation() does not actually start a new txn.
-        con.getTransactionIsolation(); // Shouldn't start a new transaction.
-        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); // Should be ok -- we're not in a transaction.
-        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
-
-        // Test that we can't change isolation mid-transaction
+    // Test that we can't change isolation mid-transaction
 //TODO: reconcile against mainstream driver
 //        Statement stmt = con.createStatement();
 //        stmt.executeQuery("SELECT 1");          // Start transaction.
@@ -301,73 +289,76 @@ public class ConnectionTest extends TestCase
 //            // Ok.
 //        }
 
-        con.rollback();
-        TestUtil.closeDB(con);
+    con.rollback();
+    TestUtil.closeDB(con);
+  }
+
+  /*
+   * JDBC2 Type mappings
+   */
+  @Test
+  public void testTypeMaps() throws Exception {
+    con = TestUtil.openDB();
+
+    // preserve the current map
+    Map<String, Class<?>> oldmap = con.getTypeMap();
+
+    // now change it for an empty one
+    Map<String, Class<?>> newmap = new HashMap<>();
+    con.setTypeMap(newmap);
+    assertEquals(newmap, con.getTypeMap());
+
+    // restore the old one
+    con.setTypeMap(oldmap);
+    assertEquals(oldmap, con.getTypeMap());
+
+    TestUtil.closeDB(con);
+  }
+
+  /**
+   * Closing a Connection more than once is not an error.
+   */
+  @Test
+  public void testDoubleClose() throws Exception {
+    con = TestUtil.openDB();
+    con.close();
+    con.close();
+  }
+
+  /**
+   * Network timeout enforcement
+   */
+  @Test
+  public void testNetworkTimeout() throws Exception {
+
+    con = TestUtil.openDB();
+
+    con.setNetworkTimeout(null, 1);
+
+    Statement stmt = con.createStatement();
+
+    try {
+
+      stmt.execute("SELECT pg_sleep(10);");
+
+      fail("Expected SQLTimeoutException");
+    }
+    catch (SQLTimeoutException e) {
+      // Ok
     }
 
-    /*
-     * JDBC2 Type mappings
-     */
-    public void testTypeMaps() throws Exception
-    {
-        con = TestUtil.openDB();
+    assertTrue(con.isClosed());
+  }
 
-        // preserve the current map
-        Map<String, Class<?>> oldmap = con.getTypeMap();
+  /**
+   * Abort connection
+   */
+  @Test
+  public void testAbort() throws Exception {
 
-        // now change it for an empty one
-        Map<String, Class<?>> newmap = new HashMap<>();
-        con.setTypeMap(newmap);
-        assertEquals(newmap, con.getTypeMap());
+    con = TestUtil.openDB();
 
-        // restore the old one
-        con.setTypeMap(oldmap);
-        assertEquals(oldmap, con.getTypeMap());
-
-        TestUtil.closeDB(con);
-    }
-
-    /**
-     * Closing a Connection more than once is not an error.
-     */
-    public void testDoubleClose() throws Exception
-    {
-        con = TestUtil.openDB();
-        con.close();
-        con.close();
-    }
-
-    /**
-     * Network timeout enforcement
-     */
-    public void testNetworkTimeout() throws Exception {
-
-      con = TestUtil.openDB();
-
-      con.setNetworkTimeout(null, 1);
-
-      Statement stmt = con.createStatement();
-
-      try {
-
-        stmt.execute("SELECT pg_sleep(10);");
-
-        fail("Expected SQLTimeoutException");
-      }
-      catch(SQLTimeoutException e) {
-      }
-
-      assertTrue(con.isClosed());
-    }
-
-    /**
-     * Abort connection
-     */
-    public void testAbort() throws Exception {
-
-      con = TestUtil.openDB();
-
-      Thread queryThread = new Thread() {
+    Thread queryThread = new Thread() {
 
         @Override
         public void run() {
@@ -379,17 +370,17 @@ public class ConnectionTest extends TestCase
             stmt.execute("SELECT pg_sleep(10);");
 
           }
-          catch(SQLException e) {
-
+          catch (SQLException e) {
+            // Ignore
           }
 
         }
 
       };
 
-      queryThread.start();
+    queryThread.start();
 
-      Executor executor = new Executor() {
+    Executor executor = new Executor() {
 
         @Override
         public void execute(Runnable command) {
@@ -397,15 +388,14 @@ public class ConnectionTest extends TestCase
         }
       };
 
-      long start = System.currentTimeMillis();
+    long start = System.currentTimeMillis();
 
-      con.abort(executor);
+    con.abort(executor);
 
-      queryThread.join();
+    queryThread.join();
 
-      assertTrue(System.currentTimeMillis() - start < 10000);
-      assertTrue(con.isClosed());
+    assertTrue(System.currentTimeMillis() - start < 10000);
+    assertTrue(con.isClosed());
 
-    }
-
+  }
 }

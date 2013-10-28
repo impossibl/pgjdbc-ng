@@ -28,10 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -49,6 +45,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class StructTest {
 
@@ -204,7 +203,7 @@ public class StructTest {
       ts2 = (TestStruct) rs.getObject(1);
       Assert.fail("Cast should have failed");
     }
-    catch(ClassCastException e) {
+    catch (ClassCastException e) {
       //Should fail
     }
     finally {
