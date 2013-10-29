@@ -1,5 +1,23 @@
 # pgjdbc-ng
 
+A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres
+
+[http://impossibl.github.io/pgjdbc-ng](http://impossibl.github.io/pgjdbc-ng "pgjdbc-ng homepage")
+
+## Connection format
+
+The connection format for the pgjdbc-ng driver is
+
+	jdbc:postgresql://<server>[:<port>]/<database>
+
+An example
+
+	jdbc:postgresql://localhost:5432/test
+
+## License
+
+pgjdbc-ng is released under the 3 clause BSD license.
+
 ## Building
 The driver is built with maven. Simply build with:
 
@@ -12,11 +30,11 @@ packaged inside and another without.
 
 The unit tests need a PostgreSQL database to execute against. The tests assume theses defaults:
 
-	SERVER: 	localhost
-	PORT: 	        5432
-	DATABASE:       test
-	USERNAME:	pgjdbc
-	PASSWORD:	test
+	SERVER:     localhost
+	PORT:       5432
+	DATABASE:   test
+	USERNAME:   pgjdbc
+	PASSWORD:   test
 
 The following system properties are supported in order to customize the setup
 
