@@ -62,12 +62,6 @@ public class ProtocolShared {
         ProtocolShared.this.release();
       }
     }
-
-    @Override
-    protected void finalize() {
-      release();
-    }
-
   }
 
   static ProtocolShared instance;

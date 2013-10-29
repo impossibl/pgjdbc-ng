@@ -136,10 +136,6 @@ class PGResultSet implements ResultSet {
     this.typeMap = typeMap;
   }
 
-  protected void finalize() throws SQLException {
-    close();
-  }
-
   /**
    * Ensure the result set is not closed
    *

@@ -90,10 +90,6 @@ abstract class PGStatement implements Statement {
     this.activeResultSets = new ArrayList<>();
   }
 
-  protected void finalize() throws SQLException {
-    close();
-  }
-
   /**
    * Ensure the connection is not closed
    *

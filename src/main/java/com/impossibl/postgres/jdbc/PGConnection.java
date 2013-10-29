@@ -137,10 +137,6 @@ class PGConnection extends BasicContext implements Connection {
     }
   }
 
-  protected void finalize() throws SQLException {
-    close();
-  }
-
   /**
    * Add warning to end of warning chain
    *
