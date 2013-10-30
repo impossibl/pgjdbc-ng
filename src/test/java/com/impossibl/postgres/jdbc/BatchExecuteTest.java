@@ -41,7 +41,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /* TODO tests that can be added to this test case
  * - SQLExceptions chained to a BatchUpdateException
@@ -59,13 +63,14 @@ public class BatchExecuteTest {
   @Before
   public void before() throws Exception {
     con = TestUtil.openDB();
-    Statement stmt = con.createStatement();
 
     // Drop the test table if it already exists for some reason. It is
     // not an error if it doesn't exist.
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
+    Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
+    stmt.close();
 
     // Generally recommended with batch updates. By default we run all
     // tests in this test case with autoCommit disabled.
@@ -74,6 +79,7 @@ public class BatchExecuteTest {
 
   @After
   public void after() throws Exception {
+
     con.setAutoCommit(true);
 
     TestUtil.dropTable(con, "testbatch");
@@ -90,9 +96,11 @@ public class BatchExecuteTest {
   public void testEmptyClearBatch() throws Exception {
     Statement stmt = con.createStatement();
     stmt.clearBatch(); // No-op.
+    stmt.close();
 
     PreparedStatement ps = con.prepareStatement("SELECT ?");
     ps.clearBatch(); // No-op.
+    ps.close();
   }
 
   private void assertCol1HasValue(int expected) throws Exception {

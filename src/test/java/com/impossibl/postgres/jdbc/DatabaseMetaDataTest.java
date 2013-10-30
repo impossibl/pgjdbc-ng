@@ -41,7 +41,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -105,6 +109,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("DROP FUNCTION f3(int, varchar)");
     stmt.execute("DROP TABLE domaintable");
     stmt.execute("DROP DOMAIN nndom");
+
+    stmt.close();
 
     TestUtil.closeDB(con);
   }
@@ -410,6 +416,8 @@ public class DatabaseMetaDataTest {
     Statement stmt = con.createStatement();
     stmt.execute("REVOKE ALL ON metadatatest FROM PUBLIC");
     stmt.execute("REVOKE ALL ON metadatatest FROM " + TestUtil.getUser());
+    stmt.close();
+
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
@@ -432,6 +440,7 @@ public class DatabaseMetaDataTest {
     stmt.execute("create unique index idx_un_id on metadatatest(id)");
     stmt.execute("create index idx_func_multi on metadatatest (upper(colour), upper(quest))");
     stmt.execute("create index idx_func_mixed on metadatatest (colour, upper(quest))");
+    stmt.close();
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -784,6 +793,7 @@ public class DatabaseMetaDataTest {
         stmt = con.createStatement();
         stmt.execute("drop type jdbc.testint8");
         stmt.execute("drop schema jdbc");
+        stmt.close();
       }
       catch (Exception ex) {
         // Ignore
@@ -798,6 +808,8 @@ public class DatabaseMetaDataTest {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
       stmt.execute("comment on domain testint8 is 'jdbc123'");
+      stmt.close();
+
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
@@ -826,6 +838,7 @@ public class DatabaseMetaDataTest {
       try {
         Statement stmt = con.createStatement();
         stmt.execute("drop domain testint8");
+        stmt.close();
       }
       catch (Exception ex) {
         // Ignore
@@ -839,6 +852,8 @@ public class DatabaseMetaDataTest {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
       stmt.execute("comment on domain testint8 is 'jdbc123'");
+      stmt.close();
+
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[] {Types.DISTINCT, Types.STRUCT});
       assertTrue(rs.next());
@@ -867,6 +882,7 @@ public class DatabaseMetaDataTest {
       try {
         Statement stmt = con.createStatement();
         stmt.execute("drop domain testint8");
+        stmt.close();
       }
       catch (Exception ex) {
         // Ignore
@@ -880,6 +896,8 @@ public class DatabaseMetaDataTest {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
       stmt.execute("comment on domain testint8 is 'jdbc123'");
+      stmt.close();
+
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[] {Types.DISTINCT});
       assertTrue(rs.next());
@@ -908,6 +926,7 @@ public class DatabaseMetaDataTest {
       try {
         Statement stmt = con.createStatement();
         stmt.execute("drop domain testint8");
+        stmt.close();
       }
       catch (Exception ex) {
         // Ignore
@@ -920,6 +939,8 @@ public class DatabaseMetaDataTest {
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create type testint8 as (i int8)");
+      stmt.close();
+
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
@@ -947,6 +968,7 @@ public class DatabaseMetaDataTest {
       try {
         Statement stmt = con.createStatement();
         stmt.execute("drop type testint8");
+        stmt.close();
       }
       catch (Exception ex) {
         // Ignore

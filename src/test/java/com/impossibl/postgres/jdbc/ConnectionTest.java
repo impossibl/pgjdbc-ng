@@ -45,7 +45,11 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection
@@ -172,8 +176,6 @@ public class ConnectionTest {
     assertTrue(rs.next());
     assertEquals(9876, rs.getInt(1)); // Should not change!
     rs.close();
-
-    TestUtil.closeDB(con);
   }
 
   /*
@@ -218,8 +220,6 @@ public class ConnectionTest {
     // Finally test clearWarnings() this time there must be something to delete
     con.clearWarnings();
     assertTrue(con.getWarnings() == null);
-
-    TestUtil.closeDB(con);
   }
 
   /*
@@ -244,7 +244,7 @@ public class ConnectionTest {
 
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
 
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
@@ -253,19 +253,19 @@ public class ConnectionTest {
     // transaction affects the isolation level inside the transaction.
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
     con.setAutoCommit(false);
     assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
     con.setAutoCommit(true);
     assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
     con.setAutoCommit(false);
     assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                 con.getTransactionIsolation());
+        con.getTransactionIsolation());
     con.commit();
 
     // Test that getTransactionIsolation() does not actually start a new txn.
@@ -274,23 +274,22 @@ public class ConnectionTest {
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
 
     // Test that we can't change isolation mid-transaction
-//TODO: reconcile against mainstream driver
-//        Statement stmt = con.createStatement();
-//        stmt.executeQuery("SELECT 1");          // Start transaction.
-//        stmt.close();
-//
-//        try
-//        {
-//            con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-//            fail("Expected an exception when changing transaction isolation mid-transaction");
-//        }
-//        catch (SQLException e)
-//        {
-//            // Ok.
-//        }
+    //TODO: reconcile against mainstream driver
+    //        Statement stmt = con.createStatement();
+    //        stmt.executeQuery("SELECT 1");          // Start transaction.
+    //        stmt.close();
+    //
+    //        try
+    //        {
+    //            con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    //            fail("Expected an exception when changing transaction isolation mid-transaction");
+    //        }
+    //        catch (SQLException e)
+    //        {
+    //            // Ok.
+    //        }
 
     con.rollback();
-    TestUtil.closeDB(con);
   }
 
   /*
@@ -312,7 +311,6 @@ public class ConnectionTest {
     con.setTypeMap(oldmap);
     assertEquals(oldmap, con.getTypeMap());
 
-    TestUtil.closeDB(con);
   }
 
   /**
@@ -335,16 +333,18 @@ public class ConnectionTest {
 
     con.setNetworkTimeout(null, 1);
 
-    Statement stmt = con.createStatement();
+    try (Statement stmt = con.createStatement()) {
 
-    try {
+      try {
 
-      stmt.execute("SELECT pg_sleep(10);");
+        stmt.execute("SELECT pg_sleep(10);");
 
-      fail("Expected SQLTimeoutException");
-    }
-    catch (SQLTimeoutException e) {
-      // Ok
+        fail("Expected SQLTimeoutException");
+      }
+      catch (SQLTimeoutException e) {
+        // Ok
+      }
+
     }
 
     assertTrue(con.isClosed());
@@ -360,33 +360,35 @@ public class ConnectionTest {
 
     Thread queryThread = new Thread() {
 
-        @Override
-        public void run() {
+      @Override
+      public void run() {
 
-          try {
+        try {
 
-            Statement stmt = con.createStatement();
+          try (Statement stmt = con.createStatement()) {
 
             stmt.execute("SELECT pg_sleep(10);");
 
           }
-          catch (SQLException e) {
-            // Ignore
-          }
 
         }
+        catch (SQLException e) {
+          // Ignore
+        }
 
-      };
+      }
+
+    };
 
     queryThread.start();
 
     Executor executor = new Executor() {
 
-        @Override
-        public void execute(Runnable command) {
-          command.run();
-        }
-      };
+      @Override
+      public void execute(Runnable command) {
+        command.run();
+      }
+    };
 
     long start = System.currentTimeMillis();
 
@@ -398,4 +400,5 @@ public class ConnectionTest {
     assertTrue(con.isClosed());
 
   }
+
 }

@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.utils.guava.Joiner;
+
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.sql.Connection;
@@ -215,6 +216,9 @@ public class TestUtil {
       if (!con.getAutoCommit())
         throw sqle;
     }
+    finally {
+      stmt.close();
+    }
   }
 
   /*
@@ -234,6 +238,9 @@ public class TestUtil {
       if (!con.getAutoCommit())
         throw ex;
     }
+    finally {
+      stmt.close();
+    }
   }
 
   /*
@@ -252,6 +259,9 @@ public class TestUtil {
       // transaction then we've got trouble
       if (!con.getAutoCommit())
         throw ex;
+    }
+    finally {
+      stmt.close();
     }
   }
 

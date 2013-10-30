@@ -1012,6 +1012,8 @@ class PGConnection extends BasicContext implements Connection {
     getProtocol().abort(executor);
 
     shutdown();
+
+    Housekeeper.remove(cleanupKey);
   }
 
   @Override

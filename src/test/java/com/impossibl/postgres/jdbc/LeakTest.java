@@ -57,6 +57,27 @@ public class LeakTest {
 
 
   @Test
+  public void testResultSetNoLeak() throws SQLException {
+
+    int connId = System.identityHashCode(conn);
+
+    Statement stmt = conn.createStatement();
+    int stmtId = System.identityHashCode(stmt);
+
+    ResultSet rs = stmt.executeQuery("SELECT 1");
+    int rsId = System.identityHashCode(rs);
+
+    rs.close();
+
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    sleep();
+    assertFalse(Housekeeper.testCheckCleaned(stmtId));
+    sleep();
+    assertFalse(Housekeeper.testCheckCleaned(connId));
+  }
+
+  @Test
   public void testStatementLeak() throws SQLException {
 
     int connId = System.identityHashCode(conn);
@@ -69,6 +90,28 @@ public class LeakTest {
 
     rs = null;
     stmt = null;
+
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    sleep();
+    assertFalse(Housekeeper.testCheckCleaned(connId));
+  }
+
+  @Test
+  public void testStatementNoLeak() throws SQLException {
+
+    int connId = System.identityHashCode(conn);
+
+    Statement stmt = conn.createStatement();
+    int stmtId = System.identityHashCode(stmt);
+
+    ResultSet rs = stmt.executeQuery("SELECT 1");
+    int rsId = System.identityHashCode(rs);
+
+    rs.close();
+    stmt.close();
 
     sleep();
     assertTrue(Housekeeper.testCheckCleaned(rsId));
@@ -92,6 +135,29 @@ public class LeakTest {
     rs = null;
     stmt = null;
     conn = null;
+
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    sleep();
+    assertTrue(Housekeeper.testCheckCleaned(connId));
+  }
+
+  @Test
+  public void testConnectionNoLeak() throws SQLException {
+
+    int connId = System.identityHashCode(conn);
+
+    Statement stmt = conn.createStatement();
+    int stmtId = System.identityHashCode(stmt);
+
+    ResultSet rs = stmt.executeQuery("SELECT 1");
+    int rsId = System.identityHashCode(rs);
+
+    rs.close();
+    stmt.close();
+    conn.close();
 
     sleep();
     assertTrue(Housekeeper.testCheckCleaned(rsId));
