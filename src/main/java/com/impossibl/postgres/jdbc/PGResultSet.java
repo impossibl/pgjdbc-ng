@@ -155,6 +155,7 @@ class PGResultSet implements ResultSet {
   List<Object[]> results;
   Boolean nullFlag;
   Map<String, Class<?>> typeMap;
+  Object cleanupKey;
 
 
 
@@ -163,7 +164,7 @@ class PGResultSet implements ResultSet {
 
     this.command = command;
 
-    Housekeeper.add(this, new Cleanup(statement, command));
+    this.cleanupKey = Housekeeper.add(this, new Cleanup(statement, command));
   }
 
   PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results) throws SQLException {
@@ -545,7 +546,7 @@ class PGResultSet implements ResultSet {
     results = null;
     resultFields = null;
 
-    Housekeeper.remove(this);
+    Housekeeper.remove(cleanupKey);
   }
 
   @Override

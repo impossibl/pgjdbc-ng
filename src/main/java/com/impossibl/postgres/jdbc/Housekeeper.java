@@ -4,6 +4,7 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.util.HashSet;
 import java.util.Set;
+
 import static java.util.Collections.synchronizedSet;
 
 
@@ -95,14 +96,17 @@ public class Housekeeper {
   /**
    * Associate a cleanup runnable to be run when a referent is only phantom
    * reference-able.
+   * 
    * @param referent
    *          Reference to track
    * @param cleanup
    *          Runnable to run when referent is phantom-ed
+   * @return Key object to use when calling {@link remove}
    */
-  public static <T> void add(T referent, Runnable cleanup) {
+  public static <T> Object add(T referent, Runnable cleanup) {
     HousekeeperReference<T> ref = new HousekeeperReference<T>(cleanup, referent, cleanupQueue);
     cleanupReferences.add(ref);
+    return cleanup;
   }
 
   /**
@@ -110,24 +114,23 @@ public class Housekeeper {
    * @param referent
    *          Reference to stop tracking
    */
-  public static <T> void remove(T referent) {
-
-    int referentId = System.identityHashCode(referent);
+  public static void remove(Object cleanupKey) {
 
     HousekeeperReference<?>[] refs = copyCleanupReferences();
     for (HousekeeperReference<?> ref : refs) {
 
-      if (ref.id == referentId) {
+      if (ref.cleanup == cleanupKey) {
         cleanupReferences.remove(ref);
+        return;
       }
     }
 
   }
 
   /**
-   * ** Only used for unit testing **
-   * Checks if a referent has been queued and then processed and removed from
-   * the lists
+   * ** Only used for unit testing ** Checks if a referent has been queued and
+   * then processed and removed from the lists
+   * 
    * @param referent
    *          Referent to check
    * @return
