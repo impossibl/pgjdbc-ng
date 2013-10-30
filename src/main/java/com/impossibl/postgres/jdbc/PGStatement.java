@@ -35,12 +35,14 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
+import java.lang.ref.WeakReference;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -48,13 +50,56 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 abstract class PGStatement implements Statement {
+
+  private static final Logger logger = Logger.getLogger(PGStatement.class.getName());
+
+  /**
+   * Cleans up server resources in the event of leaking statements
+   * 
+   * @author kdubb
+   *
+   */
+  static class Cleanup implements Runnable {
+
+    PGConnection connection;
+    String name;
+    List<WeakReference<PGResultSet>> resultSets;
+
+    public Cleanup(PGConnection connection, String name, List<WeakReference<PGResultSet>> resultSets) {
+      this.connection = connection;
+      this.name = name;
+      this.resultSets = resultSets;
+    }
+
+    @Override
+    public void run() {
+
+      logger.warning("cleaning up leaked statement");
+
+      closeResultSets(resultSets);
+
+      try {
+        dispose(connection, ServerObjectType.Statement, name);
+      }
+      catch (SQLException e) {
+        // Ignore...
+      }
+
+      connection.handleStatementClosure(null);
+      connection = null;
+    }
+
+  }
 
 
 
@@ -72,7 +117,7 @@ abstract class PGStatement implements Statement {
   QueryCommand command;
   List<QueryCommand.ResultBatch> resultBatches;
   boolean autoClose;
-  List<PGResultSet> activeResultSets;
+  List<WeakReference<PGResultSet>> activeResultSets;
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
   int queryTimeout;
@@ -80,6 +125,8 @@ abstract class PGStatement implements Statement {
 
 
   PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
+    super();
+
     this.connection = connection;
     this.resultSetType = resultSetType;
     this.resultSetConcurrency = resultSetConcurrency;
@@ -88,10 +135,8 @@ abstract class PGStatement implements Statement {
     this.processEscapes = true;
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
-  }
 
-  protected void finalize() throws SQLException {
-    close();
+    Housekeeper.add(this, new Cleanup(connection, name, activeResultSets));
   }
 
   /**
@@ -116,7 +161,7 @@ abstract class PGStatement implements Statement {
    * @throws SQLException
    *          If an error occurs during disposal
    */
-  void dispose(ServerObjectType objectType, String objectName) throws SQLException {
+  public static void dispose(PGConnection connection, ServerObjectType objectType, String objectName) throws SQLException {
 
     if (objectName == null)
       return;
@@ -130,8 +175,34 @@ abstract class PGStatement implements Statement {
 
     if (command instanceof BindExecCommand) {
 
-      dispose(ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
+      dispose(connection, ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
     }
+
+  }
+
+  /**
+   * Closes the given list of result-sets
+   *
+   * @throws SQLException
+   *          If an error occurs closing a result set
+   */
+  static void closeResultSets(List<WeakReference<PGResultSet>> resultSets) {
+
+    for (WeakReference<PGResultSet> resultSetRef : resultSets) {
+
+      PGResultSet resultSet = resultSetRef.get();
+      if (resultSet != null) {
+        try {
+          resultSet.internalClose();
+        }
+        catch (SQLException e) {
+          //Ignore...
+        }
+      }
+
+    }
+
+    resultSets.clear();
 
   }
 
@@ -142,14 +213,8 @@ abstract class PGStatement implements Statement {
    *          If an error occurs closing a result set
    */
   void closeResultSets() throws SQLException {
-
-    for (PGResultSet rs : activeResultSets) {
-      rs.internalClose();
-    }
-
-    activeResultSets.clear();
+    closeResultSets(activeResultSets);
     generatedKeysResultSet = null;
-
   }
 
   /**
@@ -164,8 +229,18 @@ abstract class PGStatement implements Statement {
    */
   void handleResultSetClosure(PGResultSet resultSet) throws SQLException {
 
-    activeResultSets.remove(resultSet);
+    //Remove given & abandoned result sets
+    Iterator<WeakReference<PGResultSet>> resultSetRefIter = activeResultSets.iterator();
+    while (resultSetRefIter.hasNext()) {
 
+      WeakReference<PGResultSet> resultSetRef = resultSetRefIter.next();
+
+      if (resultSetRef.get() == null || resultSetRef.get() == resultSet) {
+        resultSetRefIter.remove();
+      }
+    }
+
+    //Handle auto closing
     if (autoClose && activeResultSets.isEmpty()) {
 
       close();
@@ -195,13 +270,15 @@ abstract class PGStatement implements Statement {
 
     closeResultSets();
 
-    dispose(Statement, name);
+    dispose(connection, Statement, name);
 
     connection = null;
     command = null;
     resultFields = null;
     resultBatches = null;
     generatedKeysResultSet = null;
+
+    Housekeeper.remove(this);
   }
 
   boolean hasResults() {
@@ -289,7 +366,7 @@ abstract class PGStatement implements Statement {
   PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
 
     PGResultSet resultSet = new PGResultSet(this, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY, resultFields, results);
-    activeResultSets.add(resultSet);
+    activeResultSets.add(new WeakReference<>(resultSet));
     return resultSet;
   }
 
@@ -460,9 +537,7 @@ abstract class PGStatement implements Statement {
     QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
     PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command, resultBatch.fields, resultBatch.results);
-
-    this.activeResultSets.add(rs);
-
+    activeResultSets.add(new WeakReference<>(rs));
     return rs;
   }
 

@@ -31,7 +31,9 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.utils.MD5Authentication;
+
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 
@@ -79,7 +81,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
       @Override
       public void backendKeyData(int processId, int secretKey) {
-        protocol.context.setKeyData(processId, secretKey);
+        protocol.getContext().setKeyData(processId, secretKey);
       }
 
       @Override
@@ -93,7 +95,9 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       @Override
       public void authenticateClear(ProtocolImpl protocol) throws IOException {
 
-        String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
+        Context context = protocol.getContext();
+
+        String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
 
         ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
 
@@ -109,8 +113,10 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       @Override
       public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
 
-        String username = protocol.context.getSetting(CREDENTIALS_USERNAME).toString();
-        String password = protocol.context.getSetting(CREDENTIALS_PASSWORD).toString();
+        Context context = protocol.getContext();
+
+        String username = context.getSetting(CREDENTIALS_USERNAME).toString();
+        String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
 
         String response = MD5Authentication.encode(password, username, salt);
 

@@ -90,7 +90,7 @@ public class ArrayTest {
     assertTrue(rs.next());
     assertEquals(null, rs.getArray(1));
     assertEquals(null, rs.getObject(1));
-    assertEquals(null, rs.getObject(1, Integer[].class));
+    assertArrayEquals(null, rs.getObject(1, Integer[].class));
 
     rs.close();
     stmt.close();

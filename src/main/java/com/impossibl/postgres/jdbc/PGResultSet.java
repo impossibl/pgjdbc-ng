@@ -32,6 +32,7 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.CURSOR_NOT_SCROLLABLE;
@@ -86,6 +87,8 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.logging.Logger;
+
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.math.RoundingMode.HALF_UP;
@@ -93,6 +96,48 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 class PGResultSet implements ResultSet {
+
+  private static final Logger logger = Logger.getLogger(PGResultSet.class.getName());
+
+  /**
+   * Cleans up server resources in the event of leaking resultset
+   * 
+   * @author kdubb
+   *
+   */
+  static class Cleanup implements Runnable {
+
+    PGStatement statement;
+    QueryCommand command;
+
+    public Cleanup(PGStatement statement, QueryCommand command) {
+      this.statement = statement;
+      this.command = command;
+    }
+
+    @Override
+    public void run() {
+
+      logger.warning("cleaning up leaked result-set");
+
+      try {
+        statement.dispose(command);
+      }
+      catch (SQLException e) {
+        //Ignore...
+      }
+
+      try {
+        statement.handleResultSetClosure(null);
+      }
+      catch (SQLException e) {
+        //Ignore...
+      }
+
+      statement = null;
+    }
+
+  }
 
 
 
@@ -115,7 +160,10 @@ class PGResultSet implements ResultSet {
 
   PGResultSet(PGStatement statement, int concurrency, QueryCommand command, List<ResultField> resultFields, List<?> results) throws SQLException {
     this(statement, command.getStatus() == Completed ? TYPE_SCROLL_INSENSITIVE : TYPE_FORWARD_ONLY, concurrency, resultFields, results);
+
     this.command = command;
+
+    Housekeeper.add(this, new Cleanup(statement, command));
   }
 
   PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results) throws SQLException {
@@ -123,7 +171,7 @@ class PGResultSet implements ResultSet {
   }
 
   @SuppressWarnings("unchecked")
-  PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results, Map<String, Class<?>> typeMap) {
+  private PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results, Map<String, Class<?>> typeMap) {
     this.type = type;
     this.concurrency = concurrency;
     this.statement = statement;
@@ -134,10 +182,6 @@ class PGResultSet implements ResultSet {
     this.resultFields = resultFields;
     this.results = (List<Object[]>)results;
     this.typeMap = typeMap;
-  }
-
-  protected void finalize() throws SQLException {
-    close();
   }
 
   /**
@@ -500,6 +544,8 @@ class PGResultSet implements ResultSet {
     command = null;
     results = null;
     resultFields = null;
+
+    Housekeeper.remove(this);
   }
 
   @Override

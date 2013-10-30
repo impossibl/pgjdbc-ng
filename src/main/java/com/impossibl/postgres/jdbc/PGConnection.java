@@ -32,11 +32,13 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
@@ -89,6 +91,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.logging.Logger;
+
 import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
@@ -101,6 +105,39 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 class PGConnection extends BasicContext implements Connection {
+
+  private static final Logger logger = Logger.getLogger(PGConnection.class.getName());
+
+  /**
+   * Cleans up server resources in the event of leaking connections
+   * 
+   * @author kdubb
+   * 
+   */
+  static class Cleanup implements Runnable {
+
+    Protocol protocol;
+    List<WeakReference<PGStatement>> statements;
+
+    public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
+      this.protocol = protocol;
+      this.statements = statements;
+    }
+
+    @Override
+    public void run() {
+
+      logger.warning("cleaning up leaked connection");
+
+      protocol.shutdown();
+
+      closeStatements(statements);
+    }
+
+  }
+
+
+
   long statementId = 0L;
   long portalId = 0L;
   int savepointId;
@@ -114,7 +151,10 @@ class PGConnection extends BasicContext implements Connection {
 
   PGConnection(SocketAddress address, Properties settings) throws IOException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
+
     activeStatements = new ArrayList<>();
+
+    Housekeeper.add(this, new Cleanup(protocol, activeStatements));
   }
 
   @Override
@@ -135,10 +175,6 @@ class PGConnection extends BasicContext implements Connection {
         throw new IOException(e);
       }
     }
-  }
-
-  protected void finalize() throws SQLException {
-    close();
   }
 
   /**
@@ -232,13 +268,36 @@ class PGConnection extends BasicContext implements Connection {
    */
   void handleStatementClosure(PGStatement statement) {
 
-    Iterator<WeakReference<PGStatement>> stmtRefIter = activeStatements.iterator();
-    while (stmtRefIter.hasNext()) {
+    //Remove given & abandoned statements
+    Iterator<WeakReference<PGStatement>> statementRefIter = activeStatements.iterator();
+    while (statementRefIter.hasNext()) {
 
-      PGStatement stmt = stmtRefIter.next().get();
-      if (stmt == null || stmt == statement) {
+      WeakReference<PGStatement> statementRef = statementRefIter.next();
 
-        stmtRefIter.remove();
+      if (statementRef.get() == null || statementRef.get() == statement) {
+        statementRefIter.remove();
+      }
+    }
+
+  }
+
+  /**
+   * Closes the given list of result-sets
+   *
+   * @throws SQLException
+   */
+  static void closeStatements(List<WeakReference<PGStatement>> statements) {
+
+    for (WeakReference<PGStatement> statementRef : statements) {
+
+      PGStatement statement = statementRef.get();
+      if (statement != null) {
+        try {
+          statement.internalClose();
+        }
+        catch (SQLException e) {
+          //Ignore...
+        }
       }
 
     }
@@ -251,13 +310,7 @@ class PGConnection extends BasicContext implements Connection {
    * @throws SQLException
    */
   void closeStatements() throws SQLException {
-
-    for (WeakReference<PGStatement> stmtRef : activeStatements) {
-
-      PGStatement statement = stmtRef.get();
-      if (statement != null)
-        statement.internalClose();
-    }
+    closeStatements(activeStatements);
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
@@ -475,6 +528,8 @@ class PGConnection extends BasicContext implements Connection {
     closeStatements();
 
     shutdown();
+
+    Housekeeper.remove(this);
   }
 
   @Override
@@ -684,7 +739,7 @@ class PGConnection extends BasicContext implements Connection {
     try {
       // Release the save-point (if in a transaction)
       if (!savepoint.getReleased() && protocol.getTransactionStatus() != Idle) {
-        execute(getReleaseSavepointText((PGSavepoint) savepoint), false);
+        execute(getReleaseSavepointText(savepoint), false);
       }
     }
     finally {

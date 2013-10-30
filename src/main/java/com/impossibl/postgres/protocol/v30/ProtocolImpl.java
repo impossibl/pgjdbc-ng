@@ -56,6 +56,7 @@ import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
@@ -181,7 +182,7 @@ public class ProtocolImpl implements Protocol {
   AtomicBoolean connected = new AtomicBoolean(true);
   ProtocolShared.Ref sharedRef;
   Channel channel;
-  BasicContext context;
+  WeakReference<BasicContext> contextRef;
   TransactionStatus txStatus;
   ProtocolListener listener;
   Timeout executionTimeout;
@@ -189,12 +190,12 @@ public class ProtocolImpl implements Protocol {
   public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
     this.sharedRef = sharedRef;
     this.channel = channel;
-    this.context = context;
+    this.contextRef = new WeakReference<>(context);
     this.txStatus = Idle;
   }
 
-  public Context getContext() {
-    return context;
+  public BasicContext getContext() {
+    return contextRef.get();
   }
 
   @Override
@@ -238,6 +239,7 @@ public class ProtocolImpl implements Protocol {
 
     executor.execute(new Runnable() {
 
+      @Override
       public void run() {
 
         sendCancelRequest();
@@ -358,6 +360,8 @@ public class ProtocolImpl implements Protocol {
 
   public void writeStartup(ChannelBuffer msg, Map<String, Object> params) throws IOException {
 
+    Context context = getContext();
+
     if (logger.isLoggable(FINEST))
       logger.finest("STARTUP: " + params);
 
@@ -380,6 +384,8 @@ public class ProtocolImpl implements Protocol {
 
   public void writePassword(ChannelBuffer msg, String password) throws IOException {
 
+    Context context = getContext();
+
     if (logger.isLoggable(FINEST))
       logger.finest("PASSWORD: " + password);
 
@@ -392,6 +398,8 @@ public class ProtocolImpl implements Protocol {
 
   public void writeQuery(ChannelBuffer msg, String query) throws IOException {
 
+    Context context = getContext();
+
     if (logger.isLoggable(FINEST))
       logger.finest("QUERY: " + query);
 
@@ -403,6 +411,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   public void writeParse(ChannelBuffer msg, String stmtName, String query, List<Type> paramTypes) throws IOException {
+
+    Context context = getContext();
 
     if (logger.isLoggable(FINEST))
       logger.finest("PARSE (" + stmtName + "): " + query);
@@ -422,6 +432,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
+
+    Context context = getContext();
 
     if (logger.isLoggable(FINEST))
       logger.finest("BIND (" + portalName + "): " + parameterValues.size());
@@ -452,6 +464,8 @@ public class ProtocolImpl implements Protocol {
 
   public void writeDescribe(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
 
+    Context context = getContext();
+
     if (logger.isLoggable(FINEST))
       logger.finest("DESCRIBE " + target + " (" + targetName + ")");
 
@@ -464,6 +478,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   public void writeExecute(ChannelBuffer msg, String portalName, int maxRows) throws IOException {
+
+    Context context = getContext();
 
     if (logger.isLoggable(FINEST))
       logger.finest("EXECUTE (" + portalName + "): " + maxRows);
@@ -490,6 +506,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   public void writeClose(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
+
+    Context context = getContext();
 
     if (logger.isLoggable(FINEST))
       logger.finest("CLOSE " + target + ": " + targetName);
@@ -532,6 +550,8 @@ public class ProtocolImpl implements Protocol {
 
   void sendCancelRequest() {
 
+    Context context = getContext();
+
     logger.finer("CANCEL");
 
     InetSocketAddress serverAddress = (InetSocketAddress)channel.getRemoteAddress();
@@ -558,6 +578,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
+
+    Context context = getContext();
 
     // Select format for parameters
     if (paramTypes == null) {
@@ -811,6 +833,8 @@ public class ProtocolImpl implements Protocol {
 
   private void receiveParameterDescriptions(ChannelBuffer buffer) throws IOException {
 
+    Context context = getContext();
+
     short paramCount = buffer.readShort();
 
     TypeRef[] paramTypes = new TypeRef[paramCount];
@@ -827,6 +851,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   private void receiveRowDescription(ChannelBuffer buffer) throws IOException {
+
+    Context context = getContext();
 
     Registry registry = context.getRegistry();
 
@@ -896,6 +922,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   private void receiveCommandComplete(ChannelBuffer buffer) throws IOException {
+
+    Context context = getContext();
 
     String commandTag = readCString(buffer, context.getCharset());
 
@@ -990,6 +1018,8 @@ public class ProtocolImpl implements Protocol {
 
   protected void receiveNotification(ChannelBuffer buffer) throws IOException {
 
+    Context context = getContext();
+
     int processId = buffer.readInt();
     String channelName = readCString(buffer, context.getCharset());
     String payload = readCString(buffer, context.getCharset());
@@ -1000,6 +1030,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {
+
+    BasicContext context = getContext();
 
     String name = readCString(buffer, context.getCharset());
     String value = readCString(buffer, context.getCharset());
@@ -1029,6 +1061,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   private Notice parseNotice(ChannelBuffer buffer) {
+
+    Context context = getContext();
 
     Notice notice = new Notice();
 
