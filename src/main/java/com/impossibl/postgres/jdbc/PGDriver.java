@@ -98,7 +98,7 @@ public class PGDriver implements Driver {
   }
 
 
-  private RealHousekeeper realHousekeeper = new RealHousekeeper();
+  private ThreadedHousekeeper realHousekeeper = new ThreadedHousekeeper();
   private NullHousekeeper nullHousekeeper = NullHousekeeper.INSTANCE;
 
 

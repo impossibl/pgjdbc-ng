@@ -10,11 +10,12 @@ import static java.util.Collections.synchronizedSet;
 
 
 /**
- *
- * @author kdubb
+ * Housekeeper that spins up a daemon thread to execute clean ups.
  * 
+ * @author kdubb
+ *
  */
-public class RealHousekeeper implements Housekeeper {
+public class ThreadedHousekeeper implements Housekeeper {
 
   private static class HousekeeperReference<T> extends PhantomReference<T> {
 
@@ -69,7 +70,7 @@ public class RealHousekeeper implements Housekeeper {
 
   };
 
-  public RealHousekeeper() {
+  public ThreadedHousekeeper() {
     cleanupThread.setName("PG-JDBC Housekeeper");
     cleanupThread.setDaemon(true);
     cleanupThread.start();
