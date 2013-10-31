@@ -47,7 +47,10 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Timer;
+
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
+import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE;
@@ -68,6 +71,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Logger;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.logging.Level.WARNING;
@@ -102,8 +106,8 @@ public class BasicContext implements Context {
 
   Properties ensureDefaultSettings(Properties settings) {
 
-    if (settings.getProperty("blob.type") == null)
-      settings.setProperty("blob.type", "loid");
+    if (settings.getProperty(BLOB_TYPE) == null)
+      settings.setProperty(BLOB_TYPE, BLOB_TYPE_DEFAULT);
 
     return settings;
   }
@@ -299,6 +303,7 @@ public class BasicContext implements Context {
     return pq;
   }
 
+  @Override
   public void refreshType(int typeId) {
 
     int latestKnownTypeId = registry.getLatestKnownTypeId();
@@ -361,6 +366,7 @@ public class BasicContext implements Context {
 
   }
 
+  @Override
   public void refreshRelationType(int relationId) {
 
     try {

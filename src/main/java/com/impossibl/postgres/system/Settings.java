@@ -47,4 +47,7 @@ public class Settings {
 
   public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
 
+  public static final String BLOB_TYPE = "blob.type";
+  public static final String BLOB_TYPE_DEFAULT = "loid";
+
 }

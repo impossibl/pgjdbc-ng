@@ -31,7 +31,10 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
+
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DRIVER;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
@@ -50,6 +53,10 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.lang.Boolean.parseBoolean;
+
+
 
 public class PGDriver implements Driver {
 
@@ -91,6 +98,8 @@ public class PGDriver implements Driver {
   }
 
 
+  private RealHousekeeper realHousekeeper = new RealHousekeeper();
+  private NullHousekeeper nullHousekeeper = NullHousekeeper.INSTANCE;
 
 
   public PGDriver() throws SQLException {
@@ -109,13 +118,22 @@ public class PGDriver implements Driver {
 
     Properties settings = buildSettings(connSpec, info);
 
-    //Try to connect to each provided address in turn returning the first
-    //successful connection
+    // Select housekeeper for connection
+    Housekeeper housekeeper;
+    if (parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
+      housekeeper = realHousekeeper;
+    }
+    else {
+      housekeeper = nullHousekeeper;
+    }
+
+    // Try to connect to each provided address in turn returning the first
+    // successful connection
     for (InetSocketAddress address : connSpec.addresses) {
 
       try {
 
-        PGConnection conn = new PGConnection(address, settings);
+        PGConnection conn = new PGConnection(address, settings, housekeeper);
 
         conn.init();
 

@@ -5,6 +5,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
+
+import static java.lang.Boolean.FALSE;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,11 +34,19 @@ public class LeakTest {
 
   @After
   public void after() throws Exception {
-    Housekeeper.testClear();
+
+    if (conn != null)
+      getHousekeeper().testClear();
+  }
+
+  Housekeeper getHousekeeper() {
+    return ((PGConnection) conn).housekeeper;
   }
 
   @Test
   public void testResultSetLeak() throws SQLException {
+
+    Housekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -48,16 +59,18 @@ public class LeakTest {
     rs = null;
 
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(stmtId));
+    assertFalse(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(connId));
+    assertFalse(housekeeper.testCheckCleaned(connId));
   }
 
 
   @Test
   public void testResultSetNoLeak() throws SQLException {
+
+    Housekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -70,15 +83,17 @@ public class LeakTest {
     rs.close();
 
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(stmtId));
+    assertFalse(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(connId));
+    assertFalse(housekeeper.testCheckCleaned(connId));
   }
 
   @Test
   public void testStatementLeak() throws SQLException {
+
+    Housekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -92,15 +107,17 @@ public class LeakTest {
     stmt = null;
 
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    assertTrue(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(connId));
+    assertFalse(housekeeper.testCheckCleaned(connId));
   }
 
   @Test
   public void testStatementNoLeak() throws SQLException {
+
+    Housekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -114,15 +131,17 @@ public class LeakTest {
     stmt.close();
 
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    assertTrue(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertFalse(Housekeeper.testCheckCleaned(connId));
+    assertFalse(housekeeper.testCheckCleaned(connId));
   }
 
   @Test
   public void testConnectionLeak() throws SQLException {
+
+    Housekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -137,11 +156,11 @@ public class LeakTest {
     conn = null;
 
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    assertTrue(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(connId));
+    assertTrue(housekeeper.testCheckCleaned(connId));
   }
 
   @Test
@@ -159,12 +178,33 @@ public class LeakTest {
     stmt.close();
     conn.close();
 
+    Housekeeper housekeeper = getHousekeeper();
+
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(rsId));
+    assertTrue(housekeeper.testCheckCleaned(rsId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(stmtId));
+    assertTrue(housekeeper.testCheckCleaned(stmtId));
     sleep();
-    assertTrue(Housekeeper.testCheckCleaned(connId));
+    assertTrue(housekeeper.testCheckCleaned(connId));
+  }
+
+  @Test
+  public void testNoHousekeeper() throws Exception {
+
+    Properties settings = new Properties();
+    settings.setProperty("housekeeper.enabled", FALSE.toString());
+
+    try (Connection conn = TestUtil.openDB(settings)) {
+      try (Statement stmt = conn.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
+
+          Housekeeper housekeeper = ((PGConnection) conn).housekeeper;
+          assertTrue(housekeeper instanceof NullHousekeeper);
+
+        }
+      }
+    }
+
   }
 
   private void sleep() {

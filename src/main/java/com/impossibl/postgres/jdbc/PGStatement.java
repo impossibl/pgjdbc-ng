@@ -65,7 +65,7 @@ abstract class PGStatement implements Statement {
 
   /**
    * Cleans up server resources in the event of leaking statements
-   * 
+   *
    * @author kdubb
    *
    */
@@ -121,6 +121,7 @@ abstract class PGStatement implements Statement {
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
   int queryTimeout;
+  Housekeeper housekeeper;
   Object cleanupKey;
 
 
@@ -136,7 +137,8 @@ abstract class PGStatement implements Statement {
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
 
-    this.cleanupKey = Housekeeper.add(this, new Cleanup(connection, name, activeResultSets));
+    this.housekeeper = connection.housekeeper;
+    this.cleanupKey = this.housekeeper.add(this, new Cleanup(connection, name, activeResultSets));
   }
 
   /**
@@ -272,13 +274,13 @@ abstract class PGStatement implements Statement {
 
     dispose(connection, Statement, name);
 
+    housekeeper.remove(cleanupKey);
+
     connection = null;
     command = null;
     resultFields = null;
     resultBatches = null;
     generatedKeysResultSet = null;
-
-    Housekeeper.remove(cleanupKey);
   }
 
   boolean hasResults() {

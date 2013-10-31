@@ -59,6 +59,7 @@ import org.junit.runners.Suite.SuiteClasses;
   UUIDTest.class,
   WrapperTest.class,
   DriverTest.class,
+  LeakTest.class,
 })
 public class RequiredTests {
 

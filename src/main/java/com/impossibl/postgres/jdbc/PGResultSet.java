@@ -101,7 +101,7 @@ class PGResultSet implements ResultSet {
 
   /**
    * Cleans up server resources in the event of leaking resultset
-   * 
+   *
    * @author kdubb
    *
    */
@@ -155,6 +155,7 @@ class PGResultSet implements ResultSet {
   List<Object[]> results;
   Boolean nullFlag;
   Map<String, Class<?>> typeMap;
+  Housekeeper housekeeper;
   Object cleanupKey;
 
 
@@ -164,11 +165,14 @@ class PGResultSet implements ResultSet {
 
     this.command = command;
 
-    this.cleanupKey = Housekeeper.add(this, new Cleanup(statement, command));
+    this.housekeeper = statement.housekeeper;
+    this.cleanupKey = housekeeper.add(this, new Cleanup(statement, command));
   }
 
   PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results) throws SQLException {
     this(statement, type, concurrency, resultFields, results, statement.connection.getTypeMap());
+
+    this.housekeeper = NullHousekeeper.INSTANCE;
   }
 
   @SuppressWarnings("unchecked")
@@ -541,12 +545,12 @@ class PGResultSet implements ResultSet {
       statement.dispose(command);
     }
 
+    housekeeper.remove(cleanupKey);
+
     statement = null;
     command = null;
     results = null;
     resultFields = null;
-
-    Housekeeper.remove(cleanupKey);
   }
 
   @Override

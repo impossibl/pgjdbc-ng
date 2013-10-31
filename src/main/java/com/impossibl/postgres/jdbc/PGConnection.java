@@ -110,9 +110,9 @@ class PGConnection extends BasicContext implements Connection {
 
   /**
    * Cleans up server resources in the event of leaking connections
-   * 
+   *
    * @author kdubb
-   * 
+   *
    */
   static class Cleanup implements Runnable {
 
@@ -146,16 +146,18 @@ class PGConnection extends BasicContext implements Connection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
+  Housekeeper housekeeper;
   Object cleanupKey;
 
 
 
-  PGConnection(SocketAddress address, Properties settings) throws IOException {
+  PGConnection(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
-    activeStatements = new ArrayList<>();
+    this.activeStatements = new ArrayList<>();
 
-    cleanupKey = Housekeeper.add(this, new Cleanup(protocol, activeStatements));
+    this.housekeeper = housekeeper;
+    this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements));
   }
 
   @Override
@@ -530,7 +532,7 @@ class PGConnection extends BasicContext implements Connection {
 
     shutdown();
 
-    Housekeeper.remove(cleanupKey);
+    housekeeper.remove(cleanupKey);
   }
 
   @Override
@@ -1013,7 +1015,7 @@ class PGConnection extends BasicContext implements Connection {
 
     shutdown();
 
-    Housekeeper.remove(cleanupKey);
+    housekeeper.remove(cleanupKey);
   }
 
   @Override
