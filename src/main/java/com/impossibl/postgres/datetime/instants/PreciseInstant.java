@@ -29,10 +29,12 @@
 package com.impossibl.postgres.datetime.instants;
 
 import com.impossibl.postgres.system.Context;
+
 import static com.impossibl.postgres.datetime.TimeZones.UTC;
 
 import java.util.Calendar;
 import java.util.TimeZone;
+
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -47,18 +49,22 @@ public class PreciseInstant extends InstantBase {
     this.micros = micros;
   }
 
+  @Override
   public TimeZone getZone() {
     return zone;
   }
 
+  @Override
   public long getZoneOffsetSecs() {
     return MILLISECONDS.toSeconds(getZoneOffsetMillis());
   }
 
+  @Override
   public long getZoneOffsetMicros() {
     return MILLISECONDS.toMicros(getZoneOffsetMillis());
   }
 
+  @Override
   public long getZoneOffsetMillis() {
     return zone.getOffset(getMillisLocal());
   }
@@ -143,6 +149,35 @@ public class PreciseInstant extends InstantBase {
     long diffMicros = MILLISECONDS.toMicros(diffMillis);
 
     return new PreciseInstant(type, micros + diffMicros, zone);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + (int) (micros ^ (micros >>> 32));
+    result = prime * result + ((zone == null) ? 0 : zone.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PreciseInstant other = (PreciseInstant) obj;
+    if (micros != other.micros)
+      return false;
+    if (zone == null) {
+      if (other.zone != null)
+        return false;
+    }
+    else if (!zone.equals(other.zone))
+      return false;
+    return true;
   }
 
 }

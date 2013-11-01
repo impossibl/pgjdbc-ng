@@ -30,14 +30,20 @@ package com.impossibl.postgres.data;
 
 import com.impossibl.postgres.types.CompositeType;
 
+import java.util.Arrays;
+
+import static java.util.Objects.requireNonNull;
+
+
+
 public class Record {
 
   CompositeType type;
   Object[] values;
 
   public Record(CompositeType type, Object[] values) {
-    this.type = type;
-    this.values = values;
+    this.type = requireNonNull(type);
+    this.values = requireNonNull(values);
   }
 
   public CompositeType getType() {
@@ -54,6 +60,31 @@ public class Record {
 
   public void setValues(Object[] values) {
     this.values = values;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + type.hashCode();
+    result = prime * result + Arrays.hashCode(values);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Record other = (Record) obj;
+    if (!type.equals(other.type))
+      return false;
+    if (!Arrays.equals(values, other.values))
+      return false;
+    return true;
   }
 
 }

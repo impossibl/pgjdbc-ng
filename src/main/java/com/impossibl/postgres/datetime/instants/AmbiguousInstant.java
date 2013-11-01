@@ -29,10 +29,12 @@
 package com.impossibl.postgres.datetime.instants;
 
 import com.impossibl.postgres.system.Context;
+
 import static com.impossibl.postgres.datetime.TimeZones.UTC;
 
 import java.util.Calendar;
 import java.util.TimeZone;
+
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -144,6 +146,28 @@ public class AmbiguousInstant extends InstantBase {
   @Override
   public long getZoneOffsetMillis() {
     return 0;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + (int) (micros ^ (micros >>> 32));
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    AmbiguousInstant other = (AmbiguousInstant) obj;
+    if (micros != other.micros)
+      return false;
+    return true;
   }
 
 }
