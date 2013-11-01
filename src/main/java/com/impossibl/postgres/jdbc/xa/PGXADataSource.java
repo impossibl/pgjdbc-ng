@@ -26,52 +26,40 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.jdbc.xa;
 
-import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
+import com.impossibl.postgres.jdbc.AbstractDataSource;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import java.sql.SQLException;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class,
-  CodecTest.class,
-  UpdateableResultTest.class,
-  CursorFetchTest.class,
-  CallableStatementTest.class,
-  NotificationTest.class,
-  DataSourceTest.class,
-  XADataSourceTest.class,
-})
-public class RequiredTests {
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 
+/**
+ * XADataSource implementation
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+public class PGXADataSource extends AbstractDataSource implements XADataSource {
+
+  /**
+   * Constructor
+   */
+  public PGXADataSource() {
+    super();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public XAConnection getXAConnection() throws SQLException {
+    return getXAConnection(getUser(), getPassword());
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public XAConnection getXAConnection(String user, String password) throws SQLException {
+    return new PGXAConnection(createConnection(user, password));
+  }
 }
+

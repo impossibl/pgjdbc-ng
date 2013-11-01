@@ -26,52 +26,59 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.jdbc.xa;
 
-import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
+import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.jdbc.TestUtil;
 
+import java.sql.Connection;
+
+import javax.sql.XAConnection;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class,
-  CodecTest.class,
-  UpdateableResultTest.class,
-  CursorFetchTest.class,
-  CallableStatementTest.class,
-  NotificationTest.class,
-  DataSourceTest.class,
-  XADataSourceTest.class,
-})
-public class RequiredTests {
+/**
+ * Tests for PGXADataSource
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+@RunWith(JUnit4.class)
+public class XADataSourceTest {
 
+  private XAConnection con;
+
+  @Before
+  public void before() throws Exception {
+    PGXADataSource ds = new PGXADataSource();
+    ds.setHost(TestUtil.getServer());
+    ds.setPort(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabase(TestUtil.getDatabase());
+    ds.setUser(TestUtil.getUser());
+    ds.setPassword(TestUtil.getPassword());
+
+    con = ds.getXAConnection();
+  }
+
+  @After
+  public void after() throws Exception {
+    TestUtil.closeDB(con);
+  }
+
+  /*
+   * Test getXAConnection()
+   */
+  @Test
+  public void testGetXAConnection() throws Exception {
+    assertNotNull(con);
+    assertFalse(con instanceof PGConnection);
+
+    Connection c = con.getConnection();
+    assertNotNull(c);
+    assertTrue(c instanceof PGConnection);
+    assertTrue(c.isValid(5));
+  }
 }
