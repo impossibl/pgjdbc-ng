@@ -49,8 +49,6 @@ import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Timer;
 
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
-import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE;
@@ -104,18 +102,9 @@ public class BasicContext implements Context {
   protected PreparedQuery[] refreshQueries;
 
 
-  Properties ensureDefaultSettings(Properties settings) {
-
-    if (settings.getProperty(BLOB_TYPE) == null)
-      settings.setProperty(BLOB_TYPE, BLOB_TYPE_DEFAULT);
-
-    return settings;
-  }
-
-
   public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
     this.targetTypeMap = new HashMap<>(targetTypeMap);
-    this.settings = ensureDefaultSettings(settings);
+    this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
     this.dateFormatter = new ISODateFormat();
@@ -158,9 +147,18 @@ public class BasicContext implements Context {
     return type.cast(settings.get(name));
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getSetting(String name, T defaultValue) {
+    Object val = settings.get(name);
+    if (val == null)
+      return defaultValue;
+    return (T) defaultValue.getClass().cast(val);
+  }
+
   @Override
   public boolean isSettingEnabled(String name) {
-    Object val = getSetting(name, Boolean.class);
+    Object val = getSetting(name);
     if (val instanceof String)
       return ((String)val).toLowerCase().equals("on");
     if (val instanceof Boolean)

@@ -63,6 +63,7 @@ public interface Context {
 
   Object getSetting(String name);
   <T> T getSetting(String name, Class<T> type);
+  <T> T getSetting(String name, T defaultValue);
   boolean isSettingEnabled(String name);
 
   Protocol getProtocol();

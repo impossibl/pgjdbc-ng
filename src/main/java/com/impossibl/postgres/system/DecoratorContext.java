@@ -106,6 +106,11 @@ public class DecoratorContext implements Context {
   }
 
   @Override
+  public <T> T getSetting(String name, T defaultValue) {
+    return base.getSetting(name, defaultValue);
+  }
+
+  @Override
   public boolean isSettingEnabled(String name) {
     return base.isSettingEnabled(name);
   }
