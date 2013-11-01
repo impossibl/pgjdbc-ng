@@ -146,8 +146,8 @@ class PGConnection extends BasicContext implements Connection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
-  Housekeeper housekeeper;
-  Object cleanupKey;
+  final Housekeeper housekeeper;
+  final Object cleanupKey;
 
 
 
@@ -157,7 +157,10 @@ class PGConnection extends BasicContext implements Connection {
     this.activeStatements = new ArrayList<>();
 
     this.housekeeper = housekeeper;
-    this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements));
+    if (this.housekeeper != null)
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements));
+    else
+      this.cleanupKey = null;
   }
 
   @Override
@@ -532,7 +535,8 @@ class PGConnection extends BasicContext implements Connection {
 
     shutdown();
 
-    housekeeper.remove(cleanupKey);
+    if (housekeeper != null)
+      housekeeper.remove(cleanupKey);
   }
 
   @Override
@@ -1015,7 +1019,8 @@ class PGConnection extends BasicContext implements Connection {
 
     shutdown();
 
-    housekeeper.remove(cleanupKey);
+    if (housekeeper != null)
+      housekeeper.remove(cleanupKey);
   }
 
   @Override
