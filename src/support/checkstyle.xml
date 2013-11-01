@@ -94,5 +94,10 @@
 
   </module>
 
+  <!-- Enforce License Header -->
+  <module name="RegexpHeader">
+    <property name="headerFile" value="./src/support/HEADER"/>
+  </module>
+
 </module>
 
