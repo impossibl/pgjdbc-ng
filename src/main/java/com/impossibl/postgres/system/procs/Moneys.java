@@ -31,12 +31,14 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.system.Settings.FIELD_MONEY_FRACTIONAL_DIGITS;
 import static com.impossibl.postgres.types.PrimitiveType.Money;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
 import static java.math.RoundingMode.HALF_UP;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -49,14 +51,17 @@ public class Moneys extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Money;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -78,14 +83,17 @@ public class Moneys extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Money;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -106,18 +114,26 @@ public class Moneys extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 12;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Money;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return new BigDecimal(buffer.toString());
@@ -127,14 +143,17 @@ public class Moneys extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Money;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append(val.toString());
@@ -148,7 +167,7 @@ public class Moneys extends SimpleProcProvider {
     if (val == null)
       return 2;
 
-    return (int)(Integer)val;
+    return (Integer)val;
   }
 
 }

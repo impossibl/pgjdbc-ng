@@ -28,6 +28,10 @@
  */
 package com.impossibl.postgres.data;
 
+import java.util.Arrays;
+
+
+
 public class Range<T> {
 
   public static class Flags {
@@ -56,7 +60,7 @@ public class Range<T> {
     }
 
     public boolean hasLowerBound() {
-      return (value & (RANGE_EMPTY | RANGE_LB_NULL | RANGE_LB_INF)) != 0;
+      return (value & (RANGE_EMPTY | RANGE_LB_NULL | RANGE_LB_INF)) == 0;
     }
 
     public boolean isLowerBoundInclusive() {
@@ -68,7 +72,7 @@ public class Range<T> {
     }
 
     public boolean hasUpperBound() {
-      return (value & (RANGE_EMPTY | RANGE_UB_NULL | RANGE_UB_INF)) != 0;
+      return (value & (RANGE_EMPTY | RANGE_UB_NULL | RANGE_UB_INF)) == 0;
     }
 
     public boolean isUpperBoundInclusive() {
@@ -79,10 +83,44 @@ public class Range<T> {
       return (value & RANGE_UB_INF) != 0;
     }
 
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + value;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      Flags other = (Flags) obj;
+      if (value != other.value)
+        return false;
+      return true;
+    }
+
   }
 
   Flags flags;
   Object[] values;
+
+  public static <U> Range<U> create(U lower, U upper) {
+    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INC | Flags.RANGE_UB_INC)), new Object[] {lower, upper});
+  }
+
+  public static <U> Range<U> createLower(U lower) {
+    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INC | Flags.RANGE_UB_INF)), new Object[] {lower});
+  }
+
+  public static <U> Range<U> createUpper(U upper) {
+    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INF | Flags.RANGE_UB_INC)), new Object[] {upper});
+  }
 
   public Range(Flags flags, Object[] values) {
     this.flags = flags;
@@ -139,6 +177,40 @@ public class Range<T> {
 
   public boolean isUpperBoundInfinity() {
     return flags.isUpperBoundInfinity();
+  }
+
+  @Override
+  public String toString() {
+    return "Range (" + flags.value + ") " + Arrays.toString(values);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((flags == null) ? 0 : flags.hashCode());
+    result = prime * result + Arrays.hashCode(values);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Range<?> other = (Range<?>) obj;
+    if (flags == null) {
+      if (other.flags != null)
+        return false;
+    }
+    else if (!flags.equals(other.flags))
+      return false;
+    if (!Arrays.equals(values, other.values))
+      return false;
+    return true;
   }
 
 }

@@ -51,6 +51,7 @@ public class RangeType extends Type {
     this.base = base;
   }
 
+  @Override
   public Type unwrap() {
     return this;
   }
@@ -60,7 +61,7 @@ public class RangeType extends Type {
 
     super.load(source, attrs, registry);
 
-    base = registry.loadType(source.arrayTypeId);
+    base = registry.loadType(source.rangeBaseTypeId);
   }
 
 }

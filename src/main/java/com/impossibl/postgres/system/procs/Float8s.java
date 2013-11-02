@@ -44,14 +44,17 @@ public class Float8s extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Double;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Double.class;
     }
 
+    @Override
     public Double decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -69,14 +72,17 @@ public class Float8s extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Double.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Double;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -91,18 +97,26 @@ public class Float8s extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 12;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Double;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Double.class;
     }
 
+    @Override
     public Double decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return Double.valueOf(buffer.toString());
@@ -112,14 +126,17 @@ public class Float8s extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Double.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Double;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append((double)val);

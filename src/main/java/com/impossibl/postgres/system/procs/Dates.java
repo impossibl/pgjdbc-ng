@@ -35,9 +35,11 @@ import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Date;
 
 import java.io.IOException;
+
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -52,14 +54,17 @@ public class Dates extends SimpleProcProvider {
 
   static class Decoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Date;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Instant.class;
     }
 
+    @Override
     public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -88,14 +93,17 @@ public class Dates extends SimpleProcProvider {
 
   static class Encoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Instant.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Date;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
       if (val == null) {
 
@@ -118,6 +126,11 @@ public class Dates extends SimpleProcProvider {
         buffer.writeInt(daysPg);
       }
 
+    }
+
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 8;
     }
 
   }

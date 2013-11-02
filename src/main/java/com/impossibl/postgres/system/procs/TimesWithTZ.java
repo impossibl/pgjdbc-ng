@@ -34,11 +34,13 @@ import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
 
 import java.io.IOException;
 import java.util.TimeZone;
+
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -55,14 +57,17 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
   static class BinIntegerDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return TimeTZ;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Instant.class;
     }
 
+    @Override
     public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -86,14 +91,17 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
   static class BinIntegerEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Instant.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return TimeTZ;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
       if (val == null) {
 
@@ -112,6 +120,11 @@ public class TimesWithTZ extends SettingSelectProcProvider {
         buffer.writeInt(tzOffsetSecs);
       }
 
+    }
+
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 16;
     }
 
   }

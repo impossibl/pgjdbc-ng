@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
@@ -45,14 +46,17 @@ public class Names extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return String;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return String.class;
     }
 
+    @Override
     public String decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -70,14 +74,21 @@ public class Names extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return String.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return String;
     }
 
+    byte[] toBytes(Object val, Context context) {
+      return val.toString().getBytes(context.getCharset());
+    }
+
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -86,7 +97,7 @@ public class Names extends SimpleProcProvider {
       }
       else {
 
-        byte[] bytes = val.toString().getBytes(context.getCharset());
+        byte[] bytes = toBytes(val, context);
 
         buffer.writeInt(bytes.length);
 
@@ -95,18 +106,26 @@ public class Names extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 4 + toBytes(val, context).length;
+    }
+
   }
 
   public static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return String;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return String.class;
     }
 
+    @Override
     public String decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return buffer.toString();
@@ -116,14 +135,17 @@ public class Names extends SimpleProcProvider {
 
   public static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return String.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return String;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append((String)val);

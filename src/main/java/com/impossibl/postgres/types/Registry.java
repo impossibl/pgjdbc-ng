@@ -193,6 +193,17 @@ public class Registry {
       lock.readLock().unlock();
     }
 
+    if (res == null) {
+      context.refreshType(getLatestKnownTypeId() + 1);
+      lock.readLock().lock();
+      try {
+        res = nameMap.get(name);
+      }
+      finally {
+        lock.readLock().unlock();
+      }
+    }
+
     if (isArray) {
       res = loadType(res.getArrayTypeId());
     }

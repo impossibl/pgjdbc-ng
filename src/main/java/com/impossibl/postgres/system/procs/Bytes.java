@@ -45,7 +45,7 @@ public class Bytes extends SimpleProcProvider {
   public static final BinEncoder BINARY_ENCODER = new BinEncoder();
 
   public Bytes() {
-    super(null, null, new BinEncoder(), new BinDecoder(), "bytea");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bytea");
   }
 
   static class BinDecoder extends BinaryDecoder {
@@ -102,11 +102,104 @@ public class Bytes extends SimpleProcProvider {
       else {
 
         byte[] bytes = (byte[]) val;
+  static class TxtDecoder extends TextDecoder {
 
-        buffer.writeInt(bytes.length);
-        buffer.writeBytes(bytes);
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return Binary;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return InputStream.class;
+    }
+
+    @Override
+    public InputStream decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      byte[] data;
+
+      if (buffer.charAt(0) == '\'' && buffer.charAt(1) == 'x') {
+        data = decodeHex(buffer.subSequence(2, buffer.length()));
+      }
+      else {
+        data = decodeEscape(buffer);
       }
 
+      return new ByteArrayInputStream(data);
+    }
+
+    byte[] decodeHex(CharSequence buffer) {
+
+      int length = buffer.length();
+      byte[] data = new byte[length / 2];
+      for (int i = 0; i < length; i += 2) {
+        data[i / 2] = (byte) ((Character.digit(buffer.charAt(i), 16) << 4) + Character.digit(buffer.charAt(i + 1), 16));
+      }
+      return data;
+    }
+
+    byte[] decodeEscape(CharSequence buffer) {
+
+      int length = buffer.length();
+      byte[] data = new byte[length];
+      int out = 0;
+      for (int i = 0; i < length; ++i) {
+
+        char ch = buffer.charAt(i);
+        switch (ch) {
+
+          case '\\':
+            char ch1 = buffer.charAt(++i);
+            switch (ch1) {
+              case '\\':
+                data[++out] = '\\';
+
+              default:
+                char ch2 = buffer.charAt(++i);
+                char ch3 = buffer.charAt(++i);
+                data[++out] = (byte) (ch1 * 64 + ch2 * 8 + ch3);
+            }
+
+          default:
+            data[++out] = (byte) ch;
+        }
+
+      }
+
+      return Arrays.copyOf(data, out);
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public Class<?> getInputType() {
+      return InputStream.class;
+    }
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return Binary;
+    }
+
+    private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    @Override
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      byte[] bytes = (byte[]) val;
+
+      char[] hexChars = new char[bytes.length * 2];
+      int v;
+      for (int j = 0; j < bytes.length; j++) {
+        v = bytes[j] & 0xFF;
+        hexChars[j * 2] = hexArray[v >>> 4];
+        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+      }
+
+      buffer.append('\\').append('x').append(hexChars);
     }
 
   }

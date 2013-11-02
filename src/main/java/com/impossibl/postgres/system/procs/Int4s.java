@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Int4;
 
 import java.io.IOException;
@@ -45,14 +46,17 @@ public class Int4s extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Int4;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Integer.class;
     }
 
+    @Override
     public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -70,14 +74,17 @@ public class Int4s extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Integer.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Int4;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
       if (val == null) {
 
@@ -91,18 +98,26 @@ public class Int4s extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 8;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Int4;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Integer.class;
     }
 
+    @Override
     public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return Integer.valueOf(buffer.toString());
@@ -112,14 +127,17 @@ public class Int4s extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Integer.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Int4;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append((int)val);

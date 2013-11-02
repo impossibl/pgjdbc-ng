@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.protocol.v30.NullChannelBuffer;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
@@ -42,6 +43,13 @@ public abstract class BinaryEncoder implements Type.Codec.Encoder {
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
     encode(type, (ChannelBuffer)buffer, value, context);
+  }
+
+  @Override
+  public int length(Type type, Object val, Context context) throws IOException {
+    NullChannelBuffer computer = new NullChannelBuffer();
+    encode(type, computer, val, context);
+    return computer.readableBytes();
   }
 
 }

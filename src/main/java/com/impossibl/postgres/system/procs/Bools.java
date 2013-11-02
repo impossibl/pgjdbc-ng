@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Bool;
 
 import java.io.IOException;
@@ -45,14 +46,17 @@ public class Bools extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Bool;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Boolean.class;
     }
 
+    @Override
     public Boolean decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -70,14 +74,17 @@ public class Bools extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Boolean.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Bool;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -92,18 +99,26 @@ public class Bools extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 5;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Bool;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Boolean.class;
     }
 
+    @Override
     public Boolean decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return Boolean.valueOf(buffer.toString());
@@ -113,14 +128,17 @@ public class Bools extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Boolean.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Bool;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append((boolean)val);

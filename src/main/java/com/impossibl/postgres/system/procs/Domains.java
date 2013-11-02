@@ -64,6 +64,15 @@ public class Domains extends SimpleProcProvider {
       baseType.getBinaryCodec().encoder.encode(baseType, buffer, value, context);
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+
+      DomainType domainType = (DomainType) type;
+      Type baseType = domainType.getBase();
+
+      return baseType.getBinaryCodec().encoder.length(baseType, val, context);
+    }
+
   }
 
   public static class TxtEncoder extends TextEncoder {

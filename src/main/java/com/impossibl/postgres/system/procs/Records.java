@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Record;
 
 import java.io.IOException;
@@ -52,14 +53,17 @@ public class Records extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Record;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Record.class;
     }
 
+    @Override
     public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       CompositeType compType = (CompositeType) type;
@@ -106,14 +110,17 @@ public class Records extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Record.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Record;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       buffer.writeInt(-1);
@@ -149,18 +156,56 @@ public class Records extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+
+      int length = 4;
+
+      if (val != null) {
+
+        Record record = (Record) val;
+
+        Object[] attributeVals = record.getValues();
+
+        CompositeType compType = (CompositeType) type;
+
+        Collection<Attribute> attributes = compType.getAttributes();
+
+        length += 4;
+
+        for (Attribute attribute : attributes) {
+
+          Type attributeType = attribute.type;
+
+          length += 4;
+
+          int idx = attribute.number > 0 ? attribute.number - 1 : attributes.size() + attribute.number;
+
+          Object attributeVal = attributeVals[idx];
+
+          length += attributeType.getBinaryCodec().encoder.length(attributeType, attributeVal, context);
+        }
+
+      }
+
+      return length;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Record;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Record.class;
     }
 
+    @Override
     public Record decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       int length = buffer.length();
@@ -262,14 +307,17 @@ public class Records extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Record.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Record;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
     }

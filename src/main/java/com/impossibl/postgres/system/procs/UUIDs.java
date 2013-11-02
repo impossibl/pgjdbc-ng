@@ -45,14 +45,17 @@ public class UUIDs extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return UUID.class;
     }
 
+    @Override
     public UUID decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -70,14 +73,17 @@ public class UUIDs extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return UUID.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -95,18 +101,26 @@ public class UUIDs extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 20;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return UUID.class;
     }
 
+    @Override
     public UUID decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return UUID.fromString(buffer.toString());
@@ -116,14 +130,17 @@ public class UUIDs extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return UUID.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append(val.toString());

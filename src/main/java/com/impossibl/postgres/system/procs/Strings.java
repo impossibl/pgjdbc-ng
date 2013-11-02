@@ -32,6 +32,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.PrimitiveType.String;
@@ -39,6 +40,7 @@ import static com.impossibl.postgres.types.PrimitiveType.String;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
 import static java.lang.Math.min;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -54,14 +56,17 @@ public class Strings extends SimpleProcProvider {
 
   public static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return String;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return String.class;
     }
 
+    @Override
     public String decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -89,14 +94,21 @@ public class Strings extends SimpleProcProvider {
 
   public static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return String.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return String;
     }
 
+    byte[] toBytes(Object val, Context context) {
+      return val.toString().getBytes(context.getCharset());
+    }
+
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -105,7 +117,7 @@ public class Strings extends SimpleProcProvider {
       }
       else {
 
-        byte[] bytes = val.toString().getBytes(context.getCharset());
+        byte[] bytes = toBytes(val, context);
 
         buffer.writeInt(bytes.length);
 
@@ -114,18 +126,26 @@ public class Strings extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 4 + toBytes(val, context).length;
+    }
+
   }
 
   public static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return String;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return String.class;
     }
 
+    @Override
     public String decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return buffer.toString();
@@ -135,14 +155,17 @@ public class Strings extends SimpleProcProvider {
 
   public static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return String.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return String;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append((String)val);

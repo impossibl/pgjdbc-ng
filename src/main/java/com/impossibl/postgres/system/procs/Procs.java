@@ -37,9 +37,6 @@ import com.impossibl.postgres.types.Type.Codec;
 
 public class Procs {
 
-
-  public static final Type.Codec.Decoder[] defaultDecoders = {Strings.BINARY_DECODER, Bytes.BINARY_DECODER};
-
   private static ProcProvider[] PROVIDERS = {
     new Oids(),
     new Bools(),
@@ -68,6 +65,7 @@ public class Procs {
     new Arrays(),
     new Records(),
     new ACLItems(),
+    new Ranges(),
   };
 
   private static final Type.Codec.Decoder[] DEFAULT_DECODERS = {new Unknowns.TxtDecoder(), new Unknowns.BinDecoder()};

@@ -32,6 +32,7 @@ import com.impossibl.postgres.data.Interval;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Interval;
 
 import java.io.IOException;
@@ -46,14 +47,17 @@ public class Intervals extends SimpleProcProvider {
 
   static class Decoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Interval;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Interval.class;
     }
 
+    @Override
     public Interval decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -75,14 +79,17 @@ public class Intervals extends SimpleProcProvider {
 
   static class Encoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Interval.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Interval;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -99,6 +106,11 @@ public class Intervals extends SimpleProcProvider {
         buffer.writeInt(interval.getRawMonths());
       }
 
+    }
+
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+      return val == null ? 4 : 20;
     }
 
   }

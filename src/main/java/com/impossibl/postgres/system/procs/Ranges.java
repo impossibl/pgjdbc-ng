@@ -33,6 +33,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Range;
 import static com.impossibl.postgres.types.PrimitiveType.Record;
 
@@ -48,14 +49,17 @@ public class Ranges extends SimpleProcProvider {
 
   static class Decoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Range;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Object[].class;
     }
 
+    @Override
     public Range<?> decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       RangeType rangeType = (RangeType) type;
@@ -90,21 +94,24 @@ public class Ranges extends SimpleProcProvider {
 
   static class Encoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Range.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Record;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-      if (val == null) {
+      buffer.writeInt(-1);
 
-        buffer.writeInt(-1);
-      }
-      else {
+      if (val != null) {
+
+        int writeStart = buffer.writerIndex();
 
         RangeType rangeType = (RangeType) type;
         Type baseType = rangeType.getBase();
@@ -123,6 +130,8 @@ public class Ranges extends SimpleProcProvider {
           baseType.getBinaryCodec().encoder.encode(baseType, buffer, range.getUpperBound(), context);
         }
 
+        // Set length
+        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
       }
 
     }

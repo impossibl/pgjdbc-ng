@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Bits;
 
 import java.io.IOException;
@@ -46,14 +47,17 @@ public class Bits extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Bits;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BitSet.class;
     }
 
+    @Override
     public BitSet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -81,14 +85,17 @@ public class Bits extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BitSet.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Bits;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -115,18 +122,35 @@ public class Bits extends SimpleProcProvider {
 
     }
 
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+
+      if (val == null)
+        return 4;
+
+      BitSet bs = (BitSet) val;
+
+      int bitCount = bs.size();
+      int byteCount = (bitCount + 7) / 8;
+
+      return 4 + byteCount;
+    }
+
   }
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Bits;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BitSet.class;
     }
 
+    @Override
     public BitSet decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       BitSet bits = new BitSet();
@@ -154,14 +178,17 @@ public class Bits extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BitSet.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Bits;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       BitSet bits = (BitSet) val;
