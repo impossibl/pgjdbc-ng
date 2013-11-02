@@ -28,18 +28,11 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 
-/**
- * Postgres-specific SQL exception that carries and extended error information
- * reported by the server.
- *
- * @author kdubb
- *
- */
-public class PGSQLException extends SQLException {
+public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityConstraintViolationException implements PGSQLExceptionInfo {
 
-  private static final long serialVersionUID = -176414268626933865L;
+  private static final long serialVersionUID = 1343560391090040431L;
 
   private String schema;
   private String table;
@@ -47,74 +40,84 @@ public class PGSQLException extends SQLException {
   private String datatype;
   private String constraint;
 
-  public PGSQLException() {
+  public PGSQLIntegrityConstraintViolationException() {
     super();
   }
 
-  public PGSQLException(String reason, String sqlState, int vendorCode, Throwable cause) {
-    super(reason, sqlState, vendorCode, cause);
+  public PGSQLIntegrityConstraintViolationException(String reason, String SQLState, int vendorCode, Throwable cause) {
+    super(reason, SQLState, vendorCode, cause);
   }
 
-  public PGSQLException(String reason, String SQLState, int vendorCode) {
+  public PGSQLIntegrityConstraintViolationException(String reason, String SQLState, int vendorCode) {
     super(reason, SQLState, vendorCode);
   }
 
-  public PGSQLException(String reason, String sqlState, Throwable cause) {
-    super(reason, sqlState, cause);
+  public PGSQLIntegrityConstraintViolationException(String reason, String SQLState, Throwable cause) {
+    super(reason, SQLState, cause);
   }
 
-  public PGSQLException(String reason, String SQLState) {
+  public PGSQLIntegrityConstraintViolationException(String reason, String SQLState) {
     super(reason, SQLState);
   }
 
-  public PGSQLException(String reason, Throwable cause) {
+  public PGSQLIntegrityConstraintViolationException(String reason, Throwable cause) {
     super(reason, cause);
   }
 
-  public PGSQLException(String reason) {
+  public PGSQLIntegrityConstraintViolationException(String reason) {
     super(reason);
   }
 
-  public PGSQLException(Throwable cause) {
+  public PGSQLIntegrityConstraintViolationException(Throwable cause) {
     super(cause);
   }
 
+  @Override
   public String getSchema() {
     return schema;
   }
 
+  @Override
   public void setSchema(String schema) {
     this.schema = schema;
   }
 
+  @Override
   public String getTable() {
     return table;
   }
 
+  @Override
   public void setTable(String table) {
     this.table = table;
   }
 
+  @Override
   public String getColumn() {
     return column;
   }
 
+  @Override
   public void setColumn(String column) {
     this.column = column;
   }
 
+  @Override
   public String getDatatype() {
     return datatype;
   }
 
+  @Override
   public void setDatatype(String datatype) {
     this.datatype = datatype;
   }
 
+  @Override
   public String getConstraint() {
     return constraint;
   }
 
+  @Override
   public void setConstraint(String constraint) {
     this.constraint = constraint;
   }

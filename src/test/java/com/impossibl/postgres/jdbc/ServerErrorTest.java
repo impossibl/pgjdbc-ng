@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.After;
@@ -36,7 +37,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /*
  * Test that enhanced error reports return the correct origin
@@ -86,7 +90,8 @@ public class ServerErrorTest {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
       fail("Should have thrown a duplicate key exception.");
     }
-    catch (PGSQLException sqle) {
+    catch (SQLException e) {
+      PGSQLExceptionInfo sqle = (PGSQLExceptionInfo) e;
       assertEquals("public", sqle.getSchema());
       assertEquals("testerr", sqle.getTable());
       assertEquals("testerr_pk", sqle.getConstraint());
@@ -109,7 +114,8 @@ public class ServerErrorTest {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, NULL)");
       fail("Should have thrown a not null constraint violation.");
     }
-    catch (PGSQLException sqle) {
+    catch (SQLException e) {
+      PGSQLExceptionInfo sqle = (PGSQLExceptionInfo) e;
       assertEquals("public", sqle.getSchema());
       assertEquals("testerr", sqle.getTable());
       assertEquals("val", sqle.getColumn());
@@ -132,7 +138,8 @@ public class ServerErrorTest {
       stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 20)");
       fail("Should have thrown a constraint violation.");
     }
-    catch (PGSQLException sqle) {
+    catch (SQLException e) {
+      PGSQLExceptionInfo sqle = (PGSQLExceptionInfo) e;
       assertEquals("public", sqle.getSchema());
       assertEquals("testdom", sqle.getDatatype());
       assertEquals("testdom_check", sqle.getConstraint());

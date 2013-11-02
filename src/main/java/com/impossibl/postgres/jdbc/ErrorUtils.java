@@ -132,7 +132,20 @@ public class ErrorUtils {
    */
   public static SQLException makeSQLException(Notice notice) {
 
-    PGSQLException e = new PGSQLException(notice.getMessage(), notice.getCode());
+    PGSQLExceptionInfo e;
+
+    String code = notice.getCode();
+
+    if (code.startsWith("23")) {
+
+      e = new PGSQLIntegrityConstraintViolationException(notice.getMessage(), notice.getCode());
+
+    }
+    else {
+
+      e = new PGSQLSimpleException(notice.getMessage(), notice.getCode());
+
+    }
 
     //Copy extended error information (9.3+)
     e.setSchema(notice.getSchema());
@@ -141,7 +154,7 @@ public class ErrorUtils {
     e.setDatatype(notice.getDatatype());
     e.setConstraint(notice.getConstraint());
 
-    return e;
+    return (SQLException) e;
   }
 
   /**

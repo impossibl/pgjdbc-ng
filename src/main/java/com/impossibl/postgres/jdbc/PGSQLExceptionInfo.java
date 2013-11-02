@@ -28,41 +28,33 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+/**
+ * Postgres-specific interface for exceptions that carry extended error
+ * information reported by the server.
+ *
+ * @author kdubb
+ *
+ */
+public interface PGSQLExceptionInfo {
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class
-})
-public class RequiredTests {
+  String getSchema();
+
+  void setSchema(String schema);
+
+  String getTable();
+
+  void setTable(String table);
+
+  String getColumn();
+
+  void setColumn(String column);
+
+  String getDatatype();
+
+  void setDatatype(String datatype);
+
+  String getConstraint();
+
+  void setConstraint(String constraint);
 
 }
