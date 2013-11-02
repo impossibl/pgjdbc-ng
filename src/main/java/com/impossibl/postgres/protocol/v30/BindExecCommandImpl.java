@@ -38,20 +38,30 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.StreamingChannelBuffer;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD;
+import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import static java.util.Arrays.asList;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
+
+  private static final int DEFAULT_MESSAGE_SIZE = 8192;
+  private static final int STREAM_MESSAGE_SIZE = 32 * 1024;
 
   class BindExecCommandListener extends BaseProtocolListener {
 
@@ -199,10 +209,12 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
   }
 
+  @Override
   public long getQueryTimeout() {
     return queryTimeout;
   }
 
+  @Override
   public void setQueryTimeout(long queryTimeout) {
     this.queryTimeout = queryTimeout;
   }
@@ -267,6 +279,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     return asList(resultBatch);
   }
 
+  @Override
   public void execute(ProtocolImpl protocol) throws IOException {
 
     // Setup context for parsing fields with customized parameters
@@ -278,11 +291,24 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ChannelBuffer msg = ChannelBuffers.dynamicBuffer(DEFAULT_MESSAGE_SIZE);
 
     if (status != Status.Suspended) {
 
-      protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+      if (shouldStreamBind(parsingContext, parameterValues)) {
+
+        StreamingChannelBuffer bindMsg = new StreamingChannelBuffer(protocol.channel, STREAM_MESSAGE_SIZE);
+
+        protocol.writeBind(bindMsg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
+
+        bindMsg.flush();
+
+      }
+      else {
+
+        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
+
+      }
 
     }
 
@@ -309,6 +335,24 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     waitFor(listener);
 
+  }
+
+  static boolean shouldStreamBind(Context context, List<Object> parameterValues) {
+
+    int streamThreshold = context.getSetting(PARAMETER_STREAM_THRESHOLD, PARAMETER_STREAM_THRESHOLD_DEFAULT);
+    int streamTotal = 0;
+
+    for (Object parameterValue : parameterValues) {
+
+      if (parameterValue instanceof ByteStreams.LimitedInputStream) {
+        streamTotal += ((ByteStreams.LimitedInputStream) parameterValue).limit();
+      }
+      else if (parameterValue instanceof InputStream) {
+        return false;
+      }
+    }
+
+    return streamTotal > streamThreshold;
   }
 
   static List<Format> getResultFieldFormats(List<ResultField> resultFields) {

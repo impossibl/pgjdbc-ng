@@ -28,51 +28,93 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
-/*
- * XML codec
- *
- */
-public class XMLs extends SimpleProcProvider {
+import java.io.IOException;
 
-  public XMLs() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "xml_");
+import static java.lang.Math.min;
+
+import org.jboss.netty.buffer.ChannelBuffer;
+
+public class ConvertedBytes extends SimpleProcProvider {
+
+  public static final BinDecoder BINARY_DECODER = new BinDecoder();
+  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
+
+  public ConvertedBytes() {
+    super(null, null, new BinEncoder(), new BinDecoder(), "");
   }
 
-  static class BinDecoder extends ConvertedBytes.BinDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.XML;
+      return Binary;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return byte[].class;
+    }
+
+    @Override
+    public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+
+      int length = buffer.readInt();
+      if (length == -1) {
+        return null;
+      }
+
+      byte[] bytes;
+
+      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      if (maxLength != null) {
+        bytes = new byte[min(maxLength, length)];
+      }
+      else {
+        bytes = new byte[length];
+      }
+
+      buffer.readBytes(bytes);
+      buffer.skipBytes(length - bytes.length);
+
+      return bytes;
     }
 
   }
 
-  static class BinEncoder extends ConvertedBytes.BinEncoder {
+  static class BinEncoder extends BinaryEncoder {
+
+    @Override
+    public Class<?> getInputType() {
+      return byte[].class;
+    }
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.XML;
+      return Binary;
     }
 
-  }
-
-  static class TxtDecoder extends Strings.TxtDecoder {
-
     @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.XML;
-    }
+    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
-  }
+      if (val == null) {
 
-  static class TxtEncoder extends Strings.TxtEncoder {
+        buffer.writeInt(-1);
+      }
+      else {
 
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.XML;
+        byte[] bytes = (byte[]) val;
+
+        buffer.writeInt(bytes.length);
+        buffer.writeBytes(bytes);
+      }
+
     }
 
   }

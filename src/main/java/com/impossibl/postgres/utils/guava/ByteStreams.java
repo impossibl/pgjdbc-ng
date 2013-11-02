@@ -149,8 +149,9 @@ public final class ByteStreams {
     return new LimitedInputStream(in, limit);
   }
 
-  private static final class LimitedInputStream extends FilterInputStream {
+  public static final class LimitedInputStream extends FilterInputStream {
 
+    private long limit;
     private long left;
     private long mark = -1;
 
@@ -158,7 +159,12 @@ public final class ByteStreams {
       super(in);
       checkNotNull(in);
       checkArgument(limit >= 0, "limit must be non-negative");
-      left = limit;
+      this.left = limit;
+      this.limit = limit;
+    }
+
+    public long limit() {
+      return limit;
     }
 
     @Override public int available() throws IOException {

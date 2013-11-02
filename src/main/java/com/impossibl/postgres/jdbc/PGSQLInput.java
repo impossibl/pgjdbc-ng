@@ -31,6 +31,8 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
@@ -52,6 +54,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -71,6 +74,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Map;
 import java.util.TimeZone;
+
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class PGSQLInput implements SQLInput {
@@ -158,7 +162,14 @@ public class PGSQLInput implements SQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    return coerceToBytes(getNextAttributeValue(), attr.type, connection);
+    InputStream data = coerceToBytes(getNextAttributeValue(), attr.type, connection);
+
+    try {
+      return ByteStreams.toByteArray(data);
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
   }
 
   @Override

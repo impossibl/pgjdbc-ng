@@ -36,16 +36,18 @@ import java.util.Map;
 
 public class Unknowns {
 
-  public static class BinDecoder extends Bytes.BinDecoder {
+  public static class BinDecoder extends ConvertedBytes.BinDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Unknown;
     }
 
   }
 
-  public static class BinEncoder extends Bytes.BinEncoder {
+  public static class BinEncoder extends ConvertedBytes.BinEncoder {
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Unknown;
     }
@@ -54,6 +56,7 @@ public class Unknowns {
 
   public static class TxtDecoder extends Strings.TxtDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Unknown;
     }
@@ -62,6 +65,7 @@ public class Unknowns {
 
   public static class TxtEncoder extends Strings.TxtEncoder {
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Unknown;
     }

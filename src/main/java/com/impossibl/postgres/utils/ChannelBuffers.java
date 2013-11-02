@@ -46,7 +46,12 @@ public class ChannelBuffers {
 
   public static void writeCString(ChannelBuffer buffer, String val, Charset charset) {
 
-    buffer.writeBytes(val.getBytes(charset));
+    writeCString(buffer, val.getBytes(charset));
+  }
+
+  public static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
+
+    buffer.writeBytes(valBytes);
     buffer.writeByte(0);
   }
 

@@ -38,6 +38,7 @@ import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
+
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.isUnknownParameterTypeError;
 import static com.impossibl.postgres.jdbc.ErrorUtils.parseUnknownParameterTypeIndex;
@@ -49,7 +50,6 @@ import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -82,6 +82,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
+
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -150,6 +151,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     parameterValues.set(parameterIdx, val);
   }
 
+  @Override
   void internalClose() throws SQLException {
 
     super.internalClose();
@@ -525,7 +527,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
 
-    _setBinaryStream(parameterIndex, x, (long) -1);
+    set(parameterIndex, x, Types.BINARY);
   }
 
   @Override
@@ -543,7 +545,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    _setBinaryStream(parameterIndex, x, length);
+    set(parameterIndex, x, Types.BINARY);
   }
 
   @Override
@@ -561,35 +563,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    _setBinaryStream(parameterIndex, x, length);
-  }
-
-  public void _setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-
-    if (x == null) {
-
-      set(parameterIndex, null, Types.BINARY);
-    }
-    else {
-
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      try {
-
-        long read = ByteStreams.copy(x, out);
-
-        if (length != -1 && read != length) {
-          throw new SQLException("Not enough data in stream");
-        }
-
-      }
-      catch (IOException e) {
-        throw new SQLException(e);
-      }
-
-      set(parameterIndex, out.toByteArray(), Types.BINARY);
-
-    }
-
+    set(parameterIndex, x, Types.BINARY);
   }
 
   @Override

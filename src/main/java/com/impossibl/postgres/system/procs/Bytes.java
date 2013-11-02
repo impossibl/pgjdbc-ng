@@ -31,13 +31,21 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+
 import static java.lang.Math.min;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
 
 public class Bytes extends SimpleProcProvider {
 
@@ -50,49 +58,54 @@ public class Bytes extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Binary;
     }
 
+    @Override
     public Class<?> getOutputType() {
-      return byte[].class;
+      return InputStream.class;
     }
 
-    public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    @Override
+    public InputStream decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
         return null;
       }
 
-      byte[] bytes;
-
+      int readLength;
       Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
       if (maxLength != null) {
-        bytes = new byte[min(maxLength, length)];
+        readLength = min(maxLength, length);
       }
       else {
-        bytes = new byte[length];
+        readLength = length;
       }
 
-      buffer.readBytes(bytes);
-      buffer.skipBytes(length - bytes.length);
+      ChannelBuffer data = buffer.readBytes(readLength);
+      buffer.skipBytes(length - readLength);
 
-      return bytes;
+      return new ChannelBufferInputStream(data);
     }
 
   }
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
-      return byte[].class;
+      return InputStream.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Binary;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
@@ -101,7 +114,78 @@ public class Bytes extends SimpleProcProvider {
       }
       else {
 
-        byte[] bytes = (byte[]) val;
+        InputStream in = (InputStream) val;
+
+        int totalLength;
+
+        // Do we know, for sure, how long the stream is?
+        if (in instanceof ByteStreams.LimitedInputStream) {
+
+          totalLength = (int) ((ByteStreams.LimitedInputStream) in).limit();
+
+        }
+        else if (in instanceof ByteArrayInputStream) {
+
+          totalLength = in.available();
+
+        }
+        else {
+
+          // We must fallback to reading entire buffer to make sure we
+          // get all the data from the input stream
+
+          byte[] data = ByteStreams.toByteArray(in);
+
+          totalLength = data.length;
+          in = new ByteArrayInputStream(data);
+        }
+
+        buffer.writeInt(totalLength);
+
+        // Copy stream to buffer
+        long totalRead = ByteStreams.copy(in, new ChannelBufferOutputStream(buffer));
+
+        if (totalLength != totalRead) {
+          throw new IOException("invalid stream length");
+        }
+
+      }
+
+    }
+
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+
+      int length = 4;
+
+      if (val != null) {
+
+        InputStream in = (InputStream) val;
+
+        // Do we know, for sure, how long the stream is?
+        if (in instanceof ByteStreams.LimitedInputStream) {
+
+          length += (int) ((ByteStreams.LimitedInputStream) in).limit();
+
+        }
+        else if (in instanceof ByteArrayInputStream) {
+
+          length += in.available();
+
+        }
+        else {
+
+          throw new IOException("unable to compute length of InputStream type: " + val.getClass().getName());
+
+        }
+
+      }
+
+      return length;
+    }
+
+  }
+
   static class TxtDecoder extends TextDecoder {
 
     @Override

@@ -32,6 +32,7 @@ import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
@@ -63,6 +64,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -673,7 +675,14 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+    InputStream data = coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+
+    try {
+      return ByteStreams.toByteArray(data);
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
   }
 
   @Override

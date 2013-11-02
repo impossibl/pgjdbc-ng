@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.protocol.v30.NullChannelBuffer;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.NullChannelBuffer;
 
 import java.io.IOException;
 

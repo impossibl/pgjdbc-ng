@@ -28,6 +28,11 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 class LargeObject {
@@ -91,19 +96,20 @@ class LargeObject {
   }
 
   byte[] read(long len) throws SQLException {
-    return connection.executeForResult("select loread($1,$2)", true, byte[].class, fd, (int)len);
+    InputStream data = connection.executeForResult("select loread($1,$2)", true, InputStream.class, fd, (int) len);
+    try {
+      return ByteStreams.toByteArray(data);
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
   }
 
   int write(byte[] data, int off, int len) throws SQLException {
 
-    //TODO optimize away by supporting passing of array sections as parameters
-    if (off != 0 || len != data.length) {
-      byte[] sub = new byte[len];
-      System.arraycopy(data, off, sub, 0, len);
-      data = sub;
-    }
+    InputStream dataIn = new ByteArrayInputStream(data, off, len);
 
-    return connection.executeForResult("select lowrite($1,$2)", true, Integer.class, fd, data);
+    return connection.executeForResult("select lowrite($1,$2)", true, Integer.class, fd, dataIn);
   }
 
   int truncate(long len) throws SQLException {

@@ -50,4 +50,7 @@ public class Settings {
   public static final String BLOB_TYPE = "blob.type";
   public static final String BLOB_TYPE_DEFAULT = "loid";
 
+  public static final String PARAMETER_STREAM_THRESHOLD = "parameter.stream.threshold";
+  public static final int PARAMETER_STREAM_THRESHOLD_DEFAULT = 500 * 1024;
+
 }

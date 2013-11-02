@@ -35,9 +35,14 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
-import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 
+import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
+import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
+import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -56,9 +61,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+
 import static java.math.RoundingMode.HALF_EVEN;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 
 
@@ -636,21 +643,27 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Blob.class);
   }
 
-  public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+  public static InputStream coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
 
     if (val == null) {
       return null;
     }
+    else if (val instanceof InputStream) {
+      return (InputStream) val;
+    }
     else if (val instanceof byte[]) {
-      return (byte[]) val;
+      return new ByteArrayInputStream((byte[]) val);
     }
     else if (val instanceof String) {
-      return ((String)val).getBytes(context.getCharset());
+      return new ByteArrayInputStream(((String) val).getBytes(context.getCharset()));
     }
     else if (val instanceof PGSQLXML) {
-      return ((PGSQLXML) val).getData();
+      byte[] data = ((PGSQLXML) val).getData();
+      return data != null ? new ByteArrayInputStream(data) : null;
     }
     else if (sourceType.getJavaType(Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+
+      // Encode into byte array using type encoder
 
       ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
 
@@ -661,8 +674,10 @@ class SQLTypeUtils {
         throw createCoercionException(val.getClass(), byte[].class);
       }
 
+      // Skip written length
       buffer.skipBytes(4);
-      return buffer.readBytes(buffer.readableBytes()).array();
+
+      return new ChannelBufferInputStream(buffer);
     }
 
     throw createCoercionException(val.getClass(), byte[].class);

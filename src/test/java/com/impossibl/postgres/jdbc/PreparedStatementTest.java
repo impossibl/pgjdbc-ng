@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
+import com.impossibl.postgres.system.Settings;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,7 +49,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(JUnit4.class)
 public class PreparedStatementTest {
@@ -69,6 +74,17 @@ public class PreparedStatementTest {
     TestUtil.dropTable(conn, "texttable");
     TestUtil.dropTable(conn, "intervaltable");
     TestUtil.closeDB(conn);
+  }
+
+  @Test
+  public void testLargeBinaryStream() throws SQLException {
+
+    byte[] data = new byte[Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT * 2];
+
+    ByteArrayInputStream bais = new ByteArrayInputStream(data);
+
+    doSetBinaryStream(bais, data.length);
+
   }
 
   @Test

@@ -47,11 +47,13 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Context.KeyData;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
 import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -65,6 +67,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
+
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.FINEST;
@@ -431,19 +434,49 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
+  public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats, boolean computeLength) throws IOException {
 
     Context context = getContext();
 
     if (logger.isLoggable(FINEST))
       logger.finest("BIND (" + portalName + "): " + parameterValues.size());
 
-    beginMessage(msg, BIND_MSG_ID);
+    byte[] portalNameBytes = nullToEmpty(portalName).getBytes(context.getCharset());
+    byte[] stmtNameBytes = nullToEmpty(stmtName).getBytes(context.getCharset());
 
-    writeCString(msg, portalName != null ? portalName : "", context.getCharset());
-    writeCString(msg, stmtName != null ? stmtName : "", context.getCharset());
+    if (computeLength) {
 
-    loadParams(msg, parameterTypes, parameterValues);
+      // Compute length of message
+      int length = 4;
+      length += portalNameBytes.length + 1;
+      length += stmtNameBytes.length + 1;
+      length += lengthOfParams(parameterTypes, parameterValues, context);
+      length += resultFieldFormats.isEmpty() ? 4 : 2 + (2 * resultFieldFormats.size());
+
+      // Write actual message
+      beginMessage(msg, BIND_MSG_ID, length);
+      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
+
+    }
+    else {
+
+      beginMessage(msg, BIND_MSG_ID);
+
+      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
+
+      endMessage(msg);
+
+    }
+
+  }
+
+  private void writeBind(ChannelBuffer msg, byte[] portalNameBytes, byte[] stmtNameBytes, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats,
+      Context context) throws IOException {
+
+    writeCString(msg, portalNameBytes);
+    writeCString(msg, stmtNameBytes);
+
+    loadParams(msg, parameterTypes, parameterValues, context);
 
     //Set format for results fields
     if (resultFieldFormats.isEmpty()) {
@@ -459,7 +492,6 @@ public class ProtocolImpl implements Protocol {
       }
     }
 
-    endMessage(msg);
   }
 
   public void writeDescribe(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
@@ -494,11 +526,13 @@ public class ProtocolImpl implements Protocol {
 
   public void writeFunctionCall(ChannelBuffer msg, int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
+    Context context = getContext();
+
     beginMessage(msg, FUNCTION_CALL_MSG_ID);
 
     msg.writeInt(functionId);
 
-    loadParams(msg, paramTypes, paramValues);
+    loadParams(msg, paramTypes, paramValues, context);
 
     msg.writeShort(1);
 
@@ -577,9 +611,7 @@ public class ProtocolImpl implements Protocol {
 
   }
 
-  protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues) throws IOException {
-
-    Context context = getContext();
+  protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
 
     // Select format for parameters
     if (paramTypes == null) {
@@ -611,6 +643,38 @@ public class ProtocolImpl implements Protocol {
     }
   }
 
+  protected int lengthOfParams(List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
+
+    int length = 0;
+
+    // Select format for parameters
+    if (paramTypes == null) {
+      length += 4;
+    }
+    else {
+      length += 2 + (paramTypes.size() * 2);
+    }
+
+    // Values for each parameter
+    if (paramTypes == null) {
+      length += 2;
+    }
+    else {
+      length += 2;
+      for (int c = 0; c < paramTypes.size(); ++c) {
+
+        Type paramType = paramTypes.get(c);
+        Object paramValue = paramValues.get(c);
+
+        Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
+        length += codec.encoder.length(paramType, paramValue, context);
+
+      }
+    }
+
+    return length;
+  }
+
   protected void writeMessage(ChannelBuffer msg, byte msgId) throws IOException {
 
     msg.writeByte(msgId);
@@ -618,17 +682,17 @@ public class ProtocolImpl implements Protocol {
   }
 
   protected void beginMessage(ChannelBuffer msg, byte msgId) {
+    beginMessage(msg, msgId, -1);
+  }
 
-    if (msg == null) {
-      throw new IllegalArgumentException("Parent message required");
-    }
+  protected void beginMessage(ChannelBuffer msg, byte msgId, int length) {
 
     if (msgId != 0)
       msg.writeByte(msgId);
 
     msg.markWriterIndex();
 
-    msg.writeInt(-1);
+    msg.writeInt(length);
   }
 
   protected void endMessage(ChannelBuffer msg) throws IOException {
