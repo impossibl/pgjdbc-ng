@@ -157,8 +157,8 @@ class PGResultSet implements ResultSet {
   List<Object[]> results;
   Boolean nullFlag;
   Map<String, Class<?>> typeMap;
-  Housekeeper housekeeper;
-  Object cleanupKey;
+  final Housekeeper housekeeper;
+  final Object cleanupKey;
 
 
 
@@ -166,15 +166,10 @@ class PGResultSet implements ResultSet {
     this(statement, command.getStatus() == Completed ? TYPE_SCROLL_INSENSITIVE : TYPE_FORWARD_ONLY, concurrency, resultFields, results);
 
     this.command = command;
-
-    this.housekeeper = statement.housekeeper;
-    this.cleanupKey = housekeeper.add(this, new Cleanup(statement, command));
   }
 
   PGResultSet(PGStatement statement, int type, int concurrency, List<ResultField> resultFields, List<?> results) throws SQLException {
     this(statement, type, concurrency, resultFields, results, statement.connection.getTypeMap());
-
-    this.housekeeper = NullHousekeeper.INSTANCE;
   }
 
   @SuppressWarnings("unchecked")
@@ -189,6 +184,12 @@ class PGResultSet implements ResultSet {
     this.resultFields = resultFields;
     this.results = (List<Object[]>)results;
     this.typeMap = typeMap;
+
+    this.housekeeper = statement.housekeeper;
+    if (this.housekeeper != null)
+      this.cleanupKey = housekeeper.add(this, new Cleanup(statement, command));
+    else
+      this.cleanupKey = null;
   }
 
   /**
@@ -547,7 +548,8 @@ class PGResultSet implements ResultSet {
       statement.dispose(command);
     }
 
-    housekeeper.remove(cleanupKey);
+    if (housekeeper != null)
+      housekeeper.remove(cleanupKey);
 
     statement = null;
     command = null;

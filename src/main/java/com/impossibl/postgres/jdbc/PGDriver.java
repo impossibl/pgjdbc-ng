@@ -99,7 +99,6 @@ public class PGDriver implements Driver {
 
 
   private ThreadedHousekeeper realHousekeeper = new ThreadedHousekeeper();
-  private NullHousekeeper nullHousekeeper = NullHousekeeper.INSTANCE;
 
 
   public PGDriver() throws SQLException {
@@ -119,12 +118,9 @@ public class PGDriver implements Driver {
     Properties settings = buildSettings(connSpec, info);
 
     // Select housekeeper for connection
-    Housekeeper housekeeper;
+    Housekeeper housekeeper = null;
     if (parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
       housekeeper = realHousekeeper;
-    }
-    else {
-      housekeeper = nullHousekeeper;
     }
 
     // Try to connect to each provided address in turn returning the first

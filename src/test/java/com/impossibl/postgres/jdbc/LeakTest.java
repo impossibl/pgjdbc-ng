@@ -44,6 +44,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -227,7 +228,7 @@ public class LeakTest {
         try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
 
           Housekeeper housekeeper = ((PGConnection) conn).housekeeper;
-          assertTrue(housekeeper instanceof NullHousekeeper);
+          assertNull(housekeeper);
 
         }
       }

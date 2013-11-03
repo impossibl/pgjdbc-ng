@@ -121,8 +121,8 @@ abstract class PGStatement implements Statement {
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
   int queryTimeout;
-  Housekeeper housekeeper;
-  Object cleanupKey;
+  final Housekeeper housekeeper;
+  final Object cleanupKey;
 
 
   PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
@@ -138,7 +138,11 @@ abstract class PGStatement implements Statement {
     this.activeResultSets = new ArrayList<>();
 
     this.housekeeper = connection.housekeeper;
-    this.cleanupKey = this.housekeeper.add(this, new Cleanup(connection, name, activeResultSets));
+
+    if (this.housekeeper != null)
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(connection, name, activeResultSets));
+    else
+      this.cleanupKey = null;
   }
 
   /**
@@ -274,7 +278,8 @@ abstract class PGStatement implements Statement {
 
     dispose(connection, Statement, name);
 
-    housekeeper.remove(cleanupKey);
+    if (housekeeper != null)
+      housekeeper.remove(cleanupKey);
 
     connection = null;
     command = null;
