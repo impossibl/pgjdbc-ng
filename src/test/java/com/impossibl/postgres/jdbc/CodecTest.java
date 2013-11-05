@@ -109,6 +109,7 @@ public class CodecTest {
   @After
   public void tearDown() throws SQLException {
     TestUtil.dropType(conn, "teststruct");
+    TestUtil.closeDB(conn);
   }
 
   @Test

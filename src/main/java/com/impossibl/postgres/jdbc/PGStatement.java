@@ -53,6 +53,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
@@ -74,17 +75,19 @@ abstract class PGStatement implements Statement {
     PGConnection connection;
     String name;
     List<WeakReference<PGResultSet>> resultSets;
+    Exception allocationTrace;
 
     public Cleanup(PGConnection connection, String name, List<WeakReference<PGResultSet>> resultSets) {
       this.connection = connection;
       this.name = name;
       this.resultSets = resultSets;
+      this.allocationTrace = new Exception();
     }
 
     @Override
     public void run() {
 
-      logger.warning("cleaning up leaked statement");
+      logger.log(Level.WARNING, "cleaning up leaked statement", allocationTrace);
 
       closeResultSets(resultSets);
 

@@ -91,6 +91,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.lang.Boolean.parseBoolean;
@@ -118,16 +119,18 @@ class PGConnection extends BasicContext implements Connection {
 
     Protocol protocol;
     List<WeakReference<PGStatement>> statements;
+    Exception allocationTrace;
 
     public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
       this.protocol = protocol;
       this.statements = statements;
+      this.allocationTrace = new Exception();
     }
 
     @Override
     public void run() {
 
-      logger.warning("cleaning up leaked connection");
+      logger.log(Level.WARNING, "cleaning up leaked connection", allocationTrace);
 
       protocol.shutdown();
 

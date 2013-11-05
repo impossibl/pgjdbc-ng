@@ -52,6 +52,7 @@ public class ExceptionTest {
   @After
   public void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "checktest");
+    TestUtil.closeDB(conn);
   }
 
   @Test(expected = SQLIntegrityConstraintViolationException.class)

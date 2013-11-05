@@ -148,7 +148,9 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   }
 
-  @Override
+  /**
+   * Test only
+   */
   public boolean testCheckCleaned(int referentId) {
 
     System.gc();
@@ -165,9 +167,10 @@ public class ThreadedHousekeeper implements Housekeeper {
     return true;
   }
 
-  @Override
+  /**
+   * Test only
+   */
   public void testClear() {
     cleanupReferences.clear();
   }
-
 }

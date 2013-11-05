@@ -89,6 +89,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.lang.Math.max;
@@ -111,16 +112,18 @@ class PGResultSet implements ResultSet {
 
     PGStatement statement;
     QueryCommand command;
+    Exception allocationTrace;
 
     public Cleanup(PGStatement statement, QueryCommand command) {
       this.statement = statement;
       this.command = command;
+      this.allocationTrace = new Exception();
     }
 
     @Override
     public void run() {
 
-      logger.warning("cleaning up leaked result-set");
+      logger.log(Level.WARNING, "cleaning up leaked result-set", allocationTrace);
 
       try {
         statement.dispose(command);
