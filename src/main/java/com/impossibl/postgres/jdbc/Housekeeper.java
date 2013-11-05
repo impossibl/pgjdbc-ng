@@ -54,24 +54,4 @@ public interface Housekeeper {
    * Ensures the cleanup queue is emptied immediately
    */
   void emptyQueue();
-
-  /**
-   * ** Only used for unit testing **
-   *
-   * Checks if a referent has been queued and then processed and removed from
-   * the lists
-   *
-   * @param referent
-   *          Referent to check
-   * @return
-   */
-  boolean testCheckCleaned(int referentId);
-
-  /**
-   * ** Only used for unit testing **
-   *
-   * Clears list of references
-   */
-  void testClear();
-
 }

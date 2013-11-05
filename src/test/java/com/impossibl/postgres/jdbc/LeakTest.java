@@ -63,19 +63,21 @@ public class LeakTest {
 
   @After
   public void after() throws Exception {
-
-    if (conn != null)
+    if (conn != null && getHousekeeper() != null)
       getHousekeeper().testClear();
   }
 
-  Housekeeper getHousekeeper() {
-    return ((PGConnection) conn).housekeeper;
+  ThreadedHousekeeper getHousekeeper() {
+    if (((PGConnection) conn).housekeeper != null)
+      return (ThreadedHousekeeper)((PGConnection) conn).housekeeper;
+    else
+      return null;
   }
 
   @Test
   public void testResultSetLeak() throws SQLException {
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -99,7 +101,7 @@ public class LeakTest {
   @Test
   public void testResultSetNoLeak() throws SQLException {
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -122,7 +124,7 @@ public class LeakTest {
   @Test
   public void testStatementLeak() throws SQLException {
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -146,7 +148,7 @@ public class LeakTest {
   @Test
   public void testStatementNoLeak() throws SQLException {
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -170,7 +172,7 @@ public class LeakTest {
   @Test
   public void testConnectionLeak() throws SQLException {
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     int connId = System.identityHashCode(conn);
 
@@ -207,7 +209,7 @@ public class LeakTest {
     stmt.close();
     conn.close();
 
-    Housekeeper housekeeper = getHousekeeper();
+    ThreadedHousekeeper housekeeper = getHousekeeper();
 
     sleep();
     assertTrue(housekeeper.testCheckCleaned(rsId));
