@@ -80,7 +80,7 @@ public class ServerErrorTest {
   @Test
   public void testPrimaryKey() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnectionImpl)con).getServerVersion().isMinimum(9, 3))
       return;
 
     Statement stmt = con.createStatement();
@@ -105,7 +105,7 @@ public class ServerErrorTest {
   @Test
   public void testColumn() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnectionImpl)con).getServerVersion().isMinimum(9, 3))
       return;
 
     Statement stmt = con.createStatement();
@@ -129,7 +129,7 @@ public class ServerErrorTest {
   @Test
   public void testDatatype() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnectionImpl)con).getServerVersion().isMinimum(9, 3))
       return;
 
     Statement stmt = con.createStatement();

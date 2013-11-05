@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
@@ -107,7 +108,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
-class PGConnection extends BasicContext implements Connection {
+class PGConnectionImpl extends BasicContext implements PGConnection {
 
   private static final Logger logger = Logger.getLogger(PGConnection.class.getName());
 
@@ -154,7 +155,7 @@ class PGConnection extends BasicContext implements Connection {
   final Object cleanupKey;
 
 
-  PGConnection(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException {
+  PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
     this.activeStatements = new ArrayList<>();

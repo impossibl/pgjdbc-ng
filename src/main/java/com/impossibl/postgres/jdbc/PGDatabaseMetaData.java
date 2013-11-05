@@ -70,11 +70,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       "returns,rule,recipe,setof,stdin,stdout,store," +
       "vacuum,verbose,version";
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   int maxNameLength;
   int maxIndexKeys;
 
-  PGDatabaseMetaData(PGConnection connection) {
+  PGDatabaseMetaData(PGConnectionImpl connection) {
     this.connection = connection;
   }
 

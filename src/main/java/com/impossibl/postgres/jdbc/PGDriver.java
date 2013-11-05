@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
@@ -129,7 +130,7 @@ public class PGDriver implements Driver {
 
       try {
 
-        PGConnection conn = new PGConnection(address, settings, housekeeper);
+        PGConnectionImpl conn = new PGConnectionImpl(address, settings, housekeeper);
 
         conn.init();
 
