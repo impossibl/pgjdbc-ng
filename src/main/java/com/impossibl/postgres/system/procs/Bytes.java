@@ -203,7 +203,7 @@ public class Bytes extends SimpleProcProvider {
 
       byte[] data;
 
-      if (buffer.charAt(0) == '\'' && buffer.charAt(1) == 'x') {
+      if (buffer.length() > 2 && buffer.charAt(0) == '\\' && buffer.charAt(1) == 'x') {
         data = decodeHex(buffer.subSequence(2, buffer.length()));
       }
       else {
@@ -273,17 +273,15 @@ public class Bytes extends SimpleProcProvider {
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
-      byte[] bytes = (byte[]) val;
+      InputStream in = (InputStream) val;
 
-      char[] hexChars = new char[bytes.length * 2];
+      buffer.append("\\x");
+
       int v;
-      for (int j = 0; j < bytes.length; j++) {
-        v = bytes[j] & 0xFF;
-        hexChars[j * 2] = hexArray[v >>> 4];
-        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+      while ((v = in.read()) > -1) {
+        buffer.append(hexArray[v >>> 4]).append(hexArray[v & 0x0F]);
       }
 
-      buffer.append('\\').append('x').append(hexChars);
     }
 
   }

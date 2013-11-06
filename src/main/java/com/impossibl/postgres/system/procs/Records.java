@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.Type.Codec;
 
 import static com.impossibl.postgres.types.PrimitiveType.Record;
 
@@ -320,6 +321,60 @@ public class Records extends SimpleProcProvider {
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
+      writeComposite(buffer, type.getDelimeter(), (CompositeType) type, (Record) val, context);
+
+    }
+
+    void writeComposite(StringBuilder out, char delim, CompositeType type, Record val, Context context) throws IOException {
+
+      out.append('(');
+
+      Object[] vals = val.getValues();
+
+      for (int c = 0; c < vals.length; ++c) {
+
+        Attribute attr = type.getAttribute(c + 1);
+
+        Codec codec = attr.type.getCodec(Format.Text);
+
+        StringBuilder attrOut = new StringBuilder();
+
+        codec.encoder.encode(attr.type, attrOut, vals[c], context);
+
+        String attrStr = attrOut.toString();
+
+        if (needsQuotes(attrStr, delim)) {
+          out.append('\"').append(attrStr).append('\"');
+        }
+        else {
+          out.append(attrStr);
+        }
+
+        if (c < vals.length - 1)
+          out.append(delim);
+      }
+
+      out.append(')');
+
+    }
+
+    private boolean needsQuotes(String elemStr, char delim) {
+
+      if (elemStr.isEmpty())
+        return true;
+
+      if (elemStr.equalsIgnoreCase("NULL"))
+        return true;
+
+      for (int c = 0; c < elemStr.length(); ++c) {
+
+        char ch = elemStr.charAt(c);
+
+        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+          return true;
+      }
+
+      return false;
     }
 
   }

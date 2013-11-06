@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -39,6 +40,8 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Date;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -49,10 +52,10 @@ import org.jboss.netty.buffer.ChannelBuffer;
 public class Dates extends SimpleProcProvider {
 
   public Dates() {
-    super(null, null, new Encoder(), new Decoder(), "date_");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "date_");
   }
 
-  static class Decoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
@@ -91,7 +94,7 @@ public class Dates extends SimpleProcProvider {
 
   }
 
-  static class Encoder extends BinaryEncoder {
+  static class BinEncoder extends BinaryEncoder {
 
     @Override
     public Class<?> getInputType() {
@@ -186,6 +189,52 @@ public class Dates extends SimpleProcProvider {
     }
 
     return SECONDS.toMicros(secs);
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Date;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return Instant.class;
+    }
+
+    @Override
+    Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      Map<String, Object> pieces = new HashMap<>();
+
+      context.getDateFormatter().getParser().parse(buffer.toString(), 0, pieces);
+
+      return Instants.dateFromPieces(pieces, context.getTimeZone()).ambiguate();
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Date;
+    }
+
+    @Override
+    public Class<?> getInputType() {
+      return Instant.class;
+    }
+
+    @Override
+    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      String strVal = context.getDateFormatter().getPrinter().format((Instant) val);
+
+      buffer.append(strVal);
+    }
+
   }
 
 }

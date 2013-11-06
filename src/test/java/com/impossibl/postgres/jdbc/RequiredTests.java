@@ -61,7 +61,8 @@ import org.junit.runners.Suite.SuiteClasses;
   DriverTest.class,
   LeakTest.class,
   ServerErrorTest.class,
-  ExceptionTest.class
+  ExceptionTest.class,
+  CodecTest.class
 })
 public class RequiredTests {
 

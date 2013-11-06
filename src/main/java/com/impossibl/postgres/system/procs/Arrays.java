@@ -33,12 +33,14 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.Type.Codec;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import static java.lang.reflect.Array.newInstance;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -55,14 +57,17 @@ public class Arrays extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Array;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Object[].class;
     }
 
+    @Override
     public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
@@ -163,14 +168,17 @@ public class Arrays extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Object[].class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Array;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       buffer.writeInt(-1);
@@ -279,14 +287,17 @@ public class Arrays extends SimpleProcProvider {
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.Array;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return Object[].class;
     }
 
+    @Override
     public Object decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       int length = buffer.length();
@@ -374,16 +385,77 @@ public class Arrays extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return Object[].class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.Array;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
+      ArrayType arrayType = (ArrayType) type;
+
+      Type elementType = arrayType.getElementType();
+
+      writeArray(buffer, elementType.getDelimeter(), elementType, val, context);
+
+    }
+
+    void writeArray(StringBuilder out, char delim, Type type, Object val, Context context) throws IOException {
+
+      Codec.Encoder encoder = type.getCodec(Format.Text).encoder;
+
+      out.append('{');
+
+      int len = Array.getLength(val);
+      for (int c = 0; c < len; ++c) {
+
+        Object elemVal = Array.get(val, c);
+        StringBuilder elemOut = new StringBuilder();
+
+        encoder.encode(type, elemOut, elemVal, context);
+
+        String elemStr = elemOut.toString();
+
+        if (needsQuotes(elemStr, delim)) {
+          out.append('\"').append(elemStr).append('\"');
+        }
+        else {
+          out.append(elemStr);
+        }
+
+        if (c < len - 1)
+          out.append(delim);
+
+      }
+
+
+      out.append('}');
+
+    }
+
+    private boolean needsQuotes(String elemStr, char delim) {
+
+      if (elemStr.isEmpty())
+        return true;
+
+      if (elemStr.equalsIgnoreCase("NULL"))
+        return true;
+
+      for (int c = 0; c < elemStr.length(); ++c) {
+
+        char ch = elemStr.charAt(c);
+
+        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+          return true;
+      }
+
+      return false;
     }
 
   }

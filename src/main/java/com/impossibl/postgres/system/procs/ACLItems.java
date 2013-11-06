@@ -43,14 +43,17 @@ public class ACLItems extends SimpleProcProvider {
 
   static class Decoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return PrimitiveType.ACLItem;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return ACLItem.class;
     }
 
+    @Override
     public ACLItem decode(Type type, CharSequence buffer, Context context) throws IOException {
 
       return ACLItem.parse(buffer.toString());
@@ -59,15 +62,22 @@ public class ACLItems extends SimpleProcProvider {
 
   static class Encoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return ACLItem.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return PrimitiveType.ACLItem;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      ACLItem item = (ACLItem) val;
+
+      buffer.append(item.toString());
 
     }
 

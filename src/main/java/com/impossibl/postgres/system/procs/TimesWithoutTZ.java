@@ -30,6 +30,7 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -38,6 +39,8 @@ import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS
 import static com.impossibl.postgres.types.PrimitiveType.Time;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.DAYS;
 
@@ -47,8 +50,8 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
   public TimesWithoutTZ() {
     super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
-        null, null, new BinIntegerEncoder(), new BinIntegerDecoder(),
-        null, null, null, null,
+        new TxtEncoder(), new TxtDecoder(), new BinIntegerEncoder(), new BinIntegerDecoder(),
+        null, null, new TxtEncoder(), new TxtDecoder(),
         "time_");
   }
 
@@ -115,6 +118,52 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
     @Override
     public int length(Type type, Object val, Context context) throws IOException {
       return val == null ? 4 : 12;
+    }
+
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Time;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return Instant.class;
+    }
+
+    @Override
+    Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      Map<String, Object> pieces = new HashMap<>();
+
+      context.getTimeFormatter().getParser().parse(buffer.toString(), 0, pieces);
+
+      return Instants.timeFromPieces(pieces, context.getTimeZone()).ambiguate();
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Time;
+    }
+
+    @Override
+    public Class<?> getInputType() {
+      return Instant.class;
+    }
+
+    @Override
+    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      String strVal = context.getTimeFormatter().getPrinter().format((Instant) val);
+
+      buffer.append(strVal);
     }
 
   }

@@ -32,6 +32,7 @@ import com.impossibl.postgres.datetime.TimeZones;
 import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
+import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
@@ -43,6 +44,8 @@ import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TimeZone;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -59,11 +62,14 @@ public class Timestamps extends SettingSelectProcProvider {
   public Timestamps(PrimitiveType primitiveType, String... baseNames) {
     super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
         null, null, null, null,
-        null, null, null, null, baseNames);
+        null, null, null, null,
+        baseNames);
     this.primitiveType = primitiveType;
     this.zone = primitiveType == TimestampTZ ? TimeZones.UTC : null;
     this.matchedBinEncoder = new BinIntegerEncoder();
     this.matchedBinDecoder = new BinIntegerDecoder();
+    this.matchedTxtEncoder = this.unmatchedTxtEncoder = new TxtEncoder();
+    this.matchedTxtDecoder = this.unmatchedTxtDecoder = new TxtDecoder();
   }
 
   class BinIntegerDecoder extends BinaryDecoder {
@@ -170,6 +176,58 @@ public class Timestamps extends SettingSelectProcProvider {
   public static boolean isInfinity(long micros) {
 
     return micros == Long.MAX_VALUE || micros == Long.MIN_VALUE;
+  }
+
+  class TxtDecoder extends TextDecoder {
+
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return primitiveType;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return Instant.class;
+    }
+
+    @Override
+    Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      Map<String, Object> pieces = new HashMap<>();
+
+      context.getTimestampFormatter().getParser().parse(buffer.toString(), 0, pieces);
+
+      Instant instant = Instants.timestampFromPieces(pieces, context.getTimeZone());
+
+      if (primitiveType != PrimitiveType.TimestampTZ) {
+        instant = instant.ambiguate();
+      }
+
+      return instant;
+    }
+
+  }
+
+  class TxtEncoder extends TextEncoder {
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return primitiveType;
+    }
+
+    @Override
+    public Class<?> getInputType() {
+      return Instant.class;
+    }
+
+    @Override
+    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      String strVal = context.getTimestampFormatter().getPrinter().format((Instant) val);
+
+      buffer.append(strVal);
+    }
+
   }
 
 }

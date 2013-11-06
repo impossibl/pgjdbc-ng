@@ -46,14 +46,22 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
 
       ChannelBuffer channelBuffer = (ChannelBuffer) buffer;
 
-      StringBuilder tmp = new StringBuilder();
+      if (value == null) {
 
-      encode(type, tmp, value, context);
+        channelBuffer.writeInt(-1);
+      }
+      else {
 
-      byte[] bytes = tmp.toString().getBytes(context.getCharset());
+        StringBuilder tmp = new StringBuilder();
 
-      channelBuffer.writeInt(bytes.length);
-      channelBuffer.writeBytes(bytes);
+        encode(type, tmp, value, context);
+
+        byte[] bytes = tmp.toString().getBytes(context.getCharset());
+
+        channelBuffer.writeInt(bytes.length);
+        channelBuffer.writeBytes(bytes);
+      }
+
     }
     else {
 

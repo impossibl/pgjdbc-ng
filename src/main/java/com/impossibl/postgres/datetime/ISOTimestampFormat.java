@@ -31,11 +31,15 @@ package com.impossibl.postgres.datetime;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
+
 import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
 
 import java.util.Calendar;
 import java.util.Map;
+import java.util.TimeZone;
+
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class ISOTimestampFormat implements DateTimeFormat {
 
@@ -108,24 +112,116 @@ public class ISOTimestampFormat implements DateTimeFormat {
     @Override
     public String format(Instant instant) {
 
-      Calendar cal = Calendar.getInstance(instant.getZone());
+      TimeZone zone = instant.getZone();
+      if (zone == null) {
+        zone = TimeZone.getTimeZone("UTC");
+      }
+
+      Calendar cal = Calendar.getInstance(zone);
       cal.setTimeInMillis(MICROSECONDS.toMillis(instant.getMicrosUTC()));
 
       int year = cal.get(Calendar.YEAR);
       int month = cal.get(Calendar.MONTH) + 1;
       int day = cal.get(Calendar.DAY_OF_MONTH);
 
-      char[] buf = "2000-00-00".toCharArray();
-      buf[0] = Character.forDigit(year / 1000, 10);
-      buf[1] = Character.forDigit((year / 100) % 10, 10);
-      buf[2] = Character.forDigit((year / 10) % 10, 10);
-      buf[3] = Character.forDigit(year % 10, 10);
-      buf[5] = Character.forDigit(month / 10, 10);
-      buf[6] = Character.forDigit(month % 10, 10);
-      buf[8] = Character.forDigit(day / 10, 10);
-      buf[9] = Character.forDigit(day % 10, 10);
+      int hour = cal.get(Calendar.HOUR_OF_DAY);
+      int minute = cal.get(Calendar.MINUTE);
+      int second = cal.get(Calendar.SECOND);
+      int micros = (int) (instant.getMicrosLocal() - MILLISECONDS.toMicros(MICROSECONDS.toMillis(instant.getMicrosLocal())));
 
-      return new String(buf);
+      String yearString;
+      String monthString;
+      String dayString;
+      String hourString;
+      String minuteString;
+      String secondString;
+      String microsString;
+      String zeros = "000000000";
+      String yearZeros = "0000";
+      StringBuffer timestampBuf;
+
+      if (year < 1000) {
+        // Add leading zeros
+        yearString = "" + year;
+        yearString = yearZeros.substring(0, (4 - yearString.length())) + yearString;
+      }
+      else {
+        yearString = "" + year;
+      }
+      if (month < 10) {
+        monthString = "0" + month;
+      }
+      else {
+        monthString = Integer.toString(month);
+      }
+      if (day < 10) {
+        dayString = "0" + day;
+      }
+      else {
+        dayString = Integer.toString(day);
+      }
+      if (hour < 10) {
+        hourString = "0" + hour;
+      }
+      else {
+        hourString = Integer.toString(hour);
+      }
+      if (minute < 10) {
+        minuteString = "0" + minute;
+      }
+      else {
+        minuteString = Integer.toString(minute);
+      }
+      if (second < 10) {
+        secondString = "0" + second;
+      }
+      else {
+        secondString = Integer.toString(second);
+      }
+      if (micros == 0) {
+        microsString = "0";
+      }
+      else {
+        microsString = Integer.toString(micros);
+
+        // Add leading zeros
+        microsString = zeros.substring(0, (6 - microsString.length())) + microsString;
+
+        // Truncate trailing zeros
+        char[] microsChar = new char[microsString.length()];
+        microsString.getChars(0, microsString.length(), microsChar, 0);
+        int truncIndex = 5;
+        while (microsChar[truncIndex] == '0') {
+          truncIndex--;
+        }
+
+        microsString = new String(microsChar, 0, truncIndex + 1);
+      }
+
+      // do a string buffer here instead.
+      timestampBuf = new StringBuffer(20 + microsString.length());
+      timestampBuf.append(yearString);
+      timestampBuf.append("-");
+      timestampBuf.append(monthString);
+      timestampBuf.append("-");
+      timestampBuf.append(dayString);
+      timestampBuf.append(" ");
+      timestampBuf.append(hourString);
+      timestampBuf.append(":");
+      timestampBuf.append(minuteString);
+      timestampBuf.append(":");
+      timestampBuf.append(secondString);
+      timestampBuf.append(".");
+      timestampBuf.append(microsString);
+
+      if (instant.getZone() != null) {
+        long zoneOff = MILLISECONDS.toHours(instant.getZoneOffsetMillis());
+        if (zoneOff > 0)
+          timestampBuf.append("+");
+        timestampBuf.append(zoneOff);
+      }
+
+      return (timestampBuf.toString());
     }
 
   }

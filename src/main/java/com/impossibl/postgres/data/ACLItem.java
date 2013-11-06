@@ -99,4 +99,44 @@ public class ACLItem {
     return aclItem;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((grantor == null) ? 0 : grantor.hashCode());
+    result = prime * result + ((privileges == null) ? 0 : privileges.hashCode());
+    result = prime * result + ((user == null) ? 0 : user.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    ACLItem other = (ACLItem) obj;
+    if (grantor == null) {
+      if (other.grantor != null)
+        return false;
+    }
+    else if (!grantor.equals(other.grantor))
+      return false;
+    if (privileges == null) {
+      if (other.privileges != null)
+        return false;
+    }
+    else if (!privileges.equals(other.privileges))
+      return false;
+    if (user == null) {
+      if (other.user != null)
+        return false;
+    }
+    else if (!user.equals(other.user))
+      return false;
+    return true;
+  }
+
 }

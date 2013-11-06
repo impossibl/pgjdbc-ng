@@ -175,7 +175,7 @@ public class PreciseInstant extends InstantBase {
       if (other.zone != null)
         return false;
     }
-    else if (!zone.equals(other.zone))
+    else if (zone.getRawOffset() != other.zone.getRawOffset())
       return false;
     return true;
   }

@@ -34,9 +34,6 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.types.PrimitiveType.Range;
-import static com.impossibl.postgres.types.PrimitiveType.Record;
-
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -44,14 +41,14 @@ import org.jboss.netty.buffer.ChannelBuffer;
 public class Ranges extends SimpleProcProvider {
 
   public Ranges() {
-    super(null, null, new Encoder(), new Decoder(), "range_");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "range_");
   }
 
-  static class Decoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return Range;
+      return PrimitiveType.Range;
     }
 
     @Override
@@ -92,7 +89,7 @@ public class Ranges extends SimpleProcProvider {
 
   }
 
-  static class Encoder extends BinaryEncoder {
+  static class BinEncoder extends BinaryEncoder {
 
     @Override
     public Class<?> getInputType() {
@@ -101,7 +98,7 @@ public class Ranges extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return Record;
+      return PrimitiveType.Range;
     }
 
     @Override
@@ -134,6 +131,166 @@ public class Ranges extends SimpleProcProvider {
         buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
       }
 
+    }
+
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Range;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return Object[].class;
+    }
+
+    @Override
+    public Range<?> decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      RangeType rangeType = (RangeType) type;
+      Type baseType = rangeType.getBase();
+
+      boolean lowerInc = false, upperInc = false;
+      Object lower = null, upper = null;
+
+      if (buffer.charAt(0) == '[') {
+        lowerInc = true;
+      }
+
+      if (buffer.charAt(buffer.length() - 1) == ']') {
+        upperInc = true;
+      }
+
+      CharSequence lowerTxt = buffer.subSequence(1, findBound(buffer, 1));
+      if (lowerTxt.length() != 0) {
+        lower = baseType.getTextCodec().decoder.decode(baseType, lowerTxt, context);
+      }
+
+      CharSequence upperTxt = buffer.subSequence(2 + lowerTxt.length(), buffer.length() - 1);
+      if (upperTxt.length() != 0) {
+        upper = baseType.getTextCodec().decoder.decode(baseType, upperTxt, context);
+      }
+
+      return Range.create(lower, lowerInc, upper, upperInc);
+    }
+
+    private int findBound(CharSequence buffer, int start) {
+
+      boolean string = false;
+
+      int stop;
+      for (stop = start; stop < buffer.length(); ++stop) {
+
+        char ch = buffer.charAt(stop);
+        switch (ch) {
+
+          case '"':
+            string = !string;
+            break;
+
+          case '\\':
+            ++stop;
+            break;
+
+          default:
+
+            if (ch == ',' && !string) {
+              return stop;
+            }
+
+        }
+
+      }
+
+      return stop;
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public Class<?> getInputType() {
+      return Range.class;
+    }
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Range;
+    }
+
+    @Override
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      RangeType rangeType = (RangeType) type;
+      Type baseType = rangeType.getBase();
+
+      Range<?> range = (Range<?>) val;
+
+      if (range.isLowerBoundInclusive()) {
+        buffer.append('[');
+      }
+      else {
+        buffer.append('(');
+      }
+
+      if (range.hasLowerBound()) {
+        StringBuilder lowerBuffer = new StringBuilder();
+        baseType.getTextCodec().encoder.encode(baseType, lowerBuffer, range.getLowerBound(), context);
+        String lower = lowerBuffer.toString();
+
+        if (needsQuotes(lower)) {
+          buffer.append('"').append(lower).append('"');
+        }
+        else {
+          buffer.append(lower);
+        }
+      }
+
+      buffer.append(',');
+
+      if (range.hasUpperBound()) {
+        StringBuilder upperBuffer = new StringBuilder();
+        baseType.getTextCodec().encoder.encode(baseType, upperBuffer, range.getUpperBound(), context);
+        String upper = upperBuffer.toString();
+
+        if (needsQuotes(upper)) {
+          buffer.append('"').append(upper).append('"');
+        }
+        else {
+          buffer.append(upper);
+        }
+      }
+
+      if (range.isUpperBoundInclusive()) {
+        buffer.append(']');
+      }
+      else {
+        buffer.append(')');
+      }
+
+    }
+
+    private boolean needsQuotes(String elemStr) {
+
+      if (elemStr.isEmpty())
+        return true;
+
+      if (elemStr.equalsIgnoreCase("NULL"))
+        return true;
+
+      for (int c = 0; c < elemStr.length(); ++c) {
+
+        char ch = elemStr.charAt(c);
+
+        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+          return true;
+      }
+
+      return false;
     }
 
   }

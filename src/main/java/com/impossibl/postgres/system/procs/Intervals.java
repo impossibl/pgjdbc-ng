@@ -37,15 +37,17 @@ import static com.impossibl.postgres.types.PrimitiveType.Interval;
 
 import java.io.IOException;
 
+import static java.lang.String.format;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Intervals extends SimpleProcProvider {
 
   public Intervals() {
-    super(null, null, new Encoder(), new Decoder(), "interval_");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "interval_");
   }
 
-  static class Decoder extends BinaryDecoder {
+  static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
@@ -77,7 +79,7 @@ public class Intervals extends SimpleProcProvider {
 
   }
 
-  static class Encoder extends BinaryEncoder {
+  static class BinEncoder extends BinaryEncoder {
 
     @Override
     public Class<?> getInputType() {
@@ -111,6 +113,56 @@ public class Intervals extends SimpleProcProvider {
     @Override
     public int length(Type type, Object val, Context context) throws IOException {
       return val == null ? 4 : 20;
+    }
+
+  }
+
+  static class TxtDecoder extends TextDecoder {
+
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return Interval;
+    }
+
+    @Override
+    public Class<?> getOutputType() {
+      return Interval.class;
+    }
+
+    @Override
+    public Interval decode(Type type, CharSequence buffer, Context context) throws IOException {
+
+      return new Interval(buffer.toString());
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public Class<?> getInputType() {
+      return Interval.class;
+    }
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return Interval;
+    }
+
+    @Override
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      Interval ival = (Interval) val;
+
+      buffer.
+        append("@ ").
+        append(ival.getYears()).append(" years ").
+        append(ival.getMonths()).append(" months ").
+        append(ival.getDays()).append(" days ").
+        append(ival.getHours()).append(" hours ").
+        append(ival.getMinutes()).append(" minutes ").
+        append(format("%f", ival.getSeconds())).append(" seconds");
+
     }
 
   }

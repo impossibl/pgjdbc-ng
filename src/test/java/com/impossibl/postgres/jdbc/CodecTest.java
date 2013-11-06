@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.data.ACLItem;
 import com.impossibl.postgres.data.Interval;
 import com.impossibl.postgres.data.Range;
 import com.impossibl.postgres.data.Record;
@@ -64,7 +65,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class CodecTest {
 
-  public Object[][] binaryData;
+  public Object[][] dataRows;
 
   PGConnection conn;
 
@@ -78,31 +79,34 @@ public class CodecTest {
     CompositeType teststructType = (CompositeType) conn.getRegistry().loadType("teststruct");
     assertNotNull(teststructType);
 
-    binaryData = new Object[][] {
-      {"int4[]", new Integer[] {1, 2, 3}},
-      {"bit", new BitSet(42)},
-      {"bool", true},
-      {"bytea", new ByteArrayInputStream(new byte[5])},
-      {"date", new AmbiguousInstant(Instant.Type.Date, 0)},
-      {"float4", 1.23f},
-      {"float8", 2.34d},
-      {"int2", (short)234},
-      {"int4", 234},
-      {"int8", (long)234},
-      {"interval", new Interval(1, 2, 3)},
-      {"money", new BigDecimal("2342.00")},
-      {"name", "hi"},
-      {"numeric", new BigDecimal("2342.00")},
-      {"oid", 132},
-      {"int4range", Range.create(0, 5)},
-      {"teststruct", new Record(teststructType, new Object[] {"hi", "hello", UUID.randomUUID(), 2.d})},
-      {"text", "hi"},
-      {"timestamp", new AmbiguousInstant(Instant.Type.Timestamp, 123)},
-      {"timestamptz", new PreciseInstant(Instant.Type.Timestamp, 123, TimeZone.getTimeZone("UTC"))},
-      {"time", new AmbiguousInstant(Instant.Type.Time, 123)},
-      {"timetz", new PreciseInstant(Instant.Type.Time, 123, TimeZone.getTimeZone("GMT+00:00"))},
-      {"uuid", UUID.randomUUID()},
-      {"xml", "<hi></hi>".getBytes()}
+    dataRows = new Object[][] {
+      {false, true, "aclitem", new ACLItem("test", "rw", "root")},
+      {true,  true, "int4[]", new Integer[] {1, 2, 3}},
+      {true,  true, "bit", new BitSet(42)},
+      {true,  true, "bool", true},
+      {true,  true, "bytea", new ByteArrayInputStream(new byte[5])},
+      {true,  true, "date", new AmbiguousInstant(Instant.Type.Date, 0)},
+      {true,  true, "float4", 1.23f},
+      {true,  true, "float8", 2.34d},
+      {true,  true, "int2", (short)234},
+      {true,  true, "int4", 234},
+      {true,  true, "int8", (long)234},
+      {true,  true, "interval", new Interval(1, 2, 3)},
+      {true,  true, "money", new BigDecimal("2342.00")},
+      {true,  true, "name", "hi"},
+      {true,  true, "numeric", new BigDecimal("2342.00")},
+      {true,  true, "oid", 132},
+      {true,  true, "int4range", Range.create(0, true, 5, false)},
+      {true,  true, "teststruct", new Record(teststructType, new Object[] {"hi", "hello", UUID.randomUUID(), 2.d})},
+      {true,  true, "text", "hi"},
+      {true,  true, "timestamp", new AmbiguousInstant(Instant.Type.Timestamp, 123)},
+      {true, false, "timestamptz", new PreciseInstant(Instant.Type.Timestamp, 123, TimeZone.getTimeZone("UTC"))},
+      {false, true, "timestamptz", new PreciseInstant(Instant.Type.Timestamp, 123, conn.getTimeZone())},
+      {true,  true, "time", new AmbiguousInstant(Instant.Type.Time, 123)},
+      {true, false, "timetz", new PreciseInstant(Instant.Type.Time, 123, TimeZone.getTimeZone("GMT+00:00"))},
+      {false, true, "timetz", new PreciseInstant(Instant.Type.Time, 123, conn.getTimeZone())},
+      {true,  true, "uuid", UUID.randomUUID()},
+      {true, false, "xml", "<hi></hi>".getBytes()}
     };
   }
 
@@ -115,16 +119,21 @@ public class CodecTest {
   @Test
   public void testBinaryCodecs() throws IOException {
 
-    for (Object[] data : binaryData) {
+    for (Object[] data : dataRows) {
 
-      String typeName = (String) data[0];
-      Object val = data[1];
+      if (!(boolean) data[0])
+        continue;
+
+      String typeName = (String) data[2];
+      Object val = data[3];
 
       Type type = conn.getRegistry().loadType(typeName);
       Codec codec = type.getBinaryCodec();
 
-      if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown)
+      if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+        System.out.println("Skipping " + typeName + " (bin)");
         continue;
+      }
 
       if (val instanceof InputStream) {
         ((InputStream) val).mark(Integer.MAX_VALUE);
@@ -144,12 +153,51 @@ public class CodecTest {
   }
 
   @Test
+  public void testTextCodecs() throws IOException {
+
+    for (Object[] data : dataRows) {
+
+      if (!(boolean) data[1])
+        continue;
+
+      String typeName = (String) data[2];
+      Object val = data[3];
+
+      Type type = conn.getRegistry().loadType(typeName);
+      Codec codec = type.getTextCodec();
+
+      if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+        System.out.println("Skipping " + typeName + " (txt)");
+        continue;
+      }
+
+      if (val instanceof InputStream) {
+        ((InputStream) val).reset();
+        assertStreamEquals(typeName + " (txt): ", (InputStream) val, (InputStream) inOut(type, codec, val));
+      }
+      else if (val instanceof byte[]) {
+        assertArrayEquals(typeName + " (txt): ", (byte[]) val, (byte[]) inOut(type, codec, val));
+      }
+      else if (val instanceof Object[]) {
+        assertArrayEquals(typeName + " (txt): ", (Object[]) val, (Object[]) inOut(type, codec, val));
+      }
+      else {
+        assertEquals(typeName + " (txt): ", val, inOut(type, codec, val));
+      }
+    }
+
+  }
+
+  @Test
   public void testBinaryEncoderLength() throws IOException {
 
-    for (Object[] data : binaryData) {
+    for (Object[] data : dataRows) {
 
-      String typeName = (String) data[0];
-      Object val = data[1];
+      if (!(boolean) data[0])
+        continue;
+
+      String typeName = (String) data[2];
+      Object val = data[3];
 
       Type type = conn.getRegistry().loadType(typeName);
 

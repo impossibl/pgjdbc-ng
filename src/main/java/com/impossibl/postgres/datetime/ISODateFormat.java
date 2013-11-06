@@ -31,11 +31,14 @@ package com.impossibl.postgres.datetime;
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
+
 import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
 import static com.impossibl.postgres.datetime.FormatUtils.parseInt;
 
 import java.util.Calendar;
 import java.util.Map;
+import java.util.TimeZone;
+
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 public class ISODateFormat implements DateTimeFormat {
@@ -106,24 +109,55 @@ public class ISODateFormat implements DateTimeFormat {
     @Override
     public String format(Instant instant) {
 
-      Calendar cal = Calendar.getInstance(instant.getZone());
+      TimeZone zone = instant.getZone();
+      if (zone == null) {
+        zone = TimeZone.getTimeZone("UTC");
+      }
+
+      Calendar cal = Calendar.getInstance(zone);
       cal.setTimeInMillis(MICROSECONDS.toMillis(instant.getMicrosUTC()));
 
       int year = cal.get(Calendar.YEAR);
       int month = cal.get(Calendar.MONTH) + 1;
       int day = cal.get(Calendar.DAY_OF_MONTH);
 
-      char[] buf = "2000-00-00".toCharArray();
-      buf[0] = Character.forDigit(year / 1000, 10);
-      buf[1] = Character.forDigit((year / 100) % 10, 10);
-      buf[2] = Character.forDigit((year / 10) % 10, 10);
-      buf[3] = Character.forDigit(year % 10, 10);
-      buf[5] = Character.forDigit(month / 10, 10);
-      buf[6] = Character.forDigit(month % 10, 10);
-      buf[8] = Character.forDigit(day / 10, 10);
-      buf[9] = Character.forDigit(day % 10, 10);
+      String yearString;
+      String monthString;
+      String dayString;
+      String yearZeros = "0000";
+      StringBuffer timestampBuf;
 
-      return new String(buf);
+      if (year < 1000) {
+        // Add leading zeros
+        yearString = "" + year;
+        yearString = yearZeros.substring(0, (4 - yearString.length())) + yearString;
+      }
+      else {
+        yearString = "" + year;
+      }
+      if (month < 10) {
+        monthString = "0" + month;
+      }
+      else {
+        monthString = Integer.toString(month);
+      }
+      if (day < 10) {
+        dayString = "0" + day;
+      }
+      else {
+        dayString = Integer.toString(day);
+      }
+
+      // do a string buffer here instead.
+      timestampBuf = new StringBuffer(20);
+      timestampBuf.append(yearString);
+      timestampBuf.append("-");
+      timestampBuf.append(monthString);
+      timestampBuf.append("-");
+      timestampBuf.append(dayString);
+      timestampBuf.append(" ");
+
+      return (timestampBuf.toString());
     }
 
   }

@@ -121,7 +121,7 @@ public abstract class Type {
     public interface Encoder {
       Class<?> getInputType();
       PrimitiveType getOutputPrimitiveType();
-      void encode(Type tyoe, Object buffer, Object value, Context context) throws IOException;
+      void encode(Type type, Object buffer, Object value, Context context) throws IOException;
       int length(Type type, Object value, Context context) throws IOException;
     }
 

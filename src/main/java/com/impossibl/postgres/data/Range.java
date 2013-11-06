@@ -110,16 +110,20 @@ public class Range<T> {
   Flags flags;
   Object[] values;
 
-  public static <U> Range<U> create(U lower, U upper) {
-    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INC | Flags.RANGE_UB_INC)), new Object[] {lower, upper});
+  public static <U> Range<U> create(U lower, boolean lowerInc, U upper, boolean upperInc) {
+    int flags = 0;
+    flags |= lower == null ? Flags.RANGE_LB_NULL : 0;
+    flags |= lowerInc ? Flags.RANGE_LB_INC : 0;
+    flags |= lowerInc && lower == null ? Flags.RANGE_LB_INF : 0;
+    flags |= upper == null ? Flags.RANGE_UB_NULL : 0;
+    flags |= upperInc ? Flags.RANGE_UB_INC : 0;
+    flags |= upperInc && lower == null ? Flags.RANGE_UB_INF : 0;
+    flags |= lower == null && upper == null && !lowerInc && !upperInc ? Flags.RANGE_EMPTY : 0;
+    return new Range<U>(new Flags((byte) flags), new Object[] {lower, upper});
   }
 
-  public static <U> Range<U> createLower(U lower) {
-    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INC | Flags.RANGE_UB_INF)), new Object[] {lower});
-  }
-
-  public static <U> Range<U> createUpper(U upper) {
-    return new Range<U>(new Flags((byte) (Flags.RANGE_LB_INF | Flags.RANGE_UB_INC)), new Object[] {upper});
+  public static Range<?> createEmpty() {
+    return new Range<Object>(new Flags((byte) (Flags.RANGE_EMPTY | Flags.RANGE_LB_NULL | Flags.RANGE_UB_NULL)), new Object[] {});
   }
 
   public Range(Flags flags, Object[] values) {
@@ -157,13 +161,19 @@ public class Range<T> {
     return flags.isLowerBoundInfinity();
   }
 
+  public boolean isLowerBoundInclusive() {
+    return flags.isLowerBoundInclusive();
+  }
+
   public boolean hasUpperBound() {
     return flags.hasUpperBound();
   }
 
   @SuppressWarnings("unchecked")
   public T getUpperBound() {
-    return (T) values[1];
+    if (flags.hasLowerBound())
+      return (T) values[1];
+    return (T) values[0];
   }
 
   public void setUpperBound(T val) {
@@ -177,6 +187,10 @@ public class Range<T> {
 
   public boolean isUpperBoundInfinity() {
     return flags.isUpperBoundInfinity();
+  }
+
+  public boolean isUpperBoundInclusive() {
+    return flags.isUpperBoundInclusive();
   }
 
   @Override

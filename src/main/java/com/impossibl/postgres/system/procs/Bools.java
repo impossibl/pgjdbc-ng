@@ -121,7 +121,27 @@ public class Bools extends SimpleProcProvider {
     @Override
     public Boolean decode(Type type, CharSequence buffer, Context context) throws IOException {
 
-      return Boolean.valueOf(buffer.toString());
+      switch (buffer.toString()) {
+        case "TRUE":
+        case "t":
+        case "true":
+        case "y":
+        case "yes":
+        case "on":
+        case "1":
+          return true;
+
+        case "FALSE":
+        case "f":
+        case "false":
+        case "n":
+        case "no":
+        case "off":
+        case "0":
+          return false;
+      }
+
+      return Boolean.FALSE;
     }
 
   }
