@@ -30,13 +30,16 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -45,6 +48,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
+
 import static java.util.Arrays.asList;
 
 class PGSimpleStatement extends PGStatement {
@@ -57,7 +61,20 @@ class PGSimpleStatement extends PGStatement {
 
   SQLWarning prepare(SQLText sqlText) throws SQLException {
 
-    PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText.toString(), Collections.<Type>emptyList());
+    if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
+
+      name = connection.getNextStatementName();
+
+      cursorName = "cursor" + name;
+
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, connection.autoCommit)) {
+
+        cursorName = name = null;
+      }
+
+    }
+
+    PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), Collections.<Type> emptyList());
 
     SQLWarning warningChain = connection.execute(prep, true);
 
@@ -67,6 +84,10 @@ class PGSimpleStatement extends PGStatement {
   }
 
   boolean execute(SQLText sqlText) throws SQLException {
+
+    if (name != null) {
+      dispose(connection, ServerObjectType.Statement, name);
+    }
 
     if (processEscapes) {
       SQLTextEscapes.processEscapes(sqlText, connection);
@@ -81,7 +102,11 @@ class PGSimpleStatement extends PGStatement {
 
       SQLWarning prepWarningChain = prepare(sqlText);
 
-      boolean res = executeStatement(null, Collections.<Type>emptyList(), Collections.<Object>emptyList());
+      boolean res = executeStatement(name, Collections.<Type> emptyList(), Collections.<Object> emptyList());
+
+      if (cursorName != null) {
+        res = super.executeSimple("FETCH ABSOLUTE 0 FROM " + cursorName);
+      }
 
       warningChain = chainWarnings(prepWarningChain, warningChain);
 

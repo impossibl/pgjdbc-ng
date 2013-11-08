@@ -31,8 +31,10 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
 
+import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
+
 import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
 import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
@@ -215,11 +217,62 @@ class SQLTextUtils {
   }
 
   /**
+   * Prepends a clause, provided as text, to the given SQL text.
+   *
+   * @param sqlText
+   *          Input SQL text
+   * @return SQL text with prepended clause or null if sqlText cannot be
+   *         prepended to
+   */
+  public static boolean prependClause(SQLText sqlText, String clause) {
+
+    if (sqlText.getStatementCount() > 1)
+      return false;
+
+    StatementNode statement = sqlText.getLastStatement();
+
+    statement.nodes.add(0, new GrammarPiece(clause, -1));
+
+    return true;
+  }
+
+  public static boolean prependCursorDeclaration(SQLText sqlText, String cursorName, int resultSetType, int resultSetHoldability, boolean autoCommit) {
+
+    if (sqlText.getStatementCount() > 1) {
+      return false;
+    }
+
+    if (sqlText.getFirstStatement().getFirstNode().toString().equalsIgnoreCase("SELECT") == false) {
+      return false;
+    }
+
+    String preCursor = "DECLARE " + cursorName + " ";
+
+    if (resultSetType != ResultSet.TYPE_FORWARD_ONLY) {
+      preCursor += "SCROLL ";
+    }
+    else {
+      preCursor += "NO SCROLL ";
+    }
+
+    preCursor += "CURSOR ";
+
+    if (resultSetHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT || autoCommit) {
+      preCursor += "WITH HOLD ";
+    }
+
+    preCursor += "FOR ";
+
+    return prependClause(sqlText, preCursor);
+  }
+
+  /**
    * Appends a clause, provided as text, to the given SQL text.
    *
-   * @param sqlText Input SQL text
-   * @return SQL text with appended clause or null if sqlText cannot be
-   *          appended to
+   * @param sqlText
+   *          Input SQL text
+   * @return SQL text with appended clause or null if sqlText cannot be appended
+   *         to
    */
   public static boolean appendClause(SQLText sqlText, String clause) {
 

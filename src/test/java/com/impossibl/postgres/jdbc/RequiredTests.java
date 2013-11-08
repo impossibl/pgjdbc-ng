@@ -62,7 +62,9 @@ import org.junit.runners.Suite.SuiteClasses;
   LeakTest.class,
   ServerErrorTest.class,
   ExceptionTest.class,
-  CodecTest.class
+  CodecTest.class,
+  UpdateableResultTest.class,
+  CursorFetchTest.class
 })
 public class RequiredTests {
 

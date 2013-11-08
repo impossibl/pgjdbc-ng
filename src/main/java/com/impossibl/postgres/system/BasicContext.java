@@ -225,15 +225,15 @@ public class BasicContext implements Context {
 
     //Load types
     String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-    List<PgType.Row> pgTypes = execQuery(typeSQL, PgType.Row.class);
+    List<PgType.Row> pgTypes = queryResults(typeSQL, PgType.Row.class);
 
     //Load attributes
     String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-    List<PgAttribute.Row> pgAttrs = execQuery(attrsSQL, PgAttribute.Row.class);
+    List<PgAttribute.Row> pgAttrs = queryResults(attrsSQL, PgAttribute.Row.class);
 
     //Load procs
     String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-    List<PgProc.Row> pgProcs = execQuery(procsSQL, PgProc.Row.class);
+    List<PgProc.Row> pgProcs = queryResults(procsSQL, PgProc.Row.class);
 
     logger.fine("query time: " + timer.getLap() + "ms");
 
@@ -321,14 +321,14 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[0], PgType.Row.class, typeId);
+      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[0], PgType.Row.class, typeId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[1], PgAttribute.Row.class, pgTypes.get(0).relationId);
+      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[1], PgAttribute.Row.class, pgTypes.get(0).relationId);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -343,7 +343,7 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[2], PgType.Row.class, latestTypeId);
+      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[2], PgType.Row.class, latestTypeId);
 
       if (pgTypes.isEmpty()) {
         return;
@@ -354,7 +354,7 @@ public class BasicContext implements Context {
         typeIds[c] = pgTypes.get(c).relationId;
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[3], PgAttribute.Row.class, (Object)typeIds);
+      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[3], PgAttribute.Row.class, (Object)typeIds);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -370,14 +370,14 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = execPreparedQuery(refreshQueries[4], PgType.Row.class, relationId);
+      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[4], PgType.Row.class, relationId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = execPreparedQuery(refreshQueries[1], PgAttribute.Row.class, relationId);
+      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[1], PgAttribute.Row.class, relationId);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -387,7 +387,17 @@ public class BasicContext implements Context {
 
   }
 
-  protected <T> List<T> execQuery(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  protected <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+
+    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, rowType, params);
+
+    @SuppressWarnings("unchecked")
+    List<T> res = (List<T>) resultBatch.results;
+
+    return res;
+  }
+
+  protected QueryCommand.ResultBatch queryBatch(String queryTxt, Class<?> rowType, Object... params) throws IOException, NoticeException {
 
     PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 
@@ -397,15 +407,21 @@ public class BasicContext implements Context {
       throw new NoticeException("Error preparing query", prepare.getError());
     }
 
-    return execPreparedQuery(null, null, rowType, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields());
+    return preparedQueryBatch(null, null, rowType, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields());
   }
 
-  protected <T> List<T> execPreparedQuery(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  protected <T> List<T> preparedQueryResults(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
-    return execPreparedQuery(pq.name, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+    QueryCommand.ResultBatch resultBatch = preparedQueryBatch(pq.name, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+
+    @SuppressWarnings("unchecked")
+    List<T> res = (List<T>) resultBatch.results;
+
+    return res;
   }
 
-  protected <T> List<T> execPreparedQuery(String portalName, String statementName, Class<T> rowType, List<Type> paramTypes, List<Object> paramValues, List<ResultField> resultFields) throws IOException, NoticeException {
+  protected QueryCommand.ResultBatch preparedQueryBatch(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
+      List<ResultField> resultFields) throws IOException, NoticeException {
 
     BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
 
@@ -415,14 +431,15 @@ public class BasicContext implements Context {
       throw new NoticeException("Error executing query", query.getError());
     }
 
-    @SuppressWarnings("unchecked")
-    List<T> res = (List<T>) query.getResultBatches().get(0).results;
+    List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
+    if (resultBatches.isEmpty())
+      return null;
 
-    return res;
+    return resultBatches.get(0);
   }
 
   @SuppressWarnings("unchecked")
-  protected List<Object> execQuery(String queryTxt) throws IOException, NoticeException {
+  protected List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
 
     QueryCommand query = protocol.createQuery(queryTxt);
 
@@ -435,7 +452,19 @@ public class BasicContext implements Context {
     return (List<Object>)query.getResultBatches().get(0).results;
   }
 
-  protected Object execQueryForResult(String queryTxt) throws IOException, NoticeException {
+  protected void query(String queryTxt) throws IOException, NoticeException {
+
+    QueryCommand query = protocol.createQuery(queryTxt);
+
+    protocol.execute(query);
+
+    if (query.getError() != null) {
+      throw new NoticeException("Error querying", query.getError());
+    }
+
+  }
+
+  protected Object queryValue(String queryTxt) throws IOException, NoticeException {
 
     QueryCommand query = protocol.createQuery(queryTxt);
 
@@ -451,7 +480,7 @@ public class BasicContext implements Context {
     }
 
     QueryCommand.ResultBatch resultBatch = res.get(0);
-    if (resultBatch.results.isEmpty()) {
+    if (resultBatch.results == null || resultBatch.results.isEmpty()) {
       return resultBatch.rowsAffected;
     }
 
@@ -462,9 +491,9 @@ public class BasicContext implements Context {
     return firstRow[0];
   }
 
-  protected String execQueryForString(String queryTxt) throws IOException, NoticeException {
+  protected String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
 
-    List<Object> res = execQuery(queryTxt);
+    List<Object> res = queryResults(queryTxt);
     if (res.isEmpty()) {
       return "";
     }

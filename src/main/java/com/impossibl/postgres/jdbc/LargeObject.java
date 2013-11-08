@@ -72,31 +72,31 @@ class LargeObject {
   }
 
   static int creat(PGConnection conn, int mode) throws SQLException {
-    return conn.executeForResult("select lo_creat($1)", true, Integer.class, mode);
+    return conn.executeForFirstResultValue("select lo_creat($1)", true, Integer.class, mode);
   }
 
   static int open(PGConnection conn, int oid, int access) throws SQLException {
-    return conn.executeForResult("select lo_open($1,$2)", true, Integer.class, oid, access);
+    return conn.executeForFirstResultValue("select lo_open($1,$2)", true, Integer.class, oid, access);
   }
 
   static int unlink(PGConnection conn, int oid) throws SQLException {
-    return conn.executeForResult("select lo_unlink($1)", true, Integer.class, oid);
+    return conn.executeForFirstResultValue("select lo_unlink($1)", true, Integer.class, oid);
   }
 
   int close() throws SQLException {
-    return connection.executeForResult("select lo_close($1)", true, Integer.class, fd);
+    return connection.executeForFirstResultValue("select lo_close($1)", true, Integer.class, fd);
   }
 
   long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForResult("select lo_lseek($1,$2,$3)", true, Integer.class, fd, (int)offset, whence);
+    return connection.executeForFirstResultValue("select lo_lseek($1,$2,$3)", true, Integer.class, fd, (int) offset, whence);
   }
 
   long tell() throws SQLException {
-    return connection.executeForResult("select lo_tell($1)", true, Integer.class, fd);
+    return connection.executeForFirstResultValue("select lo_tell($1)", true, Integer.class, fd);
   }
 
   byte[] read(long len) throws SQLException {
-    InputStream data = connection.executeForResult("select loread($1,$2)", true, InputStream.class, fd, (int) len);
+    InputStream data = connection.executeForFirstResultValue("select loread($1,$2)", true, InputStream.class, fd, (int) len);
     try {
       return ByteStreams.toByteArray(data);
     }
@@ -109,11 +109,11 @@ class LargeObject {
 
     InputStream dataIn = new ByteArrayInputStream(data, off, len);
 
-    return connection.executeForResult("select lowrite($1,$2)", true, Integer.class, fd, dataIn);
+    return connection.executeForFirstResultValue("select lowrite($1,$2)", true, Integer.class, fd, dataIn);
   }
 
   int truncate(long len) throws SQLException {
-    return connection.executeForResult("select lo_truncate($1,$2)", true, Integer.class, fd, (int)len);
+    return connection.executeForFirstResultValue("select lo_truncate($1,$2)", true, Integer.class, fd, (int) len);
   }
 
 }

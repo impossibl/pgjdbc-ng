@@ -28,27 +28,52 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.Blob;
 import java.sql.SQLException;
 
-class LargeObject64 extends LargeObject {
 
-  LargeObject64(PGConnection connection, int oid, int fd) {
-    super(connection, oid, fd);
+
+public class Unwrapping {
+
+  static Object unwrapObject(PGConnection connection, Object x) throws SQLException {
+
+    if (x instanceof Blob) {
+      return unwrapBlob(connection, (Blob) x);
+    }
+
+    return x;
   }
 
-  @Override
-  long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_lseek64($1,$2,$3)", true, Long.class, fd, offset, whence);
-  }
+  static PGBlob unwrapBlob(PGConnection connection, Blob x) throws SQLException {
 
-  @Override
-  long tell() throws SQLException {
-    return connection.executeForFirstResultValue("select lo_tell64($1)", true, Long.class, fd);
-  }
+    if (x instanceof PGBlob)
+      return (PGBlob) x;
 
-  @Override
-  int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_truncate64($1,$2)", true, Integer.class, fd, len);
+    InputStream in = x.getBinaryStream();
+    if (in instanceof BlobInputStream) {
+      return new PGBlob(connection, ((BlobInputStream) in).lo.oid);
+    }
+
+    PGBlob nx = (PGBlob) connection.createBlob();
+    OutputStream out = nx.setBinaryStream(1);
+
+    try {
+
+      ByteStreams.copy(in, out);
+
+      in.close();
+      out.close();
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
+
+    return nx;
   }
 
 }

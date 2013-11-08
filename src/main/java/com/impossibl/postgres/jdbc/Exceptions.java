@@ -43,6 +43,7 @@ public class Exceptions {
   public static final SQLException CLOSED_RESULT_SET = new SQLException("Result set closed");
   public static final SQLException CLOSED_CONNECTION = new SQLException("Connection closed");
   public static final SQLException CLOSED_BLOB = new SQLException("Blob closed");
+  public static final SQLException CLOSED_CLOB = new SQLException("Clob closed");
   public static final SQLException INVALID_COLUMN_NAME = new SQLException("Invalid column name");
   public static final SQLException COLUMN_INDEX_OUT_OF_BOUNDS = new SQLException("Column index out of bounds");
   public static final SQLException ROW_INDEX_OUT_OF_BOUNDS = new SQLException("Row index out of bounds");
@@ -50,5 +51,6 @@ public class Exceptions {
   public static final SQLException SERVER_VERSION_NOT_SUPPORTED = new SQLException("Server version not supported");
   public static final SQLException UNWRAP_ERROR = new SQLException("Unwrap error");
   public static final SQLException CURSOR_NOT_SCROLLABLE = new SQLException("Cursor not scrollable");
+  public static final SQLException RS_NOT_UPDATABLE = new SQLException("ResultSet not updatable");
 
 }

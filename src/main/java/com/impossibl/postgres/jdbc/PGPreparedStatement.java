@@ -41,19 +41,22 @@ import com.impossibl.postgres.utils.guava.CharStreams;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.isUnknownParameterTypeError;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.parseUnknownParameterTypeIndex;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
+import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -99,12 +102,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   boolean parsed;
 
 
-
-  PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount) {
+  PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
     super(connection, type, concurrency, holdability, name, null);
     this.sqlText = sqlText;
     this.parameterTypes = asList(new Type[parameterCount]);
     this.parameterValues = asList(new Object[parameterCount]);
+    this.cursorName = cursorName;
   }
 
   public boolean getWantsGeneratedKeys() {
@@ -161,6 +164,10 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   }
 
   void parseIfNeeded() throws SQLException {
+
+    if (cursorName != null && command != null) {
+      super.executeSimple("CLOSE " + cursorName);
+    }
 
     if (!parsed) {
 
@@ -222,6 +229,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
             suggestedParameterTypes.set(paramIdx, type);
 
           }
+          else {
+            throw makeSQLException(error);
+          }
 
         }
 
@@ -258,8 +268,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       parameterValues.set(c, parameterValue);
     }
 
-
     boolean res = super.executeStatement(name, parameterTypes, parameterValues);
+
+    if (cursorName != null) {
+      res = super.executeSimple("FETCH ABSOLUTE 0 FROM " + cursorName);
+    }
 
     if (wantsGeneratedKeys) {
       generatedKeysResultSet = getResultSet();
@@ -633,12 +646,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     checkClosed();
     checkParameterIndex(parameterIndex);
 
-    set(parameterIndex, unwrap(x), targetSqlType);
+    set(parameterIndex, unwrapObject(connection, x), targetSqlType);
   }
 
   @Override
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
-    set(parameterIndex, unwrap(x), Types.BINARY);
+    set(parameterIndex, unwrapBlob(connection, x), Types.BINARY);
   }
 
   @Override
@@ -803,42 +816,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void addBatch(String sql) throws SQLException {
     throw NOT_ALLOWED_ON_PREP_STMT;
-  }
-
-  private Object unwrap(Object x) throws SQLException {
-
-    if (x instanceof Blob) {
-      return unwrap((Blob)x);
-    }
-
-    return x;
-  }
-
-  private PGBlob unwrap(Blob x) throws SQLException {
-
-    if (x instanceof PGBlob)
-      return (PGBlob) x;
-
-    InputStream in = x.getBinaryStream();
-    if (in instanceof BlobInputStream) {
-      return new PGBlob(connection, ((BlobInputStream) in).lo.oid);
-    }
-
-    PGBlob nx = (PGBlob)connection.createBlob();
-    OutputStream out = nx.setBinaryStream(1);
-
-    try {
-
-      ByteStreams.copy(in, out);
-
-      in.close();
-      out.close();
-    }
-    catch (IOException e) {
-      throw new SQLException(e);
-    }
-
-    return nx;
   }
 
 }

@@ -33,6 +33,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Protocol;
+import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
@@ -60,6 +61,7 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSavepointText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLevelText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
 
@@ -140,7 +142,6 @@ class PGConnection extends BasicContext implements Connection {
   }
 
 
-
   long statementId = 0L;
   long portalId = 0L;
   int savepointId;
@@ -151,7 +152,6 @@ class PGConnection extends BasicContext implements Connection {
   List<WeakReference<PGStatement>> activeStatements;
   final Housekeeper housekeeper;
   final Object cleanupKey;
-
 
 
   PGConnection(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException {
@@ -240,7 +240,7 @@ class PGConnection extends BasicContext implements Connection {
 
     if (!autoCommit && protocol.getTransactionStatus() == Idle) {
       try {
-        execQuery(getBeginText());
+        query(getBeginText());
       }
       catch (IOException e) {
         throw new SQLException(e);
@@ -399,7 +399,7 @@ class PGConnection extends BasicContext implements Connection {
 
     try {
 
-      execQuery(sql);
+      query(sql);
 
     }
     catch (BlockingReadTimeoutException e) {
@@ -445,7 +445,7 @@ class PGConnection extends BasicContext implements Connection {
 
     try {
 
-      return execQueryForString(sql);
+      return queryFirstResultString(sql);
 
     }
     catch (BlockingReadTimeoutException e) {
@@ -473,17 +473,7 @@ class PGConnection extends BasicContext implements Connection {
 
   }
 
-  /**
-   * Executes the given SQL text returning the first column of the first row
-   *
-   * @param sql
-   *          SQL text to execute
-   * @return String String value of the 1st column of the 1st row or empty
-   *         string if no results are available
-   * @throws SQLException
-   *           If an error was encountered during execution
-   */
-  <T> T executeForResult(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
+  QueryCommand.ResultBatch executeForFirstResultBatch(String sql, boolean checkTxn, Object... params) throws SQLException {
 
     if (checkTxn) {
       checkTransaction();
@@ -491,15 +481,7 @@ class PGConnection extends BasicContext implements Connection {
 
     try {
 
-      List<Object[]> res = execQuery(sql, Object[].class, params);
-      if (res.isEmpty())
-        return null;
-
-      Object[] resRow = res.get(0);
-      if (resRow.length == 0)
-        return null;
-
-      return returnType.cast(resRow[0]);
+      return queryBatch(sql, Object[].class, params);
 
     }
     catch (BlockingReadTimeoutException e) {
@@ -525,6 +507,34 @@ class PGConnection extends BasicContext implements Connection {
 
     }
 
+  }
+
+  Object[] executeForFirstResult(String sql, boolean checkTxn, Object... params) throws SQLException {
+
+    QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
+
+    List<?> res = resultBatch.results;
+    if (res == null || res.isEmpty())
+      return null;
+
+    return (Object[]) res.get(0);
+  }
+
+  <T> T executeForFirstResultValue(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
+
+    Object[] result = executeForFirstResult(sql, checkTxn, params);
+    if (result == null || result.length == 0)
+      return null;
+
+    return returnType.cast(result[0]);
+
+  }
+
+  long executeForRowsAffected(String sql, boolean checkTxn, Object... params) throws SQLException {
+
+    QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
+
+    return resultBatch.rowsAffected;
   }
 
   /**
@@ -842,6 +852,20 @@ class PGConnection extends BasicContext implements Connection {
 
     String statementName = getNextStatementName();
 
+    String cursorName = null;
+
+    if (resultSetType != ResultSet.TYPE_FORWARD_ONLY || resultSetConcurrency == ResultSet.CONCUR_UPDATABLE) {
+
+      cursorName = "cursor" + statementName;
+
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit)) {
+
+        cursorName = null;
+
+      }
+
+    }
+
     final int[] parameterCount = new int[1];
     sqlText.process(new Processor() {
 
@@ -855,7 +879,7 @@ class PGConnection extends BasicContext implements Connection {
     }, true);
 
     PGPreparedStatement statement =
-        new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0]);
+        new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0], cursorName);
 
     activeStatements.add(new WeakReference<PGStatement>(statement));
 

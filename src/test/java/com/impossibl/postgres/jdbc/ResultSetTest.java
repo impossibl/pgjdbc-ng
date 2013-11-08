@@ -41,7 +41,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /*
  * ResultSet tests.
@@ -397,10 +400,10 @@ public class ResultSetTest {
     assertEquals(-99999, rs.getLong(1));
 
     assertTrue(rs.next());
-    assertEquals(((long) Integer.MAX_VALUE), rs.getLong(1));
+    assertEquals((Integer.MAX_VALUE), rs.getLong(1));
 
     assertTrue(rs.next());
-    assertEquals(((long) Integer.MIN_VALUE), rs.getLong(1));
+    assertEquals((Integer.MIN_VALUE), rs.getLong(1));
 
     assertTrue(rs.next());
     assertEquals(((long) Integer.MAX_VALUE) + 1, rs.getLong(1));
@@ -439,13 +442,10 @@ public class ResultSetTest {
     assertEquals(100, stmt.getFetchSize());
     assertEquals(ResultSet.FETCH_UNKNOWN, stmt.getFetchDirection());
 
-//TODO: reconcile against mainstream driver
-//    assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
-//TODO: reconcile against mainstream driver
-//    assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+    assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+    assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
     assertEquals(100, rs.getFetchSize());
-//TODO: reconcile against mainstream driver
-//    assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
+    assertEquals(ResultSet.FETCH_FORWARD, rs.getFetchDirection());
 
     rs.close();
     stmt.close();

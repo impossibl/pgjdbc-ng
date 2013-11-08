@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
+
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
@@ -54,6 +55,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import static java.util.Arrays.asList;
 
 class PGDatabaseMetaData implements DatabaseMetaData {
@@ -1479,7 +1481,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         Iterator<String> e = privileges.keySet().iterator();
         int i = 0;
         while (e.hasNext()) {
-          privNames[i++] = (String) e.next();
+          privNames[i++] = e.next();
         }
 
         Arrays.sort(privNames);
@@ -2205,12 +2207,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     PGResultSet rs = execForResultSet(sql.toString(), params);
 
     ResultField[] fields = new ResultField[7];
-    fields[0] = rs.resultFields.get(0);
-    fields[1] = rs.resultFields.get(1);
-    fields[2] = rs.resultFields.get(2);
-    fields[3] = rs.resultFields.get(3);
-    fields[4] = rs.resultFields.get(4);
-    fields[5] = rs.resultFields.get(5);
+    fields[0] = rs.getResultFields().get(0);
+    fields[1] = rs.getResultFields().get(1);
+    fields[2] = rs.getResultFields().get(2);
+    fields[3] = rs.getResultFields().get(3);
+    fields[4] = rs.getResultFields().get(4);
+    fields[5] = rs.getResultFields().get(5);
     fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
 
     List<Object[]> results = new ArrayList<>();

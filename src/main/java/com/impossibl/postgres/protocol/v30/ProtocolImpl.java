@@ -1055,6 +1055,8 @@ public class ProtocolImpl implements Protocol {
       case "CREATE":
       case "DROP":
       case "ALTER":
+      case "DECLARE":
+      case "CLOSE":
 
         if (parts.length == 2) {
 

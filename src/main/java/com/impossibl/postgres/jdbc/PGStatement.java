@@ -56,8 +56,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.sql.ResultSet.CONCUR_READ_ONLY;
-import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 abstract class PGStatement implements Statement {
@@ -107,6 +105,7 @@ abstract class PGStatement implements Statement {
 
 
   PGConnection connection;
+  String cursorName;
   int resultSetType;
   int resultSetConcurrency;
   int resultSetHoldability;
@@ -126,6 +125,7 @@ abstract class PGStatement implements Statement {
   int queryTimeout;
   final Housekeeper housekeeper;
   final Object cleanupKey;
+
 
 
   PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
@@ -375,7 +375,7 @@ abstract class PGStatement implements Statement {
 
   PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
 
-    PGResultSet resultSet = new PGResultSet(this, TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY, resultFields, results);
+    PGResultSet resultSet = new PGResultSet(this, resultFields, results);
     activeResultSets.add(new WeakReference<>(resultSet));
     return resultSet;
   }
@@ -528,10 +528,20 @@ abstract class PGStatement implements Statement {
     this.queryTimeout = queryTimeout;
   }
 
+  String getCursorName() {
+
+    if (cursorName == null) {
+      return "cursor" + super.hashCode();
+    }
+
+    return cursorName;
+  }
+
   @Override
   public void setCursorName(String name) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    this.cursorName = name;
   }
 
   @Override
@@ -546,7 +556,18 @@ abstract class PGStatement implements Statement {
 
     QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
-    PGResultSet rs = new PGResultSet(this, ResultSet.CONCUR_READ_ONLY, command, resultBatch.fields, resultBatch.results);
+    PGResultSet rs;
+
+    if (cursorName != null) {
+      rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.fields);
+    }
+    else if (command.getStatus() == QueryCommand.Status.Completed) {
+      rs = new PGResultSet(this, resultBatch.fields, resultBatch.results);
+    }
+    else {
+      rs = new PGResultSet(this, command, resultBatch.fields, resultBatch.results);
+    }
+
     activeResultSets.add(new WeakReference<>(rs));
     return rs;
   }
