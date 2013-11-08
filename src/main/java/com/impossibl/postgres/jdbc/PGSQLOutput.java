@@ -32,6 +32,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
+
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
@@ -214,7 +215,7 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeSQLXML(SQLXML x) throws SQLException {
-    throw NOT_IMPLEMENTED;
+    writeNextAttributeValue(x);
   }
 
   @Override

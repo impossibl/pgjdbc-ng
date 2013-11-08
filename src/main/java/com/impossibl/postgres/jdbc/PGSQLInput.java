@@ -51,6 +51,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
 import java.io.ByteArrayInputStream;
@@ -255,7 +256,7 @@ public class PGSQLInput implements SQLInput {
 
   @Override
   public SQLXML readSQLXML() throws SQLException {
-    throw NOT_IMPLEMENTED;
+    return coerceToXML(getNextAttributeValue(), connection);
   }
 
   @Override
