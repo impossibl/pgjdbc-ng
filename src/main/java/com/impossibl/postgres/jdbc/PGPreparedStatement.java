@@ -717,7 +717,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setNString(int parameterIndex, String value) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
@@ -729,7 +729,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setNClob(int parameterIndex, NClob value) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
@@ -741,7 +741,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
@@ -753,19 +753,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setNClob(int parameterIndex, Reader reader) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
   public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
   public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override

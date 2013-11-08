@@ -1021,7 +1021,7 @@ class PGConnection extends BasicContext implements Connection {
   @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    throw NOT_SUPPORTED;
   }
 
   @Override
