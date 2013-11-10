@@ -44,6 +44,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -68,8 +69,8 @@ public class LeakTest {
   }
 
   ThreadedHousekeeper getHousekeeper() {
-    if (((PGConnection) conn).housekeeper != null)
-      return (ThreadedHousekeeper)((PGConnection) conn).housekeeper;
+    if (((PGConnectionImpl) conn).housekeeper != null)
+      return (ThreadedHousekeeper)((PGConnectionImpl) conn).housekeeper;
     else
       return null;
   }
@@ -78,6 +79,7 @@ public class LeakTest {
   public void testResultSetLeak() throws SQLException {
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     int connId = System.identityHashCode(conn);
 
@@ -102,6 +104,7 @@ public class LeakTest {
   public void testResultSetNoLeak() throws SQLException {
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     int connId = System.identityHashCode(conn);
 
@@ -125,6 +128,7 @@ public class LeakTest {
   public void testStatementLeak() throws SQLException {
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     int connId = System.identityHashCode(conn);
 
@@ -149,6 +153,7 @@ public class LeakTest {
   public void testStatementNoLeak() throws SQLException {
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     int connId = System.identityHashCode(conn);
 
@@ -173,6 +178,7 @@ public class LeakTest {
   public void testConnectionLeak() throws SQLException {
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     int connId = System.identityHashCode(conn);
 
@@ -210,6 +216,7 @@ public class LeakTest {
     conn.close();
 
     ThreadedHousekeeper housekeeper = getHousekeeper();
+    assertNotNull(housekeeper);
 
     sleep();
     assertTrue(housekeeper.testCheckCleaned(rsId));
@@ -229,7 +236,7 @@ public class LeakTest {
       try (Statement stmt = conn.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
 
-          Housekeeper housekeeper = ((PGConnection) conn).housekeeper;
+          Housekeeper housekeeper = ((PGConnectionImpl) conn).housekeeper;
           assertNull(housekeeper);
 
         }
@@ -241,7 +248,7 @@ public class LeakTest {
   private void sleep() {
     System.gc();
     try {
-      Thread.sleep(50);
+      Thread.sleep(100);
     }
     catch (InterruptedException e) {
       // Ignore...

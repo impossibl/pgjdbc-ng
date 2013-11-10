@@ -79,6 +79,7 @@ public class CursorFetchTest {
       stmt.setInt(1, i);
       stmt.executeUpdate();
     }
+    stmt.close();
     con.commit();
   }
 
@@ -141,7 +142,11 @@ public class CursorFetchTest {
           assertEquals("query value error on iteration " + j + "/" + k + " with fetch size " + testSizes[i], position, rs.getInt(1));
         }
       }
+
+      rs.close();
     }
+
+    stmt.close();
   }
 
   @Test
@@ -171,7 +176,11 @@ public class CursorFetchTest {
         assertTrue("ran out of rows doing an absolute fetch at " + position + " on iteration " + j + " with fetchsize" + testSizes[i], rs.absolute(position + 1));
         assertEquals("query value error with fetch size " + testSizes[i], position, rs.getInt(1));
       }
+
+      rs.close();
     }
+
+    stmt.close();
   }
 
   //
@@ -199,6 +208,8 @@ public class CursorFetchTest {
     }
 
     assertEquals(100, count);
+    rs.close();
+    stmt.close();
   }
 
   // test two:
@@ -225,6 +236,9 @@ public class CursorFetchTest {
     }
 
     assertEquals(100, count);
+
+    rs.close();
+    stmt.close();
   }
 
   // test three:
@@ -253,6 +267,8 @@ public class CursorFetchTest {
     }
 
     assertEquals(100, count);
+    rs.close();
+    stmt.close();
   }
 
   // test four:
@@ -281,6 +297,8 @@ public class CursorFetchTest {
     }
 
     assertEquals(100, count);
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -413,6 +431,7 @@ public class CursorFetchTest {
     PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(1)");
     stmt.setFetchSize(100); // Should be meaningless.
     stmt.executeUpdate();
+    stmt.close();
   }
 
   @Test
@@ -434,6 +453,8 @@ public class CursorFetchTest {
     }
 
     assertEquals(101, count);
+    rs.close();
+    stmt.close();
   }
 
   // if the driver tries to use a cursor with autocommit on
@@ -452,6 +473,8 @@ public class CursorFetchTest {
     }
 
     assertEquals(10, count);
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -466,6 +489,8 @@ public class CursorFetchTest {
       assertEquals(count, rs.getRow());
     }
     assertEquals(3, count);
+    rs.close();
+    stmt.close();
   }
 
 }

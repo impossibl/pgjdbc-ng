@@ -67,12 +67,12 @@ public class CodecTest {
 
   public Object[][] dataRows;
 
-  PGConnection conn;
+  PGConnectionImpl conn;
 
   @Before
   public void setUp() throws Exception {
 
-    conn = (PGConnection) TestUtil.openDB();
+    conn = (PGConnectionImpl) TestUtil.openDB();
 
     TestUtil.createType(conn, "teststruct" , "str text, str2 text, id uuid, num float");
 

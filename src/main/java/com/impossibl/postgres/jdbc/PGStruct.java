@@ -40,11 +40,11 @@ import java.util.Map;
 
 public class PGStruct implements Struct {
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   CompositeType type;
   Object[] values;
 
-  public PGStruct(PGConnection connection, CompositeType type, Object[] values) {
+  public PGStruct(PGConnectionImpl connection, CompositeType type, Object[] values) {
     super();
     this.connection = connection;
     this.type = type;
