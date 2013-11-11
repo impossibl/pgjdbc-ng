@@ -102,7 +102,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   Boolean nullFlag;
 
 
-  PGCallableStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
+  PGCallableStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
     super(connection, type, concurrency, holdability, name, sqlText, 0, cursorName);
 
     typeMap = connection.getTypeMap();
