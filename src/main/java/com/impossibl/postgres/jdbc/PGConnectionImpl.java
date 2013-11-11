@@ -553,6 +553,13 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
       housekeeper.remove(cleanupKey);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isServerMinimumVersion(int major, int minor) {
+    return getServerVersion().isMinimum(major, minor);
+  }
+
   @Override
   public boolean isValid(int timeout) throws SQLException {
 
