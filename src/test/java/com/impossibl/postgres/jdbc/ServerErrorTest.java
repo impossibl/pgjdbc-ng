@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -80,7 +82,7 @@ public class ServerErrorTest {
   @Test
   public void testPrimaryKey() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnection)con).isServerMinimumVersion(9, 3))
       return;
 
     Statement stmt = con.createStatement();
@@ -105,7 +107,7 @@ public class ServerErrorTest {
   @Test
   public void testColumn() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnection)con).isServerMinimumVersion(9, 3))
       return;
 
     Statement stmt = con.createStatement();
@@ -129,7 +131,7 @@ public class ServerErrorTest {
   @Test
   public void testDatatype() throws Exception {
 
-    if (!((PGConnection)con).getServerVersion().isMinimum(9, 3))
+    if (!((PGConnection)con).isServerMinimumVersion(9, 3))
       return;
 
     Statement stmt = con.createStatement();

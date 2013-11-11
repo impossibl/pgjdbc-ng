@@ -122,12 +122,12 @@ class SQLTypeUtils {
     return targetType;
   }
 
-  public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     return coerce(val, sourceType, targetType, typeMap, TimeZone.getDefault(), connection);
   }
 
-  public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnection connection) throws SQLException {
+  public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
@@ -625,7 +625,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), URL.class);
   }
 
-  public static Blob coerceToBlob(Object val, PGConnection connection) throws SQLException {
+  public static Blob coerceToBlob(Object val, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
@@ -683,7 +683,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), byte[].class);
   }
 
-  public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
@@ -698,7 +698,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), targetType);
   }
 
-  public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
@@ -763,7 +763,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), targetType);
   }
 
-  public static Struct coerceToStruct(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Struct coerceToStruct(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
 
@@ -791,7 +791,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Struct.class);
   }
 
-  public static Record coerceToRecord(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Record coerceToRecord(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
 
@@ -831,7 +831,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Struct.class);
   }
 
-  public static Object coerceToCustomType(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnection connection) throws SQLException {
+  public static Object coerceToCustomType(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
 
@@ -891,7 +891,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), UUID.class);
   }
 
-  public static SQLXML coerceToXML(Object val, PGConnection connection) throws SQLException {
+  public static SQLXML coerceToXML(Object val, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;

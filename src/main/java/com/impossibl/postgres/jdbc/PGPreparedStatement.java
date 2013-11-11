@@ -102,7 +102,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   boolean parsed;
 
 
-  PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
+  PGPreparedStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
     super(connection, type, concurrency, holdability, name, null);
     this.sqlText = sqlText;
     this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));

@@ -1965,7 +1965,7 @@ class CommandScroller extends ListScroller {
 
 class CursorScroller extends Scroller {
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   String cursorName;
   int type;
   int holdability;

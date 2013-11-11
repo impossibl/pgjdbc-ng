@@ -62,12 +62,12 @@ import java.util.Collections;
 
 public class PGSQLOutput implements SQLOutput {
 
-  private PGConnection connection;
+  private PGConnectionImpl connection;
   private CompositeType type;
   private int currentAttributeIdx;
   private Object[] attributeValues;
 
-  public PGSQLOutput(PGConnection connection, CompositeType type) {
+  public PGSQLOutput(PGConnectionImpl connection, CompositeType type) {
     this.connection = connection;
     this.type = type;
     this.attributeValues = new Object[type.getAttributes().size()];

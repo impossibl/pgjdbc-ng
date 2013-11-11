@@ -43,11 +43,11 @@ import java.util.Map;
 
 class PGResultSetMetaData implements ResultSetMetaData {
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   List<ResultField> resultFields;
   Map<String, Class<?>> typeMap;
 
-  PGResultSetMetaData(PGConnection connection, List<ResultField> resultFields, Map<String, Class<?>> typeMap) {
+  PGResultSetMetaData(PGConnectionImpl connection, List<ResultField> resultFields, Map<String, Class<?>> typeMap) {
     this.connection = connection;
     this.resultFields = resultFields;
     this.typeMap = typeMap;

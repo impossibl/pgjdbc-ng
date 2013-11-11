@@ -26,29 +26,20 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.api.jdbc;
 
-import java.sql.SQLException;
+import java.sql.Connection;
 
-class LargeObject64 extends LargeObject {
+/**
+ * Public API for PGConnection
+ */
+public interface PGConnection extends Connection {
 
-  LargeObject64(PGConnectionImpl connection, int oid, int fd) {
-    super(connection, oid, fd);
-  }
-
-  @Override
-  long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_lseek64($1,$2,$3)", true, Long.class, fd, offset, whence);
-  }
-
-  @Override
-  long tell() throws SQLException {
-    return connection.executeForFirstResultValue("select lo_tell64($1)", true, Long.class, fd);
-  }
-
-  @Override
-  int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_truncate64($1,$2)", true, Integer.class, fd, len);
-  }
-
+  /**
+   * Checks the minimum server version
+   * @param major The major release
+   * @param minor The minor release
+   * @return <code>True</code> if the server is minimum the specified version, otherwise <code>false</code>.
+   */
+  boolean isServerMinimumVersion(int major, int minor);
 }

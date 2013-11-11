@@ -80,14 +80,14 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class PGSQLInput implements SQLInput {
 
-  private PGConnection connection;
+  private PGConnectionImpl connection;
   private CompositeType type;
   private Map<String, Class<?>> typeMap;
   private int currentAttrIdx;
   private Object[] attributeValues;
   private Boolean nullFlag;
 
-  public PGSQLInput(PGConnection connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
+  public PGSQLInput(PGConnectionImpl connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
     this.connection = connection;
     this.type = type;
     this.typeMap = typeMap;

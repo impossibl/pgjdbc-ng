@@ -46,21 +46,21 @@ class LargeObject {
 
   int oid;
   int fd;
-  PGConnection connection;
+  PGConnectionImpl connection;
 
-  static LargeObject open(PGConnection connection, int oid) throws SQLException {
+  static LargeObject open(PGConnectionImpl connection, int oid) throws SQLException {
     int fd = open(connection, oid, INV_READ | INV_WRITE);
     if (fd == -1) {
       throw new SQLException("Unable to open large object");
     }
 
-    if (connection.getServerVersion().isMinimum(9, 3))
+    if (connection.isServerMinimumVersion(9, 3))
       return new LargeObject64(connection, oid, fd);
     else
       return new LargeObject(connection, oid, fd);
   }
 
-  LargeObject(PGConnection connection, int oid, int fd) {
+  LargeObject(PGConnectionImpl connection, int oid, int fd) {
     super();
     this.oid = oid;
     this.fd = fd;
@@ -71,15 +71,15 @@ class LargeObject {
     return open(connection, oid);
   }
 
-  static int creat(PGConnection conn, int mode) throws SQLException {
+  static int creat(PGConnectionImpl conn, int mode) throws SQLException {
     return conn.executeForFirstResultValue("select lo_creat($1)", true, Integer.class, mode);
   }
 
-  static int open(PGConnection conn, int oid, int access) throws SQLException {
+  static int open(PGConnectionImpl conn, int oid, int access) throws SQLException {
     return conn.executeForFirstResultValue("select lo_open($1,$2)", true, Integer.class, oid, access);
   }
 
-  static int unlink(PGConnection conn, int oid) throws SQLException {
+  static int unlink(PGConnectionImpl conn, int oid) throws SQLException {
     return conn.executeForFirstResultValue("select lo_unlink($1)", true, Integer.class, oid);
   }
 

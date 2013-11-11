@@ -46,11 +46,11 @@ import java.util.Map;
 
 public class PGArray implements Array {
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   ArrayType type;
   Object[] value;
 
-  public PGArray(PGConnection connection, ArrayType type, Object[] value) {
+  public PGArray(PGConnectionImpl connection, ArrayType type, Object[] value) {
     super();
     this.connection = connection;
     this.type = type;

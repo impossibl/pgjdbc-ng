@@ -40,7 +40,7 @@ import java.sql.SQLException;
 
 public class Unwrapping {
 
-  static Object unwrapObject(PGConnection connection, Object x) throws SQLException {
+  static Object unwrapObject(PGConnectionImpl connection, Object x) throws SQLException {
 
     if (x instanceof Blob) {
       return unwrapBlob(connection, (Blob) x);
@@ -49,7 +49,7 @@ public class Unwrapping {
     return x;
   }
 
-  static PGBlob unwrapBlob(PGConnection connection, Blob x) throws SQLException {
+  static PGBlob unwrapBlob(PGConnectionImpl connection, Blob x) throws SQLException {
 
     if (x instanceof PGBlob)
       return (PGBlob) x;

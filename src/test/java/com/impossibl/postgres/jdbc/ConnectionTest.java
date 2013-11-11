@@ -204,13 +204,13 @@ public class ConnectionTest {
     String testStr = "This Is OuR TeSt message";
 
     // The connection must be ours!
-    assertTrue(con instanceof PGConnection);
+    assertTrue(con instanceof PGConnectionImpl);
 
     // Clear any existing warnings
     con.clearWarnings();
 
     // Set the test warning
-    ((PGConnection)con).addWarning(new SQLWarning(testStr));
+    ((PGConnectionImpl)con).addWarning(new SQLWarning(testStr));
 
     // Retrieve it
     SQLWarning warning = con.getWarnings();

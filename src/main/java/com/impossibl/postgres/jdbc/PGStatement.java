@@ -70,12 +70,12 @@ abstract class PGStatement implements Statement {
    */
   static class Cleanup implements Runnable {
 
-    PGConnection connection;
+    PGConnectionImpl connection;
     String name;
     List<WeakReference<PGResultSet>> resultSets;
     Exception allocationTrace;
 
-    public Cleanup(PGConnection connection, String name, List<WeakReference<PGResultSet>> resultSets) {
+    public Cleanup(PGConnectionImpl connection, String name, List<WeakReference<PGResultSet>> resultSets) {
       this.connection = connection;
       this.name = name;
       this.resultSets = resultSets;
@@ -104,7 +104,7 @@ abstract class PGStatement implements Statement {
 
 
 
-  PGConnection connection;
+  PGConnectionImpl connection;
   String cursorName;
   int resultSetType;
   int resultSetConcurrency;
@@ -127,8 +127,7 @@ abstract class PGStatement implements Statement {
   final Object cleanupKey;
 
 
-
-  PGStatement(PGConnection connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
+  PGStatement(PGConnectionImpl connection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String name, List<ResultField> resultFields) {
     super();
 
     this.connection = connection;
@@ -170,7 +169,7 @@ abstract class PGStatement implements Statement {
    * @throws SQLException
    *          If an error occurs during disposal
    */
-  public static void dispose(PGConnection connection, ServerObjectType objectType, String objectName) throws SQLException {
+  public static void dispose(PGConnectionImpl connection, ServerObjectType objectType, String objectName) throws SQLException {
 
     if (objectName == null)
       return;
