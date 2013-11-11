@@ -116,9 +116,8 @@ public class ErrorUtils {
    */
   public static SQLWarning makeSQLWarning(Notice notice) {
 
-    if (notice.isWarning()) {
+    if (!notice.isWarning()) {
       throw new IllegalArgumentException("notice not an error");
-
     }
 
     return new SQLWarning(notice.getMessage(), notice.getCode());

@@ -932,20 +932,70 @@ class PGConnection extends BasicContext implements Connection {
 
   @Override
   public CallableStatement prepareCall(String sql) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
+    return prepareCall(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY);
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
+    return prepareCall(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, getHoldability());
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    SQLText sqlText = parseSQL(sql);
+
+    return prepareCall(sqlText, resultSetType, resultSetConcurrency, resultSetHoldability);
+  }
+
+  public PGCallableStatement prepareCall(SQLText sqlText, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+
+    final int[] parameterCount = new int[1];
+    Processor counter = new Processor() {
+
+      @Override
+      public Node process(Node node) throws SQLException {
+        if (node instanceof ParameterPiece)
+          parameterCount[0] += 1;
+        return node;
+      }
+
+    };
+
+    sqlText.process(counter, true);
+    int preParameterCount = parameterCount[0];
+
+    SQLTextEscapes.processEscapes(sqlText, this);
+
+    parameterCount[0] = 0;
+    sqlText.process(counter, true);
+    int finalParameterCount = parameterCount[0];
+
+    String statementName = getNextStatementName();
+
+    String cursorName = null;
+
+    if (resultSetType != ResultSet.TYPE_FORWARD_ONLY || resultSetConcurrency == ResultSet.CONCUR_UPDATABLE) {
+
+      cursorName = "cursor" + statementName;
+
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit)) {
+
+        cursorName = null;
+
+      }
+
+    }
+
+    boolean hasAssign = preParameterCount == (finalParameterCount + 1);
+
+    PGCallableStatement statement =
+        new PGCallableStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0], cursorName, hasAssign);
+
+    activeStatements.add(new WeakReference<PGStatement>(statement));
+
+    return statement;
   }
 
   @Override

@@ -410,7 +410,7 @@ public class BasicContext implements Context {
     return preparedQueryBatch(null, null, rowType, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields());
   }
 
-  protected <T> List<T> preparedQueryResults(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  private <T> List<T> preparedQueryResults(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch = preparedQueryBatch(pq.name, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
 
@@ -420,7 +420,7 @@ public class BasicContext implements Context {
     return res;
   }
 
-  protected QueryCommand.ResultBatch preparedQueryBatch(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
+  private QueryCommand.ResultBatch preparedQueryBatch(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
       List<ResultField> resultFields) throws IOException, NoticeException {
 
     BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);

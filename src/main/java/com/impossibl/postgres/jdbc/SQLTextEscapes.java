@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.jdbc.SQLTextTree.CompositeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.EscapeNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
+import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParenGroupNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.PieceNode;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
@@ -38,6 +39,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.StringLiteralPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.UnquotedIdentifierPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 import com.impossibl.postgres.system.Context;
+
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.concat;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.getEscapeMethod;
 import static com.impossibl.postgres.jdbc.SQLTextEscapeFunctions.grammar;
@@ -80,7 +82,7 @@ public class SQLTextEscapes {
 
   private static Node processEscape(EscapeNode escape, Context context) throws SQLException {
 
-    UnquotedIdentifierPiece type = getNode(escape, 0, UnquotedIdentifierPiece.class);
+    PieceNode type = getNodeNotOf(escape, 0, WhitespacePiece.class, PieceNode.class);
 
     Node result = null;
 
@@ -109,7 +111,7 @@ public class SQLTextEscapes {
         result = processCallEscape(escape);
         break;
 
-      case "?":
+      case "$1":
         result = processCallAssignEscape(escape);
         break;
 
@@ -223,7 +225,22 @@ public class SQLTextEscapes {
     checkLiteralNode(escape, 1, "=");
     checkLiteralNode(escape, 2, "call");
 
-    return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 1, UnquotedIdentifierPiece.class), space(), getNode(escape, 3, ParenGroupNode.class));
+    escape.process(new Processor() {
+
+      @Override
+      public Node process(Node node) throws SQLException {
+
+        if (node instanceof ParameterPiece) {
+          ParameterPiece pp = (ParameterPiece) node;
+          pp.setIdx(pp.getIdx() - 1);
+        }
+
+        return node;
+      }
+
+    }, true);
+
+    return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 3, UnquotedIdentifierPiece.class), space(), getNode(escape, 4, ParenGroupNode.class));
   }
 
   private static Node processCallEscape(EscapeNode escape) throws SQLException {
@@ -301,6 +318,20 @@ public class SQLTextEscapes {
     Node node = comp.get(idx);
     if (!nodeType.isInstance(node))
       throw new SQLException("invalid escape (" + comp.getStartPos() + ")", "Syntax Error");
+
+    return nodeType.cast(node);
+  }
+
+  private static <T extends Node, U extends Node> U getNodeNotOf(CompositeNode comp, int idx, Class<T> notNodeType, Class<U> nodeType) throws SQLException {
+
+    Node node = null;
+
+    while (idx < comp.getNodeCount()) {
+      node = comp.get(idx);
+      if (!notNodeType.isInstance(node))
+        break;
+      idx++;
+    }
 
     return nodeType.cast(node);
   }

@@ -180,7 +180,7 @@ class SQLTypeUtils {
     else if (targetType == Blob.class) {
       return coerceToBlob(val, connection);
     }
-    else if (targetType == byte[].class) {
+    else if (targetType == byte[].class || InputStream.class.isAssignableFrom(targetType)) {
       return coerceToBytes(val, sourceType, connection);
     }
     else if (targetType.isArray()) {

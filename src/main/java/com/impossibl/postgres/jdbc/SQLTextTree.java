@@ -115,6 +115,7 @@ public class SQLTextTree {
       this.nodes = nodes;
     }
 
+    @Override
     void build(StringBuilder builder) {
 
       for (Node node : nodes) {
@@ -147,6 +148,7 @@ public class SQLTextTree {
       return nodes.subList(fromIndex, toIndex);
     }
 
+    @Override
     public Node process(Processor processor, boolean recurse) throws SQLException {
 
       //Process each child node...
@@ -305,6 +307,7 @@ public class SQLTextTree {
       this.text = text;
     }
 
+    @Override
     void build(StringBuilder builder) {
       builder.append(text);
     }
@@ -326,8 +329,20 @@ public class SQLTextTree {
 
   public static class ParameterPiece extends PieceNode {
 
+    int idx;
+
     ParameterPiece(int idx, int pos) {
       super("$" + idx, pos);
+      this.idx = idx;
+    }
+
+    public int getIdx() {
+      return idx;
+    }
+
+    public void setIdx(int idx) {
+      this.idx = idx;
+      setText("$" + idx);
     }
 
   }

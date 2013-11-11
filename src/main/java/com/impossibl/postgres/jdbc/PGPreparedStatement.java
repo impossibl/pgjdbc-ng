@@ -105,8 +105,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   PGPreparedStatement(PGConnection connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
     super(connection, type, concurrency, holdability, name, null);
     this.sqlText = sqlText;
-    this.parameterTypes = asList(new Type[parameterCount]);
-    this.parameterValues = asList(new Object[parameterCount]);
+    this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));
+    this.parameterValues = new ArrayList<>(asList(new Object[parameterCount]));
     this.cursorName = cursorName;
   }
 
@@ -118,21 +118,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     this.wantsGeneratedKeys = wantsGeneratedKeys;
   }
 
-  /**
-   * Ensure the given parameter index is valid for this statement
-   *
-   * @throws SQLException
-   *          If the parameter index is out of bounds
-   */
-  void checkParameterIndex(int idx) throws SQLException {
-
-    if (idx < 1 || idx > parameterValues.size())
-      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
-  }
-
   void set(int parameterIdx, Object val, int targetSQLType) throws SQLException {
     checkClosed();
-    checkParameterIndex(parameterIdx);
+
+    if (parameterIdx < 1 || parameterIdx > parameterValues.size()) {
+      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
+    }
 
     parameterIdx -= 1;
 
@@ -371,14 +362,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
         if (resultBatch.rowsAffected == null) {
-          throw new BatchUpdateException(counts);
+          counts[c] = 0;
+        }
+        else {
+          counts[c] = (int) (long) resultBatch.rowsAffected;
         }
 
         if (wantsGeneratedKeys) {
-          generatedKeys.add((Object[])resultBatch.results.get(0));
+          generatedKeys.add((Object[]) resultBatch.results.get(0));
         }
 
-        counts[c] = (int)(long)resultBatch.rowsAffected;
       }
 
       generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys);
@@ -393,7 +386,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   }
 
-  private List<Type> mergeTypes(List<Type> list, List<Type> defaultTypes) {
+  List<Type> mergeTypes(List<Type> list, List<Type> defaultTypes) {
 
     if (defaultTypes == null)
       return list;
@@ -530,7 +523,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
     checkClosed();
-    checkParameterIndex(parameterIndex);
 
     TimeZone zone = cal.getTimeZone();
 
@@ -644,7 +636,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
     checkClosed();
-    checkParameterIndex(parameterIndex);
 
     set(parameterIndex, unwrapObject(connection, x), targetSqlType);
   }

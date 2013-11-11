@@ -277,6 +277,10 @@ public class SQLText {
         }
       }
 
+      if (parents.peek() instanceof StatementNode == false && parents.peek() instanceof MultiStatementNode == false) {
+        throw new IllegalArgumentException("error parsing SQL");
+      }
+
       return (MultiStatementNode)parents.get(0);
 
     }

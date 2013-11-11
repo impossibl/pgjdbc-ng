@@ -106,7 +106,7 @@ public class Notice {
 
   public boolean isWarning() {
     return code != null &&
-        (code.startsWith(WARNING_CLASS) || code.startsWith(NO_DATA_CLASS));
+        (code.startsWith(WARNING_CLASS) || code.startsWith(NO_DATA_CLASS) || code.startsWith(SUCCESS_CLASS));
   }
 
   public boolean isError() {
