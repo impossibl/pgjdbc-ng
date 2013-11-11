@@ -34,4 +34,12 @@ import java.sql.Connection;
  * Public API for PGConnection
  */
 public interface PGConnection extends Connection {
+
+  /**
+   * Checks the minimum server version
+   * @param major The major release
+   * @param minor The minor release
+   * @return <code>True</code> if the server is minimum the specified version, otherwise <code>false</code>.
+   */
+  boolean isServerMinimumVersion(int major, int minor);
 }

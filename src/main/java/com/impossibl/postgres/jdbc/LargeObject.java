@@ -54,7 +54,7 @@ class LargeObject {
       throw new SQLException("Unable to open large object");
     }
 
-    if (connection.getServerVersion().isMinimum(9, 3))
+    if (connection.isServerMinimumVersion(9, 3))
       return new LargeObject64(connection, oid, fd);
     else
       return new LargeObject(connection, oid, fd);
