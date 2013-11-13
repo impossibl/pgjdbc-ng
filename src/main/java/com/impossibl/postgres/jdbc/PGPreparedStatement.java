@@ -317,6 +317,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     try {
 
+      warningChain = null;
+
       if (batchParameterValues == null || batchParameterValues.isEmpty()) {
         return new int[0];
       }

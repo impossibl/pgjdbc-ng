@@ -243,6 +243,8 @@ class PGSimpleStatement extends PGStatement {
 
     try {
 
+      warningChain = null;
+
       if (batchCommands == null) {
         return new int[0];
       }
