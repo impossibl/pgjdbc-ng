@@ -7,17 +7,18 @@ layout: default
 * UDT support through standard SQLData, SQLInput & SQLOutput
 * Support for JDBC custom type mappings
 * Pluggable custom type serialization
-* Higher performance binary format with text format fallback
+* Compact binary format with text format fallback
 * Database, ResultSet and Parameter meta data
 * Transactions / Savepoints
 * Blobs
+* Updatable ResultSets
+* Callable Statements
+* SSL Authentication and Encrpytion
 
 ## Features Coming Soon
 
+* Code Generation for Custom Types
 * DataSources
-* CallStatements
-* Updatable ResultSets
-* SSL Encryption
 
 ## Releases
 
