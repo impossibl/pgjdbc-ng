@@ -75,6 +75,12 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       }
 
       @Override
+      public synchronized void exception(Throwable cause) {
+        setException(cause);
+        notify();
+      }
+
+      @Override
       public void notice(Notice notice) {
         addNotice(notice);
       }
@@ -154,6 +160,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
     protocol.send(msg);
 
     waitFor(listener);
+
   }
 
 }

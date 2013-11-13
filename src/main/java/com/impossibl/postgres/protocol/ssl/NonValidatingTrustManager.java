@@ -26,17 +26,27 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.ssl;
 
-import java.util.List;
+import java.security.cert.X509Certificate;
 
-public interface Command {
+import javax.net.ssl.X509TrustManager;
 
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
 
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+
+public class NonValidatingTrustManager implements X509TrustManager {
+
+  @Override
+  public X509Certificate[] getAcceptedIssuers() {
+    return new X509Certificate[0];
+  }
+
+  @Override
+  public void checkClientTrusted(X509Certificate[] certs, String authType) {
+  }
+
+  @Override
+  public void checkServerTrusted(X509Certificate[] certs, String authType) {
+  }
 
 }

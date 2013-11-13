@@ -96,4 +96,5 @@ public interface ProtocolListener {
 
   void authenticateSSPI(ProtocolImpl protocol) throws IOException;
 
+  void exception(Throwable cause) throws IOException;
 }

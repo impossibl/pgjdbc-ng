@@ -28,34 +28,192 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ProtocolFactory;
+import com.impossibl.postgres.protocol.SSLRequestCommand;
+import com.impossibl.postgres.protocol.StartupCommand;
+import com.impossibl.postgres.protocol.ssl.SSLContextFactory;
+import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.utils.Converter;
+
+import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.Settings.DATABASE;
+import static com.impossibl.postgres.system.Settings.SSL_MODE;
+import static com.impossibl.postgres.system.Settings.SSL_MODE_DEFAULT;
+import static com.impossibl.postgres.utils.StringTransforms.capitalizeOption;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLHandshakeException;
+
+import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.handler.ssl.SslHandler;
 
 public class ProtocolFactoryImpl implements ProtocolFactory {
 
   @Override
-  public Protocol connect(SocketAddress address, BasicContext context) throws IOException {
+  public Protocol connect(SocketAddress address, BasicContext context) throws IOException, NoticeException {
 
-    ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
+    SSLMode sslMode = context.getSetting(SSL_MODE, new Converter<SSLMode>() {
 
-    ChannelFuture channelFuture = sharedRef.get().getBootstrap().connect(address).awaitUninterruptibly();
-    if (!channelFuture.isSuccess()) {
-      throw new IOException(channelFuture.getCause());
+      @Override
+      public SSLMode apply(Object val) {
+        if (val == null)
+          return SSL_MODE_DEFAULT;
+        String valStr = capitalizeOption(val.toString());
+        return SSLMode.valueOf(valStr);
+      }
+
+    });
+
+    return connect(sslMode, address, context);
+  }
+
+  Protocol connect(SSLMode sslMode, SocketAddress address, BasicContext context) throws IOException, NoticeException {
+
+    try {
+
+      ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
+
+      ClientBootstrap clientBootstrap = sharedRef.get().getBootstrap();
+
+      ChannelFuture connectFuture = clientBootstrap.connect(address).syncUninterruptibly();
+
+      Channel channel = connectFuture.getChannel();
+      ProtocolImpl protocol = new ProtocolImpl(sharedRef, channel, context);
+
+      channel.setAttachment(protocol);
+
+      if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
+
+        // Execute SSL request command
+
+        SSLRequestCommand sslRequestCommand = protocol.createSSLRequest();
+        if (sslRequestCommand == null && sslMode.isRequired()) {
+
+          throw new IOException("SSL not available");
+        }
+
+        protocol.execute(sslRequestCommand);
+
+        // Did server allow it?
+
+        if (sslRequestCommand.isAllowed()) {
+
+          // Attach the actual handler
+
+          SSLEngine sslEngine = SSLContextFactory.create(sslMode, context).createSSLEngine();
+
+          sslEngine.setUseClientMode(true);
+
+          SslHandler sslHandler = new SslHandler(sslEngine);
+
+          channel.getPipeline().addFirst("ssl", sslHandler);
+
+          try {
+
+            sslHandler.handshake().syncUninterruptibly();
+
+          }
+          catch (Exception e) {
+
+            // Retry with no SSL
+            if (sslMode == SSLMode.Prefer) {
+              return connect(SSLMode.Disable, address, context);
+            }
+
+            throw e;
+          }
+
+        }
+        else if (sslMode.isRequired()) {
+
+          throw new IOException("SSL not allowed by server");
+        }
+
+      }
+
+      try {
+
+        startup(protocol, context);
+
+      }
+      catch (Exception e) {
+
+        switch (sslMode) {
+          case Allow:
+            return connect(SSLMode.Require, address, context);
+
+          case Prefer:
+            return connect(SSLMode.Disable, address, context);
+
+          default:
+            throw e;
+        }
+
+      }
+
+      return protocol;
+    }
+    catch (ChannelException e) {
+
+      IOException io;
+
+      // Unwrap
+      Throwable cause = e.getCause();
+      if (cause instanceof IOException) {
+        io = (IOException) cause;
+      }
+      else {
+        io = new IOException(cause);
+      }
+
+      // Unwrap SSL Handshake exceptions
+
+      while (io instanceof SSLHandshakeException) {
+        if (io.getCause() instanceof IOException) {
+          io = (IOException) io.getCause();
+        }
+        else {
+          io = new IOException("SSL Error: " + io.getCause().getMessage(), io.getCause());
+        }
+      }
+
+      throw io;
     }
 
-    Channel channel = channelFuture.getChannel();
-    Protocol protocol = new ProtocolImpl(sharedRef, channel, context);
+  }
 
-    channel.setAttachment(protocol);
+  private void startup(ProtocolImpl protocol, BasicContext context) throws IOException, NoticeException {
 
-    return protocol;
+    Map<String, Object> params = new HashMap<String, Object>();
+
+    params.put(APPLICATION_NAME, "pgjdbc app");
+    params.put(CLIENT_ENCODING, "UTF8");
+    params.put(DATABASE, context.getSetting(DATABASE, ""));
+    params.put(CREDENTIALS_USERNAME, context.getSetting(CREDENTIALS_USERNAME, ""));
+
+    StartupCommand startup = protocol.createStartup(params);
+
+    protocol.execute(startup);
+
+    Notice error = startup.getError();
+    if (error != null) {
+      throw new NoticeException("Startup Failed", error);
+    }
+
   }
 
 }

@@ -155,7 +155,7 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   final Object cleanupKey;
 
 
-  PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException {
+  PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
     this.activeStatements = new ArrayList<>();
@@ -556,6 +556,7 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isServerMinimumVersion(int major, int minor) {
     return getServerVersion().isMinimum(major, minor);
   }

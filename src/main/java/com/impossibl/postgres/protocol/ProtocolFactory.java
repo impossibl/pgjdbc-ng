@@ -29,12 +29,13 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.NoticeException;
 
 import java.io.IOException;
 import java.net.SocketAddress;
 
 public interface ProtocolFactory {
 
-  Protocol connect(SocketAddress address, BasicContext context) throws IOException;
+  Protocol connect(SocketAddress address, BasicContext context) throws IOException, NoticeException;
 
 }

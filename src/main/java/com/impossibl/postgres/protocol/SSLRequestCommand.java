@@ -28,15 +28,8 @@
  */
 package com.impossibl.postgres.protocol;
 
-import java.util.List;
+public interface SSLRequestCommand extends Command {
 
-public interface Command {
-
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
-
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+  boolean isAllowed();
 
 }

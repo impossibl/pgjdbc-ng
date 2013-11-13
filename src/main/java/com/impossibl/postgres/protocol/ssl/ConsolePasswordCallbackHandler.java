@@ -26,17 +26,21 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.ssl;
 
-import java.util.List;
+import java.io.IOException;
 
-public interface Command {
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
 
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
 
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+
+public class ConsolePasswordCallbackHandler implements CallbackHandler {
+
+  @Override
+  public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+
+  }
 
 }

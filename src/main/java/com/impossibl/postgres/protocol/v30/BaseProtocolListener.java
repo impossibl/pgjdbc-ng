@@ -157,4 +157,8 @@ public class BaseProtocolListener implements ProtocolListener {
   public void authenticateSSPI(ProtocolImpl protocol) throws IOException {
   }
 
+  @Override
+  public void exception(Throwable throwable) throws IOException {
+  }
+
 }

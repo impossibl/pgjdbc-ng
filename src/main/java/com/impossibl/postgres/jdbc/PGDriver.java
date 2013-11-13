@@ -139,11 +139,11 @@ public class PGDriver implements Driver {
       }
       catch (IOException e) {
 
-        lastException = new SQLException("Connection Error", e);
+        lastException = new SQLException("Connection Error: " + e.getMessage(), e);
       }
       catch (NoticeException e) {
 
-        lastException = makeSQLException(e.getNotice());
+        lastException = makeSQLException("Connection Error: ", e.getNotice());
       }
 
     }

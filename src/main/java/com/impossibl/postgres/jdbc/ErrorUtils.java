@@ -30,6 +30,8 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.Notice;
 
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
+
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Iterator;
@@ -93,12 +95,12 @@ public class ErrorUtils {
 
     if (noticeIter.hasNext()) {
 
-      root = makeSQLException(noticeIter.next());
+      root = makeSQLException("", noticeIter.next());
       SQLException current = root;
 
       while (noticeIter.hasNext()) {
 
-        SQLException nextException = makeSQLException(noticeIter.next());
+        SQLException nextException = makeSQLException("", noticeIter.next());
         current.setNextException(nextException);
         current = nextException;
       }
@@ -130,6 +132,17 @@ public class ErrorUtils {
    * @return SQLException
    */
   public static SQLException makeSQLException(Notice notice) {
+    return makeSQLException("", notice);
+  }
+
+  /**
+   * Converts a single error notice to a single SQLException
+   *
+   * @param notice
+   *          Notice to convert
+   * @return SQLException
+   */
+  public static SQLException makeSQLException(String message, Notice notice) {
 
     PGSQLExceptionInfo e;
 
@@ -137,12 +150,12 @@ public class ErrorUtils {
 
     if (code.startsWith("23")) {
 
-      e = new PGSQLIntegrityConstraintViolationException(notice.getMessage(), notice.getCode());
+      e = new PGSQLIntegrityConstraintViolationException(message + nullToEmpty(notice.getMessage()), notice.getCode());
 
     }
     else {
 
-      e = new PGSQLSimpleException(notice.getMessage(), notice.getCode());
+      e = new PGSQLSimpleException(message + nullToEmpty(notice.getMessage()), notice.getCode());
 
     }
 

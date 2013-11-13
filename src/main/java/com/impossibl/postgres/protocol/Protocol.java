@@ -41,6 +41,7 @@ public interface Protocol {
 
   TransactionStatus getTransactionStatus();
 
+  SSLRequestCommand createSSLRequest();
   StartupCommand createStartup(Map<String, Object> parameters);
   PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
   BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
@@ -54,6 +55,5 @@ public interface Protocol {
   void shutdown();
 
   void abort(Executor executor);
-
 
 }

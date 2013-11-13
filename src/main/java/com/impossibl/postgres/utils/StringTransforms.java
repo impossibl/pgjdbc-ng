@@ -26,17 +26,30 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.utils;
 
-import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public interface Command {
 
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
 
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+public class StringTransforms {
+
+  static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-(\\w)|^(\\w)");
+
+  public static String capitalizeOption(String val) {
+
+    StringBuffer newVal = new StringBuffer();
+
+    Matcher matcher = DASH_LETTER_PATTERN.matcher(val);
+    while (matcher.find()) {
+      String m = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+      matcher.appendReplacement(newVal, m.toUpperCase());
+    }
+
+    matcher.appendTail(newVal);
+
+    return newVal.toString();
+  }
 
 }

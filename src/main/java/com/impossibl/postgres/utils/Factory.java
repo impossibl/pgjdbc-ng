@@ -32,6 +32,22 @@ import java.lang.reflect.Array;
 
 public class Factory {
 
+  public static <T> T createInstance(String typeName) {
+
+    try {
+
+      @SuppressWarnings("unchecked")
+      Class<T> type = (Class<T>) Class.forName(typeName);
+
+      return createInstance(type, 0);
+
+    }
+    catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+  }
+
   public static <T> T createInstance(Class<T> type, int sizeIfArray) {
 
     try {

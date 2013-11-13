@@ -33,12 +33,10 @@ import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
 import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
@@ -46,12 +44,9 @@ import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
+import com.impossibl.postgres.utils.Converter;
 import com.impossibl.postgres.utils.Timer;
 
-import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE;
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 
@@ -102,7 +97,7 @@ public class BasicContext implements Context {
   protected PreparedQuery[] refreshQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException {
+  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException, NoticeException {
     this.targetTypeMap = new HashMap<>(targetTypeMap);
     this.settings = settings;
     this.charset = UTF_8;
@@ -145,6 +140,10 @@ public class BasicContext implements Context {
   @Override
   public <T> T getSetting(String name, Class<T> type) {
     return type.cast(settings.get(name));
+  }
+
+  public <T> T getSetting(String name, Converter<T> converter) {
+    return converter.apply(settings.get(name));
   }
 
   @SuppressWarnings("unchecked")
@@ -212,8 +211,6 @@ public class BasicContext implements Context {
 
   protected void init() throws IOException, NoticeException {
 
-    start();
-
     loadTypes();
 
     prepareRefreshTypeQueries();
@@ -241,25 +238,6 @@ public class BasicContext implements Context {
     registry.update(pgTypes, pgAttrs, pgProcs);
 
     logger.fine("load time: " + timer.getLap() + "ms");
-  }
-
-  private void start() throws IOException, NoticeException {
-
-    Map<String, Object> params = new HashMap<String, Object>();
-
-    params.put(APPLICATION_NAME, "pgjdbc app");
-    params.put(CLIENT_ENCODING, "UTF8");
-    params.put(DATABASE, settings.getProperty(DATABASE, ""));
-    params.put(CREDENTIALS_USERNAME, settings.getProperty(CREDENTIALS_USERNAME, ""));
-
-    StartupCommand startup = protocol.createStartup(params);
-
-    protocol.execute(startup);
-
-    Notice error = startup.getError();
-    if (error != null) {
-      throw new NoticeException("Startup Failed", error);
-    }
   }
 
   private void prepareRefreshTypeQueries() throws IOException {

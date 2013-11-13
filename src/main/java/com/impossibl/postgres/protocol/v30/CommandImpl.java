@@ -35,6 +35,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.emptyList;
 
@@ -43,23 +44,36 @@ import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 public abstract class CommandImpl implements Command {
 
   protected long networkTimeout;
+  protected Throwable exception;
   protected Notice error;
   protected List<Notice> notices;
 
+  @Override
   public long getNetworkTimeout() {
     return networkTimeout;
   }
 
+  @Override
   public void setNetworkTimeout(long timeout) {
     this.networkTimeout = timeout;
   }
 
+  @Override
   public Notice getError() {
     return error;
   }
 
   public void setError(Notice error) {
     this.error = error;
+  }
+
+  @Override
+  public Throwable getException() {
+    return exception;
+  }
+
+  public void setException(Throwable cause) {
+    this.exception = cause;
   }
 
   public void addNotice(Notice notice) {
@@ -70,6 +84,7 @@ public abstract class CommandImpl implements Command {
     notices.add(notice);
   }
 
+  @Override
   public List<Notice> getWarnings() {
 
     if (notices == null)

@@ -26,17 +26,25 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.protocol.ssl;
 
-import java.util.List;
+public enum SSLMode {
 
-public interface Command {
+  Disable     (false),
+  Allow       (false),
+  Prefer      (false),
+  Require     (true),
+  VerifyCa    (true),
+  VerifyFull  (true);
 
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
+  boolean required;
 
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+  SSLMode(boolean required) {
+    this.required = required;
+  }
+
+  public boolean isRequired() {
+    return required;
+  }
 
 }

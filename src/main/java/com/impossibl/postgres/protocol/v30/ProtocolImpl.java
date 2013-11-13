@@ -38,6 +38,7 @@ import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.SSLRequestCommand;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.StartupCommand;
 import com.impossibl.postgres.protocol.TransactionStatus;
@@ -71,7 +72,6 @@ import java.util.logging.Logger;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.FINEST;
-import static java.util.logging.Level.SEVERE;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -180,7 +180,14 @@ public class ProtocolImpl implements Protocol {
   private static final byte CLOSE_COMPLETE_MSG_ID = '3';
   private static final byte FUNCTION_RESULT_MSG_ID = 'V';
 
-  private static final ProtocolListener NULL_LISTENER = new BaseProtocolListener() { };
+  private final ProtocolListener NULL_LISTENER = new BaseProtocolListener() {
+
+    @Override
+    public void exception(Throwable cause) throws IOException {
+      lastException = cause;
+    }
+
+  };
 
   AtomicBoolean connected = new AtomicBoolean(true);
   ProtocolShared.Ref sharedRef;
@@ -189,6 +196,7 @@ public class ProtocolImpl implements Protocol {
   TransactionStatus txStatus;
   ProtocolListener listener;
   Timeout executionTimeout;
+  Throwable lastException;
 
   public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
     this.sharedRef = sharedRef;
@@ -199,6 +207,10 @@ public class ProtocolImpl implements Protocol {
 
   public BasicContext getContext() {
     return contextRef.get();
+  }
+
+  public Throwable getLastException() {
+    return lastException;
   }
 
   @Override
@@ -267,6 +279,11 @@ public class ProtocolImpl implements Protocol {
   }
 
   @Override
+  public SSLRequestCommand createSSLRequest() {
+    return new SSLRequestCommandImpl();
+  }
+
+  @Override
   public StartupCommand createStartup(Map<String, Object> settings) {
     return new StartupCommandImpl(settings);
   }
@@ -329,6 +346,8 @@ public class ProtocolImpl implements Protocol {
   @Override
   public synchronized void execute(Command cmd) throws IOException {
 
+    lastException = null;
+
     if (!(cmd instanceof CommandImpl))
       throw new IllegalArgumentException();
 
@@ -339,6 +358,19 @@ public class ProtocolImpl implements Protocol {
     try {
 
       ((CommandImpl)cmd).execute(this);
+
+      Throwable exception = cmd.getException();
+      if (exception != null) {
+        if (exception instanceof RuntimeException) {
+          throw (RuntimeException) exception;
+        }
+        else if (exception instanceof IOException) {
+          throw (IOException) exception;
+        }
+        else {
+          throw new IOException(exception.getCause());
+        }
+      }
 
     }
     catch (InterruptedIOException e) {
@@ -359,6 +391,13 @@ public class ProtocolImpl implements Protocol {
   @Override
   public TransactionStatus getTransactionStatus() {
     return txStatus;
+  }
+
+  public void writeSSLRequest(ChannelBuffer msg) throws IOException {
+
+    msg.writeInt(8);
+    msg.writeInt(80877103);
+
   }
 
   public void writeStartup(ChannelBuffer msg, Map<String, Object> params) throws IOException {
@@ -796,10 +835,8 @@ public class ProtocolImpl implements Protocol {
 
   public void dispatchException(Throwable cause) throws IOException {
 
-    logger.log(SEVERE, "Error dispatching message", cause);
-
     if (listener != null) {
-      listener.error(new Notice("EXCEPTION", Notice.CONNECTION_EXC_CLASS, cause.getMessage()));
+      listener.exception(cause);
     }
   }
 

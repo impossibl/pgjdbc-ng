@@ -26,17 +26,38 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol;
+package com.impossibl.postgres.utils;
 
-import java.util.List;
+import java.io.File;
 
-public interface Command {
 
-  long getNetworkTimeout();
-  void setNetworkTimeout(long timeout);
 
-  Throwable getException();
-  Notice getError();
-  List<Notice> getWarnings();
+public class Paths {
+
+  private static final String OS_NAME = "os.name";
+  private static final String OS_NAME_WINDOWS = "windows";
+  private static final boolean isWindows = System.getProperty(OS_NAME).equalsIgnoreCase(OS_NAME_WINDOWS);
+
+  private static final String USER_HOME_OTHER = "user.home";
+  private static final String USER_HOME_WINDOWS = "APPDATA";
+
+
+  public static String getHome() {
+
+    if (isWindows) {
+      return System.getProperty(USER_HOME_WINDOWS);
+    }
+
+    return System.getProperty(USER_HOME_OTHER);
+  }
+
+  public static String getHome(String path) {
+
+    if (isWindows) {
+      return getHome() + File.pathSeparator + path;
+    }
+
+    return getHome() + File.pathSeparator + "." + path;
+  }
 
 }
