@@ -29,22 +29,28 @@
 package com.impossibl.postgres.system.procs;
 
 
+import com.impossibl.postgres.data.Inet;
+import com.impossibl.postgres.data.Inet.Family;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class MacAddrs extends SimpleProcProvider {
+/**
+ * @author croudet
+ *
+ * @version $Revision:  $, $Date: $, $Name: $, $Author: $
+ */
+public class Inets extends SimpleProcProvider {
+  private static final short PGSQL_AF_INET = 2;
+  private static final short PGSQL_AF_INET6 = 3;
 
   // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
-  // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/utils/adt/mac.c;h=aa9993fa5c6406fa7274ad61de270d5086781a5d;hb=HEAD
-  public MacAddrs() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr_");
+  public Inets() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "inet_");
   }
 
   static class BinDecoder extends BinaryDecoder {
@@ -56,21 +62,35 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return byte[].class;
+      return Inet.class;
     }
 
     @Override
-    public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Inet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
       }
-      else if (length != 6) {
-        throw new IOException("invalid length");
+      // length should be 8 or 20
+      short family = buffer.readUnsignedByte();
+      byte mask = (byte) buffer.readUnsignedByte();
+      int addrSize = buffer.readUnsignedShort();
+      if (family == PGSQL_AF_INET) {
+        if (addrSize != 4) {
+          throw new IOException("Invalid inet4 size: " + addrSize);
+        }
       }
-      byte[] bytes = new byte[6];
-      buffer.readBytes(bytes);
-      return bytes;
+      else if (family == PGSQL_AF_INET6) {
+        if (addrSize != 16) {
+          throw new IOException("Invalid inet6 size: " + addrSize);
+        }
+      }
+      else {
+        throw new IOException("Invalid inet family: " + family);
+      }
+      byte[] addr = new byte[addrSize];
+      buffer.readBytes(addr);
+      return new Inet(addr, mask);
     }
 
   }
@@ -79,7 +99,7 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getInputType() {
-      return byte[].class;
+      return Inet.class;
     }
 
     @Override
@@ -93,23 +113,17 @@ public class MacAddrs extends SimpleProcProvider {
         buffer.writeInt(-1);
       }
       else {
-        byte[] bytes = (byte[]) val;
-        if (bytes.length != 6) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(6);
-        buffer.writeBytes(bytes);
+        Inet inet = (Inet) val;
+        buffer.writeInt(inet.getFamily() == Family.IPV4 ? 8 : 20);
+        buffer.writeByte(inet.getFamily() == Family.IPV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
+        buffer.writeByte(inet.getNetmask());
+        buffer.writeShort(inet.getFamily() == Family.IPV4 ? 4 : 16);
+        buffer.writeBytes(inet.getAddress());
       }
     }
   }
 
   static class TxtDecoder extends TextDecoder {
-    /*
-     * '08:00:2b:01:02:03' '08-00-2b-01-02-03' '08002b:010203' '08002b-010203'
-     * '0800.2b01.0203' '08002b010203'
-     */
-    private static final Pattern macPattern = Pattern
-        .compile("([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})");
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
@@ -118,31 +132,26 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return byte[].class;
+      return Inet.class;
     }
 
     @Override
-    public byte[] decode(Type type, CharSequence buffer, Context context) throws IOException {
-      Matcher m = macPattern.matcher(buffer);
-      if (!m.matches()) {
-        throw new IOException("Invalid Mac address: " + buffer);
+    public Inet decode(Type type, CharSequence buffer, Context context) throws IOException {
+      try {
+        return new Inet(buffer.toString());
       }
-      byte[] addr = new byte[6];
-      for (int i = 0; i < 6; i++) {
-        addr[i] = (byte) Integer.parseInt(m.group(i + 1), 16);
+      catch (RuntimeException ex) {
+        throw new IOException(ex);
       }
-      return addr;
     }
 
   }
 
   static class TxtEncoder extends TextEncoder {
-    private static final char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    private static final char separator = ':';
 
     @Override
     public Class<?> getInputType() {
-      return byte[].class;
+      return Inet.class;
     }
 
     @Override
@@ -152,16 +161,8 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      byte[] addr = (byte[]) val;
-      if (addr.length != 6) {
-        throw new IOException("invalid length");
-      }
-      for (byte b : addr) {
-        int bi = b & 0xff;
-        buffer.append(hexDigits[bi >> 4]);
-        buffer.append(hexDigits[bi & 0xf]).append(separator);
-      }
-      buffer.setLength(buffer.length() - 1);
+      Inet inet = (Inet) val;
+      buffer.append(inet.toString());
     }
 
   }

@@ -49,6 +49,7 @@ public class Procs {
     new Float4s(),
     new Float8s(),
     new HStores(),
+    new Inets(),
     new Int2s(),
     new Int4s(),
     new Int8s(),
