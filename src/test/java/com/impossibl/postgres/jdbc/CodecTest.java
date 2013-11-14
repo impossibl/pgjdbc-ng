@@ -50,6 +50,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -103,6 +106,11 @@ public class CodecTest {
       return;
 
     Type type = conn.getRegistry().loadType(typeName);
+    if (type == null) {
+      System.out.println("Skipping " + typeName + " (bin)");
+      return;
+    }
+
     Codec codec = type.getBinaryCodec();
 
     if (value instanceof Maker) {
@@ -136,6 +144,11 @@ public class CodecTest {
       return;
 
     Type type = conn.getRegistry().loadType(typeName);
+    if (type == null) {
+      System.out.println("Skipping " + typeName + " (txt)");
+      return;
+    }
+
     Codec codec = type.getTextCodec();
 
     if (value instanceof Maker) {
@@ -170,6 +183,10 @@ public class CodecTest {
       return;
 
     Type type = conn.getRegistry().loadType(typeName);
+    if (type == null) {
+      System.out.println("Skipping " + typeName + " (binlen)");
+      return;
+    }
 
     if (value instanceof Maker) {
       value = ((Maker) value).make(conn);
@@ -263,7 +280,29 @@ public class CodecTest {
 
       } },
       {"both", true,  true, "uuid", UUID.randomUUID()},
-      {"bin", true, false, "xml", "<hi></hi>".getBytes()}
+      {"bin", true, false, "xml", "<hi></hi>".getBytes()},
+      {"both", true, true, "macaddr", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) {
+          byte[] addr = new byte[6];
+          new Random().nextBytes(addr);
+          return addr;
+        }
+
+      } },
+      {"both", true, true, "hstore", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) {
+          Map<String,String> map = new HashMap<>();
+          map.put("1", "one");
+          map.put("2", "two");
+          map.put("3", "three");
+          return map;
+        }
+
+      } },
     });
 
   }
