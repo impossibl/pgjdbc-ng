@@ -73,7 +73,7 @@ public class Inets extends SimpleProcProvider {
       }
       // length should be 8 or 20
       short family = buffer.readUnsignedByte();
-      byte mask = (byte) buffer.readUnsignedByte();
+      short mask = buffer.readUnsignedByte();
       int addrSize = buffer.readUnsignedShort();
       if (family == PGSQL_AF_INET) {
         if (addrSize != 4) {

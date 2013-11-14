@@ -28,9 +28,11 @@
  */
 package com.impossibl.postgres.data;
 
+import java.util.Arrays;
+
 public class Inet {
   private Family family;
-  private byte netmask;
+  private short netmask;
   private byte[] addr;
 
   private static final int IPv4INADDRSZ = 4;
@@ -47,10 +49,10 @@ public class Inet {
 
   public Inet(byte[] bytes) {
     setAddress(bytes);
-    netmask = (byte) (bytes.length == IPv4INADDRSZ ? 32 : 128);
+    netmask = (short) (bytes.length == IPv4INADDRSZ ? 32 : 128);
   }
 
-  public Inet(byte[] bytes, byte mask) {
+  public Inet(byte[] bytes, short mask) {
     setAddress(bytes);
     netmask = mask;
   }
@@ -59,7 +61,7 @@ public class Inet {
     return family;
   }
 
-  public int getNetmask() {
+  public short getNetmask() {
     return netmask;
   }
 
@@ -76,6 +78,21 @@ public class Inet {
     // should I duplicate the array?
     addr = bytes;
   }
+
+//  public static void main(String... args) {
+//    String[] inets = new String[] {
+//        "192.168.2.3",
+//        "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
+//        "2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10",
+//        "10.2.1.255/12",
+//        "2001:4f8:3:ba::/64",
+//        "2001:4f8:3:ba:0:0:0:0",
+//        "255.255.255.255"
+//    };
+//    for (String inet: inets) {
+//      System.out.println(inet + " " + new Inet(inet));
+//    }
+//  }
 
   private void setAddress(String addr) {
     int maskIdx = addr.indexOf('/');
@@ -105,10 +122,10 @@ public class Inet {
     if (maskIdx == -1) {
       // set default mask
       if (family == Family.IPV4) {
-        netmask = (byte) 32;
+        netmask = (short) 32;
       }
       else {
-        netmask = (byte) 128;
+        netmask = (short) 128;
       }
     }
     else {
@@ -117,6 +134,34 @@ public class Inet {
       }
     }
     this.addr = addrss;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(addr);
+    result = prime * result + ((family == null) ? 0 : family.hashCode());
+    result = prime * result + netmask;
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof Inet))
+      return false;
+    Inet other = (Inet) obj;
+    if (family != other.family)
+      return false;
+    if (netmask != other.netmask)
+      return false;
+    if (!Arrays.equals(addr, other.addr))
+      return false;
+    return true;
   }
 
   @Override
