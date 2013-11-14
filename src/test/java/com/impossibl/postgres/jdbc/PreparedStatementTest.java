@@ -364,7 +364,7 @@ public class PreparedStatementTest {
     assertEquals("$a$;$x $a$", rs.getString(1));
     assertFalse(rs.next());
 
-    st = conn.prepareStatement("SELECT ?");
+    st = conn.prepareStatement("SELECT ?::text");
     st.setString(1, "$a$ $a$");
     assertTrue(st.execute());
     rs = st.getResultSet();
@@ -791,7 +791,7 @@ public class PreparedStatementTest {
    */
   @Test
   public void testStatementDescribe() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
     pstmt.setObject(1, new Integer(2));
     for (int i = 0; i < 10; i++) {
       ResultSet rs = pstmt.executeQuery();

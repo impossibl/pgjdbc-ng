@@ -30,7 +30,6 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -40,15 +39,11 @@ import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
-import static com.impossibl.postgres.jdbc.ErrorUtils.isUnknownParameterTypeError;
-import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
-import static com.impossibl.postgres.jdbc.ErrorUtils.parseUnknownParameterTypeIndex;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
-import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
@@ -166,70 +161,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name), false);
       }
 
-      /*
-       * Prepare the query while handling the case of "could not determine data type".
-       *
-       * This code loops around trying to prepare the query. It starts with no suggested
-       * parameter data types (i.e. provides null for all of them). If the server fails
-       * to prepare the query because it cannot determine a data type, then a suggested
-       * type is located (provided by an setXXX calls) and provided.  If no suggested
-       * type is available the code fails. The loop continues until all unknown type
-       * errors are resolved.
-       *
-       *  Yes it's slow! Hopefully the rarity of the case and that fact that this is
-       *  only for "prepared" statements mitigate the cost.
-       *
-       */
-      List<Type> suggestedParameterTypes = Arrays.asList(new Type[parameterTypes.size()]);
+      PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), Collections.<Type>emptyList());
 
-      while (true) {
+      warningChain = connection.execute(prep, true);
 
-        PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), suggestedParameterTypes);
-
-        try {
-          warningChain = connection.execute(prep, true);
-
-          parameterTypes = prep.getDescribedParameterTypes();
-          resultFields = prep.getDescribedResultFields();
-
-          //succeeded so we break out "suggesting parameters loop"
-          break;
-        }
-        catch (Exception e) {
-
-          Notice error = prep.getError();
-
-          if (isUnknownParameterTypeError(error)) {
-
-            //Attempt to locate suggested type for parameter...
-
-            Integer paramIdx = parseUnknownParameterTypeIndex(error);
-
-            if (paramIdx == null || paramIdx < 0 || paramIdx >= parameterTypes.size()) {
-              //abort and throw original exception
-              throw e;
-            }
-
-            Type type = parameterTypes.get(paramIdx);
-            if (type == null) {
-
-              type = getType(Types.VARCHAR, connection.getRegistry());
-
-            }
-
-            suggestedParameterTypes.set(paramIdx, type);
-
-          }
-          else {
-            throw makeSQLException(error);
-          }
-
-        }
-
-      }
-
+      parameterTypes = prep.getDescribedParameterTypes();
+      resultFields = prep.getDescribedResultFields();
 
       parsed = true;
+
     }
 
   }
