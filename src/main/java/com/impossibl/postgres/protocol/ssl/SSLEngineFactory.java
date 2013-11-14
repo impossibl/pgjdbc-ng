@@ -57,13 +57,14 @@ import java.util.Iterator;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.callback.CallbackHandler;
 
 
 
-public class SSLContextFactory {
+public class SSLEngineFactory {
 
 
   private static final String TRUST_MANAGER_FACTORY_TYPE = "PKIX";
@@ -73,7 +74,7 @@ public class SSLContextFactory {
   private static final String CERTIFICATE_FACTORY_TYPE = "X.509";
 
 
-  public static SSLContext create(SSLMode sslMode, Context context) throws IOException {
+  public static SSLEngine create(SSLMode sslMode, Context context) throws IOException {
 
     String sslDir = Paths.getHome(SSL_DIR_NAME);
 
@@ -107,6 +108,10 @@ public class SSLContextFactory {
     }
     catch (RuntimeException e) {
       throw new IOException("cannot instantiate provided password callback: " + sslPasswordCallbackClassName);
+    }
+
+    if (sslPasswordCallback instanceof ContextCallbackHandler) {
+      ((ContextCallbackHandler) sslPasswordCallback).init(context);
     }
 
     KeyManager keyManager = new OnDemadKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileIsDefault);
@@ -199,7 +204,11 @@ public class SSLContextFactory {
       throw new IOException("ssl context initialization error", e);
     }
 
-    return sslContext;
+    SSLEngine sslEngine = sslContext.createSSLEngine();
+
+    sslEngine.setUseClientMode(true);
+
+    return sslEngine;
   }
 
 }

@@ -30,60 +30,12 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Context;
 
-import static com.impossibl.postgres.system.Settings.SSL_PASSWORD;
-
-import java.io.Console;
-import java.io.IOException;
-
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.callback.CallbackHandler;
 
 
 
-public class ConsolePasswordCallbackHandler implements ContextCallbackHandler {
+public interface ContextCallbackHandler extends CallbackHandler {
 
-  private char[] password;
-
-  @Override
-  public void init(Context conn) {
-
-    String password = conn.getSetting(SSL_PASSWORD, String.class);
-    if (password != null) {
-      this.password = password.toCharArray();
-    }
-
-  }
-
-  @Override
-  public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-
-    Console cons = System.console();
-    if (cons == null && password == null) {
-      throw new UnsupportedCallbackException(callbacks[0], "Console is not available");
-    }
-
-    for (int i = 0; i < callbacks.length; i++) {
-
-      if (callbacks[i] instanceof PasswordCallback) {
-
-        PasswordCallback passwordCallback = (PasswordCallback) callbacks[i];
-
-        if (password == null) {
-          // It is used instead of cons.readPassword(prompt), because the prompt
-          // may contain '%' characters
-          passwordCallback.setPassword(cons.readPassword("%s", new Object[] {((PasswordCallback) callbacks[i]).getPrompt()}));
-        }
-        else {
-          passwordCallback.setPassword(password);
-        }
-      }
-      else {
-        throw new UnsupportedCallbackException(callbacks[i]);
-      }
-
-    }
-
-  }
+  void init(Context context);
 
 }

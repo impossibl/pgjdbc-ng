@@ -57,7 +57,8 @@ import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
@@ -70,7 +71,7 @@ import javax.security.auth.x500.X500Principal;
  * A Key manager that only loads the keys, if necessary.
  *
  */
-public class OnDemadKeyManager implements X509KeyManager {
+public class OnDemadKeyManager extends X509ExtendedKeyManager {
 
   private X509Certificate[] certificates = null;
   private PrivateKey key = null;
@@ -291,6 +292,11 @@ public class OnDemadKeyManager implements X509KeyManager {
   @Override
   public String[] getServerAliases(String keyType, Principal[] issuers) {
     return new String[] {};
+  }
+
+  @Override
+  public String chooseEngineClientAlias(String[] keyType, Principal[] issuers, SSLEngine engine) {
+    return chooseClientAlias(keyType, issuers, null);
   }
 
 }

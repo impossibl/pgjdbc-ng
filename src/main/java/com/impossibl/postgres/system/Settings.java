@@ -67,6 +67,8 @@ public class Settings {
   public static final String SSL_KEY_FILE = "ssl.key.file";
   public static final String SSL_KEY_FILE_DEFAULT = "postgresql.pk8";
 
+  public static final String SSL_PASSWORD = "ssl.password";
+
   public static final String SSL_PASSWORD_CALLBACK = "ssl.password.callback";
   public static final String SSL_PASSWORD_CALLBACK_DEFAULT = ConsolePasswordCallbackHandler.class.getName();
 

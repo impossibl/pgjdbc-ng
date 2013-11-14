@@ -33,7 +33,7 @@ import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.ProtocolFactory;
 import com.impossibl.postgres.protocol.SSLRequestCommand;
 import com.impossibl.postgres.protocol.StartupCommand;
-import com.impossibl.postgres.protocol.ssl.SSLContextFactory;
+import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
@@ -48,12 +48,22 @@ import static com.impossibl.postgres.system.Settings.SSL_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.StringTransforms.capitalizeOption;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.security.auth.x500.X500Principal;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
@@ -81,7 +91,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
     return connect(sslMode, address, context);
   }
 
-  Protocol connect(SSLMode sslMode, SocketAddress address, BasicContext context) throws IOException, NoticeException {
+  Protocol connect(SSLMode sslMode, final SocketAddress address, BasicContext context) throws IOException, NoticeException {
 
     try {
 
@@ -114,11 +124,9 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
           // Attach the actual handler
 
-          SSLEngine sslEngine = SSLContextFactory.create(sslMode, context).createSSLEngine();
+          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, context);
 
-          sslEngine.setUseClientMode(true);
-
-          SslHandler sslHandler = new SslHandler(sslEngine);
+          final SslHandler sslHandler = new SslHandler(sslEngine);
 
           channel.getPipeline().addFirst("ssl", sslHandler);
 
@@ -148,6 +156,24 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
       try {
 
         startup(protocol, context);
+
+        if (sslMode == SSLMode.VerifyFull) {
+
+          SslHandler sslHandler = channel.getPipeline().get(SslHandler.class);
+          if (sslHandler != null) {
+
+            String hostname;
+            if (address instanceof InetSocketAddress) {
+              hostname = ((InetSocketAddress) address).getHostString();
+            }
+            else {
+              hostname = "";
+            }
+
+            verifyHostname(hostname, sslHandler.getEngine().getSession());
+          }
+
+        }
 
       }
       catch (Exception e) {
@@ -187,8 +213,12 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
           io = (IOException) io.getCause();
         }
         else {
-          io = new IOException("SSL Error: " + io.getCause().getMessage(), io.getCause());
+          io = new SSLException(io.getCause().getMessage(), io.getCause());
         }
+      }
+
+      if (io instanceof SSLException) {
+        io = new SSLException("SSL Error: " + io.getMessage(), io.getCause());
       }
 
       throw io;
@@ -214,6 +244,58 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
       throw new NoticeException("Startup Failed", error);
     }
 
+  }
+
+  public void verifyHostname(String hostname, SSLSession session) throws SSLPeerUnverifiedException {
+
+    X509Certificate[] peerCerts = (X509Certificate[]) session.getPeerCertificates();
+    if (peerCerts == null || peerCerts.length == 0) {
+      throw new SSLPeerUnverifiedException("No peer certificates");
+    }
+
+    // Extract the common name
+    X509Certificate serverCert = peerCerts[0];
+    LdapName DN;
+    try {
+      DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
+    }
+    catch (InvalidNameException e) {
+      throw new SSLPeerUnverifiedException("Invalid name in certificate");
+    }
+
+    String CN = null;
+    Iterator<Rdn> it = DN.getRdns().iterator();
+    while (it.hasNext()) {
+      Rdn rdn = it.next();
+      if ("CN".equals(rdn.getType())) {
+        // Multiple AVAs are not treated
+        CN = (String) rdn.getValue();
+        break;
+      }
+    }
+
+    if (CN == null) {
+      throw new SSLPeerUnverifiedException("Common name not found");
+    }
+    else if (CN.startsWith("*")) {
+
+      // We have a wildcard
+      if (hostname.endsWith(CN.substring(1))) {
+        // Avoid IndexOutOfBoundsException because hostname already ends with CN
+        if (!(hostname.substring(0, hostname.length() - CN.length() + 1).contains("."))) {
+          throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
+        }
+      }
+      else {
+        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
+      }
+
+    }
+    else {
+      if (!CN.equals(hostname)) {
+        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
+      }
+    }
   }
 
 }

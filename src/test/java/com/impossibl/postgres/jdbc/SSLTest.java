@@ -80,8 +80,11 @@ public class SSLTest {
   }
 
   private String makeConnStr(String sslmode, boolean goodclient, boolean goodserver) {
-    return connstr + "&ssl.mode=" + sslmode + "&ssl.cert.file=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt") + "&ssl.key.file=" + certdir + "/"
-        + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8") + "&ssl.root.cert.file=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt");
+    return connstr
+        + "&ssl.mode=" + sslmode
+        + "&ssl.cert.file=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
+        + "&ssl.key.file=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8")
+        + "&ssl.root.cert.file=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt");
   }
 
   /**
@@ -181,10 +184,10 @@ public class SSLTest {
   static String PG_HBA_ON = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
   static String PG_HBA_OFF = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
   static String FAILED = "The connection attempt failed.";
-  static String BROKEN = "Connection Error: SSL Error: (Broken pipe|Received fatal alert: unknown_ca|Connection reset)";
+  static String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
   static String ANY = ".*";
   static String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
-  static String HOSTNAME = "The hostname .* could not be verified.";
+  static String HOSTNAME = "Connection Error: The hostname .* could not be verified";
 
   static {
     defaultexpected = new TreeMap<>();
@@ -278,8 +281,8 @@ public class SSLTest {
     work.put("disableBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     work.put("allowGG", new Object[] {null, Boolean.TRUE});
     work.put("allowGB", new Object[] {null, Boolean.TRUE});
-    work.put("allowBG", new Object[] {null, Boolean.TRUE});
-    work.put("preferBG", new Object[] {null, Boolean.FALSE});
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     expectedmap.put("sslhostsslgh", work);
 
     work = new TreeMap<>(defaultexpected);
@@ -309,8 +312,8 @@ public class SSLTest {
     work.put("disableBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     work.put("allowGG", new Object[] {null, Boolean.TRUE});
     work.put("allowGB", new Object[] {null, Boolean.TRUE});
-    work.put("allowBG", new Object[] {null, Boolean.TRUE});
-    work.put("preferBG", new Object[] {null, Boolean.FALSE});
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.TRUE});
     expectedmap.put("sslhostsslbh", work);
 
     work = new TreeMap<>(defaultexpected);
@@ -319,10 +322,10 @@ public class SSLTest {
     work.put("disableBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     work.put("allowGG", new Object[] {null, Boolean.TRUE});
     work.put("allowGB", new Object[] {null, Boolean.TRUE});
-    work.put("allowBG", new Object[] {null, Boolean.TRUE});
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
     work.put("preferGG", new Object[] {null, Boolean.TRUE});
     work.put("preferGB", new Object[] {null, Boolean.TRUE});
-    work.put("preferBG", new Object[] {null, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.TRUE});
     work.put("requireGG", new Object[] {null, Boolean.TRUE});
     work.put("requireGB", new Object[] {null, Boolean.TRUE});
     work.put("requireBG", new Object[] {BROKEN, Boolean.TRUE});
@@ -340,10 +343,10 @@ public class SSLTest {
     work.put("disableBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     work.put("allowGG", new Object[] {null, Boolean.TRUE});
     work.put("allowGB", new Object[] {null, Boolean.TRUE});
-    work.put("allowBG", new Object[] {null, Boolean.TRUE});
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
     work.put("preferGG", new Object[] {null, Boolean.TRUE});
     work.put("preferGB", new Object[] {null, Boolean.TRUE});
-    work.put("preferBG", new Object[] {null, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.TRUE});
     work.put("requireGG", new Object[] {null, Boolean.TRUE});
     work.put("requireGB", new Object[] {null, Boolean.TRUE});
     work.put("requireBG", new Object[] {BROKEN, Boolean.TRUE});
@@ -361,10 +364,10 @@ public class SSLTest {
     work.put("disableBG", new Object[] {PG_HBA_OFF, Boolean.FALSE});
     work.put("allowGG", new Object[] {null, Boolean.TRUE});
     work.put("allowGB", new Object[] {null, Boolean.TRUE});
-    work.put("allowBG", new Object[] {null, Boolean.TRUE});
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
     work.put("preferGG", new Object[] {null, Boolean.TRUE});
     work.put("preferGB", new Object[] {null, Boolean.TRUE});
-    work.put("preferBG", new Object[] {null, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.TRUE});
     work.put("requireGG", new Object[] {null, Boolean.TRUE});
     work.put("requireGB", new Object[] {null, Boolean.TRUE});
     work.put("requireBG", new Object[] {BROKEN, Boolean.TRUE});
@@ -377,6 +380,8 @@ public class SSLTest {
     expectedmap.put("sslcertgh", work);
 
     work = new TreeMap<>(work);
+    work.put("allowBG", new Object[] {BROKEN, Boolean.TRUE});
+    work.put("preferBG", new Object[] {PG_HBA_OFF, Boolean.TRUE});
     work.put("verify-fullGG", new Object[] {HOSTNAME, Boolean.TRUE});
     expectedmap.put("sslcertbh", work);
   }
