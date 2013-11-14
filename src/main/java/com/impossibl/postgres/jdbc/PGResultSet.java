@@ -796,12 +796,11 @@ class PGResultSet implements ResultSet {
 
   @Override
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
 
-    byte[] data = getBytes(columnIndex);
-    if (data == null)
-      return null;
-
-    return new ByteArrayInputStream(data);
+    return coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
   }
 
   @Override
