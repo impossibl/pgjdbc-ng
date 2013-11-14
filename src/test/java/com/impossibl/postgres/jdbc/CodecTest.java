@@ -295,7 +295,7 @@ public class CodecTest {
 
         @Override
         public Object make(PGConnectionImpl conn) {
-          Map<String,String> map = new HashMap<>();
+          Map<String, String> map = new HashMap<>();
           map.put("1", "one");
           map.put("2", "two");
           map.put("3", "three");
