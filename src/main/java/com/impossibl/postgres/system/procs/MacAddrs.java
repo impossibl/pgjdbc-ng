@@ -137,7 +137,7 @@ public class MacAddrs extends SimpleProcProvider {
   }
 
   static class TxtEncoder extends TextEncoder {
-    private static final char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '6', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    private static final char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     private static final char separator = ':';
 
     @Override
