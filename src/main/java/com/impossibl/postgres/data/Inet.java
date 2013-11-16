@@ -87,7 +87,8 @@ public class Inet {
 //        "10.2.1.255/12",
 //        "2001:4f8:3:ba::/64",
 //        "2001:4f8:3:ba:0:0:0:0",
-//        "255.255.255.255"
+//        "255.255.255.255",
+//        "::10.2.3.4",
 //    };
 //    for (String inet: inets) {
 //      System.out.println(inet + " " + new Inet(inet));
@@ -95,8 +96,8 @@ public class Inet {
 //  }
 
   private void setAddress(String addr) {
+    // we can use InetAddress.getByName(inet) to parse the ip
     int maskIdx = addr.indexOf('/');
-    int maxMask;
     String ipaddr;
     if (maskIdx > 0) {
       netmask = Byte.parseByte(addr.substring(maskIdx + 1));
@@ -108,17 +109,14 @@ public class Inet {
     byte[] addrss;
     if (ipaddr.indexOf(':') == -1) {
       addrss = parseIPv4Address(ipaddr);
-      family = Family.IPV4;
-      maxMask = 32;
     }
     else {
       addrss = parseIPv6Address(ipaddr);
-      family = Family.IPV6;
-      maxMask = 128;
     }
     if (addrss == null) {
       throw new IllegalArgumentException("Invalid Inet: " + addr);
     }
+    family = addrss.length == IPv4INADDRSZ ? Family.IPV4 : Family.IPV6;
     if (maskIdx == -1) {
       // set default mask
       if (family == Family.IPV4) {
@@ -129,6 +127,7 @@ public class Inet {
       }
     }
     else {
+      int maxMask = family == Family.IPV4 ? 32 : 128;
       if ((this.netmask < 0) || (this.netmask > maxMask)) {
         throw new IllegalArgumentException("Invalid inet mask: " + addr + " - mask: " + netmask);
       }
