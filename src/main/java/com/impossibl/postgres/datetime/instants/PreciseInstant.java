@@ -166,9 +166,12 @@ public class PreciseInstant extends InstantBase {
       return true;
     if (!super.equals(obj))
       return false;
-    if (getClass() != obj.getClass())
+    if (obj instanceof AmbiguousInstant)
+      return ambiguate().equals(obj);
+    if (obj instanceof PreciseInstant == false)
       return false;
     PreciseInstant other = (PreciseInstant) obj;
+    other = other.switchTo(getZone());
     if (micros != other.micros)
       return false;
     if (zone == null) {

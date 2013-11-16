@@ -162,7 +162,9 @@ public class AmbiguousInstant extends InstantBase {
       return true;
     if (!super.equals(obj))
       return false;
-    if (getClass() != obj.getClass())
+    if (obj instanceof PreciseInstant)
+      obj = ((PreciseInstant) obj).ambiguate();
+    else if (obj instanceof AmbiguousInstant == false)
       return false;
     AmbiguousInstant other = (AmbiguousInstant) obj;
     if (micros != other.micros)
