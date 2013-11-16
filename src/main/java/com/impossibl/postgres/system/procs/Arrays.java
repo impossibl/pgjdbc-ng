@@ -194,7 +194,7 @@ public class Arrays extends SimpleProcProvider {
         //Header
         //
 
-        int dimensionCount = getDimensions(val);
+        int dimensionCount = getDimensions(val.getClass(), atype.unwrapAll());
         //Dimension count
         buffer.writeInt(dimensionCount);
         //Has nulls
@@ -234,13 +234,15 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    int getDimensions(Object val) {
-      return 1 + val.getClass().getName().lastIndexOf('[');
+    int getDimensions(Class<?> type, Type elementType) {
+      if (type.isArray() && type != elementType.getBinaryCodec().encoder.getInputType())
+        return 1 + getDimensions(type.getComponentType(), elementType);
+      return 0;
     }
 
     void writeArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
 
-      if (val.getClass().getComponentType().isArray()) {
+      if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().encoder.getInputType().isArray()) {
 
         writeSubArray(buffer, type, val, context);
       }
@@ -281,6 +283,25 @@ public class Arrays extends SimpleProcProvider {
       }
 
       return false;
+    }
+
+    @Override
+    public int length(Type type, Object val, Context context) throws IOException {
+
+      ArrayType arrayType = (ArrayType) type;
+      Type elementType = arrayType.getElementType();
+
+      int length = 4;
+
+      int dimensionCount = getDimensions(val.getClass(), arrayType.unwrapAll());
+
+      length += 12 + (dimensionCount * 8);
+
+      for (int c = 0, len = Array.getLength(val); c < len; ++c) {
+        length += elementType.getBinaryCodec().encoder.length(elementType, Array.get(val, c), context);
+      }
+
+      return length;
     }
 
   }
@@ -351,9 +372,11 @@ public class Arrays extends SimpleProcProvider {
             break;
 
           case '\\':
-            ++c;
-            if (c < data.length())
-              elementTxt.append(data.charAt(c));
+            if (string) {
+              ++c;
+              if (c < data.length())
+                elementTxt.append(data.charAt(c));
+            }
             break;
 
           default:
@@ -423,6 +446,8 @@ public class Arrays extends SimpleProcProvider {
         String elemStr = elemOut.toString();
 
         if (needsQuotes(elemStr, delim)) {
+          elemStr = elemStr.replace("\\", "\\\\");
+          elemStr = elemStr.replace("\"", "\\\"");
           out.append('\"').append(elemStr).append('\"');
         }
         else {
@@ -451,7 +476,7 @@ public class Arrays extends SimpleProcProvider {
 
         char ch = elemStr.charAt(c);
 
-        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+        if (ch == delim || ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
           return true;
       }
 

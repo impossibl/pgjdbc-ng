@@ -56,23 +56,33 @@ public class ArrayType extends Type {
     return PrimitiveType.Array;
   }
 
+  @Override
   public Class<?> getJavaType(Map<String, Class<?>> customizations) {
 
     return Array.newInstance(elementType.getJavaType(customizations), 0).getClass();
 
   }
 
+  @Override
   public Format getParameterFormat() {
 
     return elementType.getParameterFormat();
   }
 
+  @Override
   public Format getResultFormat() {
 
     return elementType.getResultFormat();
   }
 
+  @Override
   public Type unwrap() {
+    return elementType;
+  }
+
+  public Type unwrapAll() {
+    if (elementType instanceof ArrayType)
+      return ((ArrayType) elementType).unwrapAll();
     return elementType;
   }
 
