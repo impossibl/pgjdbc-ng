@@ -128,6 +128,11 @@ public class PGDriver implements Driver {
     // successful connection
     for (InetSocketAddress address : connSpec.addresses) {
 
+      if (address.isUnresolved()) {
+        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved");
+        continue;
+      }
+
       try {
 
         PGConnectionImpl conn = new PGConnectionImpl(address, settings, housekeeper);

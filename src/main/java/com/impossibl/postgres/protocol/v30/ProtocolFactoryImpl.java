@@ -67,7 +67,6 @@ import javax.security.auth.x500.X500Principal;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.handler.ssl.SslHandler;
 
@@ -193,7 +192,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
       return protocol;
     }
-    catch (ChannelException e) {
+    catch (Exception e) {
 
       IOException io;
 
