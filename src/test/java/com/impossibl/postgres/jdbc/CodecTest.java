@@ -78,16 +78,11 @@ import static org.junit.Assert.assertEquals;
 public class CodecTest {
 
   PGConnectionImpl conn;
-  boolean binary, text;
   String typeName;
-  String typeCastName;
   Object value;
 
-  public CodecTest(String tag, boolean binary, boolean text, String typeName, Object value) {
-    this.binary = binary;
-    this.text = text;
+  public CodecTest(String typeName, Object value) {
     this.typeName = typeName;
-    this.typeCastName = typeName;
     this.value = value;
   }
 
@@ -108,9 +103,6 @@ public class CodecTest {
   @Test
   public void testBinaryCodecs() throws IOException, SQLException {
 
-    if (!binary)
-      return;
-
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
       System.out.println("Skipping " + typeName + " (bin)");
@@ -118,6 +110,11 @@ public class CodecTest {
     }
 
     Codec codec = type.getBinaryCodec();
+
+    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+      System.out.println("Skipping " + typeName + " (bin)");
+      return;
+    }
 
     if (value instanceof Maker) {
       value = ((Maker) value).make(conn);
@@ -127,19 +124,11 @@ public class CodecTest {
 
     value = SQLTypeUtils.coerce(value, type, targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
 
-    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
-      System.out.println("Skipping " + typeName + " (bin)");
-      return;
-    }
-
     test(inOut(type, codec, value));
   }
 
   @Test
   public void testTextCodecs() throws IOException, SQLException {
-
-    if (!text)
-      return;
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
@@ -149,6 +138,11 @@ public class CodecTest {
 
     Codec codec = type.getTextCodec();
 
+    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+      System.out.println("Skipping " + typeName + " (txt)");
+      return;
+    }
+
     if (value instanceof Maker) {
       value = ((Maker) value).make(conn);
     }
@@ -157,22 +151,21 @@ public class CodecTest {
 
     value = SQLTypeUtils.coerce(value, type, targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
 
-    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
-      System.out.println("Skipping " + typeName + " (txt)");
-      return;
-    }
-
     test(inOut(type, codec, value));
   }
 
   @Test
   public void testBinaryEncoderLength() throws IOException, SQLException {
 
-    if (!binary)
-      return;
-
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
+      System.out.println("Skipping " + typeName + " (binlen)");
+      return;
+    }
+
+    Codec codec = type.getBinaryCodec();
+
+    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
       System.out.println("Skipping " + typeName + " (binlen)");
       return;
     }
@@ -191,9 +184,6 @@ public class CodecTest {
 
   @Test
   public void testSendReceive() throws SQLException, IOException {
-
-    if (!binary)
-      return;
 
     String typeCast = typeCasts.get(typeName);
     if (typeCast == null) {
@@ -265,16 +255,16 @@ public class CodecTest {
     Object make(PGConnectionImpl conn);
   }
 
-  @Parameters(name = "test-{3}-{0}")
+  @Parameters(name = "test-{0}")
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     return Arrays.asList(new Object[][] {
-      {"txt", false, true, "aclitem", new ACLItem("test", "rw", "root")},
-      {"both", true,  true, "int4[]", new Integer[] {1, 2, 3}},
-      {"both", true,  true, "bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
-      {"both", true,  true, "varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
-      {"both", true,  true, "bool", true},
-      {"both", true,  true, "bytea", new Maker() {
+      {"aclitem", new ACLItem("pgjdbc", "rw", "postgres")},
+      {"int4[]", new Integer[] {1, 2, 3}},
+      {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
+      {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
+      {"bool", true},
+      {"bytea", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -282,24 +272,24 @@ public class CodecTest {
         }
 
       } },
-      {"both", true,  true, "date", new Date(2000, 1, 1)},
-      {"both", true,  true, "float4", 1.23f},
-      {"both", true,  true, "float8", 2.34d},
-      {"both", true,  true, "int2", (short)234},
-      {"both", true,  true, "int4", 234},
-      {"both", true,  true, "int8", (long)234},
-      {"both", true,  true, "interval", new Interval(1, 2, 3)},
-      {"both", true,  true, "money", new BigDecimal("2342.00")},
-      {"both", true,  true, "name", "hi"},
-      {"both", true,  true, "numeric", new BigDecimal("2342.00")},
-      {"both", true,  true, "oid", 132},
-      {"both", true,  true, "int4range", Range.create(0, true, 5, false)},
-      {"both", true,  true, "text", "hi"},
-      {"both", true,  true, "timestamp", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
-      {"both", true,  true, "timestamptz", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
-      {"both", true,  true, "time", new Time(9, 30, 30)},
-      {"both", true,  true, "timetz", new Time(9, 30, 30)},
-      {"both", true,  true, "teststruct", new Maker() {
+      {"date", new Date(2000, 1, 1)},
+      {"float4", 1.23f},
+      {"int2", (short)234},
+      {"float8", 2.34d},
+      {"int8", (long)234},
+      {"int4", 234},
+      {"interval", new Interval(1, 2, 3)},
+      {"money", new BigDecimal("2342.00")},
+      {"name", "hi"},
+      {"numeric", new BigDecimal("2342.00")},
+      {"oid", 132},
+      {"int4range", Range.create(0, true, 5, false)},
+      {"text", "hi"},
+      {"timestamp", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
+      {"timestamptz", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
+      {"time", new Time(9, 30, 30)},
+      {"timetz", new Time(9, 30, 30)},
+      {"teststruct", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -307,8 +297,8 @@ public class CodecTest {
         }
 
       } },
-      {"both", true,  true, "uuid", UUID.randomUUID()},
-      {"bin",  true,  true, "xml", new Maker() {
+      {"uuid", UUID.randomUUID()},
+      {"xml", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -322,7 +312,7 @@ public class CodecTest {
           }
         }
       } },
-      {"both", true,  true, "macaddr", new Maker() {
+      {"macaddr", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -332,7 +322,7 @@ public class CodecTest {
         }
 
       } },
-      {"both", true,  true, "hstore", new Maker() {
+      {"hstore", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -344,7 +334,7 @@ public class CodecTest {
         }
 
       } },
-      {"both", true,  true, "inet", new Maker() {
+      {"inet", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
