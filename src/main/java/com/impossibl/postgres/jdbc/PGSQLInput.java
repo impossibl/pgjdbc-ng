@@ -40,7 +40,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
@@ -163,7 +163,7 @@ public class PGSQLInput implements SQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    InputStream data = coerceToBytes(getNextAttributeValue(), attr.type, connection);
+    InputStream data = coerceToByteStream(getNextAttributeValue(), attr.type, connection);
 
     try {
       return ByteStreams.toByteArray(data);

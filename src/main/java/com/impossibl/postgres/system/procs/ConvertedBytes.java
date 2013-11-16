@@ -63,7 +63,7 @@ public class ConvertedBytes extends SimpleProcProvider {
     }
 
     @Override
-    public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {

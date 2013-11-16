@@ -55,7 +55,7 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public Float decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Float decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -117,7 +117,7 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public Float decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Float decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return Float.valueOf(buffer.toString());
     }

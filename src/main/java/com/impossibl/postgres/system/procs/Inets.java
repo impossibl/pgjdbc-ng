@@ -66,7 +66,7 @@ public class Inets extends SimpleProcProvider {
     }
 
     @Override
-    public Inet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Inet decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -136,7 +136,7 @@ public class Inets extends SimpleProcProvider {
     }
 
     @Override
-    public Inet decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Inet decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
       try {
         return new Inet(buffer.toString());
       }

@@ -35,6 +35,7 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.io.IOException;

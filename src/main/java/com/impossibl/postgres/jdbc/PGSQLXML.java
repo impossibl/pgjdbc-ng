@@ -164,11 +164,13 @@ public class PGSQLXML implements SQLXML {
     }
   }
 
+  @Override
   public void free() {
     connection = null;
     data = null;
   }
 
+  @Override
   public InputStream getBinaryStream() throws SQLException {
     checkFreed();
     checkReadable();
@@ -179,6 +181,7 @@ public class PGSQLXML implements SQLXML {
     return new ByteArrayInputStream(data, 0, dataLen);
   }
 
+  @Override
   public Reader getCharacterStream() throws SQLException {
     checkFreed();
     checkReadable();
@@ -189,6 +192,7 @@ public class PGSQLXML implements SQLXML {
     return new InputStreamReader(new ByteArrayInputStream(data, 0, dataLen), connection.getCharset());
   }
 
+  @Override
   public <T extends Source> T getSource(Class<T> sourceClass) throws SQLException {
     checkFreed();
     checkReadable();
@@ -249,6 +253,7 @@ public class PGSQLXML implements SQLXML {
     throw new SQLException("Unsupported XML Source class" + sourceClass.getName());
   }
 
+  @Override
   public String getString() throws SQLException {
     checkFreed();
     checkReadable();
@@ -259,6 +264,7 @@ public class PGSQLXML implements SQLXML {
     return new String(data, 0, dataLen, connection.getCharset());
   }
 
+  @Override
   public OutputStream setBinaryStream() throws SQLException {
     checkFreed();
     checkWritable();
@@ -266,6 +272,7 @@ public class PGSQLXML implements SQLXML {
     return new OutputStream();
   }
 
+  @Override
   public Writer setCharacterStream() throws SQLException {
     checkFreed();
     checkWritable();
@@ -273,6 +280,7 @@ public class PGSQLXML implements SQLXML {
     return new OutputStreamWriter(new OutputStream(), connection.getCharset());
   }
 
+  @Override
   public <T extends Result> T setResult(Class<T> resultClassIn) throws SQLException {
     checkFreed();
     checkWritable();
@@ -330,6 +338,7 @@ public class PGSQLXML implements SQLXML {
     throw new SQLException("Unsupported XML Result class" + resultClass.getName());
   }
 
+  @Override
   public void setString(String value) throws SQLException {
     checkFreed();
     checkWritable();
@@ -338,11 +347,41 @@ public class PGSQLXML implements SQLXML {
 
     if (value != null) {
       data = value.getBytes(connection.getCharset());
+      dataLen = data.length;
     }
     else {
       data = null;
+      dataLen = -1;
     }
 
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(data);
+    result = prime * result + dataLen;
+    result = prime * result + (initialized ? 1231 : 1237);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PGSQLXML other = (PGSQLXML) obj;
+    if (!Arrays.equals(data, other.data))
+      return false;
+    if (dataLen != other.dataLen)
+      return false;
+    if (initialized != other.initialized)
+      return false;
+    return true;
   }
 
 }

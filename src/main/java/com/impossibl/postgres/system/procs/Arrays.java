@@ -68,7 +68,7 @@ public class Arrays extends SimpleProcProvider {
     }
 
     @Override
-    public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Object decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
 
@@ -157,7 +157,7 @@ public class Arrays extends SimpleProcProvider {
 
       for (int c = 0; c < len; ++c) {
 
-        Array.set(inst, c, type.getBinaryCodec().decoder.decode(type, buffer, context));
+        Array.set(inst, c, type.getBinaryCodec().decoder.decode(type, null, null, buffer, context));
 
       }
 
@@ -298,7 +298,7 @@ public class Arrays extends SimpleProcProvider {
     }
 
     @Override
-    public Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       int length = buffer.length();
 
@@ -317,7 +317,7 @@ public class Arrays extends SimpleProcProvider {
     Object readArray(CharSequence data, char delim, Type type, Context context) throws IOException {
 
       if (data.length() < 2 || (data.charAt(0) != '{' && data.charAt(data.length() - 1) != '}')) {
-        return type.getCodec(Format.Text).decoder.decode(type, data, context);
+        return type.getCodec(Format.Text).decoder.decode(type, null, null, data, context);
       }
 
       data = data.subSequence(1, data.length() - 1);

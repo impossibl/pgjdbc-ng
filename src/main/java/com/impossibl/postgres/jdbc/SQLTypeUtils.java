@@ -35,6 +35,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
@@ -180,7 +181,10 @@ class SQLTypeUtils {
     else if (targetType == Blob.class) {
       return coerceToBlob(val, connection);
     }
-    else if (targetType == byte[].class || InputStream.class.isAssignableFrom(targetType)) {
+    else if (InputStream.class.isAssignableFrom(targetType)) {
+      return coerceToByteStream(val, sourceType, connection);
+    }
+    else if (targetType == byte[].class) {
       return coerceToBytes(val, sourceType, connection);
     }
     else if (targetType.isArray()) {
@@ -479,6 +483,9 @@ class SQLTypeUtils {
     else if (val instanceof byte[]) {
       return new String((byte[]) val, context.getCharset());
     }
+    else if (val instanceof PGSQLXML) {
+      return ((PGSQLXML) val).getString();
+    }
     else {
       return val.toString();
     }
@@ -643,7 +650,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Blob.class);
   }
 
-  public static InputStream coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+  public static InputStream coerceToByteStream(Object val, Type sourceType, Context context) throws SQLException {
 
     if (val == null) {
       return null;
@@ -678,6 +685,50 @@ class SQLTypeUtils {
       buffer.skipBytes(4);
 
       return new ChannelBufferInputStream(buffer);
+    }
+
+    throw createCoercionException(val.getClass(), byte[].class);
+  }
+
+  public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof InputStream) {
+      try {
+        return ByteStreams.toByteArray((InputStream) val);
+      }
+      catch (IOException e) {
+        throw new SQLException(e);
+      }
+    }
+    else if (val instanceof byte[]) {
+      return (byte[]) val;
+    }
+    else if (val instanceof String) {
+      return ((String) val).getBytes(context.getCharset());
+    }
+    else if (val instanceof PGSQLXML) {
+      return ((PGSQLXML) val).getData();
+    }
+    else if (sourceType.getJavaType(Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+
+      // Encode into byte array using type encoder
+
+      ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+
+      try {
+        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+      }
+      catch (IOException e) {
+        throw createCoercionException(val.getClass(), byte[].class);
+      }
+
+      // Skip written length
+      buffer.skipBytes(4);
+
+      return buffer.readBytes(buffer.readableBytes()).array();
     }
 
     throw createCoercionException(val.getClass(), byte[].class);

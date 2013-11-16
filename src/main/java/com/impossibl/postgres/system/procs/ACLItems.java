@@ -54,7 +54,7 @@ public class ACLItems extends SimpleProcProvider {
     }
 
     @Override
-    public ACLItem decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public ACLItem decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return ACLItem.parse(buffer.toString());
     }

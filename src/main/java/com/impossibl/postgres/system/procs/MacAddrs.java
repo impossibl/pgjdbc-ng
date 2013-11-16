@@ -60,7 +60,7 @@ public class MacAddrs extends SimpleProcProvider {
     }
 
     @Override
-    public byte[] decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -122,7 +122,7 @@ public class MacAddrs extends SimpleProcProvider {
     }
 
     @Override
-    public byte[] decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public byte[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
       Matcher m = macPattern.matcher(buffer);
       if (!m.matches()) {
         throw new IOException("Invalid Mac address: " + buffer);

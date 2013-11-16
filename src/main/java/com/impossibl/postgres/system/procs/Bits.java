@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
@@ -58,7 +59,7 @@ public class Bits extends SimpleProcProvider {
     }
 
     @Override
-    public BitSet decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public BitSet decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -66,6 +67,14 @@ public class Bits extends SimpleProcProvider {
       }
 
       int bitCount = buffer.readInt();
+
+      if (typeModifier != null) {
+        Integer lenMod = (Integer) type.getModifierParser().parse(typeModifier).get(Modifiers.LENGTH);
+        if (lenMod > 0) {
+          bitCount = lenMod;
+        }
+      }
+
       int byteCount = (bitCount + 7) / 8;
 
       byte[] bytes = new byte[byteCount];
@@ -101,12 +110,13 @@ public class Bits extends SimpleProcProvider {
       if (val == null) {
 
         buffer.writeInt(-1);
+
       }
       else {
 
         BitSet bs = (BitSet) val;
 
-        int bitCount = bs.size();
+        int bitCount = bs.length();
         int byteCount = (bitCount + 7) / 8;
 
         // Set equivalent bits in byte array (they use reversed encodings so
@@ -116,8 +126,10 @@ public class Bits extends SimpleProcProvider {
           bytes[c / 8] |= ((0x80 >> (c % 8)) & (bs.get(c) ? 0xff : 0x00));
         }
 
-        buffer.writeInt(bs.size());
+        buffer.writeInt(4 + byteCount);
+        buffer.writeInt(bitCount);
         buffer.writeBytes(bytes);
+
       }
 
     }
@@ -130,10 +142,10 @@ public class Bits extends SimpleProcProvider {
 
       BitSet bs = (BitSet) val;
 
-      int bitCount = bs.size();
+      int bitCount = bs.length();
       int byteCount = (bitCount + 7) / 8;
 
-      return 4 + byteCount;
+      return 8 + byteCount;
     }
 
   }
@@ -151,7 +163,7 @@ public class Bits extends SimpleProcProvider {
     }
 
     @Override
-    public BitSet decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public BitSet decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       BitSet bits = new BitSet();
 

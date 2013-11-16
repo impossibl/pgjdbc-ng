@@ -50,7 +50,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
@@ -675,7 +675,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    InputStream data = coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+    InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
 
     try {
       return ByteStreams.toByteArray(data);
@@ -800,7 +800,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+    return coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
   }
 
   @Override

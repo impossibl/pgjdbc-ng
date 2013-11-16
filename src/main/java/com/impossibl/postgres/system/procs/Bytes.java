@@ -69,7 +69,7 @@ public class Bytes extends SimpleProcProvider {
     }
 
     @Override
-    public InputStream decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public InputStream decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -199,7 +199,7 @@ public class Bytes extends SimpleProcProvider {
     }
 
     @Override
-    public InputStream decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public InputStream decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       byte[] data;
 

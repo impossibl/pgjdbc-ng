@@ -112,7 +112,7 @@ public abstract class Type {
     public interface Decoder {
       PrimitiveType getInputPrimitiveType();
       Class<?> getOutputType();
-      Object decode(Type type,  Object buffer, Context context) throws IOException;
+      Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException;
     }
 
     /**
