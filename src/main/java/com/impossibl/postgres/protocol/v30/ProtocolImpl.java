@@ -1141,6 +1141,8 @@ public class ProtocolImpl implements Protocol {
     logger.finest("NOTIFY: " + processId + " - " + channelName + " - " + payload);
 
     listener.notification(processId, channelName, payload);
+
+    context.reportNotification(processId, channelName, payload);
   }
 
   private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {

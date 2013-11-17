@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
@@ -1155,6 +1156,26 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
+  }
+
+  @Override
+  public void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener) {
+    super.addNotificationListener(name, channelNameFilter, listener);
+  }
+
+  @Override
+  public void addNotificationListener(String channelNameFilter, PGNotificationListener listener) {
+    super.addNotificationListener(null, channelNameFilter, listener);
+  }
+
+  @Override
+  public void addNotificationListener(PGNotificationListener listener) {
+    super.addNotificationListener(null, null, listener);
+  }
+
+  @Override
+  public void removeNotificationListener(PGNotificationListener listener) {
+    super.removeNotificationListener(listener);
   }
 
 }

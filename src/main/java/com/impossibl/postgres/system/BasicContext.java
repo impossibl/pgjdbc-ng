@@ -49,6 +49,7 @@ import com.impossibl.postgres.utils.Timer;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -60,10 +61,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -74,11 +75,22 @@ public class BasicContext implements Context {
 
   private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 
-
   public static class PreparedQuery {
     String name;
     List<Type> parameterTypes;
     List<ResultField> resultFields;
+  }
+
+  private static class NotificationKey {
+
+    public String name;
+    public Pattern channelNameFilter;
+
+    NotificationKey(String name, Pattern channelNameFilter) {
+      this.name = name;
+      this.channelNameFilter = channelNameFilter;
+    }
+
   }
 
 
@@ -93,7 +105,7 @@ public class BasicContext implements Context {
   protected Version serverVersion;
   protected KeyData keyData;
   protected Protocol protocol;
-  protected Set<WeakReference<NotificationListener>> notificationListeners;
+  protected Map<NotificationKey, WeakReference<NotificationListener>> notificationListeners;
   protected PreparedQuery[] refreshQueries;
 
 
@@ -105,7 +117,7 @@ public class BasicContext implements Context {
     this.dateFormatter = new ISODateFormat();
     this.timeFormatter = new ISOTimeFormat();
     this.timestampFormatter = new ISOTimestampFormat();
-    this.notificationListeners = new ConcurrentSkipListSet<>();
+    this.notificationListeners = new ConcurrentHashMap<>();
     this.registry = new Registry(this);
     this.protocol = new ProtocolFactoryImpl().connect(address, this);
   }
@@ -559,22 +571,67 @@ public class BasicContext implements Context {
 
   }
 
-  public void addNotificationListener(NotificationListener listener) {
+  public void addNotificationListener(String name, String channelNameFilter, NotificationListener listener) {
 
-    notificationListeners.add(new WeakReference<NotificationListener>(listener));
+    name = nullToEmpty(name);
+    channelNameFilter = channelNameFilter != null ? channelNameFilter : ".*";
+
+    Pattern channelNameFilterPattern = Pattern.compile(channelNameFilter);
+
+    NotificationKey key = new NotificationKey(name, channelNameFilterPattern);
+
+    synchronized (notificationListeners) {
+      notificationListeners.put(key, new WeakReference<NotificationListener>(listener));
+    }
+
   }
 
-  public void reportNotification(int processId, String channelName, String payload) {
+  public synchronized void removeNotificationListener(NotificationListener listener) {
 
-    Iterator<WeakReference<NotificationListener>> iter = notificationListeners.iterator();
+    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      NotificationListener listener = iter.next().get();
+      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+
+      NotificationListener iterListener = entry.getValue().get();
+      if (iterListener.equals(listener) || iterListener == null) {
+
+        iter.remove();
+      }
+
+    }
+  }
+
+  public synchronized void removeNotificationListener(String listenerName) {
+
+    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    while (iter.hasNext()) {
+
+      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+
+      String iterListenerName = entry.getKey().name;
+      NotificationListener iterListener = entry.getValue().get();
+      if (iterListenerName.equals(listenerName) || iterListener == null) {
+
+        iter.remove();
+      }
+
+    }
+  }
+
+  public synchronized void reportNotification(int processId, String channelName, String payload) {
+
+    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    while (iter.hasNext()) {
+
+      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+
+      NotificationListener listener = entry.getValue().get();
       if (listener == null) {
 
         iter.remove();
       }
-      else {
+      else if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
 
         listener.notification(processId, channelName, payload);
       }

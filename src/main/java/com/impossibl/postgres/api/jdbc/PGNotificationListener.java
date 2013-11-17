@@ -26,48 +26,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.system;
+package com.impossibl.postgres.api.jdbc;
 
-import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
-
-import java.nio.charset.Charset;
-import java.util.TimeZone;
-
-public interface Context {
-
-  public class KeyData {
-    public int processId;
-    public int secretKey;
-  }
+import com.impossibl.postgres.system.NotificationListener;
 
 
-  Registry getRegistry();
 
-  TimeZone getTimeZone();
-
-  Charset getCharset();
-
-  KeyData getKeyData();
-
-  DateTimeFormat getDateFormatter();
-  DateTimeFormat getTimeFormatter();
-  DateTimeFormat getTimestampFormatter();
-
-  Class<?> lookupInstanceType(Type type);
-
-  void refreshType(int typeId);
-  void refreshRelationType(int relationId);
-
-  Object getSetting(String name);
-  <T> T getSetting(String name, Class<T> type);
-  <T> T getSetting(String name, T defaultValue);
-  boolean isSettingEnabled(String name);
-
-  Protocol getProtocol();
-
-  void reportNotification(int processId, String channelName, String payload);
+/**
+ * PostgreSQL asynchronous notification listener
+ *
+ * @author kdubb
+ *
+ */
+public interface PGNotificationListener extends NotificationListener {
 
 }
