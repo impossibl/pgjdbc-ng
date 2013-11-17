@@ -36,7 +36,6 @@ import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -83,9 +82,7 @@ public class PGArray implements Array {
 
     Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
 
-    Object array = coerceToArray(value, type, targetType, typeMap, connection);
-
-    return coerceElements(array, typeMap);
+    return coerceToArray(value, type, targetType, typeMap, connection);
   }
 
   @Override
@@ -102,35 +99,7 @@ public class PGArray implements Array {
 
     Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
 
-    Object array = coerceToArray(value, (int) index - 1, count, type, targetType, typeMap, connection);
-
-    return coerceElements(array, typeMap);
-  }
-
-  private Object coerceElements(Object array, Map<String, Class<?>> typeMap) throws SQLException {
-
-    if (array instanceof Object[]) {
-
-      Type elementType = type.getElementType();
-      Class<?> targetElementType = mapGetType(type.getElementType(), typeMap, connection);
-
-      Object targetArray;
-      if (array.getClass().getComponentType().isAssignableFrom(targetElementType)) {
-        targetArray = array;
-      }
-      else {
-        targetArray = java.lang.reflect.Array.newInstance(targetElementType, java.lang.reflect.Array.getLength(array));
-      }
-
-      for (int c = 0, len = java.lang.reflect.Array.getLength(array); c < len; ++c) {
-        Object element = java.lang.reflect.Array.get(array, c);
-        java.lang.reflect.Array.set(targetArray, c, SQLTypeUtils.coerce(element, elementType, targetElementType, typeMap, connection));
-      }
-
-      array = targetArray;
-    }
-
-    return array;
+    return coerceToArray(value, (int) index - 1, count, type, targetType, typeMap, connection);
   }
 
   @Override
