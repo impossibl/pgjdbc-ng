@@ -136,7 +136,7 @@ public class Arrays extends SimpleProcProvider {
 
     Object readSubArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String, Class<?>>emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
       Object inst = newInstance(elementClass, dims);
 
       int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
@@ -152,7 +152,7 @@ public class Arrays extends SimpleProcProvider {
 
     Object readElements(ChannelBuffer buffer, Type type, int len, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Collections.<String, Class<?>>emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
       Object inst = newInstance(elementClass, len);
 
       for (int c = 0; c < len; ++c) {
@@ -234,12 +234,6 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    int getDimensions(Class<?> type, Type elementType) {
-      if (type.isArray() && type != elementType.getBinaryCodec().encoder.getInputType())
-        return 1 + getDimensions(type.getComponentType(), elementType);
-      return 0;
-    }
-
     void writeArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
 
       if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().encoder.getInputType().isArray()) {
@@ -288,17 +282,41 @@ public class Arrays extends SimpleProcProvider {
     @Override
     public int length(Type type, Object val, Context context) throws IOException {
 
-      ArrayType arrayType = (ArrayType) type;
-      Type elementType = arrayType.getElementType();
-
       int length = 4;
 
-      int dimensionCount = getDimensions(val.getClass(), arrayType.unwrapAll());
+      if (val != null) {
 
-      length += 12 + (dimensionCount * 8);
+        ArrayType arrayType = (ArrayType) type;
+        Type elementType = arrayType.unwrapAll();
 
-      for (int c = 0, len = Array.getLength(val); c < len; ++c) {
-        length += elementType.getBinaryCodec().encoder.length(elementType, Array.get(val, c), context);
+        int dimensionCount = getDimensions(val.getClass(), arrayType.unwrapAll());
+
+        length += 12 + (dimensionCount * 8);
+
+        length += subLength(elementType, dimensionCount, val, context);
+
+      }
+
+      return length;
+    }
+
+    private int subLength(Type type, int dimensionCount, Object val, Context context) throws IOException {
+
+      int length = 0;
+
+      if (dimensionCount > 1) {
+
+        for (int d = 0, len = Array.getLength(val); d < len; ++d) {
+          length += subLength(type, dimensionCount - 1, Array.get(val, d), context);
+        }
+
+      }
+      else {
+
+        for (int c = 0, len = Array.getLength(val); c < len; ++c) {
+          length += type.getBinaryCodec().encoder.length(type, Array.get(val, c), context);
+        }
+
       }
 
       return length;
@@ -368,7 +386,13 @@ public class Arrays extends SimpleProcProvider {
             break;
 
           case '"':
-            string = !string;
+            if (string && c < data.length() - 1 && data.charAt(c + 1) == '"') {
+              elementTxt.append('"');
+              c++;
+            }
+            else {
+              string = !string;
+            }
             break;
 
           case '\\':
@@ -483,6 +507,12 @@ public class Arrays extends SimpleProcProvider {
       return false;
     }
 
+  }
+
+  public static int getDimensions(Class<?> type, Type elementType) {
+    if (type.isArray() && type != elementType.getBinaryCodec().encoder.getInputType())
+      return 1 + getDimensions(type.getComponentType(), elementType);
+    return 0;
   }
 
 }

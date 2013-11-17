@@ -269,12 +269,20 @@ public class Records extends SimpleProcProvider {
             break;
 
           case '"':
-            if (c < data.length() && data.charAt(c + 1) == '"') {
+            if (string && c < data.length() - 1 && data.charAt(c + 1) == '"') {
               elementTxt.append('"');
               c++;
             }
             else {
               string = !string;
+            }
+            break;
+
+          case '\\':
+            if (string) {
+              ++c;
+              if (c < data.length())
+                elementTxt.append(data.charAt(c));
             }
             break;
 
@@ -344,6 +352,8 @@ public class Records extends SimpleProcProvider {
         String attrStr = attrOut.toString();
 
         if (needsQuotes(attrStr, delim)) {
+          attrStr = attrStr.replace("\\", "\\\\");
+          attrStr = attrStr.replace("\"", "\\\"");
           out.append('\"').append(attrStr).append('\"');
         }
         else {
@@ -370,7 +380,7 @@ public class Records extends SimpleProcProvider {
 
         char ch = elemStr.charAt(c);
 
-        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+        if (ch == delim || ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
           return true;
       }
 

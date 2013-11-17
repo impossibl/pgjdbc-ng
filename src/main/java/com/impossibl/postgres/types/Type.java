@@ -267,59 +267,54 @@ public abstract class Type {
   }
 
   public PrimitiveType getPrimitiveType() {
-    Codec codec;
-
-    codec = getBinaryCodec();
-    if (codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
-      return codec.decoder.getInputPrimitiveType();
+    Codec binCodec = getBinaryCodec();
+    if (binCodec.decoder.getInputPrimitiveType() != null) {
+      return binCodec.decoder.getInputPrimitiveType();
     }
-
-    codec = getTextCodec();
-    if (codec != null && codec.decoder != null && codec.decoder.getInputPrimitiveType() != null) {
-      return codec.decoder.getInputPrimitiveType();
+    Codec txtCodec = getTextCodec();
+    if (txtCodec.decoder.getInputPrimitiveType() != null) {
+      return txtCodec.decoder.getInputPrimitiveType();
     }
-
     return PrimitiveType.Unknown;
   }
 
-  public Class<?> getJavaType(Map<String, Class<?>> customizations) {
-    Codec codec;
-
-    codec = getBinaryCodec();
+  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
+    Codec codec = getCodec(format);
     if (codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
       return codec.decoder.getOutputType();
     }
-
-    codec = getTextCodec();
-    if (codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
-      return codec.decoder.getOutputType();
-    }
-
     return String.class;
+  }
+
+  public Format getPreferredFormat() {
+    if (isParameterFormatSupported(Format.Binary) && isResultFormatSupported(Format.Binary))
+      return Format.Binary;
+    return Format.Text;
+  }
+
+  public boolean isParameterFormatSupported(Format format) {
+    return getCodec(format).encoder.getOutputPrimitiveType() != PrimitiveType.Unknown;
   }
 
   public Format getParameterFormat() {
 
-    Codec binCodec = getBinaryCodec();
-    if (binCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
+    if (isParameterFormatSupported(Format.Binary))
       return Format.Binary;
 
-    Codec txtCodec = getTextCodec();
-    if (txtCodec.encoder.getOutputPrimitiveType() != PrimitiveType.Unknown)
+    if (isParameterFormatSupported(Format.Text))
       return Format.Text;
 
-    return Format.Text;
+    throw new IllegalStateException("type has no supported parameter format");
+  }
+
+  public boolean isResultFormatSupported(Format format) {
+    return getCodec(format).decoder.getInputPrimitiveType() != PrimitiveType.Unknown;
   }
 
   public Format getResultFormat() {
 
-    Codec binCodec = getBinaryCodec();
-    if (binCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
+    if (isResultFormatSupported(Format.Binary))
       return Format.Binary;
-
-    Codec txtCodec = getTextCodec();
-    if (txtCodec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown)
-      return Format.Text;
 
     return Format.Text;
   }

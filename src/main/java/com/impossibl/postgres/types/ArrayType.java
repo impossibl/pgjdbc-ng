@@ -57,22 +57,20 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public Class<?> getJavaType(Map<String, Class<?>> customizations) {
+  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
 
-    return Array.newInstance(elementType.getJavaType(customizations), 0).getClass();
+    return Array.newInstance(elementType.getJavaType(format, customizations), 0).getClass();
 
   }
 
   @Override
-  public Format getParameterFormat() {
-
-    return elementType.getParameterFormat();
+  public boolean isParameterFormatSupported(Format format) {
+    return elementType.isParameterFormatSupported(format);
   }
 
   @Override
-  public Format getResultFormat() {
-
-    return elementType.getResultFormat();
+  public boolean isResultFormatSupported(Format format) {
+    return elementType.isResultFormatSupported(format);
   }
 
   @Override

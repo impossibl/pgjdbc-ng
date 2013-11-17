@@ -256,6 +256,20 @@ public class Registry {
 
   }
 
+  public void unloadType(int oid) {
+    Type type = oidMap.remove(oid);
+    if (type != null) {
+      nameMap.remove(type.getName());
+    }
+  }
+
+  public void unloadType(String name) {
+    Type type = nameMap.remove(name);
+    if (type != null) {
+      oidMap.remove(type.getId());
+    }
+  }
+
   /**
    * Looks up a procedures name given it's proc-id (aka OID)
    *

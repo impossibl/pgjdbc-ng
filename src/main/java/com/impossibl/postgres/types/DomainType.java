@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
@@ -62,6 +63,16 @@ public class DomainType extends Type {
   }
 
   @Override
+  public boolean isParameterFormatSupported(Format format) {
+    return base.isParameterFormatSupported(format);
+  }
+
+  @Override
+  public boolean isResultFormatSupported(Format format) {
+    return base.isResultFormatSupported(format);
+  }
+
+  @Override
   public PrimitiveType getPrimitiveType() {
     return PrimitiveType.Domain;
   }
@@ -90,6 +101,7 @@ public class DomainType extends Type {
     this.defaultValue = defaultValue;
   }
 
+  @Override
   public Type unwrap() {
     return base.unwrap();
   }

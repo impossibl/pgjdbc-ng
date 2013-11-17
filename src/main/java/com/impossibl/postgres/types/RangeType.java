@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
@@ -49,6 +50,16 @@ public class RangeType extends Type {
 
   public void setBase(Type base) {
     this.base = base;
+  }
+
+  @Override
+  public boolean isParameterFormatSupported(Format format) {
+    return base.isParameterFormatSupported(format);
+  }
+
+  @Override
+  public boolean isResultFormatSupported(Format format) {
+    return base.isResultFormatSupported(format);
   }
 
   @Override
