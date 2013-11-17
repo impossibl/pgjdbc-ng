@@ -32,6 +32,8 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static java.util.Collections.synchronizedSet;
 
@@ -39,18 +41,22 @@ import static java.util.Collections.synchronizedSet;
 
 /**
  * Housekeeper that spins up a daemon thread to execute clean ups.
- * 
+ *
  * @author kdubb
  *
  */
 public class ThreadedHousekeeper implements Housekeeper {
 
-  private static class HousekeeperReference<T> extends PhantomReference<T> {
+
+  private static final Logger logger = Logger.getLogger(ThreadedHousekeeper.class.getName());
+
+
+  private class HousekeeperReference<T> extends PhantomReference<T> {
 
     int id;
-    Runnable cleanup;
+    CleanupRunnable cleanup;
 
-    public HousekeeperReference(Runnable cleanup, T referent, ReferenceQueue<? super T> q) {
+    public HousekeeperReference(CleanupRunnable cleanup, T referent, ReferenceQueue<? super T> q) {
       super(referent, q);
 
       if (cleanup == referent) {
@@ -62,11 +68,17 @@ public class ThreadedHousekeeper implements Housekeeper {
     }
 
     void cleanup() {
+
+      if (logLeaks) {
+        logger.log(Level.WARNING, "cleaning up leaked " + cleanup.getKind(), cleanup.getAllocationTracer());
+      }
+
       cleanup.run();
     }
 
   }
 
+  private boolean logLeaks = true;
   private ReferenceQueue<Object> cleanupQueue = new ReferenceQueue<>();
   private Set<HousekeeperReference<?>> cleanupReferences = synchronizedSet(new HashSet<HousekeeperReference<?>>());
   private Thread cleanupThread = new Thread() {
@@ -105,6 +117,11 @@ public class ThreadedHousekeeper implements Housekeeper {
   }
 
   @Override
+  public void setLogLeakedReferences(boolean value) {
+    logLeaks = value;
+  }
+
+  @Override
   public void emptyQueue() {
 
     HousekeeperReference<?> ref;
@@ -128,7 +145,7 @@ public class ThreadedHousekeeper implements Housekeeper {
   }
 
   @Override
-  public <T> Object add(T referent, Runnable cleanup) {
+  public <T> Object add(T referent, CleanupRunnable cleanup) {
     HousekeeperReference<T> ref = new HousekeeperReference<T>(cleanup, referent, cleanupQueue);
     cleanupReferences.add(ref);
     return cleanup;
@@ -173,4 +190,5 @@ public class ThreadedHousekeeper implements Housekeeper {
   public void testClear() {
     cleanupReferences.clear();
   }
+
 }

@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -95,8 +96,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -106,30 +105,36 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 class PGResultSet implements ResultSet {
 
-  private static final Logger logger = Logger.getLogger(PGResultSet.class.getName());
-
   /**
    * Cleans up server resources in the event of leaking resultset
    *
    * @author kdubb
    *
    */
-  static class Cleanup implements Runnable {
+  static class Cleanup implements CleanupRunnable {
 
     PGStatement statement;
     QueryCommand command;
-    Exception allocationTrace;
+    Exception allocationTracer;
 
     public Cleanup(PGStatement statement, QueryCommand command) {
       this.statement = statement;
       this.command = command;
-      this.allocationTrace = new Exception();
+      this.allocationTracer = new Exception();
+    }
+
+    @Override
+    public String getKind() {
+      return "result-set";
+    }
+
+    @Override
+    public Exception getAllocationTracer() {
+      return allocationTracer;
     }
 
     @Override
     public void run() {
-
-      logger.log(Level.WARNING, "cleaning up leaked result-set", allocationTrace);
 
       try {
         statement.dispose(command);

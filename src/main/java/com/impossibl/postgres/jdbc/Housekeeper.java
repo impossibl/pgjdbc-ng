@@ -31,6 +31,20 @@ package com.impossibl.postgres.jdbc;
 public interface Housekeeper {
 
   /**
+   * Cleanup runnable to execute when a reference needs to be cleaned up
+   *
+   * @author kdubb
+   *
+   */
+  public interface CleanupRunnable extends Runnable {
+
+    String getKind();
+
+    Exception getAllocationTracer();
+
+  }
+
+  /**
    * Associate a cleanup runnable to be run when a referent is only phantom
    * reference-able.
    *
@@ -40,7 +54,7 @@ public interface Housekeeper {
    *          Runnable to run when referent is phantom-ed
    * @return Key object to use when calling {@link remove}
    */
-  <T> Object add(T referent, Runnable cleanup);
+  <T> Object add(T referent, CleanupRunnable cleanup);
 
   /**
    * Removes cleanup runnable for the given referent
@@ -54,4 +68,10 @@ public interface Housekeeper {
    * Ensures the cleanup queue is emptied immediately
    */
   void emptyQueue();
+
+  /**
+   * Enable/Disable leaked reference logging
+   */
+  void setLogLeakedReferences(boolean value);
+
 }
