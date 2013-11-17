@@ -112,7 +112,7 @@ public class ProtocolImpl implements Protocol {
 
       }
       catch (Throwable e) {
-        //Ignore...
+        // Ignore...
       }
       finally {
         state.set(State.Completed);
@@ -240,8 +240,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   private void kill() {
-    channel.close().awaitUninterruptibly();
     connected.set(false);
+    channel.close().awaitUninterruptibly();
   }
 
   @Override
