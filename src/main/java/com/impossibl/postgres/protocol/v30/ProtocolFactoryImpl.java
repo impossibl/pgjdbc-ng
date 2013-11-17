@@ -192,35 +192,13 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
       return protocol;
     }
+    catch (NoticeException e) {
+
+      throw e;
+    }
     catch (Exception e) {
 
-      IOException io;
-
-      // Unwrap
-      Throwable cause = e.getCause();
-      if (cause instanceof IOException) {
-        io = (IOException) cause;
-      }
-      else {
-        io = new IOException(cause);
-      }
-
-      // Unwrap SSL Handshake exceptions
-
-      while (io instanceof SSLHandshakeException) {
-        if (io.getCause() instanceof IOException) {
-          io = (IOException) io.getCause();
-        }
-        else {
-          io = new SSLException(io.getCause().getMessage(), io.getCause());
-        }
-      }
-
-      if (io instanceof SSLException) {
-        io = new SSLException("SSL Error: " + io.getMessage(), io.getCause());
-      }
-
-      throw io;
+      throw translateConnectionException(e);
     }
 
   }
@@ -295,6 +273,40 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
         throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
       }
     }
+  }
+
+  private IOException translateConnectionException(Exception e) {
+
+    IOException io;
+
+    // Unwrap
+    if (e instanceof IOException) {
+      io = (IOException) e;
+    }
+    else if (e.getCause() instanceof IOException) {
+      io = (IOException) e.getCause();
+    }
+    else {
+      io = new IOException(e.getCause());
+    }
+
+    // Unwrap SSL Handshake exceptions
+
+    while (io instanceof SSLHandshakeException) {
+      if (io.getCause() instanceof IOException) {
+        io = (IOException) io.getCause();
+      }
+      else {
+        io = new SSLException(io.getCause().getMessage(), io.getCause());
+      }
+    }
+
+    if (io instanceof SSLException) {
+      if (!io.getMessage().startsWith("SSL Error"))
+        io = new SSLException("SSL Error: " + io.getMessage(), io.getCause());
+    }
+
+    return io;
   }
 
 }
