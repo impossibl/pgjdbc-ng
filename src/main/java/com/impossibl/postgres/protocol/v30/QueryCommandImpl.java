@@ -100,8 +100,9 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       QueryCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override

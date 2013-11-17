@@ -239,6 +239,11 @@ public class ProtocolImpl implements Protocol {
     sharedRef.release();
   }
 
+  private void kill() {
+    channel.close().awaitUninterruptibly();
+    connected.set(false);
+  }
+
   @Override
   public void abort(Executor executor) {
 
@@ -369,6 +374,12 @@ public class ProtocolImpl implements Protocol {
         }
         else {
           throw new IOException(exception.getCause());
+        }
+      }
+
+      if (cmd.getError() != null) {
+        if (cmd.getError().getCode().startsWith(Notice.CONNECTION_EXC_CLASS)) {
+          kill();
         }
       }
 

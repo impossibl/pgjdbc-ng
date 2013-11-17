@@ -147,8 +147,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       BindExecCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override

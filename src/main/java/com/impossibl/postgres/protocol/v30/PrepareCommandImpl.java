@@ -85,8 +85,9 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       PrepareCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override
