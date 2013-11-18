@@ -29,91 +29,72 @@
 package com.impossibl.postgres.jdbc;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Reader;
 import java.sql.SQLException;
 
-public class BlobOutputStream extends OutputStream {
 
-  PGBlob owner;
+
+public class ClobReader extends Reader {
+
+  private static final int MAX_BUF_SIZE = 8 * 1024;
+
   LargeObject lo;
-  byte[] buf;
-  int pos;
+  byte[] buf = {};
+  int pos = 0;
 
-  public BlobOutputStream(PGBlob owner, LargeObject lo) {
-    super();
-    this.owner = owner;
+  public ClobReader(LargeObject lo) {
     this.lo = lo;
-    this.pos = 0;
-    this.buf = new byte[1024];
   }
 
-
   @Override
-  public void write(int b) throws IOException {
+  public int read() throws IOException {
 
     if (pos >= buf.length) {
-      writeNextRegion();
+      readNextRegion();
     }
 
-    buf[pos++] = (byte)b;
+    return (pos < buf.length) ? ((buf[pos++] & 0xff) << 24 | (buf[pos++] & 0xff) << 16 | (buf[pos++] & 0xff) << 8 | (buf[pos++] & 0xff) << 0) : -1;
   }
 
-
   @Override
-  public void write(byte[] b) throws IOException {
-    write(b, 0, b.length);
-  }
-
-
-  @Override
-  public void write(byte[] b, int off, int len) throws IOException {
-
-    if (pos > 0) {
-      writeNextRegion();
+  public int read(char[] chars, int off, int len) throws IOException {
+    if (chars == null) {
+      throw new NullPointerException();
+    }
+    else if (off < 0 || len < 0 || len > chars.length - off) {
+      throw new IndexOutOfBoundsException();
     }
 
+    int left = len;
+    while (left > 0) {
+
+      int ch = read();
+      if (ch == -1)
+        break;
+
+      chars[off++] = (char) ch;
+
+      left--;
+    }
+
+    return len != left ? len - left : -1;
+  }
+
+  public void readNextRegion() throws IOException {
     try {
-      lo.write(b, off, len);
-    }
-    catch (SQLException e) {
-      throw new IOException(e);
-    }
-
-  }
-
-  @Override
-  public void flush() throws IOException {
-    if (pos > 0) {
-      writeNextRegion();
-    }
-  }
-
-  @Override
-  public void close() throws IOException {
-    flush();
-    try {
-      lo.close();
-    }
-    catch (SQLException e) {
-      throw new IOException("Error closing stream", e);
-    }
-    if (owner != null) {
-      owner.removeStream(lo);
-    }
-    owner = null;
-    lo = null;
-  }
-
-  private void writeNextRegion() throws IOException {
-
-    try {
-      lo.write(buf, 0, pos);
+      buf = lo.read(MAX_BUF_SIZE);
+      if (buf.length % PGClob.CHAR_SIZE != 0) {
+        throw new IOException("invalid clob buffer read");
+      }
       pos = 0;
     }
     catch (SQLException e) {
       throw new IOException(e);
     }
+  }
 
+  @Override
+  public void close() throws IOException {
   }
 
 }

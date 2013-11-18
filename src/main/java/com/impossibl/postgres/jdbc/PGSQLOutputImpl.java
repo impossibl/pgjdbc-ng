@@ -212,6 +212,11 @@ public class PGSQLOutputImpl implements PGSQLOutput {
   }
 
   @Override
+  public void writeClob(Clob x) throws SQLException {
+    writeNextAttributeValue(x);
+  }
+
+  @Override
   public void writeStruct(Struct x) throws SQLException {
     writeNextAttributeValue(x);
   }
@@ -228,11 +233,6 @@ public class PGSQLOutputImpl implements PGSQLOutput {
 
   @Override
   public void writeRef(Ref x) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public void writeClob(Clob x) throws SQLException {
     throw NOT_IMPLEMENTED;
   }
 

@@ -42,6 +42,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
@@ -236,6 +237,11 @@ public class PGSQLInputImpl implements PGSQLInput {
   }
 
   @Override
+  public Clob readClob() throws SQLException {
+    return coerceToClob(getNextAttributeValue(), connection);
+  }
+
+  @Override
   public Array readArray() throws SQLException {
 
     Object val = getNextAttributeValue();
@@ -273,11 +279,6 @@ public class PGSQLInputImpl implements PGSQLInput {
       throw new SQLException("no value read");
 
     return nullFlag;
-  }
-
-  @Override
-  public Clob readClob() throws SQLException {
-    throw NOT_IMPLEMENTED;
   }
 
   @Override

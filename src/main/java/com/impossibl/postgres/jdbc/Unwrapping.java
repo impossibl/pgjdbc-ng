@@ -29,11 +29,15 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.SQLException;
 
 
@@ -46,13 +50,22 @@ public class Unwrapping {
       return unwrapBlob(connection, (Blob) x);
     }
 
+    if (x instanceof Clob) {
+      return unwrapClob(connection, (Clob) x);
+    }
+
     return x;
   }
 
   static PGBlob unwrapBlob(PGConnectionImpl connection, Blob x) throws SQLException {
 
-    if (x instanceof PGBlob)
+    if (x == null) {
+      return null;
+    }
+
+    if (x instanceof PGBlob) {
       return (PGBlob) x;
+    }
 
     InputStream in = x.getBinaryStream();
     if (in instanceof BlobInputStream) {
@@ -65,6 +78,37 @@ public class Unwrapping {
     try {
 
       ByteStreams.copy(in, out);
+
+      in.close();
+      out.close();
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
+
+    return nx;
+  }
+
+  static PGClob unwrapClob(PGConnectionImpl connection, Clob x) throws SQLException {
+
+    if (x == null) {
+      return null;
+    }
+
+    if (x instanceof PGClob)
+      return (PGClob) x;
+
+    Reader in = x.getCharacterStream();
+    if (in instanceof ClobReader) {
+      return new PGClob(connection, ((ClobReader) in).lo.oid);
+    }
+
+    PGClob nx = (PGClob) connection.createClob();
+    Writer out = nx.setCharacterStream(1);
+
+    try {
+
+      CharStreams.copy(in, out);
 
       in.close();
       out.close();

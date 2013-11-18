@@ -44,9 +44,11 @@
 
 package com.impossibl.postgres.utils.guava;
 
+import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.EOFException;
+import java.io.FilterReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
@@ -146,6 +148,84 @@ public final class CharStreams {
       else {
         n -= amt;
       }
+    }
+  }
+
+  public static Reader limit(Reader in, long n) {
+    return new LimitedReader(in, n);
+  }
+
+  public static final class LimitedReader extends FilterReader {
+
+    private long limit;
+    private long left;
+    private long mark = -1;
+
+    LimitedReader(Reader in, long limit) {
+      super(in);
+      checkNotNull(in);
+      checkArgument(limit >= 0, "limit must be non-negative");
+      this.left = limit;
+      this.limit = limit;
+    }
+
+    public long limit() {
+      return limit;
+    }
+
+    // it's okay to mark even if mark isn't supported, as reset won't work
+    @Override
+    public synchronized void mark(int readLimit) throws IOException {
+      in.mark(readLimit);
+      mark = left;
+    }
+
+    @Override
+    public int read() throws IOException {
+      if (left == 0) {
+        return -1;
+      }
+
+      int result = in.read();
+      if (result != -1) {
+        --left;
+      }
+      return result;
+    }
+
+    @Override
+    public int read(char[] b, int off, int len) throws IOException {
+      if (left == 0) {
+        return -1;
+      }
+
+      len = (int) Math.min(len, left);
+      int result = in.read(b, off, len);
+      if (result != -1) {
+        left -= result;
+      }
+      return result;
+    }
+
+    @Override
+    public synchronized void reset() throws IOException {
+      if (!in.markSupported()) {
+        throw new IOException("Mark not supported");
+      }
+      if (mark == -1) {
+        throw new IOException("Mark not set");
+      }
+
+      in.reset();
+      left = mark;
+    }
+
+    @Override
+    public long skip(long n) throws IOException {
+      n = Math.min(n, left);
+      long skipped = in.skip(n);
+      left -= skipped;
+      return skipped;
     }
   }
 

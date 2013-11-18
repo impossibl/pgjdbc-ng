@@ -29,54 +29,51 @@
 package com.impossibl.postgres.jdbc;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Writer;
 import java.sql.SQLException;
 
-public class BlobOutputStream extends OutputStream {
 
-  PGBlob owner;
+
+public class ClobWriter extends Writer {
+
+  PGClob owner;
   LargeObject lo;
   byte[] buf;
   int pos;
 
-  public BlobOutputStream(PGBlob owner, LargeObject lo) {
+  public ClobWriter(PGClob owner, LargeObject lo) {
     super();
     this.owner = owner;
     this.lo = lo;
     this.pos = 0;
-    this.buf = new byte[1024];
+    this.buf = new byte[1024 * PGClob.CHAR_SIZE];
   }
 
-
   @Override
-  public void write(int b) throws IOException {
+  public void write(int ch) throws IOException {
 
     if (pos >= buf.length) {
       writeNextRegion();
     }
 
-    buf[pos++] = (byte)b;
+    buf[pos++] = (byte) (ch >>> 24);
+    buf[pos++] = (byte) (ch >>> 16);
+    buf[pos++] = (byte) (ch >>> 8);
+    buf[pos++] = (byte) (ch >>> 0);
   }
 
 
   @Override
-  public void write(byte[] b) throws IOException {
-    write(b, 0, b.length);
+  public void write(char[] chars) throws IOException {
+    write(chars, 0, chars.length);
   }
 
 
   @Override
-  public void write(byte[] b, int off, int len) throws IOException {
+  public void write(char[] chars, int off, int len) throws IOException {
 
-    if (pos > 0) {
-      writeNextRegion();
-    }
-
-    try {
-      lo.write(b, off, len);
-    }
-    catch (SQLException e) {
-      throw new IOException(e);
+    for (int c = off; c < len; ++c) {
+      write(chars[c]);
     }
 
   }

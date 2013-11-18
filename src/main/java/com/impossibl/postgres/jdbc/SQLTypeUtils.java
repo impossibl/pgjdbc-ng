@@ -41,6 +41,8 @@ import com.impossibl.postgres.utils.guava.ByteStreams;
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
 import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.CLOB_TYPE;
+import static com.impossibl.postgres.system.Settings.CLOB_TYPE_DEFAULT;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -50,6 +52,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
 import java.sql.SQLData;
 import java.sql.SQLException;
@@ -102,6 +105,9 @@ class SQLTypeUtils {
         case Oid:
           if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
             targetType = Blob.class;
+          }
+          if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
+            targetType = Clob.class;
           }
           break;
 
@@ -208,6 +214,9 @@ class SQLTypeUtils {
     }
     else if (targetType == Blob.class) {
       return coerceToBlob(val, connection);
+    }
+    else if (targetType == Clob.class) {
+      return coerceToClob(val, connection);
     }
     else if (InputStream.class.isAssignableFrom(targetType)) {
       return coerceToByteStream(format, val, sourceType, connection);
@@ -325,6 +334,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof PGBlob) {
       return ((PGBlob) val).lo.oid;
+    }
+    else if (val instanceof PGClob) {
+      return ((PGClob) val).lo.oid;
     }
 
     throw createCoercionException(val.getClass(), int.class);
@@ -770,6 +782,24 @@ class SQLTypeUtils {
     }
 
     throw createCoercionException(val.getClass(), byte[].class);
+  }
+
+  public static Clob coerceToClob(Object val, PGConnectionImpl connection) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof Clob) {
+      return (Clob) val;
+    }
+    else if (val instanceof Integer) {
+      return new PGClob(connection, (int) val);
+    }
+    else if (val instanceof Long) {
+      return new PGClob(connection, (int) (long) val);
+    }
+
+    throw createCoercionException(val.getClass(), Clob.class);
   }
 
   public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {

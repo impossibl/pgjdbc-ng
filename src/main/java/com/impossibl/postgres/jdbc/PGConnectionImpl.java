@@ -1023,6 +1023,15 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   @Override
+  public Clob createClob() throws SQLException {
+    checkClosed();
+
+    int loOid = LargeObject.creat(this, 0);
+
+    return new PGClob(this, loOid);
+  }
+
+  @Override
   public SQLXML createSQLXML() throws SQLException {
     checkClosed();
 
@@ -1073,12 +1082,6 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
 
   @Override
   public Properties getClientInfo() throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public Clob createClob() throws SQLException {
     checkClosed();
     throw NOT_IMPLEMENTED;
   }
