@@ -47,20 +47,20 @@ public interface Housekeeper {
   /**
    * Associate a cleanup runnable to be run when a referent is only phantom
    * reference-able.
-   *
+   * 
    * @param referent
    *          Reference to track
    * @param cleanup
    *          Runnable to run when referent is phantom-ed
-   * @return Key object to use when calling {@link remove}
+   * @return Key object to use when calling remove
    */
   <T> Object add(T referent, CleanupRunnable cleanup);
 
   /**
    * Removes cleanup runnable for the given referent
    *
-   * @param referent
-   *          Reference to stop tracking
+   * @param cleanupKey
+   *          Key to reference to stop tracking
    */
   void remove(Object cleanupKey);
 

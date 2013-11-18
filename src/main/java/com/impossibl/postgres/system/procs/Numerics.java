@@ -193,10 +193,10 @@ public class Numerics extends SimpleProcProvider {
   /**
    * Encodes a string of the plain form XXXX.XXX into an NBASE packed sequence
    * of shorts.
-   *
+   * 
    * @param num
    * @param info
-   * @return
+   * @return NBASE encoded version of num
    */
   private static short[] encodeFromString(String num, short[] info) {
 

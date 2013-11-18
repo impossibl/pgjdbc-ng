@@ -70,8 +70,6 @@ public interface PGConnection extends Connection {
    * Adds an, unnamed, unfiltered, asynchronous notification listener to this
    * connection
    *
-   * @param channelNameFilter
-   *          Channel name based notification filter
    * @param listener
    *          Notification listener
    */

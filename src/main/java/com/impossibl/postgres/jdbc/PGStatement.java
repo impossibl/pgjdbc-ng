@@ -306,15 +306,13 @@ abstract class PGStatement implements Statement {
   }
 
   /**
-   * Execute the named statement. It must have previously been parsed and
-   * ready to be bound and executed.
+   * Execute the given sql
    *
-   * @param statementName Name of backend statement to execute or null
-   * @param parameterTypes List of parameter types
-   * @param parameterValues List of parmaeter values
-   * @return true if command returned results or false if not
+   * @param sql
+   *          SQL text to execute
+   * @return True if command returned results or false if not
    * @throws SQLException
-   *          If an error occurred durring statement execution
+   *           If an error occurred during statement execution
    */
   public boolean executeSimple(String sql) throws SQLException {
 
