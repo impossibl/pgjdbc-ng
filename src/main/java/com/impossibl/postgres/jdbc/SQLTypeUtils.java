@@ -889,7 +889,7 @@ class SQLTypeUtils {
 
       CompositeType compType = (CompositeType) sourceType;
 
-      PGSQLOutput out = new PGSQLOutput(connection, compType);
+      PGSQLOutputImpl out = new PGSQLOutputImpl(connection, compType);
 
       ((SQLData) val).writeSQL(out);
 
@@ -928,7 +928,7 @@ class SQLTypeUtils {
       }
       else if (SQLData.class.isInstance(val)) {
 
-        PGSQLOutput out = new PGSQLOutput(connection, compType);
+        PGSQLOutputImpl out = new PGSQLOutputImpl(connection, compType);
 
         ((SQLData) val).writeSQL(out);
 
@@ -993,7 +993,7 @@ class SQLTypeUtils {
         throw createCoercionException(val.getClass(), targetType, e);
       }
 
-      PGSQLInput in = new PGSQLInput(connection, compType, typeMap, attributeVals);
+      PGSQLInputImpl in = new PGSQLInputImpl(connection, compType, typeMap, attributeVals);
 
       ((SQLData) dst).readSQL(in, compType.getName());
 

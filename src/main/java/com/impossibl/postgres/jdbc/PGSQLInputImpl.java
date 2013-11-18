@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLInput;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
@@ -69,7 +70,6 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLInput;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -78,7 +78,9 @@ import java.util.TimeZone;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class PGSQLInput implements SQLInput {
+
+
+public class PGSQLInputImpl implements PGSQLInput {
 
   private PGConnectionImpl connection;
   private CompositeType type;
@@ -87,7 +89,7 @@ public class PGSQLInput implements SQLInput {
   private Object[] attributeValues;
   private Boolean nullFlag;
 
-  public PGSQLInput(PGConnectionImpl connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
+  public PGSQLInputImpl(PGConnectionImpl connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
     this.connection = connection;
     this.type = type;
     this.typeMap = typeMap;
