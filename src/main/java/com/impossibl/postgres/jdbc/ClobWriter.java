@@ -28,6 +28,89 @@
  */
 package com.impossibl.postgres.jdbc;
 
-public @interface Nonconforming {
+import java.io.IOException;
+import java.io.Writer;
+import java.sql.SQLException;
+
+
+
+public class ClobWriter extends Writer {
+
+  PGClob owner;
+  LargeObject lo;
+  byte[] buf;
+  int pos;
+
+  public ClobWriter(PGClob owner, LargeObject lo) {
+    super();
+    this.owner = owner;
+    this.lo = lo;
+    this.pos = 0;
+    this.buf = new byte[1024 * PGClob.CHAR_SIZE];
+  }
+
+  @Override
+  public void write(int ch) throws IOException {
+
+    if (pos >= buf.length) {
+      writeNextRegion();
+    }
+
+    buf[pos++] = (byte) (ch >>> 24);
+    buf[pos++] = (byte) (ch >>> 16);
+    buf[pos++] = (byte) (ch >>> 8);
+    buf[pos++] = (byte) (ch >>> 0);
+  }
+
+
+  @Override
+  public void write(char[] chars) throws IOException {
+    write(chars, 0, chars.length);
+  }
+
+
+  @Override
+  public void write(char[] chars, int off, int len) throws IOException {
+
+    for (int c = off; c < len; ++c) {
+      write(chars[c]);
+    }
+
+  }
+
+  @Override
+  public void flush() throws IOException {
+    if (pos > 0) {
+      writeNextRegion();
+    }
+  }
+
+  @Override
+  public void close() throws IOException {
+    flush();
+    try {
+      lo.close();
+    }
+    catch (SQLException e) {
+      throw new IOException("Error closing stream", e);
+    }
+    if (owner != null) {
+      owner.removeStream(lo);
+    }
+    owner = null;
+    lo = null;
+  }
+
+  private void writeNextRegion() throws IOException {
+
+    try {
+      lo.write(buf, 0, pos);
+      pos = 0;
+    }
+    catch (SQLException e) {
+      throw new IOException(e);
+    }
+
+  }
 
 }

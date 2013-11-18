@@ -26,53 +26,75 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
+import java.io.IOException;
+import java.io.Reader;
+import java.sql.SQLException;
 
-import java.util.Collection;
 
-/**
- * A database range type.
- *
- * @author kdubb
- *
- */
-public class RangeType extends Type {
 
-  Type base;
+public class ClobReader extends Reader {
 
-  public Type getBase() {
-    return base;
-  }
+  private static final int MAX_BUF_SIZE = 8 * 1024;
 
-  public void setBase(Type base) {
-    this.base = base;
+  LargeObject lo;
+  byte[] buf = {};
+  int pos = 0;
+
+  public ClobReader(LargeObject lo) {
+    this.lo = lo;
   }
 
   @Override
-  public boolean isParameterFormatSupported(Format format) {
-    return base.isParameterFormatSupported(format);
+  public int read() throws IOException {
+
+    if (pos >= buf.length) {
+      readNextRegion();
+    }
+
+    return (pos < buf.length) ? ((buf[pos++] & 0xff) << 24 | (buf[pos++] & 0xff) << 16 | (buf[pos++] & 0xff) << 8 | (buf[pos++] & 0xff) << 0) : -1;
   }
 
   @Override
-  public boolean isResultFormatSupported(Format format) {
-    return base.isResultFormatSupported(format);
+  public int read(char[] chars, int off, int len) throws IOException {
+    if (chars == null) {
+      throw new NullPointerException();
+    }
+    else if (off < 0 || len < 0 || len > chars.length - off) {
+      throw new IndexOutOfBoundsException();
+    }
+
+    int left = len;
+    while (left > 0) {
+
+      int ch = read();
+      if (ch == -1)
+        break;
+
+      chars[off++] = (char) ch;
+
+      left--;
+    }
+
+    return len != left ? len - left : -1;
+  }
+
+  public void readNextRegion() throws IOException {
+    try {
+      buf = lo.read(MAX_BUF_SIZE);
+      if (buf.length % PGClob.CHAR_SIZE != 0) {
+        throw new IOException("invalid clob buffer read");
+      }
+      pos = 0;
+    }
+    catch (SQLException e) {
+      throw new IOException(e);
+    }
   }
 
   @Override
-  public Type unwrap() {
-    return this;
-  }
-
-  @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-
-    super.load(source, attrs, registry);
-
-    base = registry.loadType(source.rangeBaseTypeId);
+  public void close() throws IOException {
   }
 
 }

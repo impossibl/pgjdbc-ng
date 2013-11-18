@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLOutput;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.utils.guava.ByteStreams;
@@ -53,21 +54,22 @@ import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
-import java.sql.SQLOutput;
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 
-public class PGSQLOutput implements SQLOutput {
+
+
+public class PGSQLOutputImpl implements PGSQLOutput {
 
   private PGConnectionImpl connection;
   private CompositeType type;
   private int currentAttributeIdx;
   private Object[] attributeValues;
 
-  public PGSQLOutput(PGConnectionImpl connection, CompositeType type) {
+  public PGSQLOutputImpl(PGConnectionImpl connection, CompositeType type) {
     this.connection = connection;
     this.type = type;
     this.attributeValues = new Object[type.getAttributes().size()];
@@ -199,12 +201,18 @@ public class PGSQLOutput implements SQLOutput {
     writeNextAttributeValue(x);
   }
 
+  @Override
   public void writeObject(Object x) throws SQLException {
     writeNextAttributeValue(x);
   }
 
   @Override
   public void writeBlob(Blob x) throws SQLException {
+    writeNextAttributeValue(x);
+  }
+
+  @Override
+  public void writeClob(Clob x) throws SQLException {
     writeNextAttributeValue(x);
   }
 
@@ -225,11 +233,6 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeRef(Ref x) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public void writeClob(Clob x) throws SQLException {
     throw NOT_IMPLEMENTED;
   }
 

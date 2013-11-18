@@ -146,7 +146,7 @@ public class SSLEngineFactory {
 
       String sslRootCertFile = context.getSetting(SSL_ROOT_CERT_FILE, String.class);
       if (sslRootCertFile == null) {
-        sslRootCertFile = sslDir + File.pathSeparator + SSL_ROOT_CERT_FILE_DEFAULT;
+        sslRootCertFile = sslDir + File.separator + SSL_ROOT_CERT_FILE_DEFAULT;
       }
 
       try (FileInputStream sslRootCertInputStream = new FileInputStream(sslRootCertFile)) {

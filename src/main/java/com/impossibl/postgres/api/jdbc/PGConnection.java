@@ -42,4 +42,53 @@ public interface PGConnection extends Connection {
    * @return <code>True</code> if the server is minimum the specified version, otherwise <code>false</code>.
    */
   boolean isServerMinimumVersion(int major, int minor);
+
+  /**
+   * Adds a filtered asynchronous notification listener to this connection
+   *
+   * @param name
+   *          Name of listener
+   * @param channelNameFilter
+   *          Channel name based notification filter (Regular Expression)
+   * @param listener
+   *          Notification listener
+   */
+  void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener);
+
+  /**
+   * Adds an, unnamed, filtered, asynchronous notification listener to this
+   * connection
+   *
+   * @param channelNameFilter
+   *          Channel name based notification filter (Regular Expression)
+   * @param listener
+   *          Notification listener
+   */
+  void addNotificationListener(String channelNameFilter, PGNotificationListener listener);
+
+  /**
+   * Adds an, unnamed, unfiltered, asynchronous notification listener to this
+   * connection
+   *
+   * @param listener
+   *          Notification listener
+   */
+  void addNotificationListener(PGNotificationListener listener);
+
+  /**
+   * Removes a named notification listener
+   * 
+   * @param name
+   *          Name of listener to remove
+   */
+  void removeNotificationListener(String name);
+
+  /**
+   * Removes a notification listener
+   * 
+   * @param listener
+   *          Listener instance to remove
+   */
+  void removeNotificationListener(PGNotificationListener listener);
+
 }

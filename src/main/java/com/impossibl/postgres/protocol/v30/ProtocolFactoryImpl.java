@@ -67,7 +67,6 @@ import javax.security.auth.x500.X500Principal;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.handler.ssl.SslHandler;
 
@@ -193,35 +192,13 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
       return protocol;
     }
-    catch (ChannelException e) {
+    catch (NoticeException e) {
 
-      IOException io;
+      throw e;
+    }
+    catch (Exception e) {
 
-      // Unwrap
-      Throwable cause = e.getCause();
-      if (cause instanceof IOException) {
-        io = (IOException) cause;
-      }
-      else {
-        io = new IOException(cause);
-      }
-
-      // Unwrap SSL Handshake exceptions
-
-      while (io instanceof SSLHandshakeException) {
-        if (io.getCause() instanceof IOException) {
-          io = (IOException) io.getCause();
-        }
-        else {
-          io = new SSLException(io.getCause().getMessage(), io.getCause());
-        }
-      }
-
-      if (io instanceof SSLException) {
-        io = new SSLException("SSL Error: " + io.getMessage(), io.getCause());
-      }
-
-      throw io;
+      throw translateConnectionException(e);
     }
 
   }
@@ -296,6 +273,40 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
         throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
       }
     }
+  }
+
+  private IOException translateConnectionException(Exception e) {
+
+    IOException io;
+
+    // Unwrap
+    if (e instanceof IOException) {
+      io = (IOException) e;
+    }
+    else if (e.getCause() instanceof IOException) {
+      io = (IOException) e.getCause();
+    }
+    else {
+      io = new IOException(e.getCause());
+    }
+
+    // Unwrap SSL Handshake exceptions
+
+    while (io instanceof SSLHandshakeException) {
+      if (io.getCause() instanceof IOException) {
+        io = (IOException) io.getCause();
+      }
+      else {
+        io = new SSLException(io.getCause().getMessage(), io.getCause());
+      }
+    }
+
+    if (io instanceof SSLException) {
+      if (!io.getMessage().startsWith("SSL Error"))
+        io = new SSLException("SSL Error: " + io.getMessage(), io.getCause());
+    }
+
+    return io;
   }
 
 }

@@ -72,7 +72,7 @@ abstract class Networks extends SimpleProcProvider {
     }
 
     @Override
-    public NetworkBase decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -161,7 +161,7 @@ abstract class Networks extends SimpleProcProvider {
     }
 
     @Override
-    public NetworkBase decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
       try {
         return nof.newNetworkObject(buffer.toString());
       }

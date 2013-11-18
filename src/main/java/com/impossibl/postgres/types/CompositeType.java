@@ -28,8 +28,10 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
+
 import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
 import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
@@ -108,11 +110,33 @@ public class CompositeType extends Type {
   }
 
   @Override
-  public Class<?> getJavaType(Map<String, Class<?>> customizations) {
+  public boolean isParameterFormatSupported(Format format) {
+
+    boolean allSupported = super.isParameterFormatSupported(format);
+    for (Attribute attr : attributes) {
+      allSupported &= attr.type.isParameterFormatSupported(format);
+    }
+
+    return allSupported;
+  }
+
+  @Override
+  public boolean isResultFormatSupported(Format format) {
+
+    boolean allSupported = super.isResultFormatSupported(format);
+    for (Attribute attr : attributes) {
+      allSupported &= attr.type.isResultFormatSupported(format);
+    }
+
+    return allSupported;
+  }
+
+  @Override
+  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
 
     Class<?> type = (customizations != null) ? customizations.get(getName()) : null;
     if (type == null) {
-      type = super.getJavaType(customizations);
+      type = super.getJavaType(format, customizations);
     }
 
     return type;

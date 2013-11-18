@@ -62,7 +62,7 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -134,7 +134,7 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return new BigDecimal(buffer.toString());
     }

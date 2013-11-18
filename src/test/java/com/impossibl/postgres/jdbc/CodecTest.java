@@ -34,11 +34,8 @@ import com.impossibl.postgres.data.Inet;
 import com.impossibl.postgres.data.Interval;
 import com.impossibl.postgres.data.Range;
 import com.impossibl.postgres.data.Record;
-import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.PreciseInstant;
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 import com.impossibl.postgres.utils.NullChannelBuffer;
@@ -48,11 +45,21 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.sql.SQLXML;
+import java.sql.Struct;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
@@ -76,13 +83,10 @@ import static org.junit.Assert.assertEquals;
 public class CodecTest {
 
   PGConnectionImpl conn;
-  boolean binary, text;
   String typeName;
   Object value;
 
-  public CodecTest(String tag, boolean binary, boolean text, String typeName, Object value) {
-    this.binary = binary;
-    this.text = text;
+  public CodecTest(String typeName, Object value) {
     this.typeName = typeName;
     this.value = value;
   }
@@ -93,6 +97,7 @@ public class CodecTest {
     conn = (PGConnectionImpl) TestUtil.openDB();
 
     TestUtil.createType(conn, "teststruct" , "str text, str2 text, id uuid, num float");
+    TestUtil.createType(conn, "teststructany", "anytype float");
   }
 
   @After
@@ -102,10 +107,9 @@ public class CodecTest {
   }
 
   @Test
-  public void testBinaryCodecs() throws IOException {
+  public void testBinaryCodecs() throws IOException, SQLException {
 
-    if (!binary)
-      return;
+    makeValue();
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
@@ -113,37 +117,18 @@ public class CodecTest {
       return;
     }
 
-    Codec codec = type.getBinaryCodec();
-
-    if (value instanceof Maker) {
-      value = ((Maker) value).make(conn);
-    }
-
-    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+    if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
       System.out.println("Skipping " + typeName + " (bin)");
       return;
     }
 
-    if (value instanceof InputStream) {
-      assertStreamEquals(typeName + " (bin): ", (InputStream) value, (InputStream) inOut(type, codec, value));
-    }
-    else if (value instanceof byte[]) {
-      assertArrayEquals(typeName + " (bin): ", (byte[]) value, (byte[]) inOut(type, codec, value));
-    }
-    else if (value instanceof Object[]) {
-      assertArrayEquals(typeName + " (bin): ", (Object[]) value, (Object[]) inOut(type, codec, value));
-    }
-    else {
-      assertEquals(typeName + " (bin): ", value, inOut(type, codec, value));
-    }
-
+    test(value, inOut(type, Format.Binary, value));
   }
 
   @Test
-  public void testTextCodecs() throws IOException {
+  public void testTextCodecs() throws IOException, SQLException {
 
-    if (!text)
-      return;
+    makeValue();
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
@@ -151,38 +136,18 @@ public class CodecTest {
       return;
     }
 
-    Codec codec = type.getTextCodec();
-
-    if (value instanceof Maker) {
-      value = ((Maker) value).make(conn);
-    }
-
-    if (codec.encoder.getOutputPrimitiveType() == PrimitiveType.Unknown) {
+    if (!type.isParameterFormatSupported(Format.Text) || !type.isResultFormatSupported(Format.Text)) {
       System.out.println("Skipping " + typeName + " (txt)");
       return;
     }
 
-    if (value instanceof InputStream) {
-      ((InputStream) value).reset();
-      assertStreamEquals(typeName + " (txt): ", (InputStream) value, (InputStream) inOut(type, codec, value));
-    }
-    else if (value instanceof byte[]) {
-      assertArrayEquals(typeName + " (txt): ", (byte[]) value, (byte[]) inOut(type, codec, value));
-    }
-    else if (value instanceof Object[]) {
-      assertArrayEquals(typeName + " (txt): ", (Object[]) value, (Object[]) inOut(type, codec, value));
-    }
-    else {
-      assertEquals(typeName + " (txt): ", value, inOut(type, codec, value));
-    }
-
+    test(value, inOut(type, Format.Text, value));
   }
 
   @Test
-  public void testBinaryEncoderLength() throws IOException {
+  public void testBinaryEncoderLength() throws IOException, SQLException {
 
-    if (!binary)
-      return;
+    makeValue();
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
@@ -190,21 +155,150 @@ public class CodecTest {
       return;
     }
 
+    if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
+      System.out.println("Skipping " + typeName + " (binlen)");
+      return;
+    }
+
+    compareLengths(coerceValue(type, Format.Binary, value), type, type.getBinaryCodec());
+
+  }
+
+  @Test
+  public void testSendReceive() throws SQLException, IOException {
+
+    makeValue();
+
+    String typeCast = typeCasts.get(typeName);
+    if (typeCast == null) {
+      typeCast = typeName;
+    }
+
+    try (PreparedStatement stmt = conn.prepareStatement("SELECT ?::" + typeCast)) {
+
+      stmt.setObject(1, value);
+
+      try (ResultSet rs = stmt.executeQuery()) {
+
+        rs.next();
+
+        if (value instanceof Object[])
+          testArray(value, rs.getArray(1));
+        else
+          test(value, rs.getObject(1));
+
+      }
+
+    }
+
+  }
+
+  void makeValue() {
+
     if (value instanceof Maker) {
       value = ((Maker) value).make(conn);
     }
 
-    compareLengths(typeName + " (bin): ", value, type, type.getBinaryCodec());
-
   }
 
-  private Object inOut(Type type, Codec codec, Object value) throws IOException {
+  Object coerceValue(Type type, Format format, Object value) throws SQLException {
+    Object res;
+    if (value instanceof Object[]) {
+      Object[] srcArray = (Object[]) value;
+      Object[] dstArray = new Object[srcArray.length];
+      for (int c = 0; c < srcArray.length; ++c) {
+        Class<?> targetType = ((ArrayType)type).getElementType().getCodec(format).encoder.getInputType();
+        dstArray[c] = SQLTypeUtils.coerce(format, srcArray[c], ((ArrayType) type).getElementType(), targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
+      }
+      res = dstArray;
+    }
+    else {
+      Class<?> targetType = type.getCodec(format).encoder.getInputType();
+      res = SQLTypeUtils.coerce(format, value, type, targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
+    }
+    return res;
+  }
+
+  private Object inOut(Type type, Format format, Object value) throws IOException, SQLException {
+
+    value = coerceValue(type, format, value);
+
+    Codec codec = type.getCodec(format);
+
     ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
     codec.encoder.encode(type, buffer, value, conn);
-    return codec.decoder.decode(type, buffer, conn);
+    Object res = codec.decoder.decode(type, null, null, buffer, conn);
+
+    if (res instanceof Object[]) {
+      Object[] resSrcArray = (Object[]) res;
+      Object[] resDstArray = new Object[resSrcArray.length];
+      for (int c = 0; c < resSrcArray.length; ++c) {
+        Class<?> targetType = SQLTypeUtils.mapGetType(((ArrayType) type).getElementType(), Collections.<String, Class<?>> emptyMap(), conn);
+        resDstArray[c] = SQLTypeUtils.coerce(format, resSrcArray[c], ((ArrayType) type).getElementType(), targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
+      }
+      res = resDstArray;
+    }
+    else {
+      Class<?> targetType = SQLTypeUtils.mapGetType(type, Collections.<String, Class<?>> emptyMap(), conn);
+      res = SQLTypeUtils.coerce(res, type, targetType, Collections.<String, Class<?>> emptyMap(), conn);
+    }
+
+    return res;
   }
 
-  private void compareLengths(String typeName, Object val, Type type, Codec codec) throws IOException {
+  public void testArray(Object expected, Array actual) throws SQLException, IOException {
+    test(expected, actual.getArray());
+  }
+
+  public void test(Object expected, Object actual) throws IOException, SQLException {
+
+    if (expected instanceof InputStream) {
+      assertStreamEquals((InputStream) expected, (InputStream) actual);
+    }
+    else if (expected instanceof byte[]) {
+      assertArrayEquals((byte[]) expected, (byte[]) actual);
+    }
+    else if (expected instanceof Object[]) {
+      Object[] expectedArray = (Object[]) expected;
+      Object[] actualArray = (Object[]) actual;
+      assertEquals("Array Length", expectedArray.length, actualArray.length);
+      for (int c = 0; c < expectedArray.length; ++c) {
+        test(expectedArray[c], actualArray[c]);
+      }
+    }
+    else if (expected instanceof Struct) {
+
+      Struct expectedStruct = (Struct) expected;
+      Object[] expectedAttrs = expectedStruct.getAttributes();
+
+      Struct actualStruct = (Struct) actual;
+      Object[] actualAttrs = actualStruct.getAttributes();
+
+      assertEquals("Record Length", expectedAttrs.length, actualAttrs.length);
+      for (int c = 0; c < expectedAttrs.length; ++c) {
+        test(expectedAttrs[c], actualAttrs[c]);
+      }
+    }
+    else if (expected instanceof Record) {
+
+      Record expectedStruct = (Record) expected;
+      Object[] expectedAttrs = expectedStruct.getValues();
+
+      Record actualStruct = (Record) actual;
+      Object[] actualAttrs = actualStruct.getValues();
+
+      assertEquals("Record Length", expectedAttrs.length, actualAttrs.length);
+      for (int c = 0; c < expectedAttrs.length; ++c) {
+        test(expectedAttrs[c], actualAttrs[c]);
+      }
+    }
+    else {
+      assertEquals(expected, actual);
+    }
+
+  }
+
+  private void compareLengths(Object val, Type type, Codec codec) throws IOException {
 
     // Compute length with encoder
     int length = codec.encoder.length(type, val, conn);
@@ -216,23 +310,25 @@ public class CodecTest {
     assertEquals(typeName + " computes length incorrectly", lengthComputer.readableBytes(), length);
   }
 
-  private void assertStreamEquals(String message, InputStream expected, InputStream actual) throws IOException {
+  private void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
     expected.reset();
-    assertArrayEquals(message, ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
+    actual.reset();
+    assertArrayEquals(ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
   }
 
   interface Maker {
     Object make(PGConnectionImpl conn);
   }
 
-  @Parameters(name = "test-{3}-{0}")
+  @Parameters(name = "test-{0}")
+  @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
-    return Arrays.asList(new Object[][] {
-      {"txt", false, true, "aclitem", new ACLItem("test", "rw", "root")},
-      {"both", true,  true, "int4[]", new Integer[] {1, 2, 3}},
-      {"both", true,  true, "bit", new BitSet(42)},
-      {"both", true,  true, "bool", true},
-      {"both", true,  true, "bytea", new Maker() {
+    Object[][] scalarTypesData = new Object[][] {
+      {"aclitem", new ACLItem("pgjdbc", "rw", "postgres")},
+      {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
+      {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
+      {"bool", true},
+      {"bytea", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -240,50 +336,52 @@ public class CodecTest {
         }
 
       } },
-      {"both", true,  true, "date", new AmbiguousInstant(Instant.Type.Date, 0)},
-      {"both", true,  true, "float4", 1.23f},
-      {"both", true,  true, "float8", 2.34d},
-      {"both", true,  true, "int2", (short)234},
-      {"both", true,  true, "int4", 234},
-      {"both", true,  true, "int8", (long)234},
-      {"both", true,  true, "interval", new Interval(1, 2, 3)},
-      {"both", true,  true, "money", new BigDecimal("2342.00")},
-      {"both", true,  true, "name", "hi"},
-      {"both", true,  true, "numeric", new BigDecimal("2342.00")},
-      {"both", true,  true, "oid", 132},
-      {"both", true,  true, "int4range", Range.create(0, true, 5, false)},
-      {"both", true,  true, "text", "hi"},
-      {"both", true,  true, "timestamp", new AmbiguousInstant(Instant.Type.Timestamp, 123)},
-      {"bin", true, false, "timestamptz", new PreciseInstant(Instant.Type.Timestamp, 123, TimeZone.getTimeZone("UTC"))},
-      {"txt", false, true, "timestamptz", new Maker() {
+      {"date", new Date(2000, 1, 1)},
+      {"float4", 1.23f},
+      {"int2", (short)234},
+      {"float8", 2.34d},
+      {"int8", (long)234},
+      {"int4", 234},
+      {"interval", new Interval(1, 2, 3)},
+      {"money", new BigDecimal("2342.00")},
+      {"name", "hi"},
+      {"numeric", new BigDecimal("2342.00")},
+      {"oid", 132},
+      {"int4range", Range.create(0, true, 5, false)},
+      {"text", "hi',\""},
+      {"timestamp", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
+      {"timestamptz", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
+      {"time", new Time(9, 30, 30)},
+      {"timetz", new Time(9, 30, 30)},
+      {"teststruct", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
-          return new PreciseInstant(Instant.Type.Timestamp, 123, conn.getTimeZone());
+          try {
+            return conn.createStruct("teststruct", new Object[] {"hi", "hello", UUID.randomUUID(), 2.d});
+          }
+          catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
         }
 
       } },
-      {"both", true,  true, "time", new AmbiguousInstant(Instant.Type.Time, 123)},
-      {"bin", true, false, "timetz", new PreciseInstant(Instant.Type.Time, 123, TimeZone.getTimeZone("GMT+00:00"))},
-      {"txt", false, true, "timetz", new Maker() {
+      {"uuid", UUID.randomUUID()},
+      {"xml", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
-          return new PreciseInstant(Instant.Type.Time, 123, conn.getTimeZone());
+          try {
+            SQLXML sqlXML = conn.createSQLXML();
+            sqlXML.setString("<xml></xml>");
+            return sqlXML;
+          }
+          catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
         }
-
       } },
-      {"both", true, true, "teststruct", new Maker() {
-
-        @Override
-        public Object make(PGConnectionImpl conn) {
-          return new Record((CompositeType) conn.getRegistry().loadType("teststruct"), new Object[] {"hi", "hello", UUID.randomUUID(), 2.d});
-        }
-
-      } },
-      {"both", true,  true, "uuid", UUID.randomUUID()},
-      {"bin", true, false, "xml", "<hi></hi>".getBytes()},
-      {"both", true, true, "macaddr", new Maker() {
+      {"macaddr", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -293,7 +391,7 @@ public class CodecTest {
         }
 
       } },
-      {"both", true, true, "hstore", new Maker() {
+      {"hstore", new Maker() {
 
         @Override
         public Object make(PGConnectionImpl conn) {
@@ -305,10 +403,87 @@ public class CodecTest {
         }
 
       } },
-      {"both", true, true, "inet", new Inet("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10")},
-      {"both", true, true, "cidr", new Cidr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128")},
-    });
+      {"inet", new Inet("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10")},
+      {"cidr", new Cidr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128")},
+    };
 
+    List<Object[]> data = new ArrayList<>();
+
+    //Combine entries with generated ones for array and composite testing
+    for (final Object[] scalarTypeData : scalarTypesData) {
+
+      final String typeName = (String) scalarTypeData[0];
+
+      final Object typeValue = scalarTypeData[1];
+
+      // Scalar entry
+
+      data.add(scalarTypeData);
+
+      // Array entry
+
+      final String arrayTypeName = typeName + "[]";
+
+      data.add(new Object[] {arrayTypeName, new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) {
+
+          Object value = typeValue;
+          if (value instanceof Maker)
+            value = ((Maker) value).make(conn);
+
+          return new Object[] {value};
+        }
+
+      } });
+
+      // Composite entry
+
+      final String structTypeName = typeName + "struct";
+
+      data.add(new Object[] {structTypeName, new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) {
+
+          try {
+            String elemTypeName = typeName;
+            if (typeCasts.containsKey(typeName)) {
+              elemTypeName = typeCasts.get(typeName);
+            }
+
+            TestUtil.createType(conn, structTypeName, "elem " + elemTypeName);
+          }
+          catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+
+          conn.getRegistry().unloadType(structTypeName);
+
+          Object value = typeValue;
+          if (value instanceof Maker)
+            value = ((Maker) value).make(conn);
+
+          try {
+            return conn.createStruct(structTypeName, new Object[] {value});
+          }
+          catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+      } });
+    }
+
+    return data;
+  }
+
+  static Map<String, String> typeCasts;
+  static {
+    typeCasts = new HashMap<>();
+    typeCasts.put("bit", "bit(7)");
+    typeCasts.put("bit[]", "bit(7)[]");
   }
 
 }

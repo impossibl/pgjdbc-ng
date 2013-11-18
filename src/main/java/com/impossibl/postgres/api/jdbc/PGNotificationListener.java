@@ -26,53 +26,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.api.jdbc;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.NotificationListener;
 
-import java.util.Collection;
+
 
 /**
- * A database range type.
+ * PostgreSQL asynchronous notification listener
  *
  * @author kdubb
  *
  */
-public class RangeType extends Type {
-
-  Type base;
-
-  public Type getBase() {
-    return base;
-  }
-
-  public void setBase(Type base) {
-    this.base = base;
-  }
-
-  @Override
-  public boolean isParameterFormatSupported(Format format) {
-    return base.isParameterFormatSupported(format);
-  }
-
-  @Override
-  public boolean isResultFormatSupported(Format format) {
-    return base.isResultFormatSupported(format);
-  }
-
-  @Override
-  public Type unwrap() {
-    return this;
-  }
-
-  @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-
-    super.load(source, attrs, registry);
-
-    base = registry.loadType(source.rangeBaseTypeId);
-  }
+public interface PGNotificationListener extends NotificationListener {
 
 }

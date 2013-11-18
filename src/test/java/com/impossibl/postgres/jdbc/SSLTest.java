@@ -187,7 +187,7 @@ public class SSLTest {
   static String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
   static String ANY = ".*";
   static String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
-  static String HOSTNAME = "Connection Error: The hostname .* could not be verified";
+  static String HOSTNAME = "Connection Error: SSL Error: The hostname .* could not be verified";
 
   static {
     defaultexpected = new TreeMap<>();

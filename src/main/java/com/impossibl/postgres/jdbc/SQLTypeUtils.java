@@ -31,14 +31,18 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.data.Record;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.Instants;
+import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
 import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.CLOB_TYPE;
+import static com.impossibl.postgres.system.Settings.CLOB_TYPE_DEFAULT;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -48,6 +52,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
 import java.sql.SQLData;
 import java.sql.SQLException;
@@ -72,15 +77,23 @@ import org.jboss.netty.buffer.ChannelBuffers;
 class SQLTypeUtils {
 
   public static Class<?> mapSetType(Type sourceType) {
+    return mapSetType(sourceType.getPreferredFormat(), sourceType);
+  }
 
-    Class<?> targetType = sourceType.getJavaType(null);
+  public static Class<?> mapSetType(Format format, Type sourceType) {
+
+    Class<?> targetType = sourceType.getJavaType(format, null);
 
     return targetType;
   }
 
   public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap, Context context) {
+    return mapGetType(sourceType.getPreferredFormat(), sourceType, typeMap, context);
+  }
 
-    Class<?> targetType = sourceType.getJavaType(typeMap);
+  public static Class<?> mapGetType(Format format, Type sourceType, Map<String, Class<?>> typeMap, Context context) {
+
+    Class<?> targetType = sourceType.getJavaType(format, typeMap);
 
     Class<?> mappedType = typeMap.get(sourceType.getName());
     if (mappedType != null) {
@@ -92,6 +105,9 @@ class SQLTypeUtils {
         case Oid:
           if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
             targetType = Blob.class;
+          }
+          if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
+            targetType = Clob.class;
           }
           break;
 
@@ -113,6 +129,15 @@ class SQLTypeUtils {
           targetType = Timestamp.class;
           break;
 
+        case Record:
+          targetType = Struct.class;
+          break;
+
+        case Array:
+          ArrayType arrayType = (ArrayType) sourceType;
+          targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
+          break;
+
         default:
           break;
       }
@@ -124,10 +149,20 @@ class SQLTypeUtils {
 
   public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
-    return coerce(val, sourceType, targetType, typeMap, TimeZone.getDefault(), connection);
+    return coerce(sourceType.getPreferredFormat(), val, sourceType, targetType, typeMap, connection);
+  }
+
+  public static Object coerce(Format format, Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
+
+    return coerce(format, val, sourceType, targetType, typeMap, TimeZone.getDefault(), connection);
   }
 
   public static Object coerce(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnectionImpl connection) throws SQLException {
+
+    return coerce(sourceType.getPreferredFormat(), val, sourceType, targetType, typeMap, zone, connection);
+  }
+
+  public static Object coerce(Format format, Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
@@ -180,17 +215,23 @@ class SQLTypeUtils {
     else if (targetType == Blob.class) {
       return coerceToBlob(val, connection);
     }
-    else if (targetType == byte[].class || InputStream.class.isAssignableFrom(targetType)) {
-      return coerceToBytes(val, sourceType, connection);
+    else if (targetType == Clob.class) {
+      return coerceToClob(val, connection);
+    }
+    else if (InputStream.class.isAssignableFrom(targetType)) {
+      return coerceToByteStream(format, val, sourceType, connection);
+    }
+    else if (targetType == byte[].class || targetType == Byte[].class) {
+      return coerceToBytes(format, val, sourceType, connection);
     }
     else if (targetType.isArray()) {
-      return coerceToArray(val, sourceType, targetType, typeMap, connection);
+      return coerceToArray(format, val, sourceType, targetType, typeMap, connection);
     }
     else if (targetType == Struct.class) {
       return coerceToStruct(val, sourceType, typeMap, connection);
     }
     else if (targetType == Record.class) {
-      return coerceToRecord(val, sourceType, typeMap, connection);
+      return coerceToRecord(format, val, sourceType, typeMap, zone, connection);
     }
     else if (targetType == UUID.class) {
       return coerceToUUID(val, connection);
@@ -293,6 +334,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof PGBlob) {
       return ((PGBlob) val).lo.oid;
+    }
+    else if (val instanceof PGClob) {
+      return ((PGClob) val).lo.oid;
     }
 
     throw createCoercionException(val.getClass(), int.class);
@@ -479,6 +523,9 @@ class SQLTypeUtils {
     else if (val instanceof byte[]) {
       return new String((byte[]) val, context.getCharset());
     }
+    else if (val instanceof PGSQLXML) {
+      return ((PGSQLXML) val).getString();
+    }
     else {
       return val.toString();
     }
@@ -643,7 +690,12 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Blob.class);
   }
 
-  public static InputStream coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+  public static InputStream coerceToByteStream(Object val, Type sourceType, Context context) throws SQLException {
+
+    return coerceToByteStream(sourceType.getPreferredFormat(), val, sourceType, context);
+  }
+
+  public static InputStream coerceToByteStream(Format format, Object val, Type sourceType, Context context) throws SQLException {
 
     if (val == null) {
       return null;
@@ -661,7 +713,7 @@ class SQLTypeUtils {
       byte[] data = ((PGSQLXML) val).getData();
       return data != null ? new ByteArrayInputStream(data) : null;
     }
-    else if (sourceType.getJavaType(Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+    else if (sourceType.getJavaType(format, Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
 
       // Encode into byte array using type encoder
 
@@ -683,16 +735,88 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), byte[].class);
   }
 
+  public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
+
+    return coerceToBytes(sourceType.getPreferredFormat(), val, sourceType, context);
+  }
+
+  public static byte[] coerceToBytes(Format format, Object val, Type sourceType, Context context) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof InputStream) {
+      try {
+        return ByteStreams.toByteArray((InputStream) val);
+      }
+      catch (IOException e) {
+        throw new SQLException(e);
+      }
+    }
+    else if (val instanceof byte[]) {
+      return (byte[]) val;
+    }
+    else if (val instanceof String) {
+      return ((String) val).getBytes(context.getCharset());
+    }
+    else if (val instanceof PGSQLXML) {
+      return ((PGSQLXML) val).getData();
+    }
+    else if (sourceType.getJavaType(format, Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+
+      // Encode into byte array using type encoder
+
+      ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+
+      try {
+        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+      }
+      catch (IOException e) {
+        throw createCoercionException(val.getClass(), byte[].class);
+      }
+
+      // Skip written length
+      buffer.skipBytes(4);
+
+      return buffer.readBytes(buffer.readableBytes()).array();
+    }
+
+    throw createCoercionException(val.getClass(), byte[].class);
+  }
+
+  public static Clob coerceToClob(Object val, PGConnectionImpl connection) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof Clob) {
+      return (Clob) val;
+    }
+    else if (val instanceof Integer) {
+      return new PGClob(connection, (int) val);
+    }
+    else if (val instanceof Long) {
+      return new PGClob(connection, (int) (long) val);
+    }
+
+    throw createCoercionException(val.getClass(), Clob.class);
+  }
+
   public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
+
+    return coerceToArray(type.getPreferredFormat(), val, type, targetType, typeMap, connection);
+  }
+
+  public static Object coerceToArray(Format format, Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
       return null;
     }
     else if (val instanceof PGArray) {
-      return coerceToArray(((PGArray) val).getValue(), type, targetType, typeMap, connection);
+      return coerceToArray(format, ((PGArray) val).getValue(), type, targetType, typeMap, connection);
     }
     else if (val.getClass().isArray()) {
-      return coerceToArray(val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+      return coerceToArray(format, val, 0, Array.getLength(val), type, targetType, typeMap, connection);
     }
 
     throw createCoercionException(val.getClass(), targetType);
@@ -700,11 +824,25 @@ class SQLTypeUtils {
 
   public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
+    return coerceToArray(type.getPreferredFormat(), val, index, count, type, targetType, typeMap, connection);
+  }
+
+  public static Object coerceToArray(Format format, Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
+
     if (val == null) {
       return null;
     }
     else if (val instanceof PGArray) {
-      return coerceToArray(((PGArray) val).getValue(), index, count, type, targetType, typeMap, connection);
+      return coerceToArray(format, ((PGArray) val).getValue(), index, count, type, targetType, typeMap, connection);
+    }
+    else if (val.getClass() == type.getJavaType(format, typeMap) && targetType.isArray()) {
+
+      Object array = Array.newInstance(targetType.getComponentType(), count);
+      for (int c = index, end = index + count; c < end; ++c) {
+        Array.set(array, c - index, coerce(format, Array.get(val, c), type, targetType.getComponentType(), typeMap, connection));
+      }
+
+      return array;
     }
     else if (val.getClass().isArray() && targetType.isArray()) {
 
@@ -751,7 +889,7 @@ class SQLTypeUtils {
 
         for (int c = index, end = index + count; c < end; ++c) {
 
-          Array.set(dst, c, coerce(Array.get(val, c), type, elementClass, typeMap, connection));
+          Array.set(dst, c, coerce(format, Array.get(val, c), type, elementClass, typeMap, connection));
 
         }
 
@@ -781,17 +919,23 @@ class SQLTypeUtils {
 
       CompositeType compType = (CompositeType) sourceType;
 
-      PGSQLOutput out = new PGSQLOutput(connection, compType);
+      PGSQLOutputImpl out = new PGSQLOutputImpl(connection, compType);
 
       ((SQLData) val).writeSQL(out);
 
       return new PGStruct(connection, compType, out.getAttributeValues());
     }
+    else if (val instanceof Object[] && sourceType instanceof CompositeType) {
+
+      CompositeType compType = (CompositeType) sourceType;
+
+      return new PGStruct(connection, compType, (Object[]) val);
+    }
 
     throw createCoercionException(val.getClass(), Struct.class);
   }
 
-  public static Record coerceToRecord(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
+  public static Record coerceToRecord(Format format, Object val, Type sourceType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnectionImpl connection) throws SQLException {
 
     if (val == null) {
 
@@ -814,7 +958,7 @@ class SQLTypeUtils {
       }
       else if (SQLData.class.isInstance(val)) {
 
-        PGSQLOutput out = new PGSQLOutput(connection, compType);
+        PGSQLOutputImpl out = new PGSQLOutputImpl(connection, compType);
 
         ((SQLData) val).writeSQL(out);
 
@@ -823,6 +967,19 @@ class SQLTypeUtils {
       else {
 
         throw createCoercionException(val.getClass(), Record.class);
+      }
+
+      if (compType.getAttributes().size() != attributeVals.length) {
+
+        throw createCoercionException(val.getClass(), Record.class);
+      }
+
+      for (int c = 0; c < attributeVals.length; ++c) {
+
+        Type attrType = compType.getAttribute(c + 1).type;
+        Class<?> attrTargetType = mapSetType(format, attrType);
+
+        attributeVals[c] = coerce(format, attributeVals[c], attrType, attrTargetType, typeMap, zone, connection);
       }
 
       return new Record(compType, attributeVals);
@@ -866,7 +1023,7 @@ class SQLTypeUtils {
         throw createCoercionException(val.getClass(), targetType, e);
       }
 
-      PGSQLInput in = new PGSQLInput(connection, compType, typeMap, attributeVals);
+      PGSQLInputImpl in = new PGSQLInputImpl(connection, compType, typeMap, attributeVals);
 
       ((SQLData) dst).readSQL(in, compType.getName());
 

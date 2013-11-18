@@ -251,15 +251,17 @@ public final class ByteStreams {
   }
 
   /**
-   * Attempts to read enough bytes from the stream to fill the given byte array,
-   * with the same behavior as {@link DataInput#readFully(byte[])}.
+   * Attempts to read enough bytes from the stream to fill the given byte array.
    * Does not close the stream.
    *
-   * @param in the input stream to read from.
-   * @param b the buffer into which the data is read.
-   * @throws EOFException if this stream reaches the end before reading all
-   *     the bytes.
-   * @throws IOException if an I/O error occurs.
+   * @param in
+   *          the input stream to read from.
+   * @param b
+   *          the buffer into which the data is read.
+   * @throws EOFException
+   *           if this stream reaches the end before reading all the bytes.
+   * @throws IOException
+   *           if an I/O error occurs.
    */
   public static void readFully(InputStream in, byte[] b) throws IOException {
     readFully(in, b, 0, b.length);
@@ -267,20 +269,22 @@ public final class ByteStreams {
 
   /**
    * Attempts to read {@code len} bytes from the stream into the given array
-   * starting at {@code off}, with the same behavior as
-   * {@link DataInput#readFully(byte[], int, int)}. Does not close the
-   * stream.
+   * starting at {@code off}. Does not close the stream.
    *
-   * @param in the input stream to read from.
-   * @param b the buffer into which the data is read.
-   * @param off an int specifying the offset into the data.
-   * @param len an int specifying the number of bytes to read.
-   * @throws EOFException if this stream reaches the end before reading all
-   *     the bytes.
-   * @throws IOException if an I/O error occurs.
+   * @param in
+   *          the input stream to read from.
+   * @param b
+   *          the buffer into which the data is read.
+   * @param off
+   *          an int specifying the offset into the data.
+   * @param len
+   *          an int specifying the number of bytes to read.
+   * @throws EOFException
+   *           if this stream reaches the end before reading all the bytes.
+   * @throws IOException
+   *           if an I/O error occurs.
    */
-  public static void readFully(
-      InputStream in, byte[] b, int off, int len) throws IOException {
+  public static void readFully(InputStream in, byte[] b, int off, int len) throws IOException {
     int read = read(in, b, off, len);
     if (read != len) {
       throw new EOFException("reached end of stream after reading "

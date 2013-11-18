@@ -29,6 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.api.jdbc.PGNotificationListener;
+import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
@@ -94,8 +96,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -110,30 +110,36 @@ import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 class PGConnectionImpl extends BasicContext implements PGConnection {
 
-  private static final Logger logger = Logger.getLogger(PGConnection.class.getName());
-
   /**
    * Cleans up server resources in the event of leaking connections
    *
    * @author kdubb
    *
    */
-  static class Cleanup implements Runnable {
+  static class Cleanup implements CleanupRunnable {
 
     Protocol protocol;
     List<WeakReference<PGStatement>> statements;
-    Exception allocationTrace;
+    Exception allocationTracer;
 
     public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
       this.protocol = protocol;
       this.statements = statements;
-      this.allocationTrace = new Exception();
+      this.allocationTracer = new Exception();
+    }
+
+    @Override
+    public String getKind() {
+      return "connection";
+    }
+
+    @Override
+    public Exception getAllocationTracer() {
+      return allocationTracer;
     }
 
     @Override
     public void run() {
-
-      logger.log(Level.WARNING, "cleaning up leaked connection", allocationTrace);
 
       protocol.shutdown();
 
@@ -1017,6 +1023,15 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   @Override
+  public Clob createClob() throws SQLException {
+    checkClosed();
+
+    int loOid = LargeObject.creat(this, 0);
+
+    return new PGClob(this, loOid);
+  }
+
+  @Override
   public SQLXML createSQLXML() throws SQLException {
     checkClosed();
 
@@ -1067,12 +1082,6 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
 
   @Override
   public Properties getClientInfo() throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public Clob createClob() throws SQLException {
     checkClosed();
     throw NOT_IMPLEMENTED;
   }
@@ -1150,6 +1159,26 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
+  }
+
+  @Override
+  public void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener) {
+    super.addNotificationListener(name, channelNameFilter, listener);
+  }
+
+  @Override
+  public void addNotificationListener(String channelNameFilter, PGNotificationListener listener) {
+    super.addNotificationListener(null, channelNameFilter, listener);
+  }
+
+  @Override
+  public void addNotificationListener(PGNotificationListener listener) {
+    super.addNotificationListener(null, null, listener);
+  }
+
+  @Override
+  public void removeNotificationListener(PGNotificationListener listener) {
+    super.removeNotificationListener(listener);
   }
 
 }

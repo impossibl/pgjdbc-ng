@@ -47,6 +47,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 
 import java.io.IOException;
@@ -584,7 +585,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
-    set(parameterIndex, unwrapBlob(connection, x), Types.BINARY);
+    checkClosed();
+
+    set(parameterIndex, unwrapBlob(connection, x), Types.BLOB);
   }
 
   @Override
@@ -594,17 +597,46 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+    checkClosed();
 
     Blob blob = connection.createBlob();
 
     try {
-      ByteStreams.copy(inputStream, blob.setBinaryStream(0));
+      ByteStreams.copy(inputStream, blob.setBinaryStream(1));
     }
     catch (IOException e) {
       throw new SQLException(e);
     }
 
-    set(parameterIndex, blob, Types.BINARY);
+    set(parameterIndex, blob, Types.BLOB);
+  }
+
+  @Override
+  public void setClob(int parameterIndex, Clob x) throws SQLException {
+    checkClosed();
+
+    set(parameterIndex, unwrapClob(connection, x), Types.CLOB);
+  }
+
+  @Override
+  public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
+    setClob(parameterIndex, CharStreams.limit(reader, length));
+  }
+
+  @Override
+  public void setClob(int parameterIndex, Reader reader) throws SQLException {
+    checkClosed();
+
+    Clob clob = connection.createClob();
+
+    try {
+      CharStreams.copy(reader, clob.setCharacterStream(1));
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
+
+    set(parameterIndex, clob, Types.CLOB);
   }
 
   @Override
@@ -654,33 +686,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   }
 
   @Override
-  public void setClob(int parameterIndex, Clob x) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
   public void setNClob(int parameterIndex, NClob value) throws SQLException {
     checkClosed();
     throw NOT_SUPPORTED;
   }
 
   @Override
-  public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
   public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
     checkClosed();
     throw NOT_SUPPORTED;
-  }
-
-  @Override
-  public void setClob(int parameterIndex, Reader reader) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
   }
 
   @Override

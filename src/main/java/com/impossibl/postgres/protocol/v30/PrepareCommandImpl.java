@@ -35,6 +35,7 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.io.IOException;
@@ -84,8 +85,9 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       PrepareCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override

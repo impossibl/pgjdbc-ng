@@ -128,6 +128,11 @@ public class PGDriver implements Driver {
     // successful connection
     for (InetSocketAddress address : connSpec.addresses) {
 
+      if (address.isUnresolved()) {
+        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved");
+        continue;
+      }
+
       try {
 
         PGConnectionImpl conn = new PGConnectionImpl(address, settings, housekeeper);
@@ -205,13 +210,14 @@ public class PGDriver implements Driver {
 
   /**
    * Parses a URL connection string.
-   *
+   * 
    * Uses the URL_PATTERN to capture a hostname or ip address, port, database
    * name and a list of parameters specified as query name=value pairs. All
    * parts but the database name are optional.
-   *
+   * 
    * @param url
-   * @return
+   *          Connection URL to parse
+   * @return Connection specifier of parsed URL
    */
   ConnectionSpecifier parseURL(String url) {
 

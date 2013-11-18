@@ -57,7 +57,7 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Integer decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -118,7 +118,7 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Integer decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return Integer.valueOf(buffer.toString());
     }

@@ -63,7 +63,7 @@ public class HStores extends SimpleProcProvider {
     }
 
     @Override
-    public Map<String, String> decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       // length
       int length = buffer.readInt();
       if (length == -1) {
@@ -72,8 +72,8 @@ public class HStores extends SimpleProcProvider {
       int numElements = buffer.readInt();
       Map<String, String> m = newMap(numElements);
       for (int i = 0; i < numElements; ++i) {
-        String key = Strings.BINARY_DECODER.decode(type, buffer, context);
-        String val = Strings.BINARY_DECODER.decode(type, buffer, context);
+        String key = Strings.BINARY_DECODER.decode(type, null, null, buffer, context);
+        String val = Strings.BINARY_DECODER.decode(type, null, null, buffer, context);
         m.put(key, val);
       }
       return m;
@@ -142,7 +142,7 @@ public class HStores extends SimpleProcProvider {
     }
 
     @Override
-    public Map<String, String> decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
       Map<String, String> m = newMap(10);
       String s = buffer.toString();
       int pos = 0;

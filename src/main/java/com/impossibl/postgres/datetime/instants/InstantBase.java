@@ -176,7 +176,7 @@ public abstract class InstantBase implements Instant {
       return true;
     if (obj == null)
       return false;
-    if (getClass() != obj.getClass())
+    if (obj instanceof InstantBase == false)
       return false;
     InstantBase other = (InstantBase) obj;
     if (type != other.type)

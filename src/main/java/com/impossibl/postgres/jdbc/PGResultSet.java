@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -50,7 +51,8 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
@@ -64,6 +66,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 
@@ -95,8 +98,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -106,30 +107,36 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 class PGResultSet implements ResultSet {
 
-  private static final Logger logger = Logger.getLogger(PGResultSet.class.getName());
-
   /**
    * Cleans up server resources in the event of leaking resultset
    *
    * @author kdubb
    *
    */
-  static class Cleanup implements Runnable {
+  static class Cleanup implements CleanupRunnable {
 
     PGStatement statement;
     QueryCommand command;
-    Exception allocationTrace;
+    Exception allocationTracer;
 
     public Cleanup(PGStatement statement, QueryCommand command) {
       this.statement = statement;
       this.command = command;
-      this.allocationTrace = new Exception();
+      this.allocationTracer = new Exception();
+    }
+
+    @Override
+    public String getKind() {
+      return "result-set";
+    }
+
+    @Override
+    public Exception getAllocationTracer() {
+      return allocationTracer;
     }
 
     @Override
     public void run() {
-
-      logger.log(Level.WARNING, "cleaning up leaked result-set", allocationTrace);
 
       try {
         statement.dispose(command);
@@ -675,7 +682,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    InputStream data = coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+    InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
 
     try {
       return ByteStreams.toByteArray(data);
@@ -800,17 +807,32 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBytes(get(columnIndex), getType(columnIndex), statement.connection);
+    return coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
   }
 
   @Override
   public Blob getBlob(int columnIndex) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
 
     return coerceToBlob(get(columnIndex), statement.connection);
   }
 
   @Override
+  public Clob getClob(int columnIndex) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
+
+    return coerceToClob(get(columnIndex), statement.connection);
+  }
+
+  @Override
   public SQLXML getSQLXML(int columnIndex) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
 
     return coerceToXML(get(columnIndex), statement.connection);
   }
@@ -850,12 +872,6 @@ class PGResultSet implements ResultSet {
 
   @Override
   public Ref getRef(int columnIndex) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public Clob getClob(int columnIndex) throws SQLException {
     checkClosed();
     throw NOT_IMPLEMENTED;
   }
@@ -1281,7 +1297,7 @@ class PGResultSet implements ResultSet {
     Blob blob = statement.connection.createBlob();
 
     try {
-      ByteStreams.copy(x, blob.setBinaryStream(0));
+      ByteStreams.copy(x, blob.setBinaryStream(1));
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -1298,6 +1314,37 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  public void updateClob(int columnIndex, Clob x) throws SQLException {
+    checkClosed();
+    checkUpdate();
+    set(columnIndex, unwrapClob(statement.connection, x));
+  }
+
+  @Override
+  public void updateClob(int columnIndex, Reader x) throws SQLException {
+    checkClosed();
+    checkUpdate();
+
+    Clob clob = statement.connection.createClob();
+
+    try {
+      CharStreams.copy(x, clob.setCharacterStream(1));
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
+
+    set(columnIndex, clob);
+  }
+
+  @Override
+  public void updateClob(int columnIndex, Reader x, long length) throws SQLException {
+    checkClosed();
+    checkUpdate();
+    updateClob(columnIndex, CharStreams.limit(x, length));
+  }
+
+  @Override
   public void updateObject(int columnIndex, Object x) throws SQLException {
     checkClosed();
     checkUpdate();
@@ -1309,27 +1356,6 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkUpdate();
     set(columnIndex, unwrapObject(statement.connection, x));
-  }
-
-  @Override
-  public void updateClob(int columnIndex, Clob x) throws SQLException {
-    checkClosed();
-    checkUpdate();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public void updateClob(int columnIndex, Reader x) throws SQLException {
-    checkClosed();
-    checkUpdate();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public void updateClob(int columnIndex, Reader x, long length) throws SQLException {
-    checkClosed();
-    checkUpdate();
-    throw NOT_IMPLEMENTED;
   }
 
   @Override

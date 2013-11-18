@@ -26,53 +26,28 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.api.jdbc;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
+import java.sql.SQLException;
+import java.sql.SQLOutput;
 
-import java.util.Collection;
+
 
 /**
- * A database range type.
+ * Driver specific extension to SQLOutput
  *
  * @author kdubb
  *
  */
-public class RangeType extends Type {
+public interface PGSQLOutput extends SQLOutput {
 
-  Type base;
-
-  public Type getBase() {
-    return base;
-  }
-
-  public void setBase(Type base) {
-    this.base = base;
-  }
-
-  @Override
-  public boolean isParameterFormatSupported(Format format) {
-    return base.isParameterFormatSupported(format);
-  }
-
-  @Override
-  public boolean isResultFormatSupported(Format format) {
-    return base.isResultFormatSupported(format);
-  }
-
-  @Override
-  public Type unwrap() {
-    return this;
-  }
-
-  @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-
-    super.load(source, attrs, registry);
-
-    base = registry.loadType(source.rangeBaseTypeId);
-  }
+  /**
+   * Write the object to the stream. This allows writing objects supported by
+   * the driver that are not derived from SQLOutput (e.g. UUID)
+   *
+   * @param x
+   *          Value to write to the stream
+   */
+  void writeObject(Object x) throws SQLException;
 
 }
