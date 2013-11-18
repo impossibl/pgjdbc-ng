@@ -864,7 +864,7 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from hstore_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == Map.class);
+    assertTrue(HashMap.class.equals(rs.getObject(1).getClass()));
     assertTrue(hs1.equals(rs.getObject(1)));
     assertTrue(hs2.equals(rs.getObject(2)));
     rs.getObject(3);
