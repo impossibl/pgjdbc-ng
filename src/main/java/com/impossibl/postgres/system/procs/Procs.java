@@ -44,6 +44,7 @@ public class Procs {
     new Bits(),
     new Bools(),
     new Bytes(),
+    new Cidrs(),
     new Dates(),
     new Domains(),
     new Float4s(),

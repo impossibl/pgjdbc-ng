@@ -47,7 +47,7 @@ public class HStores extends SimpleProcProvider {
 
   // TODO Map implementation to be used should be configurable
   private static Map<String, String> newMap(int size) {
-    return new HashMap<>(size);
+    return new HashMap<>(Math.max(2, size));
   }
 
   static class BinDecoder extends BinaryDecoder {
@@ -93,7 +93,7 @@ public class HStores extends SimpleProcProvider {
       return PrimitiveType.Binary;
     }
 
-    private byte[] toBytes(Object val, Context context) {
+    private static byte[] toBytes(Object val, Context context) {
       return val.toString().getBytes(context.getCharset());
     }
 
