@@ -30,141 +30,31 @@ package com.impossibl.postgres.system.procs;
 
 
 import com.impossibl.postgres.data.Inet;
-import com.impossibl.postgres.data.Inet.Family;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.data.NetworkBase;
 
-import java.io.IOException;
+public class Inets extends Networks {
 
-import org.jboss.netty.buffer.ChannelBuffer;
-
-/**
- * @author croudet
- *
- * @version $Revision:  $, $Date: $, $Name: $, $Author: $
- */
-public class Inets extends SimpleProcProvider {
-  private static final short PGSQL_AF_INET = 2;
-  private static final short PGSQL_AF_INET6 = 3;
-
-  // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
   public Inets() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "inet_");
+    super("inet_", new InetObjectFactory());
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class InetObjectFactory implements NetworkObjectFactory<Inet> {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+    public Inet newNetworkObject(byte[] addr, short netmask) {
+      return new Inet(addr, netmask);
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Inet newNetworkObject(String v) {
+      return new Inet(v);
+    }
+
+    @Override
+    public Class<? extends NetworkBase> objectClass() {
       return Inet.class;
     }
-
-    @Override
-    public Inet decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      // length should be 8 or 20
-      short family = buffer.readUnsignedByte();
-      short mask = buffer.readUnsignedByte();
-      int addrSize = buffer.readUnsignedShort();
-      if (family == PGSQL_AF_INET) {
-        if (addrSize != 4) {
-          throw new IOException("Invalid inet4 size: " + addrSize);
-        }
-      }
-      else if (family == PGSQL_AF_INET6) {
-        if (addrSize != 16) {
-          throw new IOException("Invalid inet6 size: " + addrSize);
-        }
-      }
-      else {
-        throw new IOException("Invalid inet family: " + family);
-      }
-      byte[] addr = new byte[addrSize];
-      buffer.readBytes(addr);
-      return new Inet(addr, mask);
-    }
-
-  }
-
-  static class BinEncoder extends BinaryEncoder {
-
-    @Override
-    public Class<?> getInputType() {
-      return Inet.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
-      }
-      else {
-        Inet inet = (Inet) val;
-        buffer.writeInt(inet.getFamily() == Family.IPV4 ? 8 : 20);
-        buffer.writeByte(inet.getFamily() == Family.IPV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
-        buffer.writeByte(inet.getNetmask());
-        buffer.writeShort(inet.getFamily() == Family.IPV4 ? 4 : 16);
-        buffer.writeBytes(inet.getAddress());
-      }
-    }
-  }
-
-  static class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return Inet.class;
-    }
-
-    @Override
-    public Inet decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-      try {
-        return new Inet(buffer.toString());
-      }
-      catch (RuntimeException ex) {
-        throw new IOException(ex);
-      }
-    }
-
-  }
-
-  static class TxtEncoder extends TextEncoder {
-
-    @Override
-    public Class<?> getInputType() {
-      return Inet.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      Inet inet = (Inet) val;
-      buffer.append(inet.toString());
-    }
-
+ 
   }
 
 }

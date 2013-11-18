@@ -28,26 +28,38 @@
  */
 package com.impossibl.postgres.system.procs;
 
-
+import com.impossibl.postgres.data.NetworkBase;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class MacAddrs extends SimpleProcProvider {
+abstract class Networks extends SimpleProcProvider {
+  private static final short PGSQL_AF_INET = 2;
+  private static final short PGSQL_AF_INET6 = 3;
+
+  interface NetworkObjectFactory<T extends NetworkBase> {
+    T newNetworkObject(byte[] addr, short netmask);
+
+    T newNetworkObject(String v);
+ 
+    Class<? extends NetworkBase> objectClass();
+  }
 
   // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
-  // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/utils/adt/mac.c;h=aa9993fa5c6406fa7274ad61de270d5086781a5d;hb=HEAD
-  public MacAddrs() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr_");
+  public Networks(String pgtype, NetworkObjectFactory<? extends NetworkBase> nof) {
+    super(new TxtEncoder(nof), new TxtDecoder(nof), new BinEncoder(nof), new BinDecoder(nof), pgtype);
   }
 
   static class BinDecoder extends BinaryDecoder {
+    private NetworkObjectFactory<? extends NetworkBase> nof;
+
+    public BinDecoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+      this.nof = nof;
+    }
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
@@ -56,31 +68,55 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return byte[].class;
+      return nof.objectClass();
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
+      } // length should be 8 or 20
+      else if (length != 8 && length != 20) {
+        throw new IOException("Invalid length: " + length);
       }
-      else if (length != 6) {
-        throw new IOException("invalid length");
+      // family, bits, is_cidr, address length, address in network byte order.
+      short family = buffer.readUnsignedByte();
+      short mask = buffer.readUnsignedByte();
+      // is_cidr 0 for inet and 1 for cidr
+      buffer.skipBytes(1);
+      // System.out.println(buffer.readByte());
+      int addrSize = buffer.readUnsignedByte();
+      if (family == PGSQL_AF_INET) {
+        if (addrSize != 4) {
+          throw new IOException("Invalid inet4 size: " + addrSize);
+        }
       }
-      // The external representation is just the six bytes, MSB first.
-      byte[] bytes = new byte[6];
-      buffer.readBytes(bytes);
-      return bytes;
+      else if (family == PGSQL_AF_INET6) {
+        if (addrSize != 16) {
+          throw new IOException("Invalid inet6 size: " + addrSize);
+        }
+      }
+      else {
+        throw new IOException("Invalid inet family: " + family);
+      }
+      byte[] addr = new byte[addrSize];
+      buffer.readBytes(addr);
+      return nof.newNetworkObject(addr, mask);
     }
 
   }
 
   static class BinEncoder extends BinaryEncoder {
+    private NetworkObjectFactory<? extends NetworkBase> nof;
+
+    public BinEncoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+      this.nof = nof;
+    }
 
     @Override
     public Class<?> getInputType() {
-      return byte[].class;
+      return nof.objectClass();
     }
 
     @Override
@@ -94,23 +130,26 @@ public class MacAddrs extends SimpleProcProvider {
         buffer.writeInt(-1);
       }
       else {
-        byte[] bytes = (byte[]) val;
-        if (bytes.length != 6) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(6);
-        buffer.writeBytes(bytes);
+        NetworkBase inet = (NetworkBase) val;
+        byte[] addr = inet.getAddress();
+        boolean ipV4 = addr.length == NetworkBase.IPv4INADDRSZ;
+        buffer.writeInt(ipV4 ? 8 : 20);
+        buffer.writeByte(ipV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
+        buffer.writeByte(inet.getNetmask());
+        // 869 inet - 650 cidr
+        buffer.writeByte(type.getId() == 869 ? 0 : 1);
+        buffer.writeByte(ipV4 ? NetworkBase.IPv4INADDRSZ : NetworkBase.IPv6INADDRSZ);
+        buffer.writeBytes(addr);
       }
     }
   }
 
   static class TxtDecoder extends TextDecoder {
-    /*
-     * '08:00:2b:01:02:03' '08-00-2b-01-02-03' '08002b:010203' '08002b-010203'
-     * '0800.2b01.0203' '08002b010203'
-     */
-    private static final Pattern macPattern = Pattern
-        .compile("([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})");
+    private NetworkObjectFactory<? extends NetworkBase> nof;
+
+    public TxtDecoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+      this.nof = nof;
+    }
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
@@ -119,31 +158,31 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return byte[].class;
+      return nof.objectClass();
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-      Matcher m = macPattern.matcher(buffer);
-      if (!m.matches()) {
-        throw new IOException("Invalid Mac address: " + buffer);
+    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+      try {
+        return nof.newNetworkObject(buffer.toString());
       }
-      byte[] addr = new byte[6];
-      for (int i = 0; i < 6; i++) {
-        addr[i] = (byte) Integer.parseInt(m.group(i + 1), 16);
+      catch (RuntimeException ex) {
+        throw new IOException(ex);
       }
-      return addr;
     }
 
   }
 
   static class TxtEncoder extends TextEncoder {
-    private static final char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    private static final char separator = ':';
+    private NetworkObjectFactory<? extends NetworkBase> nof;
+
+    public TxtEncoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+      this.nof = nof;
+    }
 
     @Override
     public Class<?> getInputType() {
-      return byte[].class;
+      return nof.objectClass();
     }
 
     @Override
@@ -153,16 +192,8 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      byte[] addr = (byte[]) val;
-      if (addr.length != 6) {
-        throw new IOException("invalid length");
-      }
-      for (byte b : addr) {
-        int bi = b & 0xff;
-        buffer.append(hexDigits[bi >> 4]);
-        buffer.append(hexDigits[bi & 0xf]).append(separator);
-      }
-      buffer.setLength(buffer.length() - 1);
+      NetworkBase inet = (NetworkBase) val;
+      buffer.append(inet.toString());
     }
 
   }

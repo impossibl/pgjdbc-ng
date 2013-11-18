@@ -26,41 +26,33 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.data;
+package com.impossibl.postgres.system.procs;
 
-/**
- * 
- * @author http://grepcode.com/file/repo1.maven.org/maven2/org.ancoron.postgresql/org.postgresql.net/9.1.901.jdbc4.1-rc9/org/postgresql/net/PGinet.java?av=f
- *
- */
-public class Inet extends NetworkBase {
+import com.impossibl.postgres.data.Cidr;
+import com.impossibl.postgres.data.NetworkBase;
 
-  /**
-   * This constructor takes a string in a valid literal format for either an
-   * IPv4 or IPv6 address and creates a new inet to represent it.
-   * 
-   * @param s
-   *          The string representation of the inet value.
-   */
-  public Inet(String s) {
-    super(s);
+public class Cidrs extends Networks {
+
+  public Cidrs() {
+    super("cidr_", new CidrObjectFactory());
   }
 
-  public Inet(byte[] bytes) {
-    super(bytes);
-  }
+  static class CidrObjectFactory implements NetworkObjectFactory<Cidr> {
 
-  public Inet(byte[] bytes, short mask) {
-    super(bytes, mask);
-  }
+    @Override
+    public Cidr newNetworkObject(byte[] addr, short netmask) {
+      return new Cidr(addr, netmask);
+    }
 
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
+    @Override
+    public Cidr newNetworkObject(String v) {
+      return new Cidr(v);
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    return super.equals(o) && (o instanceof Inet);
+    @Override
+    public Class<? extends NetworkBase> objectClass() {
+      return Cidr.class;
+    }
+
   }
 }
