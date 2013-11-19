@@ -48,6 +48,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 public class Strings extends SimpleProcProvider {
 
   public static final BinDecoder BINARY_DECODER = new BinDecoder();
+  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
 
   public Strings() {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), new ModParser(), "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "unknown");
