@@ -29,11 +29,11 @@
 package com.impossibl.postgres.api.jdbc;
 
 /**
- * Postgres-specific interface for exceptions that carry extended error
+ * Driver specific interface for exceptions that carry extended error
  * information reported by the server.
- *
+ * 
  * @author kdubb
- *
+ * 
  */
 public interface PGSQLExceptionInfo {
 

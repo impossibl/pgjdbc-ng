@@ -406,6 +406,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
+  @Deprecated
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);

@@ -516,6 +516,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   }
 
   @Override
+  @Deprecated
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
 
     InputStreamReader reader = new InputStreamReader(x, UTF_8);

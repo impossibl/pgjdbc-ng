@@ -93,21 +93,6 @@ public class HStores extends SimpleProcProvider {
       return PrimitiveType.Binary;
     }
 
-    private static byte[] toBytes(Object val, Context context) {
-      return val.toString().getBytes(context.getCharset());
-    }
-
-    private void writeString(ChannelBuffer buffer, String val, Context context) {
-      if (val == null) {
-        buffer.writeInt(-1);
-      }
-      else {
-        byte[] bytes = toBytes(val, context);
-        buffer.writeInt(bytes.length);
-        buffer.writeBytes(bytes);
-      }
-    }
-
     @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
       // length
@@ -120,8 +105,8 @@ public class HStores extends SimpleProcProvider {
         buffer.writeInt(map.size());
         for (Iterator<Map.Entry<String, String>> i = map.entrySet().iterator(); i.hasNext();) {
           Map.Entry<String, String> e = i.next();
-          writeString(buffer, e.getKey(), context);
-          writeString(buffer, e.getValue(), context);
+          Strings.BINARY_ENCODER.encode(type, buffer, e.getKey(), context);
+          Strings.BINARY_ENCODER.encode(type, buffer, e.getValue(), context);
         }
         // Set length
         buffer.setInt(start - 4, buffer.writerIndex() - start);
