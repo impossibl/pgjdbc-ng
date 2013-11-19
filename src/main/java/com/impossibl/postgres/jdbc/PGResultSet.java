@@ -659,6 +659,7 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
 
     BigDecimal val = coerceToBigDecimal(columnIndex);
@@ -794,6 +795,7 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  @Deprecated
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
 
     String data = getString(columnIndex);
@@ -955,8 +957,9 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  @Deprecated
   public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-    return getBigDecimal(findColumn(columnLabel));
+    return getBigDecimal(findColumn(columnLabel), scale);
   }
 
   @Override
@@ -985,6 +988,7 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  @Deprecated
   public InputStream getUnicodeStream(String columnLabel) throws SQLException {
     return getUnicodeStream(findColumn(columnLabel));
   }
