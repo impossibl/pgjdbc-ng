@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.Cidr;
-import com.impossibl.postgres.data.NetworkBase;
+import com.impossibl.postgres.data.CidrAddr;
+import com.impossibl.postgres.data.InetAddr;
 
 public class Cidrs extends Networks {
 
@@ -37,21 +37,21 @@ public class Cidrs extends Networks {
     super("cidr_", new CidrObjectFactory());
   }
 
-  static class CidrObjectFactory implements NetworkObjectFactory<Cidr> {
+  static class CidrObjectFactory implements NetworkObjectFactory<CidrAddr> {
 
     @Override
-    public Cidr newNetworkObject(byte[] addr, short netmask) {
-      return new Cidr(addr, netmask);
+    public CidrAddr newNetworkObject(byte[] addr, short netmask) {
+      return new CidrAddr(addr, netmask);
     }
 
     @Override
-    public Cidr newNetworkObject(String v) {
-      return new Cidr(v);
+    public CidrAddr newNetworkObject(String v) {
+      return new CidrAddr(v);
     }
 
     @Override
-    public Class<? extends NetworkBase> objectClass() {
-      return Cidr.class;
+    public Class<? extends InetAddr> getObjectClass() {
+      return CidrAddr.class;
     }
 
   }

@@ -28,7 +28,8 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.NetworkBase;
+import com.impossibl.postgres.data.InetAddr;
+import com.impossibl.postgres.data.InetAddr.Family;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -41,23 +42,24 @@ abstract class Networks extends SimpleProcProvider {
   private static final short PGSQL_AF_INET = 2;
   private static final short PGSQL_AF_INET6 = 3;
 
-  interface NetworkObjectFactory<T extends NetworkBase> {
+  interface NetworkObjectFactory<T extends InetAddr> {
+
     T newNetworkObject(byte[] addr, short netmask);
 
     T newNetworkObject(String v);
- 
-    Class<? extends NetworkBase> objectClass();
+
+    Class<? extends InetAddr> getObjectClass();
   }
 
   // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
-  public Networks(String pgtype, NetworkObjectFactory<? extends NetworkBase> nof) {
+  public Networks(String pgtype, NetworkObjectFactory<? extends InetAddr> nof) {
     super(new TxtEncoder(nof), new TxtDecoder(nof), new BinEncoder(nof), new BinDecoder(nof), pgtype);
   }
 
   static class BinDecoder extends BinaryDecoder {
-    private NetworkObjectFactory<? extends NetworkBase> nof;
+    private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public BinDecoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+    public BinDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
@@ -68,11 +70,11 @@ abstract class Networks extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return nof.objectClass();
+      return nof.getObjectClass();
     }
 
     @Override
-    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -82,9 +84,7 @@ abstract class Networks extends SimpleProcProvider {
       }
       short family = buffer.readUnsignedByte();
       short mask = buffer.readUnsignedByte();
-      // don't know what is this byte, seems 0 for inet and 1 for cidr
-      buffer.skipBytes(1);
-      // System.out.println(buffer.readByte());
+      /* byte isCidr = */buffer.readByte();
       int addrSize = buffer.readUnsignedByte();
       if (family == PGSQL_AF_INET) {
         if (addrSize != 4) {
@@ -101,21 +101,26 @@ abstract class Networks extends SimpleProcProvider {
       }
       byte[] addr = new byte[addrSize];
       buffer.readBytes(addr);
-      return nof.newNetworkObject(addr, mask);
+      try {
+        return nof.newNetworkObject(addr, mask);
+      }
+      catch (IllegalArgumentException e) {
+        throw new IOException("Invalid address format", e);
+      }
     }
 
   }
 
   static class BinEncoder extends BinaryEncoder {
-    private NetworkObjectFactory<? extends NetworkBase> nof;
+    private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public BinEncoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+    public BinEncoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
     @Override
     public Class<?> getInputType() {
-      return nof.objectClass();
+      return nof.getObjectClass();
     }
 
     @Override
@@ -129,24 +134,23 @@ abstract class Networks extends SimpleProcProvider {
         buffer.writeInt(-1);
       }
       else {
-        NetworkBase inet = (NetworkBase) val;
+        InetAddr inet = (InetAddr) val;
         byte[] addr = inet.getAddress();
-        boolean ipV4 = addr.length == NetworkBase.IPv4INADDRSZ;
+        boolean ipV4 = inet.getFamily() == Family.IPv4;
         buffer.writeInt(ipV4 ? 8 : 20);
         buffer.writeByte(ipV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
-        buffer.writeByte(inet.getNetmask());
-        // 869 inet - 650 cidr
-        buffer.writeByte(type.getId() == 869 ? 0 : 1);
-        buffer.writeByte(ipV4 ? NetworkBase.IPv4INADDRSZ : NetworkBase.IPv6INADDRSZ);
+        buffer.writeByte(inet.getMaskBits());
+        buffer.writeByte(type.getName().equals("cidr") ? 0 : 1);
+        buffer.writeByte(addr.length);
         buffer.writeBytes(addr);
       }
     }
   }
 
   static class TxtDecoder extends TextDecoder {
-    private NetworkObjectFactory<? extends NetworkBase> nof;
+    private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public TxtDecoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+    public TxtDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
@@ -157,31 +161,31 @@ abstract class Networks extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return nof.objectClass();
+      return nof.getObjectClass();
     }
 
     @Override
-    public NetworkBase decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
       try {
         return nof.newNetworkObject(buffer.toString());
       }
-      catch (RuntimeException ex) {
-        throw new IOException(ex);
+      catch (RuntimeException e) {
+        throw new IOException("Invalid address format", e);
       }
     }
 
   }
 
   static class TxtEncoder extends TextEncoder {
-    private NetworkObjectFactory<? extends NetworkBase> nof;
+    private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public TxtEncoder(NetworkObjectFactory<? extends NetworkBase> nof) {
+    public TxtEncoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
     @Override
     public Class<?> getInputType() {
-      return nof.objectClass();
+      return nof.getObjectClass();
     }
 
     @Override
@@ -191,7 +195,7 @@ abstract class Networks extends SimpleProcProvider {
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      NetworkBase inet = (NetworkBase) val;
+      InetAddr inet = (InetAddr) val;
       buffer.append(inet.toString());
     }
 

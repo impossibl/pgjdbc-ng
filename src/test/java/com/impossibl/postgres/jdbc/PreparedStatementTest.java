@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.Cidr;
-import com.impossibl.postgres.data.Inet;
+import com.impossibl.postgres.data.CidrAddr;
+import com.impossibl.postgres.data.InetAddr;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.system.Settings;
 
@@ -768,10 +768,10 @@ public class PreparedStatementTest {
     pstmt.close();
 
     pstmt = conn.prepareStatement("insert into inet_tab values (?,?,?)");
-    Inet inet1;
-    Inet inet2;
-    pstmt.setObject(1, inet1 = new Inet("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, inet2 = new Inet("192.168.100.128/25"));
+    InetAddr inet1;
+    InetAddr inet2;
+    pstmt.setObject(1, inet1 = new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, inet2 = new InetAddr("192.168.100.128/25"));
     pstmt.setObject(3, null, Types.OTHER);
     pstmt.executeUpdate();
     pstmt.close();
@@ -779,8 +779,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from inet_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == Inet.class);
+    assertTrue(rs.getObject(1).getClass() == InetAddr.class);
     assertTrue(inet1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == InetAddr.class);
     assertTrue(inet2.equals(rs.getObject(2)));
     rs.getObject(3);
     assertTrue(rs.wasNull());
@@ -795,10 +796,10 @@ public class PreparedStatementTest {
     pstmt.close();
 
     pstmt = conn.prepareStatement("insert into cidr_tab values (?,?,?)");
-    Cidr cidr1;
-    Cidr cidr2;
-    pstmt.setObject(1, cidr1 = new Cidr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, cidr2 = new Cidr("2001:4f8:3:ba::/64"));
+    CidrAddr cidr1;
+    CidrAddr cidr2;
+    pstmt.setObject(1, cidr1 = new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, cidr2 = new CidrAddr("2001:4f8:3:ba::/64"));
     pstmt.setObject(3, null, Types.OTHER);
     pstmt.executeUpdate();
     pstmt.close();
@@ -806,8 +807,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from cidr_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == Cidr.class);
+    assertTrue(rs.getObject(1).getClass() == CidrAddr.class);
     assertTrue(cidr1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == CidrAddr.class);
     assertTrue(cidr2.equals(rs.getObject(2)));
     rs.getObject(3);
     assertTrue(rs.wasNull());

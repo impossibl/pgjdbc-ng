@@ -29,8 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.data.ACLItem;
-import com.impossibl.postgres.data.Cidr;
-import com.impossibl.postgres.data.Inet;
+import com.impossibl.postgres.data.CidrAddr;
+import com.impossibl.postgres.data.InetAddr;
 import com.impossibl.postgres.data.Interval;
 import com.impossibl.postgres.data.Range;
 import com.impossibl.postgres.data.Record;
@@ -403,8 +403,8 @@ public class CodecTest {
         }
 
       } },
-      {"inet", new Inet("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10")},
-      {"cidr", new Cidr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128")},
+      {"inet", new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10")},
+      {"cidr", new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128")},
     };
 
     List<Object[]> data = new ArrayList<>();
