@@ -204,7 +204,7 @@ public class Registry {
       }
     }
 
-    if (isArray) {
+    if (isArray && res != null) {
       res = loadType(res.getArrayTypeId());
     }
 
