@@ -32,6 +32,8 @@ import static com.impossibl.postgres.data.InetAddr.Family.IPv4;
 import static com.impossibl.postgres.data.InetAddr.Family.IPv6;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -432,6 +434,16 @@ public class InetAddr {
       out.append('/').append(maskBits);
 
     return out.toString();
+  }
+
+  public InetAddress toInetAddress() {
+    try {
+      return InetAddress.getByAddress(address);
+    }
+    catch (UnknownHostException e) {
+      // Should never happen...
+      throw new RuntimeException(e);
+    }
   }
 
 }
