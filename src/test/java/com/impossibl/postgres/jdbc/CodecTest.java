@@ -51,6 +51,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
@@ -110,16 +111,21 @@ public class CodecTest {
   @Test
   public void testBinaryCodecs() throws IOException, SQLException {
 
-    makeValue();
+    try {
+      makeValue();
+    }
+    catch (SQLFeatureNotSupportedException e) {
+      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (bin)");
+      return;
+    }
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
-      System.out.println("Skipping " + typeName + " (bin)");
+      System.out.println("Skipping " + typeName + " unknown (bin)");
       return;
     }
 
     if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
-      System.out.println("Skipping " + typeName + " (bin)");
       return;
     }
 
@@ -129,16 +135,21 @@ public class CodecTest {
   @Test
   public void testTextCodecs() throws IOException, SQLException {
 
-    makeValue();
+    try {
+      makeValue();
+    }
+    catch (SQLFeatureNotSupportedException e) {
+      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (txt)");
+      return;
+    }
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
-      System.out.println("Skipping " + typeName + " (txt)");
+      System.out.println("Skipping " + typeName + " unknown (txt)");
       return;
     }
 
     if (!type.isParameterFormatSupported(Format.Text) || !type.isResultFormatSupported(Format.Text)) {
-      System.out.println("Skipping " + typeName + " (txt)");
       return;
     }
 
@@ -148,16 +159,21 @@ public class CodecTest {
   @Test
   public void testBinaryEncoderLength() throws IOException, SQLException {
 
-    makeValue();
+    try {
+      makeValue();
+    }
+    catch (SQLFeatureNotSupportedException e) {
+      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (binlen)");
+      return;
+    }
 
     Type type = conn.getRegistry().loadType(typeName);
     if (type == null) {
-      System.out.println("Skipping " + typeName + " (binlen)");
+      System.out.println("Skipping " + typeName + " unknown (binlen)");
       return;
     }
 
     if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
-      System.out.println("Skipping " + typeName + " (binlen)");
       return;
     }
 
@@ -168,7 +184,13 @@ public class CodecTest {
   @Test
   public void testSendReceive() throws SQLException, IOException {
 
-    makeValue();
+    try {
+      makeValue();
+    }
+    catch (SQLFeatureNotSupportedException e) {
+      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (send/recv)");
+      return;
+    }
 
     String typeCast = typeCasts.get(typeName);
     if (typeCast == null) {
@@ -194,7 +216,7 @@ public class CodecTest {
 
   }
 
-  void makeValue() {
+  void makeValue() throws SQLException {
 
     if (value instanceof Maker) {
       value = ((Maker) value).make(conn);
@@ -318,7 +340,7 @@ public class CodecTest {
   }
 
   interface Maker {
-    Object make(PGConnectionImpl conn);
+    Object make(PGConnectionImpl conn) throws SQLException;
   }
 
   @Parameters(name = "test-{0}")
@@ -395,7 +417,12 @@ public class CodecTest {
       {"hstore", new Maker() {
 
         @Override
-        public Object make(PGConnectionImpl conn) {
+        public Object make(PGConnectionImpl conn) throws SQLException {
+
+          if (!TestUtil.isExtensionInstalled(conn, "hstore")) {
+            throw new SQLFeatureNotSupportedException("hstore not installed");
+          }
+
           Map<String, String> map = new HashMap<>();
           map.put("1", "one");
           map.put("2", "two");
@@ -429,7 +456,7 @@ public class CodecTest {
       data.add(new Object[] {arrayTypeName, new Maker() {
 
         @Override
-        public Object make(PGConnectionImpl conn) {
+        public Object make(PGConnectionImpl conn) throws SQLException {
 
           Object value = typeValue;
           if (value instanceof Maker)
@@ -447,25 +474,20 @@ public class CodecTest {
       data.add(new Object[] {structTypeName, new Maker() {
 
         @Override
-        public Object make(PGConnectionImpl conn) {
-
-          try {
-            String elemTypeName = typeName;
-            if (typeCasts.containsKey(typeName)) {
-              elemTypeName = typeCasts.get(typeName);
-            }
-
-            TestUtil.createType(conn, structTypeName, "elem " + elemTypeName);
-          }
-          catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-
-          conn.getRegistry().unloadType(structTypeName);
+        public Object make(PGConnectionImpl conn) throws SQLException {
 
           Object value = typeValue;
           if (value instanceof Maker)
             value = ((Maker) value).make(conn);
+
+          String elemTypeName = typeName;
+          if (typeCasts.containsKey(typeName)) {
+            elemTypeName = typeCasts.get(typeName);
+          }
+
+          TestUtil.createType(conn, structTypeName, "elem " + elemTypeName);
+
+          conn.getRegistry().unloadType(structTypeName);
 
           try {
             return conn.createStruct(structTypeName, new Object[] {value});

@@ -867,6 +867,12 @@ public class PreparedStatementTest {
 
   @Test
   public void testHStore() throws SQLException {
+
+    if (!TestUtil.isExtensionInstalled(conn, "hstore")) {
+      System.out.println("Skipping hstore (extension not intalled)");
+      return;
+    }
+
     PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE hstore_tab (hs1 hstore, hs2 hstore, hs3 hstore)");
     pstmt.executeUpdate();
     pstmt.close();
