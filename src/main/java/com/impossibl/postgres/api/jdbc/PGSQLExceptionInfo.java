@@ -26,7 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.api.jdbc;
 
 /**
  * Postgres-specific interface for exceptions that carry extended error

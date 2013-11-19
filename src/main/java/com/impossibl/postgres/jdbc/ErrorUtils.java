@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
 import com.impossibl.postgres.protocol.Notice;
 
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;

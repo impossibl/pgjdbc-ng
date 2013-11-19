@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
 
 import java.sql.Connection;
 import java.sql.SQLException;
