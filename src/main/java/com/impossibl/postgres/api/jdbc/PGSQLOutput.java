@@ -43,8 +43,8 @@ public interface PGSQLOutput extends SQLOutput {
 
   /**
    * Write the object to the stream. This allows writing objects supported by
-   * the driver that are not derived from SQLOutput (e.g. UUID)
-   *
+   * the driver that are not derived from SQLData (e.g. UUID)
+   * 
    * @param x
    *          Value to write to the stream
    */
