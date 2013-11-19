@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.Cidr;
-import com.impossibl.postgres.data.Inet;
+import com.impossibl.postgres.data.CidrAddr;
+import com.impossibl.postgres.data.InetAddr;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.system.Settings;
 
@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -762,16 +763,36 @@ public class PreparedStatementTest {
   }
 
   @Test
+  public void testRowId() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)", new String[] {"ctid"});
+    pstmt.setString(1, "some text");
+    pstmt.executeUpdate();
+    ResultSet keys = pstmt.getGeneratedKeys();
+    assertTrue(keys.next());
+    RowId rowId = keys.getRowId(1);
+    keys.close();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("SELECT te FROM texttable WHERE ctid = ?");
+    pstmt.setRowId(1, rowId);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("some text", rs.getString(1));
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
   public void testInet() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE inet_tab (ip1 inet, ip2 inet, ip3 inet)");
     pstmt.executeUpdate();
     pstmt.close();
 
     pstmt = conn.prepareStatement("insert into inet_tab values (?,?,?)");
-    Inet inet1;
-    Inet inet2;
-    pstmt.setObject(1, inet1 = new Inet("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, inet2 = new Inet("192.168.100.128/25"));
+    InetAddr inet1;
+    InetAddr inet2;
+    pstmt.setObject(1, inet1 = new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, inet2 = new InetAddr("192.168.100.128/25"));
     pstmt.setObject(3, null, Types.OTHER);
     pstmt.executeUpdate();
     pstmt.close();
@@ -779,8 +800,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from inet_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == Inet.class);
+    assertTrue(rs.getObject(1).getClass() == InetAddr.class);
     assertTrue(inet1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == InetAddr.class);
     assertTrue(inet2.equals(rs.getObject(2)));
     rs.getObject(3);
     assertTrue(rs.wasNull());
@@ -795,10 +817,10 @@ public class PreparedStatementTest {
     pstmt.close();
 
     pstmt = conn.prepareStatement("insert into cidr_tab values (?,?,?)");
-    Cidr cidr1;
-    Cidr cidr2;
-    pstmt.setObject(1, cidr1 = new Cidr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, cidr2 = new Cidr("2001:4f8:3:ba::/64"));
+    CidrAddr cidr1;
+    CidrAddr cidr2;
+    pstmt.setObject(1, cidr1 = new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, cidr2 = new CidrAddr("2001:4f8:3:ba::/64"));
     pstmt.setObject(3, null, Types.OTHER);
     pstmt.executeUpdate();
     pstmt.close();
@@ -806,8 +828,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from cidr_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == Cidr.class);
+    assertTrue(rs.getObject(1).getClass() == CidrAddr.class);
     assertTrue(cidr1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == CidrAddr.class);
     assertTrue(cidr2.equals(rs.getObject(2)));
     rs.getObject(3);
     assertTrue(rs.wasNull());
@@ -844,6 +867,12 @@ public class PreparedStatementTest {
 
   @Test
   public void testHStore() throws SQLException {
+
+    if (!TestUtil.isExtensionInstalled(conn, "hstore")) {
+      System.out.println("Skipping hstore (extension not intalled)");
+      return;
+    }
+
     PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE hstore_tab (hs1 hstore, hs2 hstore, hs3 hstore)");
     pstmt.executeUpdate();
     pstmt.close();

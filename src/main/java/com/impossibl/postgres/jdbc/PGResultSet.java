@@ -58,6 +58,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
@@ -68,6 +69,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 
 import java.io.ByteArrayInputStream;
@@ -867,7 +869,10 @@ class PGResultSet implements ResultSet {
   @Override
   public RowId getRowId(int columnIndex) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+    checkRow();
+    checkColumnIndex(columnIndex);
+
+    return coerceToRowId(get(columnIndex), getType(columnIndex));
   }
 
   @Override
@@ -1359,14 +1364,14 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
-  public void updateRef(int columnIndex, Ref x) throws SQLException {
+  public void updateRowId(int columnIndex, RowId x) throws SQLException {
     checkClosed();
     checkUpdate();
-    throw NOT_IMPLEMENTED;
+    set(columnIndex, unwrapRowId(statement.connection, x));
   }
 
   @Override
-  public void updateRowId(int columnIndex, RowId x) throws SQLException {
+  public void updateRef(int columnIndex, Ref x) throws SQLException {
     checkClosed();
     checkUpdate();
     throw NOT_IMPLEMENTED;

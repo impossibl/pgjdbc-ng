@@ -344,4 +344,18 @@ public class TestUtil {
     return s.substring(s.length() - l);
   }
 
+  public static boolean isExtensionInstalled(Connection conn, String extensionName) throws SQLException {
+
+    try (Statement stmt = conn.createStatement()) {
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM pg_extension WHERE extname = '" + extensionName + "'")) {
+
+        return rs.next();
+
+      }
+
+    }
+
+  }
+
 }

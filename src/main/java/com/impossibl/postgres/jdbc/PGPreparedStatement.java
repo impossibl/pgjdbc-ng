@@ -49,6 +49,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapSetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -670,7 +671,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    set(parameterIndex, unwrapRowId(connection, x), Types.ROWID);
   }
 
   @Override

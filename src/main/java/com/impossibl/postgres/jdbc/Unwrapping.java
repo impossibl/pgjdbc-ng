@@ -38,6 +38,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.RowId;
 import java.sql.SQLException;
 
 
@@ -54,7 +55,24 @@ public class Unwrapping {
       return unwrapClob(connection, (Clob) x);
     }
 
+    if (x instanceof RowId) {
+      return unwrapRowId(connection, (RowId) x);
+    }
+
     return x;
+  }
+
+  static PGRowId unwrapRowId(PGConnectionImpl connection, RowId x) throws SQLException {
+
+    if (x == null) {
+      return null;
+    }
+
+    if (x instanceof PGRowId) {
+      return (PGRowId) x;
+    }
+
+    throw new SQLException("RowId is from a different provider");
   }
 
   static PGBlob unwrapBlob(PGConnectionImpl connection, Blob x) throws SQLException {

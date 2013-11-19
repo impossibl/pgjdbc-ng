@@ -29,8 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 
-import com.impossibl.postgres.data.Inet;
-import com.impossibl.postgres.data.NetworkBase;
+import com.impossibl.postgres.data.InetAddr;
 
 public class Inets extends Networks {
 
@@ -38,23 +37,23 @@ public class Inets extends Networks {
     super("inet_", new InetObjectFactory());
   }
 
-  static class InetObjectFactory implements NetworkObjectFactory<Inet> {
+  static class InetObjectFactory implements NetworkObjectFactory<InetAddr> {
 
     @Override
-    public Inet newNetworkObject(byte[] addr, short netmask) {
-      return new Inet(addr, netmask);
+    public InetAddr newNetworkObject(byte[] addr, short netmask) {
+      return new InetAddr(addr, netmask);
     }
 
     @Override
-    public Inet newNetworkObject(String v) {
-      return new Inet(v);
+    public InetAddr newNetworkObject(String v) {
+      return new InetAddr(v);
     }
 
     @Override
-    public Class<? extends NetworkBase> objectClass() {
-      return Inet.class;
+    public Class<? extends InetAddr> getObjectClass() {
+      return InetAddr.class;
     }
- 
+
   }
 
 }

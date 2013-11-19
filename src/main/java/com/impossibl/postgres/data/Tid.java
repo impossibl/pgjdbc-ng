@@ -29,38 +29,49 @@
 package com.impossibl.postgres.data;
 
 /**
+ * Postgres physical location id
  * 
- * @author http://grepcode.com/file/repo1.maven.org/maven2/org.ancoron.postgresql/org.postgresql.net/9.1.901.jdbc4.1-rc9/org/postgresql/net/PGinet.java?av=f
+ * @author kdubb
  *
  */
-public class Inet extends NetworkBase {
+public class Tid {
 
-  /**
-   * This constructor takes a string in a valid literal format for either an
-   * IPv4 or IPv6 address and creates a new inet to represent it.
-   * 
-   * @param s
-   *          The string representation of the inet value.
-   */
-  public Inet(String s) {
-    super(s);
-  }
+  public int block;
+  public short offset;
 
-  public Inet(byte[] bytes) {
-    super(bytes);
-  }
-
-  public Inet(byte[] bytes, short mask) {
-    super(bytes, mask);
+  public Tid(int block, short offset) {
+    this.block = block;
+    this.offset = offset;
   }
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + block;
+    result = prime * result + offset;
+    return result;
   }
 
   @Override
-  public boolean equals(Object o) {
-    return super.equals(o) && (o instanceof Inet);
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Tid other = (Tid) obj;
+    if (block != other.block)
+      return false;
+    if (offset != other.offset)
+      return false;
+    return true;
   }
+
+  @Override
+  public String toString() {
+    return "(" + block + "," + offset + ")";
+  }
+
 }

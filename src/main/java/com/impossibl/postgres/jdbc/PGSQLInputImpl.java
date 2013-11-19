@@ -48,6 +48,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
@@ -269,7 +270,7 @@ public class PGSQLInputImpl implements PGSQLInput {
 
   @Override
   public RowId readRowId() throws SQLException {
-    throw NOT_IMPLEMENTED;
+    return coerceToRowId(getNextAttributeValue(), type.getAttribute(currentAttrIdx).type);
   }
 
   @Override
