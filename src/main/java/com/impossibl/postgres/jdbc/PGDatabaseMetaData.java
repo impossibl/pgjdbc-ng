@@ -2492,8 +2492,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public RowIdLifetime getRowIdLifetime() throws SQLException {
-    // TODO look into...
-    return RowIdLifetime.ROWID_UNSUPPORTED;
+    return RowIdLifetime.ROWID_VALID_SESSION;
   }
 
   @Override
