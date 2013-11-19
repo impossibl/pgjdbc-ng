@@ -26,34 +26,68 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.jdbc;
 
-public enum PrimitiveType {
-  Oid,
-  Tid,
-  Bool,
-  Int2,
-  Int4,
-  Int8,
-  Money,
-  Float,
-  Double,
-  Numeric,
-  UUID,
-  Date,
-  Time,
-  TimeTZ,
-  Timestamp,
-  TimestampTZ,
-  Interval,
-  String,
-  XML,
-  Bits,
-  Binary,
-  Array,
-  Record,
-  Domain,
-  Range,
-  ACLItem,
-  Unknown
+import com.impossibl.postgres.data.Tid;
+
+import java.sql.RowId;
+
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
+
+
+/**
+ * RowId implementation that wraps the postgres ctid column
+ * 
+ * @author kdubb
+ *
+ */
+public class PGRowId implements RowId {
+
+  Tid tid;
+
+  public PGRowId(Tid tid) {
+    this.tid = tid;
+  }
+
+  @Override
+  public byte[] getBytes() {
+    ChannelBuffer buf = ChannelBuffers.buffer(8);
+    buf.writeInt(tid.block);
+    buf.writeShort(tid.offset);
+    return buf.array();
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((tid == null) ? 0 : tid.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PGRowId other = (PGRowId) obj;
+    if (tid == null) {
+      if (other.tid != null)
+        return false;
+    }
+    else if (!tid.equals(other.tid))
+      return false;
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return tid.toString();
+  }
+
 }

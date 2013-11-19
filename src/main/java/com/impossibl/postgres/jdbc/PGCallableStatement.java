@@ -49,6 +49,7 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
@@ -566,7 +567,8 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    return coerceToRowId(get(parameterIndex), getOutType(parameterIndex));
   }
 
   @Override

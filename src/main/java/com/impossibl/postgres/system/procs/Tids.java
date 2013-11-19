@@ -28,46 +28,50 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.data.Tid;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.types.PrimitiveType.Int4;
 
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class Int4s extends SimpleProcProvider {
 
-  public Int4s() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "xid", "cid", "regproc");
+
+public class Tids extends SimpleProcProvider {
+
+  public Tids() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "tid");
   }
 
   static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return Int4;
+      return PrimitiveType.Tid;
     }
 
     @Override
     public Class<?> getOutputType() {
-      return Integer.class;
+      return Tid.class;
     }
 
     @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    Object decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
         return null;
       }
-      else if (length != 4) {
+      else if (length != 6) {
         throw new IOException("invalid length");
       }
 
-      return buffer.readInt();
+      int block = buffer.readInt();
+      short offset = buffer.readShort();
+
+      return new Tid(block, offset);
     }
 
   }
@@ -75,32 +79,36 @@ public class Int4s extends SimpleProcProvider {
   static class BinEncoder extends BinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Integer.class;
-    }
-
-    @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return Int4;
+      return PrimitiveType.Tid;
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public Class<?> getInputType() {
+      return Tid.class;
+    }
+
+    @Override
+    void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+
       if (val == null) {
 
         buffer.writeInt(-1);
       }
       else {
 
-        buffer.writeInt(4);
-        buffer.writeInt((Integer) val);
+        Tid tid = (Tid) val;
+
+        buffer.writeInt(6);
+        buffer.writeInt(tid.block);
+        buffer.writeShort(tid.offset);
       }
 
     }
 
     @Override
     public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 8;
+      return val == null ? 4 : 10;
     }
 
   }
@@ -109,18 +117,23 @@ public class Int4s extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return Int4;
+      return PrimitiveType.Tid;
     }
 
     @Override
     public Class<?> getOutputType() {
-      return Integer.class;
+      return Tid.class;
     }
 
     @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    Tid decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
-      return Integer.valueOf(buffer.toString());
+      String[] items = buffer.subSequence(1, buffer.length() - 1).toString().split(",");
+
+      int block = Integer.parseInt(items[0]);
+      short offset = Short.parseShort(items[1]);
+
+      return new Tid(block, offset);
     }
 
   }
@@ -128,19 +141,21 @@ public class Int4s extends SimpleProcProvider {
   static class TxtEncoder extends TextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Integer.class;
-    }
-
-    @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return Int4;
+      return PrimitiveType.Tid;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<?> getInputType() {
+      return Tid.class;
+    }
 
-      buffer.append((int)val);
+    @Override
+    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      Tid tid = (Tid) val;
+
+      buffer.append('(').append(tid.block).append(',').append(tid.offset).append(')');
     }
 
   }

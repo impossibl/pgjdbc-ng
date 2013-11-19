@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -759,6 +760,26 @@ public class PreparedStatementTest {
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testRowId() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)", new String[] {"ctid"});
+    pstmt.setString(1, "some text");
+    pstmt.executeUpdate();
+    ResultSet keys = pstmt.getGeneratedKeys();
+    assertTrue(keys.next());
+    RowId rowId = keys.getRowId(1);
+    keys.close();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("SELECT te FROM texttable WHERE ctid = ?");
+    pstmt.setRowId(1, rowId);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("some text", rs.getString(1));
+    rs.close();
+    pstmt.close();
   }
 
   @Test

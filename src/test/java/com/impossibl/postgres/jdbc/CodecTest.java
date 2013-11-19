@@ -34,6 +34,7 @@ import com.impossibl.postgres.data.InetAddr;
 import com.impossibl.postgres.data.Interval;
 import com.impossibl.postgres.data.Range;
 import com.impossibl.postgres.data.Record;
+import com.impossibl.postgres.data.Tid;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
@@ -405,6 +406,7 @@ public class CodecTest {
       } },
       {"inet", new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/10")},
       {"cidr", new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128")},
+      {"tid", new PGRowId(new Tid(0, (short) 1))},
     };
 
     List<Object[]> data = new ArrayList<>();

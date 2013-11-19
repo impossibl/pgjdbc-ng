@@ -33,6 +33,7 @@ import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.Modifiers.PRECISION;
 import static com.impossibl.postgres.types.Modifiers.SCALE;
@@ -40,6 +41,7 @@ import static com.impossibl.postgres.types.Modifiers.SCALE;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
+
 import static java.sql.ResultSetMetaData.columnNoNulls;
 import static java.sql.ResultSetMetaData.columnNullable;
 import static java.sql.ResultSetMetaData.columnNullableUnknown;
@@ -192,7 +194,7 @@ class SQLTypeMetaData {
       case Types.STRUCT:
         return reg.loadType("oid");
       case Types.ROWID:
-        return reg.loadType("oid");
+        return reg.loadType("tid");
       case Types.TINYINT:
       case Types.REF:
       case Types.OTHER:
@@ -231,7 +233,8 @@ class SQLTypeMetaData {
     primitiveToSQLTypeMatrix[PrimitiveType.TimeTZ.ordinal()] = Types.TIME;
     primitiveToSQLTypeMatrix[PrimitiveType.Timestamp.ordinal()] = Types.TIMESTAMP;
     primitiveToSQLTypeMatrix[PrimitiveType.TimestampTZ.ordinal()] = Types.TIMESTAMP;
-    primitiveToSQLTypeMatrix[PrimitiveType.Oid.ordinal()] = Types.ROWID;
+    primitiveToSQLTypeMatrix[PrimitiveType.Oid.ordinal()] = Types.INTEGER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Tid.ordinal()] = Types.ROWID;
     primitiveToSQLTypeMatrix[PrimitiveType.Array.ordinal()] = Types.ARRAY;
     primitiveToSQLTypeMatrix[PrimitiveType.Record.ordinal()] = Types.STRUCT;
     primitiveToSQLTypeMatrix[PrimitiveType.Domain.ordinal()] = Types.DISTINCT;
@@ -276,7 +279,7 @@ class SQLTypeMetaData {
     sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NVARCHAR)]       = new PrimitiveType[] {};
     sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGNVARCHAR)]   = new PrimitiveType[] {};
     sqlToPrimitiveMatrix[getSQLTypeIndex(Types.REF)]            = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ROWID)]          = new PrimitiveType[] {};
+    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ROWID)]          = new PrimitiveType[] {PrimitiveType.Tid};
     sqlToPrimitiveMatrix[getSQLTypeIndex(Types.OTHER)]          = new PrimitiveType[] {};
   }
 

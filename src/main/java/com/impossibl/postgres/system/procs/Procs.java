@@ -64,6 +64,7 @@ public class Procs {
     new Ranges(),
     new Records(),
     new Strings(),
+    new Tids(),
     new TimeMods(),
     new TimestampMods(),
     new TimestampsWithoutTZ(),

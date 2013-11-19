@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.data.Record;
+import com.impossibl.postgres.data.Tid;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.ResultField.Format;
@@ -54,6 +55,7 @@ import java.net.URL;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLXML;
@@ -109,6 +111,10 @@ class SQLTypeUtils {
           if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
             targetType = Clob.class;
           }
+          break;
+
+        case Tid:
+          targetType = RowId.class;
           break;
 
         case XML:
@@ -217,6 +223,12 @@ class SQLTypeUtils {
     }
     else if (targetType == Clob.class) {
       return coerceToClob(val, connection);
+    }
+    else if (targetType == RowId.class) {
+      return coerceToRowId(val, sourceType);
+    }
+    else if (targetType == Tid.class) {
+      return coerceToTid(val);
     }
     else if (InputStream.class.isAssignableFrom(targetType)) {
       return coerceToByteStream(format, val, sourceType, connection);
@@ -688,6 +700,37 @@ class SQLTypeUtils {
     }
 
     throw createCoercionException(val.getClass(), Blob.class);
+  }
+
+  public static RowId coerceToRowId(Object val, Type sourceType) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof RowId) {
+      return (RowId) val;
+    }
+    else if (val instanceof Tid) {
+      return new PGRowId((Tid) val);
+    }
+
+    throw createCoercionException(val.getClass(), RowId.class);
+  }
+
+  public static Tid coerceToTid(Object val) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof Tid) {
+      return (Tid) val;
+    }
+    else if (val instanceof PGRowId) {
+      PGRowId rowId = (PGRowId) val;
+      return rowId.tid;
+    }
+
+    throw createCoercionException(val.getClass(), Tid.class);
   }
 
   public static InputStream coerceToByteStream(Object val, Type sourceType, Context context) throws SQLException {

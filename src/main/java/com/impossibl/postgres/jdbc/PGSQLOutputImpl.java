@@ -228,7 +228,7 @@ public class PGSQLOutputImpl implements PGSQLOutput {
 
   @Override
   public void writeRowId(RowId x) throws SQLException {
-    throw NOT_IMPLEMENTED;
+    writeNextAttributeValue(x);
   }
 
   @Override

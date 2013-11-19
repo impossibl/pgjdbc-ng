@@ -26,34 +26,52 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.data;
 
-public enum PrimitiveType {
-  Oid,
-  Tid,
-  Bool,
-  Int2,
-  Int4,
-  Int8,
-  Money,
-  Float,
-  Double,
-  Numeric,
-  UUID,
-  Date,
-  Time,
-  TimeTZ,
-  Timestamp,
-  TimestampTZ,
-  Interval,
-  String,
-  XML,
-  Bits,
-  Binary,
-  Array,
-  Record,
-  Domain,
-  Range,
-  ACLItem,
-  Unknown
+/**
+ * Postgres physical location id
+ * 
+ * @author kdubb
+ *
+ */
+public class Tid {
+
+  public int block;
+  public short offset;
+
+  public Tid(int block, short offset) {
+    this.block = block;
+    this.offset = offset;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + block;
+    result = prime * result + offset;
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Tid other = (Tid) obj;
+    if (block != other.block)
+      return false;
+    if (offset != other.offset)
+      return false;
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return "(" + block + "," + offset + ")";
+  }
+
 }
