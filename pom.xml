@@ -96,7 +96,7 @@
                   <manifestEntries>
                     <Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
                     <Bundle-Version>${project.version}</Bundle-Version>
-                    <Export-Package>com.impossibl.postgres.jdbc</Export-Package>
+                    <Export-Package>com.impossibl.postgres.jdbc,com.impossibl.postgres.api.jdbc</Export-Package>
                   </manifestEntries>
                 </transformer>
               </transformers>
