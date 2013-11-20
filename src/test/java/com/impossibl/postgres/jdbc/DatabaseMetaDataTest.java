@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -372,6 +373,27 @@ public class DatabaseMetaDataTest {
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
     assertTrue(!rs.next());
+    rs.close();
+  }
+
+  @Test
+  public void testPseudoColumns() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getPseudoColumns(null, null, "pg_class", "ctid");
+    assertTrue(rs.next());
+    assertNull(rs.getString("TABLE_CAT"));
+    assertEquals("pg_catalog", rs.getString("TABLE_SCHEM"));
+    assertEquals("pg_class", rs.getString("TABLE_NAME"));
+    assertEquals("ctid", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.ROWID, rs.getInt("DATA_TYPE"));
+    assertEquals(6, rs.getInt("COLUMN_SIZE"));
+    assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+    assertEquals(0, rs.getInt("NUM_PREC_RADIX"));
+    assertEquals(PseudoColumnUsage.NO_USAGE_RESTRICTIONS.name(), rs.getString("COLUMN_USAGE"));
+    assertNull(rs.getString("REMARKS"));
+    assertEquals(6, rs.getInt("CHAR_OCTET_LENGTH"));
+    assertEquals("NO", rs.getString("IS_NULLABLE"));
     rs.close();
   }
 
