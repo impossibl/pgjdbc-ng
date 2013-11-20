@@ -79,7 +79,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
         Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-        Object fieldVal = decoder.decode(fieldType, buffer, context);
+        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
 
         rowInstance[c] = fieldVal;
       }
@@ -100,8 +100,9 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       QueryCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override
@@ -144,6 +145,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     return resultBatches;
   }
 
+  @Override
   public void execute(ProtocolImpl protocol) throws IOException {
 
     resultBatch = new ResultBatch();

@@ -53,11 +53,11 @@ public class Ranges extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return Object[].class;
+      return Range.class;
     }
 
     @Override
-    public Range<?> decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
@@ -73,12 +73,12 @@ public class Ranges extends SimpleProcProvider {
 
         if (flags.hasLowerBound()) {
 
-          values[0] = baseType.getBinaryCodec().decoder.decode(baseType, buffer, context);
+          values[0] = baseType.getBinaryCodec().decoder.decode(baseType, null, null, buffer, context);
         }
 
         if (flags.hasUpperBound()) {
 
-          values[1] = baseType.getBinaryCodec().decoder.decode(baseType, buffer, context);
+          values[1] = baseType.getBinaryCodec().decoder.decode(baseType, null, null, buffer, context);
         }
 
         instance = new Range<Object>(flags, values);
@@ -144,11 +144,11 @@ public class Ranges extends SimpleProcProvider {
 
     @Override
     public Class<?> getOutputType() {
-      return Object[].class;
+      return Range.class;
     }
 
     @Override
-    public Range<?> decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
@@ -166,12 +166,12 @@ public class Ranges extends SimpleProcProvider {
 
       CharSequence lowerTxt = buffer.subSequence(1, findBound(buffer, 1));
       if (lowerTxt.length() != 0) {
-        lower = baseType.getTextCodec().decoder.decode(baseType, lowerTxt, context);
+        lower = baseType.getTextCodec().decoder.decode(baseType, null, null, lowerTxt, context);
       }
 
       CharSequence upperTxt = buffer.subSequence(2 + lowerTxt.length(), buffer.length() - 1);
       if (upperTxt.length() != 0) {
-        upper = baseType.getTextCodec().decoder.decode(baseType, upperTxt, context);
+        upper = baseType.getTextCodec().decoder.decode(baseType, null, null, upperTxt, context);
       }
 
       return Range.create(lower, lowerInc, upper, upperInc);

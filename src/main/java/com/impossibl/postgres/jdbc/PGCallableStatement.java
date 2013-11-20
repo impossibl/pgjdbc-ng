@@ -42,12 +42,14 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
@@ -404,6 +406,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
+  @Deprecated
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
@@ -427,7 +430,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public byte[] getBytes(int parameterIndex) throws SQLException {
     checkClosed();
 
-    InputStream data = coerceToBytes(get(parameterIndex), getOutType(parameterIndex), connection);
+    InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection);
     if (data == null)
       return null;
 
@@ -526,6 +529,13 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
+  public Clob getClob(int parameterIndex) throws SQLException {
+    checkClosed();
+
+    return coerceToClob(get(parameterIndex), connection);
+  }
+
+  @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
     checkClosed();
 
@@ -558,17 +568,12 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    return coerceToRowId(get(parameterIndex), getOutType(parameterIndex));
   }
 
   @Override
   public Ref getRef(int parameterIndex) throws SQLException {
-    checkClosed();
-    throw NOT_IMPLEMENTED;
-  }
-
-  @Override
-  public Clob getClob(int parameterIndex) throws SQLException {
     checkClosed();
     throw NOT_IMPLEMENTED;
   }

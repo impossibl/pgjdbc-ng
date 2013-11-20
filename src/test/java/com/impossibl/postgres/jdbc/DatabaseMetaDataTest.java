@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -145,6 +146,7 @@ public class DatabaseMetaDataTest {
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
     assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    rs.close();
   }
 
   @Test
@@ -183,6 +185,8 @@ public class DatabaseMetaDataTest {
       int keySeq = rs.getInt("KEY_SEQ");
       assertEquals(j, keySeq);
     }
+
+    rs.close();
 
     TestUtil.dropTable(con1, "vv");
     TestUtil.dropTable(con1, "ww");
@@ -232,6 +236,8 @@ public class DatabaseMetaDataTest {
     }
     assertTrue(j == 1);
 
+    rs.close();
+
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
     con1.close();
@@ -260,6 +266,8 @@ public class DatabaseMetaDataTest {
       }
     }
     assertTrue(j == 2);
+
+    rs.close();
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -304,6 +312,8 @@ public class DatabaseMetaDataTest {
 
     assertTrue(j == 2);
 
+    rs.close();
+
     rs = dbmd.getExportedKeys(null, "", "people");
 
     // this is hacky, but it will serve the purpose
@@ -316,6 +326,8 @@ public class DatabaseMetaDataTest {
     assertEquals("people_id", rs.getString("FKCOLUMN_NAME"));
 
     assertTrue(rs.getString("FK_NAME").startsWith("people"));
+
+    rs.close();
 
     TestUtil.dropTable(con1, "users");
     TestUtil.dropTable(con1, "people");
@@ -361,6 +373,27 @@ public class DatabaseMetaDataTest {
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
     assertTrue(!rs.next());
+    rs.close();
+  }
+
+  @Test
+  public void testPseudoColumns() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getPseudoColumns(null, null, "pg_class", "ctid");
+    assertTrue(rs.next());
+    assertNull(rs.getString("TABLE_CAT"));
+    assertEquals("pg_catalog", rs.getString("TABLE_SCHEM"));
+    assertEquals("pg_class", rs.getString("TABLE_NAME"));
+    assertEquals("ctid", rs.getString("COLUMN_NAME"));
+    assertEquals(Types.ROWID, rs.getInt("DATA_TYPE"));
+    assertEquals(6, rs.getInt("COLUMN_SIZE"));
+    assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+    assertEquals(0, rs.getInt("NUM_PREC_RADIX"));
+    assertEquals(PseudoColumnUsage.NO_USAGE_RESTRICTIONS.name(), rs.getString("COLUMN_USAGE"));
+    assertNull(rs.getString("REMARKS"));
+    assertEquals(6, rs.getInt("CHAR_OCTET_LENGTH"));
+    assertEquals("NO", rs.getString("IS_NULLABLE"));
     rs.close();
   }
 
@@ -421,6 +454,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
     assertTrue(!rs.next());
+    rs.close();
   }
 
   @Test
@@ -499,6 +533,7 @@ public class DatabaseMetaDataTest {
     assertEquals(Types.INTEGER, rs.getInt("SOURCE_DATA_TYPE"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertTrue(!rs.next());
+    rs.close();
   }
 
   @Test
@@ -519,6 +554,8 @@ public class DatabaseMetaDataTest {
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals("D", rs.getString("ASC_OR_DESC"));
+
+    rs.close();
   }
 
   @Test
@@ -688,6 +725,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals(con.getCatalog(), rs.getString(1));
     assertTrue(!rs.next());
+    rs.close();
   }
 
   @Test
@@ -725,10 +763,13 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "a'", new String[] {"TABLE"});
     assertTrue(rs.next());
+    rs.close();
     rs = dbmd.getTables(null, null, "a\\\\", new String[] {"TABLE"});
     assertTrue(rs.next());
+    rs.close();
     rs = dbmd.getTables(null, null, "a\\", new String[] {"TABLE"});
     assertTrue(!rs.next());
+    rs.close();
   }
 
   @Test
@@ -773,6 +814,8 @@ public class DatabaseMetaDataTest {
       assertEquals("type name ", "testint8", typeName);
       assertEquals("schema name ", "jdbc", schema);
 
+      rs.close();
+
       // now test to see if the fully qualified stuff works as planned
       rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
       assertTrue(rs.next());
@@ -785,6 +828,8 @@ public class DatabaseMetaDataTest {
       baseType = rs.getInt("base_type");
       assertEquals("type name ", "testint8", typeName);
       assertEquals("schema name ", "jdbc", schema);
+
+      rs.close();
     }
     finally {
       try {
@@ -833,6 +878,7 @@ public class DatabaseMetaDataTest {
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
 
+      rs.close();
     }
     finally {
       try {
@@ -877,6 +923,7 @@ public class DatabaseMetaDataTest {
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
 
+      rs.close();
     }
     finally {
       try {
@@ -921,6 +968,7 @@ public class DatabaseMetaDataTest {
       assertEquals("type name ", "testint8", typeName);
       assertEquals("remarks", "jdbc123", remarks);
 
+      rs.close();
     }
     finally {
       try {
@@ -963,6 +1011,7 @@ public class DatabaseMetaDataTest {
       assertEquals("data type", Types.STRUCT, dataType);
       assertEquals("type name ", "testint8", typeName);
 
+      rs.close();
     }
     finally {
       try {
@@ -1033,6 +1082,7 @@ public class DatabaseMetaDataTest {
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertEquals(Types.INTEGER, rs.getShort("SOURCE_DATA_TYPE"));
 
+    rs.close();
   }
 
   @Test
@@ -1050,6 +1100,7 @@ public class DatabaseMetaDataTest {
         assertEquals(true, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
       }
     }
+    rs.close();
   }
 
   @Test
@@ -1065,6 +1116,7 @@ public class DatabaseMetaDataTest {
         assertEquals("'", rs.getString("LITERAL_SUFFIX"));
       }
     }
+    rs.close();
   }
 
   @Test
@@ -1079,6 +1131,7 @@ public class DatabaseMetaDataTest {
     assertEquals("b", rs.getString("COLUMN_NAME"));
     assertEquals(100, rs.getInt("COLUMN_SIZE"));
     assertTrue(!rs.next());
+    rs.close();
   }
 
   @Test
@@ -1089,6 +1142,8 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.next());
     assertEquals("ApplicationName", rs.getString("NAME"));
+
+    rs.close();
   }
 
   @Test
@@ -1109,6 +1164,8 @@ public class DatabaseMetaDataTest {
     assertEquals("YES", rs.getString("IS_AUTOINCREMENT"));
 
     assertTrue(!rs.next());
+
+    rs.close();
   }
 
   @Test
@@ -1121,6 +1178,8 @@ public class DatabaseMetaDataTest {
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNull(rs.getString("TABLE_CATALOG"));
     assertTrue(!rs.next());
+
+    rs.close();
   }
 
 }

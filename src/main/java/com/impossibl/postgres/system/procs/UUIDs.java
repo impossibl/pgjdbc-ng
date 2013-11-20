@@ -56,7 +56,7 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public UUID decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public UUID decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -121,7 +121,7 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public UUID decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public UUID decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return UUID.fromString(buffer.toString());
     }

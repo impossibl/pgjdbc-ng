@@ -65,7 +65,7 @@ public class Records extends SimpleProcProvider {
     }
 
     @Override
-    public Object decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Object decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       CompositeType compType = (CompositeType) type;
 
@@ -92,7 +92,7 @@ public class Records extends SimpleProcProvider {
             context.refreshType(attributeType.getId());
           }
 
-          Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, buffer, context);
+          Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, null, null, buffer, context);
 
           attributeVals[c] = attributeVal;
         }
@@ -207,7 +207,7 @@ public class Records extends SimpleProcProvider {
     }
 
     @Override
-    public Record decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Record decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       int length = buffer.length();
 
@@ -230,7 +230,7 @@ public class Records extends SimpleProcProvider {
       }
       else {
 
-        return type.getCodec(Format.Text).decoder.decode(type, data, context);
+        return type.getCodec(Format.Text).decoder.decode(type, null, null, data, context);
       }
 
     }
@@ -269,12 +269,20 @@ public class Records extends SimpleProcProvider {
             break;
 
           case '"':
-            if (c < data.length() && data.charAt(c + 1) == '"') {
+            if (string && c < data.length() - 1 && data.charAt(c + 1) == '"') {
               elementTxt.append('"');
               c++;
             }
             else {
               string = !string;
+            }
+            break;
+
+          case '\\':
+            if (string) {
+              ++c;
+              if (c < data.length())
+                elementTxt.append(data.charAt(c));
             }
             break;
 
@@ -344,6 +352,8 @@ public class Records extends SimpleProcProvider {
         String attrStr = attrOut.toString();
 
         if (needsQuotes(attrStr, delim)) {
+          attrStr = attrStr.replace("\\", "\\\\");
+          attrStr = attrStr.replace("\"", "\\\"");
           out.append('\"').append(attrStr).append('\"');
         }
         else {
@@ -370,7 +380,7 @@ public class Records extends SimpleProcProvider {
 
         char ch = elemStr.charAt(c);
 
-        if (ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
+        if (ch == delim || ch == '"' || ch == '\\' || ch == '{' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f')
           return true;
       }
 

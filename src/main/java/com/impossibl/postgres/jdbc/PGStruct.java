@@ -30,11 +30,13 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
+
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 
 import java.sql.SQLException;
 import java.sql.Struct;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -77,12 +79,41 @@ public class PGStruct implements Struct {
 
       Attribute attr = attrs.get(c);
 
-      Class<?> targetType = mapGetType(type, map, connection);
+      Class<?> targetType = mapGetType(attr.type, map, connection);
 
       newValues[c] = coerce(values[c], attr.type, targetType, map, connection);
     }
 
     return newValues;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + Arrays.hashCode(values);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PGStruct other = (PGStruct) obj;
+    if (type == null) {
+      if (other.type != null)
+        return false;
+    }
+    else if (!type.equals(other.type))
+      return false;
+    if (!Arrays.equals(values, other.values))
+      return false;
+    return true;
   }
 
 }

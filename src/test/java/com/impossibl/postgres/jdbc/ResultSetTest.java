@@ -43,6 +43,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -427,6 +428,18 @@ public class ResultSetTest {
       }
     }
     rs.close();
+  }
+
+  @Test
+  public void testRowId() throws SQLException {
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT ctid, * FROM testrs");
+    assertTrue(rs.next());
+    assertNotNull(rs.getRowId(1));
+    rs.close();
+    stmt.close();
+
   }
 
   @Test

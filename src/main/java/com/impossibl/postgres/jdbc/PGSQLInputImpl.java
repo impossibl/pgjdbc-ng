@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLInput;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
@@ -40,12 +41,14 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBytes;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
+import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
@@ -69,7 +72,6 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLInput;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -78,7 +80,9 @@ import java.util.TimeZone;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class PGSQLInput implements SQLInput {
+
+
+public class PGSQLInputImpl implements PGSQLInput {
 
   private PGConnectionImpl connection;
   private CompositeType type;
@@ -87,7 +91,7 @@ public class PGSQLInput implements SQLInput {
   private Object[] attributeValues;
   private Boolean nullFlag;
 
-  public PGSQLInput(PGConnectionImpl connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
+  public PGSQLInputImpl(PGConnectionImpl connection, CompositeType type, Map<String, Class<?>> typeMap, Object[] attributeValues) {
     this.connection = connection;
     this.type = type;
     this.typeMap = typeMap;
@@ -163,7 +167,7 @@ public class PGSQLInput implements SQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    InputStream data = coerceToBytes(getNextAttributeValue(), attr.type, connection);
+    InputStream data = coerceToByteStream(getNextAttributeValue(), attr.type, connection);
 
     try {
       return ByteStreams.toByteArray(data);
@@ -234,6 +238,11 @@ public class PGSQLInput implements SQLInput {
   }
 
   @Override
+  public Clob readClob() throws SQLException {
+    return coerceToClob(getNextAttributeValue(), connection);
+  }
+
+  @Override
   public Array readArray() throws SQLException {
 
     Object val = getNextAttributeValue();
@@ -261,7 +270,7 @@ public class PGSQLInput implements SQLInput {
 
   @Override
   public RowId readRowId() throws SQLException {
-    throw NOT_IMPLEMENTED;
+    return coerceToRowId(getNextAttributeValue(), type.getAttribute(currentAttrIdx).type);
   }
 
   @Override
@@ -271,11 +280,6 @@ public class PGSQLInput implements SQLInput {
       throw new SQLException("no value read");
 
     return nullFlag;
-  }
-
-  @Override
-  public Clob readClob() throws SQLException {
-    throw NOT_IMPLEMENTED;
   }
 
   @Override

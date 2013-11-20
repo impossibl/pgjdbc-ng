@@ -31,6 +31,7 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.types.PrimitiveType.Numeric;
 
 import java.io.IOException;
@@ -52,15 +53,18 @@ public class Numerics extends SimpleProcProvider {
 
   static class BinDecoder extends BinaryDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Numeric;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BigDecimal.class;
     }
 
-    public BigDecimal decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    @Override
+    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       BigDecimal value;
 
@@ -104,14 +108,17 @@ public class Numerics extends SimpleProcProvider {
 
   static class BinEncoder extends BinaryEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Numeric;
     }
 
+    @Override
     public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
 
       buffer.writeInt(-1);
@@ -145,15 +152,18 @@ public class Numerics extends SimpleProcProvider {
 
   static class TxtDecoder extends TextDecoder {
 
+    @Override
     public PrimitiveType getInputPrimitiveType() {
       return Numeric;
     }
 
+    @Override
     public Class<?> getOutputType() {
       return BigDecimal.class;
     }
 
-    public BigDecimal decode(Type type, CharSequence buffer, Context context) throws IOException {
+    @Override
+    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return new BigDecimal(buffer.toString());
     }
@@ -162,14 +172,17 @@ public class Numerics extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
+    @Override
     public Class<?> getInputType() {
       return BigDecimal.class;
     }
 
+    @Override
     public PrimitiveType getOutputPrimitiveType() {
       return Numeric;
     }
 
+    @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       buffer.append(val.toString());
@@ -180,10 +193,10 @@ public class Numerics extends SimpleProcProvider {
   /**
    * Encodes a string of the plain form XXXX.XXX into an NBASE packed sequence
    * of shorts.
-   *
+   * 
    * @param num
    * @param info
-   * @return
+   * @return NBASE encoded version of num
    */
   private static short[] encodeFromString(String num, short[] info) {
 

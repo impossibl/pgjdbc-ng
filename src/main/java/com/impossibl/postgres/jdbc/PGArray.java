@@ -33,6 +33,7 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
 
@@ -77,11 +78,11 @@ public class PGArray implements Array {
   }
 
   @Override
-  public Object getArray(Map<String, Class<?>> map) throws SQLException {
+  public Object getArray(Map<String, Class<?>> typeMap) throws SQLException {
 
-    Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
+    Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
 
-    return coerceToArray(value, type, targetType, map, connection);
+    return coerceToArray(value, type, targetType, typeMap, connection);
   }
 
   @Override
@@ -90,15 +91,15 @@ public class PGArray implements Array {
   }
 
   @Override
-  public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  public Object getArray(long index, int count, Map<String, Class<?>> typeMap) throws SQLException {
 
     if (index < 1 || index > value.length || (index + count) > (value.length + 1)) {
       throw new SQLException("Invalid array slice");
     }
 
-    Class<?> targetType = SQLTypeUtils.mapGetType(type, map, connection);
+    Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
 
-    return coerceToArray(value, (int)index - 1, count, type, targetType, map, connection);
+    return coerceToArray(value, (int) index - 1, count, type, targetType, typeMap, connection);
   }
 
   @Override

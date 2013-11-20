@@ -41,7 +41,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 public class Int4s extends SimpleProcProvider {
 
   public Int4s() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "tid", "xid", "cid", "regproc");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "xid", "cid", "regproc");
   }
 
   static class BinDecoder extends BinaryDecoder {
@@ -57,7 +57,7 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public Integer decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Integer decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -118,7 +118,7 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public Integer decode(Type type, CharSequence buffer, Context context) throws IOException {
+    public Integer decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       return Integer.valueOf(buffer.toString());
     }

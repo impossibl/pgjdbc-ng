@@ -26,35 +26,52 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.data;
 
 /**
- * Postgres-specific interface for exceptions that carry extended error
- * information reported by the server.
- *
+ * Postgres physical location id
+ * 
  * @author kdubb
  *
  */
-public interface PGSQLExceptionInfo {
+public class Tid {
 
-  String getSchema();
+  public int block;
+  public short offset;
 
-  void setSchema(String schema);
+  public Tid(int block, short offset) {
+    this.block = block;
+    this.offset = offset;
+  }
 
-  String getTable();
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + block;
+    result = prime * result + offset;
+    return result;
+  }
 
-  void setTable(String table);
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Tid other = (Tid) obj;
+    if (block != other.block)
+      return false;
+    if (offset != other.offset)
+      return false;
+    return true;
+  }
 
-  String getColumn();
-
-  void setColumn(String column);
-
-  String getDatatype();
-
-  void setDatatype(String datatype);
-
-  String getConstraint();
-
-  void setConstraint(String constraint);
+  @Override
+  public String toString() {
+    return "(" + block + "," + offset + ")";
+  }
 
 }

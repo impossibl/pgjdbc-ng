@@ -68,7 +68,7 @@ public class Dates extends SimpleProcProvider {
     }
 
     @Override
-    public Instant decode(Type type, ChannelBuffer buffer, Context context) throws IOException {
+    public Instant decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -204,7 +204,7 @@ public class Dates extends SimpleProcProvider {
     }
 
     @Override
-    Object decode(Type type, CharSequence buffer, Context context) throws IOException {
+    Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       Map<String, Object> pieces = new HashMap<>();
 

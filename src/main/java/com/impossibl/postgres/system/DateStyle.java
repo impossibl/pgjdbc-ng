@@ -61,9 +61,10 @@ public class DateStyle {
 
   /**
    * Creates a DateFormat for handling Dates from a parsed DateStyle string
-   *
-   * @param dateStyle Parsed DateStyle
-   * @returns DateFormat for handling dates in the style specified in dateStyle
+   * 
+   * @param dateStyle
+   *          Parsed DateStyle
+   * @return DateFormat for handling dates in the style specified in dateStyle
    */
   public static DateTimeFormat getDateFormatter(String[] dateStyle) {
 
@@ -82,9 +83,10 @@ public class DateStyle {
 
   /**
    * Creates a DateFormat for handling Times from a parsed DateStyle string
-   *
-   * @param dateStyle Parsed DateStyle
-   * @returns DateFormat for handling times in the style specified in dateStyle
+   * 
+   * @param dateStyle
+   *          Parsed DateStyle
+   * @return DateFormat for handling times in the style specified in dateStyle
    */
   public static DateTimeFormat getTimeFormatter(String[] dateStyle) {
 
@@ -103,9 +105,11 @@ public class DateStyle {
 
   /**
    * Creates a DateFormat for handling Timestamps from a parsed DateStyle string
-   *
-   * @param dateStyle Parsed DateStyle
-   * @returns DateFormat for handling timestamps in the style specified in dateStyle
+   * 
+   * @param dateStyle
+   *          Parsed DateStyle
+   * @return DateFormat for handling timestamps in the style specified in
+   *         dateStyle
    */
   public static DateTimeFormat getTimestampFormatter(String[] dateStyle) {
 

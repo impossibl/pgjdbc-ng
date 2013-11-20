@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.data.CidrAddr;
+import com.impossibl.postgres.data.InetAddr;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.system.Settings;
 
@@ -40,9 +42,13 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -754,6 +760,146 @@ public class PreparedStatementTest {
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testRowId() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)", new String[] {"ctid"});
+    pstmt.setString(1, "some text");
+    pstmt.executeUpdate();
+    ResultSet keys = pstmt.getGeneratedKeys();
+    assertTrue(keys.next());
+    RowId rowId = keys.getRowId(1);
+    keys.close();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("SELECT te FROM texttable WHERE ctid = ?");
+    pstmt.setRowId(1, rowId);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("some text", rs.getString(1));
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testInet() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE inet_tab (ip1 inet, ip2 inet, ip3 inet)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into inet_tab values (?,?,?)");
+    InetAddr inet1;
+    InetAddr inet2;
+    pstmt.setObject(1, inet1 = new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, inet2 = new InetAddr("192.168.100.128/25"));
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from inet_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == InetAddr.class);
+    assertTrue(inet1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == InetAddr.class);
+    assertTrue(inet2.equals(rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testCidr() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE cidr_tab (ip1 cidr, ip2 cidr, ip3 cidr)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into cidr_tab values (?,?,?)");
+    CidrAddr cidr1;
+    CidrAddr cidr2;
+    pstmt.setObject(1, cidr1 = new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
+    pstmt.setObject(2, cidr2 = new CidrAddr("2001:4f8:3:ba::/64"));
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from cidr_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == CidrAddr.class);
+    assertTrue(cidr1.equals(rs.getObject(1)));
+    assertTrue(rs.getObject(2).getClass() == CidrAddr.class);
+    assertTrue(cidr2.equals(rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testMacAddr() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE mac_tab (mac1 macaddr, mac2 macaddr, mac3 macaddr)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into mac_tab values (?,?,?)");
+    byte[] mac1 = new byte[] {0x08, 0x00, 0x2b, 0x01, 0x02, 0x03};
+    byte[] mac2 = new byte[] {0x08, 0x4f, 0x2a, 0x01, 0x02, 0x3e};
+    pstmt.setObject(1, mac1);
+    pstmt.setObject(2, mac2);
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from mac_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == byte[].class);
+    assertTrue(Arrays.equals(mac1, (byte[]) rs.getObject(1)));
+    assertTrue(Arrays.equals(mac2, (byte[]) rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testHStore() throws SQLException {
+
+    if (!TestUtil.isExtensionInstalled(conn, "hstore")) {
+      System.out.println("Skipping hstore (extension not intalled)");
+      return;
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE hstore_tab (hs1 hstore, hs2 hstore, hs3 hstore)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into hstore_tab values (?,?,?)");
+    Map<String, String> hs1 = new HashMap<>();
+    hs1.put("k1", "v1");
+    hs1.put("k2", "v2");
+    hs1.put("k3", "v3");
+    hs1.put("k4", "v4");
+    Map<String, String> hs2 = new HashMap<>();
+    pstmt.setObject(1, hs1);
+    pstmt.setObject(2, hs2);
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from hstore_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(HashMap.class.equals(rs.getObject(1).getClass()));
+    assertTrue(hs1.equals(rs.getObject(1)));
+    assertTrue(hs2.equals(rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
   }
 
 //TODO: reconcile against mainstream driver

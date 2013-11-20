@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
 import com.impossibl.postgres.protocol.Notice;
 
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
@@ -190,40 +191,6 @@ public class ErrorUtils {
     current.setNextWarning(add);
 
     return base;
-  }
-
-
-  private static final String PARAM_UNKNOWN_DATA_TYPE_ERROR = "could not determine data type of parameter $";
-
-  /**
-   * Determines if the provided notice represents the "could not determine data
-   * type of parameter" error
-   *
-   * @param error
-   */
-  public static boolean isUnknownParameterTypeError(Notice error) {
-    return
-        error != null &&
-        error.getMessage().startsWith(PARAM_UNKNOWN_DATA_TYPE_ERROR);
-  }
-
-  /**
-   * Determines if the provided notice represents the "could not determine data
-   * type of parameter" error
-   *
-   * @param error
-   */
-  public static Integer parseUnknownParameterTypeIndex(Notice error) {
-
-    String paramNumber = error.getMessage().substring(PARAM_UNKNOWN_DATA_TYPE_ERROR.length());
-
-    try {
-      return Integer.valueOf(paramNumber) - 1;
-    }
-    catch (NumberFormatException fmt) {
-      return null;
-    }
-
   }
 
 }

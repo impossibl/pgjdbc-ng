@@ -28,6 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLInput;
+import com.impossibl.postgres.api.jdbc.PGSQLOutput;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -45,6 +48,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -65,18 +69,20 @@ public class StructTest {
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
-      str = stream.readString();
-      str2 = stream.readString();
-      id = (UUID) stream.readObject();
-      num = stream.readDouble();
+      PGSQLInput in = (PGSQLInput) stream;
+      str = in.readString();
+      str2 = in.readString();
+      id = (UUID) in.readObject();
+      num = in.readDouble();
     }
 
     @Override
     public void writeSQL(SQLOutput stream) throws SQLException {
-      stream.writeString(str);
-      stream.writeString(str2);
-      ((PGSQLOutput)stream).writeObject(id);
-      stream.writeDouble(num);
+      PGSQLOutput out = (PGSQLOutput) stream;
+      out.writeString(str);
+      out.writeString(str2);
+      out.writeObject(id);
+      out.writeDouble(num);
     }
 
   }

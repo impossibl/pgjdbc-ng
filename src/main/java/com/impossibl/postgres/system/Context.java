@@ -68,4 +68,6 @@ public interface Context {
 
   Protocol getProtocol();
 
+  void reportNotification(int processId, String channelName, String payload);
+
 }

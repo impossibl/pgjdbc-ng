@@ -120,4 +120,9 @@ public class DecoratorContext implements Context {
     return base.getProtocol();
   }
 
+  @Override
+  public void reportNotification(int processId, String channelName, String payload) {
+    base.reportNotification(processId, channelName, payload);
+  }
+
 }

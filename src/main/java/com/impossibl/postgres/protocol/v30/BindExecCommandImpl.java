@@ -111,7 +111,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
         Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-        Object fieldVal = decoder.decode(fieldType, buffer, context);
+        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
 
         resultSetters.get(c).set(rowInstance, fieldVal);
       }
@@ -147,8 +147,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       BindExecCommandImpl.this.error = error;
+      notifyAll();
     }
 
     @Override

@@ -112,7 +112,7 @@ public class ProtocolImpl implements Protocol {
 
       }
       catch (Throwable e) {
-        //Ignore...
+        // Ignore...
       }
       finally {
         state.set(State.Completed);
@@ -237,6 +237,11 @@ public class ProtocolImpl implements Protocol {
     }
 
     sharedRef.release();
+  }
+
+  private void kill() {
+    connected.set(false);
+    channel.close().awaitUninterruptibly();
   }
 
   @Override
@@ -369,6 +374,12 @@ public class ProtocolImpl implements Protocol {
         }
         else {
           throw new IOException(exception.getCause());
+        }
+      }
+
+      if (cmd.getError() != null) {
+        if (cmd.getError().getCode().startsWith(Notice.CONNECTION_EXC_CLASS)) {
+          kill();
         }
       }
 
@@ -1130,6 +1141,8 @@ public class ProtocolImpl implements Protocol {
     logger.finest("NOTIFY: " + processId + " - " + channelName + " - " + payload);
 
     listener.notification(processId, channelName, payload);
+
+    context.reportNotification(processId, channelName, payload);
   }
 
   private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {

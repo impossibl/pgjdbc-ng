@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
@@ -53,14 +54,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 abstract class PGStatement implements Statement {
-
-  private static final Logger logger = Logger.getLogger(PGStatement.class.getName());
 
   /**
    * Cleans up server resources in the event of leaking statements
@@ -68,24 +65,32 @@ abstract class PGStatement implements Statement {
    * @author kdubb
    *
    */
-  static class Cleanup implements Runnable {
+  static class Cleanup implements CleanupRunnable {
 
     PGConnectionImpl connection;
     String name;
     List<WeakReference<PGResultSet>> resultSets;
-    Exception allocationTrace;
+    Exception allocationTracer;
 
     public Cleanup(PGConnectionImpl connection, String name, List<WeakReference<PGResultSet>> resultSets) {
       this.connection = connection;
       this.name = name;
       this.resultSets = resultSets;
-      this.allocationTrace = new Exception();
+      this.allocationTracer = new Exception();
+    }
+
+    @Override
+    public String getKind() {
+      return "statement";
+    }
+
+    @Override
+    public Exception getAllocationTracer() {
+      return allocationTracer;
     }
 
     @Override
     public void run() {
-
-      logger.log(Level.WARNING, "cleaning up leaked statement", allocationTrace);
 
       closeResultSets(resultSets);
 
@@ -301,15 +306,13 @@ abstract class PGStatement implements Statement {
   }
 
   /**
-   * Execute the named statement. It must have previously been parsed and
-   * ready to be bound and executed.
+   * Execute the given sql
    *
-   * @param statementName Name of backend statement to execute or null
-   * @param parameterTypes List of parameter types
-   * @param parameterValues List of parmaeter values
-   * @return true if command returned results or false if not
+   * @param sql
+   *          SQL text to execute
+   * @return True if command returned results or false if not
    * @throws SQLException
-   *          If an error occurred durring statement execution
+   *           If an error occurred during statement execution
    */
   public boolean executeSimple(String sql) throws SQLException {
 

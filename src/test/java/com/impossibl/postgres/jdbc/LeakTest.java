@@ -60,6 +60,7 @@ public class LeakTest {
   public void before() throws Exception {
     conn = TestUtil.openDB();
     connRef = new WeakReference<Connection>(conn);
+    getHousekeeper().setLogLeakedReferences(false);
   }
 
   @After

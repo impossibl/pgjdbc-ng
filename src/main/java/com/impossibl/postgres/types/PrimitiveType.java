@@ -30,6 +30,7 @@ package com.impossibl.postgres.types;
 
 public enum PrimitiveType {
   Oid,
+  Tid,
   Bool,
   Int2,
   Int4,

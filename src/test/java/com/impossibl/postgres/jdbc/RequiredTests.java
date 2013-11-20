@@ -65,7 +65,8 @@ import org.junit.runners.Suite.SuiteClasses;
   CodecTest.class,
   UpdateableResultTest.class,
   CursorFetchTest.class,
-  CallableStatementTest.class
+  CallableStatementTest.class,
+  NotificationTest.class
 })
 public class RequiredTests {
 

@@ -97,7 +97,9 @@ public class BlobOutputStream extends OutputStream {
     catch (SQLException e) {
       throw new IOException("Error closing stream", e);
     }
-    owner.removeStream(lo);
+    if (owner != null) {
+      owner.removeStream(lo);
+    }
     owner = null;
     lo = null;
   }

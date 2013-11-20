@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 
@@ -139,7 +140,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return paramType.getJavaType(typeMap).getName();
+    return paramType.getJavaType(paramType.getPreferredFormat(), typeMap).getName();
   }
 
   @Override

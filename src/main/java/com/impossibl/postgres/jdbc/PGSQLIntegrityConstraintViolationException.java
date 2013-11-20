@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
+
 import java.sql.SQLIntegrityConstraintViolationException;
 
 public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityConstraintViolationException implements PGSQLExceptionInfo {

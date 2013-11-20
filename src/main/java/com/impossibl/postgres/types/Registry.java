@@ -204,7 +204,7 @@ public class Registry {
       }
     }
 
-    if (isArray) {
+    if (isArray && res != null) {
       res = loadType(res.getArrayTypeId());
     }
 
@@ -254,6 +254,20 @@ public class Registry {
       lock.readLock().unlock();
     }
 
+  }
+
+  public void unloadType(int oid) {
+    Type type = oidMap.remove(oid);
+    if (type != null) {
+      nameMap.remove(type.getName());
+    }
+  }
+
+  public void unloadType(String name) {
+    Type type = nameMap.remove(name);
+    if (type != null) {
+      oidMap.remove(type.getId());
+    }
   }
 
   /**
