@@ -46,6 +46,7 @@ import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
@@ -2543,7 +2544,136 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-    throw NOT_IMPLEMENTED;
+
+    Registry registry = connection.getRegistry();
+
+    StringBuilder sql = new StringBuilder();
+    List<Object> params = new ArrayList<>();
+
+    sql.append(
+        "SELECT * FROM (" +
+        "   SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,a.attrelid," +
+        "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
+        "   FROM pg_catalog.pg_namespace n " +
+        "   JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
+        "   JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
+        "   JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) " +
+        "   LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
+        "   LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
+        "   LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
+        "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
+        "   WHERE a.attnum < 1 AND NOT a.attisdropped ");
+
+    if (!isNullOrEmpty(schemaPattern)) {
+      sql.append(" AND n.nspname LIKE ?");
+      params.add(schemaPattern);
+    }
+
+    if (!isNullOrEmpty(tableNamePattern)) {
+      sql.append(" AND c.relname LIKE ?");
+      params.add(tableNamePattern);
+    }
+
+    sql.append(") c");
+
+    if (!isNullOrEmpty(columnNamePattern)) {
+      sql.append(" WHERE attname LIKE ?");
+      params.add(columnNamePattern);
+    }
+
+    sql.append(" ORDER BY nspname,c.relname,attnum ");
+
+    //Build list of column fields and data
+
+    List<ColumnData> columnsData  = new ArrayList<>();
+
+    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
+
+      while (rs.next()) {
+
+        ColumnData columnData = new ColumnData();
+
+        columnData.tableSchemaName = rs.getString("nspname");
+        columnData.tableName = rs.getString("relname");
+        columnData.relationType = registry.loadRelationType(rs.getInt("attrelid"));
+        columnData.relationAttrNum = rs.getInt("attnum");
+        columnData.columnName = rs.getString("attname");
+        columnData.type = registry.loadType(rs.getInt("atttypid"));
+        columnData.typeModifier = rs.getInt("atttypmod");
+        columnData.typeLength = rs.getInt("attlen");
+        columnData.nullable = !rs.getBoolean("attnotnull");
+        columnData.defaultValue = rs.getString("adsrc");
+        columnData.description = rs.getString("description");
+        columnData.baseType = registry.loadType(rs.getInt("typbasetype"));
+
+        columnsData.add(columnData);
+      }
+
+    }
+
+    //Build result set (manually)
+
+    ResultField[] resultFields = new ResultField[24];
+    resultFields[0] = new ResultField("TABLE_CAT",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[1] = new ResultField("TABLE_SCHEM",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[2] = new ResultField("TABLE_NAME",         0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[3] = new ResultField("COLUMN_NAME",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
+    resultFields[5] = new ResultField("COLUMN_SIZE",        0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
+    resultFields[7] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
+    resultFields[8] = new ResultField("COLUMN_USAGE",      0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
+    resultFields[9] = new ResultField("REMARKS", 0, (short) 0, registry.loadType("text"), (short) 0, 0, Format.Binary);
+    resultFields[10] = new ResultField("CHAR_OCTET_LENGTH", 0, (short) 0, registry.loadType("int4"), (short) 0, 0, Format.Binary);
+    resultFields[11] = new ResultField("IS_NULLABLE", 0, (short) 0, registry.loadType("text"), (short) 0, 0, Format.Binary);
+
+    List<Object[]> results = new ArrayList<>();
+
+    for (int c = 0; c < columnsData.size(); ++c) {
+
+      ColumnData columnData = columnsData.get(c);
+
+      Object[] row = new Object[resultFields.length];
+
+      row[0] = null;
+      row[1] = columnData.tableSchemaName;
+      row[2] = columnData.tableName;
+      row[3] = columnData.columnName;
+      row[4] = SQLTypeMetaData.getSQLType(columnData.type);
+
+      int size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
+      if (size == 0) {
+        size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
+      }
+
+      row[5] = size;
+      row[6] = SQLTypeMetaData.getScale(columnData.type, columnData.typeLength, columnData.typeModifier);
+
+      row[7] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
+      row[8] = PseudoColumnUsage.NO_USAGE_RESTRICTIONS.name();
+      row[9] = columnData.description;
+      row[10] = columnData.typeLength;
+
+      String nullable = null;
+      int isNullable = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
+      switch (isNullable) {
+        case columnNoNulls:
+          nullable = "NO";
+          break;
+        case columnNullable:
+          nullable = "YES";
+          break;
+        default:
+          nullable = "";
+          break;
+      }
+
+      row[11] = nullable;
+
+      results.add(row);
+    }
+
+    return createResultSet(Arrays.asList(resultFields), results);
   }
 
   @Override
