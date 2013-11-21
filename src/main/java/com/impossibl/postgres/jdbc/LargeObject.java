@@ -60,43 +60,64 @@ class LargeObject {
       return new LargeObject(connection, oid, fd);
   }
 
-  LargeObject(PGConnectionImpl connection, int oid, int fd) {
+  LargeObject(PGConnectionImpl connection, int oid, int fd) throws SQLException {
     super();
     this.oid = oid;
     this.fd = fd;
     this.connection = connection;
+
+    ensurePrepared(connection, "lo.close", "select lo_close($1)", "int4");
+    ensurePrepared(connection, "lo.lseek", "select lo_lseek($1,$2,$3)", "int4", "int4", "int4");
+    ensurePrepared(connection, "lo.tell", "select lo_tell($1)", "int4");
+    ensurePrepared(connection, "lo.read", "select loread($1,$2)", "int4", "int4");
+    ensurePrepared(connection, "lo.write", "select lowrite($1,$2)", "int4", "bytea");
+    ensurePrepared(connection, "lo.truncate", "select lo_truncate($1,$2)", "int4", "int4");
   }
 
   LargeObject dup() throws SQLException {
     return open(connection, oid);
   }
 
+  static void ensurePrepared(PGConnectionImpl conn, String name, String sql, String... typeNames) throws SQLException {
+    if (!conn.isUtilQueryPrepared(name)) {
+      try {
+        conn.prepareUtilQuery(name, sql, typeNames);
+      }
+      catch (IOException e) {
+        throw new SQLException(e);
+      }
+    }
+  }
+
   static int creat(PGConnectionImpl conn, int mode) throws SQLException {
-    return conn.executeForFirstResultValue("select lo_creat($1)", true, Integer.class, mode);
+    ensurePrepared(conn, "lo.creat", "select lo_creat($1)", "int4");
+    return conn.executeForFirstResultValue("@lo.creat", true, Integer.class, mode);
   }
 
   static int open(PGConnectionImpl conn, int oid, int access) throws SQLException {
-    return conn.executeForFirstResultValue("select lo_open($1,$2)", true, Integer.class, oid, access);
+    ensurePrepared(conn, "lo.open", "select lo_open($1,$2)", "oid", "int4");
+    return conn.executeForFirstResultValue("@lo.open", true, Integer.class, oid, access);
   }
 
   static int unlink(PGConnectionImpl conn, int oid) throws SQLException {
-    return conn.executeForFirstResultValue("select lo_unlink($1)", true, Integer.class, oid);
+    ensurePrepared(conn, "lo.unlink", "select lo_unlink($1)", "oid");
+    return conn.executeForFirstResultValue("@lo.unlink", true, Integer.class, oid);
   }
 
   int close() throws SQLException {
-    return connection.executeForFirstResultValue("select lo_close($1)", true, Integer.class, fd);
+    return connection.executeForFirstResultValue("@lo.close", true, Integer.class, fd);
   }
 
   long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_lseek($1,$2,$3)", true, Integer.class, fd, (int) offset, whence);
+    return connection.executeForFirstResultValue("@lo.lseek", true, Integer.class, fd, (int) offset, whence);
   }
 
   long tell() throws SQLException {
-    return connection.executeForFirstResultValue("select lo_tell($1)", true, Integer.class, fd);
+    return connection.executeForFirstResultValue("@lo.tell", true, Integer.class, fd);
   }
 
   byte[] read(long len) throws SQLException {
-    InputStream data = connection.executeForFirstResultValue("select loread($1,$2)", true, InputStream.class, fd, (int) len);
+    InputStream data = connection.executeForFirstResultValue("@lo.read", true, InputStream.class, fd, (int) len);
     try {
       return ByteStreams.toByteArray(data);
     }
@@ -109,11 +130,11 @@ class LargeObject {
 
     InputStream dataIn = new ByteArrayInputStream(data, off, len);
 
-    return connection.executeForFirstResultValue("select lowrite($1,$2)", true, Integer.class, fd, dataIn);
+    return connection.executeForFirstResultValue("@lo.write", true, Integer.class, fd, dataIn);
   }
 
   int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_truncate($1,$2)", true, Integer.class, fd, (int) len);
+    return connection.executeForFirstResultValue("@lo.truncate", true, Integer.class, fd, (int) len);
   }
 
 }
