@@ -32,23 +32,27 @@ import java.sql.SQLException;
 
 class LargeObject64 extends LargeObject {
 
-  LargeObject64(PGConnectionImpl connection, int oid, int fd) {
+  LargeObject64(PGConnectionImpl connection, int oid, int fd) throws SQLException {
     super(connection, oid, fd);
+
+    ensurePrepared(connection, "lo.lseek64", "select lo_lseek64($1,$2,$3)", "int4", "int8", "int4");
+    ensurePrepared(connection, "lo.tell64", "select lo_tell64($1)", "int4");
+    ensurePrepared(connection, "lo.truncate64", "select lo_truncate64($1,$2)", "int4", "int8");
   }
 
   @Override
   long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_lseek64($1,$2,$3)", true, Long.class, fd, offset, whence);
+    return connection.executeForFirstResultValue("@lo.lseek64", true, Long.class, fd, offset, whence);
   }
 
   @Override
   long tell() throws SQLException {
-    return connection.executeForFirstResultValue("select lo_tell64($1)", true, Long.class, fd);
+    return connection.executeForFirstResultValue("@lo.tell64", true, Long.class, fd);
   }
 
   @Override
   int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("select lo_truncate64($1,$2)", true, Integer.class, fd, len);
+    return connection.executeForFirstResultValue("@lo.truncate64", true, Integer.class, fd, len);
   }
 
 }
