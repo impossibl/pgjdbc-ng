@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,7 +52,6 @@ import static org.junit.Assert.fail;
 
 
 @RunWith(Parameterized.class)
-@Ignore
 public class SSLTest {
 
   protected String certdir;
