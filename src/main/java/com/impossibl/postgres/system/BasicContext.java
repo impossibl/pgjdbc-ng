@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -75,10 +76,17 @@ public class BasicContext implements Context {
 
   private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 
-  public static class PreparedQuery {
+  private static class PreparedQuery {
+
     String name;
     List<Type> parameterTypes;
     List<ResultField> resultFields;
+
+    PreparedQuery(String name, List<Type> parameterTypes, List<ResultField> resultFields) {
+      this.name = name;
+      this.parameterTypes = parameterTypes;
+      this.resultFields = resultFields;
+    }
   }
 
   private static class NotificationKey {
@@ -106,7 +114,7 @@ public class BasicContext implements Context {
   protected KeyData keyData;
   protected Protocol protocol;
   protected Map<NotificationKey, WeakReference<NotificationListener>> notificationListeners;
-  protected PreparedQuery[] refreshQueries;
+  protected Map<String, PreparedQuery> utilQueries;
 
 
   public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException, NoticeException {
@@ -120,6 +128,7 @@ public class BasicContext implements Context {
     this.notificationListeners = new ConcurrentHashMap<>();
     this.registry = new Registry(this);
     this.protocol = new ProtocolFactoryImpl().connect(address, this);
+    this.utilQueries = new HashMap<>();
   }
 
   protected void shutdown() {
@@ -254,41 +263,16 @@ public class BasicContext implements Context {
 
   private void prepareRefreshTypeQueries() throws IOException {
 
-    refreshQueries = new PreparedQuery[5];
+    prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1");
 
-    String sql0 = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1";
-    List<Type> params0 = Collections.<Type>emptyList();
-    refreshQueries[0] = prepareQuery(sql0, "refresh-type", params0);
+    prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1", "int4");
 
-    String sql1 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1";
-    List<Type> params1 = asList(registry.loadType("int4"));
-    refreshQueries[1] = prepareQuery(sql1, "refresh-type-attrs", params1);
+    prepareUtilQuery("refresh-types", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1", "int4");
 
-    String sql2 = PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1";
-    List<Type> params2 = asList(registry.loadType("int4"));
-    refreshQueries[2] = prepareQuery(sql2, "refresh-types", params2);
+    prepareUtilQuery("refresh-types-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )", "int4[]");
 
-    String sql3 = PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )";
-    List<Type> params3 = asList(registry.loadType("int4[]"));
-    refreshQueries[3] = prepareQuery(sql3, "refresh-types-attrs", params3);
+    prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1", "int4");
 
-    String sql4 = PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1";
-    List<Type> params4 = Collections.<Type>emptyList();
-    refreshQueries[4] = prepareQuery(sql4, "refresh-reltype", params4);
-
-  }
-
-  private PreparedQuery prepareQuery(String sql, String name, List<Type> parameterTypes) throws IOException {
-
-    PrepareCommand prep = protocol.createPrepare(name, sql, parameterTypes);
-    protocol.execute(prep);
-
-    PreparedQuery pq = new PreparedQuery();
-    pq.name = name;
-    pq.parameterTypes = prep.getDescribedParameterTypes();
-    pq.resultFields = prep.getDescribedResultFields();
-
-    return pq;
   }
 
   @Override
@@ -311,14 +295,14 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[0], PgType.Row.class, typeId);
+      List<PgType.Row> pgTypes = queryResults("@refresh-type", PgType.Row.class, typeId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[1], PgAttribute.Row.class, pgTypes.get(0).relationId);
+      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).relationId);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -333,7 +317,7 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[2], PgType.Row.class, latestTypeId);
+      List<PgType.Row> pgTypes = queryResults("@refresh-types", PgType.Row.class, latestTypeId);
 
       if (pgTypes.isEmpty()) {
         return;
@@ -344,7 +328,7 @@ public class BasicContext implements Context {
         typeIds[c] = pgTypes.get(c).relationId;
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[3], PgAttribute.Row.class, (Object)typeIds);
+      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-types-attrs", PgAttribute.Row.class, (Object) typeIds);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -360,14 +344,14 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = preparedQueryResults(refreshQueries[4], PgType.Row.class, relationId);
+      List<PgType.Row> pgTypes = queryResults("@refresh-reltype", PgType.Row.class, relationId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = preparedQueryResults(refreshQueries[1], PgAttribute.Row.class, relationId);
+      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, relationId);
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -377,7 +361,56 @@ public class BasicContext implements Context {
 
   }
 
-  protected <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  public boolean isUtilQueryPrepared(String name) {
+    return utilQueries.containsKey(name);
+  }
+
+  public PreparedQuery prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
+
+    List<Type> parameterTypes = new ArrayList<>(parameterTypeNames.length);
+    for (String parameterTypeName : parameterTypeNames) {
+      parameterTypes.add(registry.loadType(parameterTypeName));
+    }
+
+    return prepareUtilQuery(name, sql, parameterTypes);
+  }
+
+  public PreparedQuery prepareUtilQuery(String name, String sql, List<Type> parameterTypes) throws IOException {
+
+    PrepareCommand prep = protocol.createPrepare(name, sql, parameterTypes);
+    protocol.execute(prep);
+
+    if (prep.getError() != null) {
+      throw new IOException("unable to prepare query: " + prep.getError().getMessage());
+    }
+
+    PreparedQuery pq = new PreparedQuery(name, prep.getDescribedParameterTypes(), prep.getDescribedResultFields());
+    utilQueries.put(name, pq);
+    return pq;
+  }
+
+  private PreparedQuery prepareQuery(String queryTxt) throws NoticeException, IOException {
+
+    if (queryTxt.charAt(0) == '@') {
+      PreparedQuery util = utilQueries.get(queryTxt.substring(1));
+      if (util == null) {
+        throw new IOException("invalid utility query");
+      }
+      return util;
+    }
+
+    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type> emptyList());
+
+    protocol.execute(prepare);
+
+    if (prepare.getError() != null) {
+      throw new NoticeException("Error preparing query", prepare.getError());
+    }
+
+    return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+  }
+
+  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, rowType, params);
 
@@ -387,30 +420,130 @@ public class BasicContext implements Context {
     return res;
   }
 
-  protected QueryCommand.ResultBatch queryBatch(String queryTxt, Class<?> rowType, Object... params) throws IOException, NoticeException {
+  public List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
 
-    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
+    QueryCommand.ResultBatch resultBatch;
 
-    protocol.execute(prepare);
+    if (queryTxt.charAt(0) == '@') {
 
-    if (prepare.getError() != null) {
-      throw new NoticeException("Error preparing query", prepare.getError());
+      PreparedQuery pq = prepareQuery(queryTxt);
+
+      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
+    }
+    else {
+
+      QueryCommand query = protocol.createQuery(queryTxt);
+
+      protocol.execute(query);
+
+      if (query.getError() != null) {
+        throw new NoticeException("Error querying", query.getError());
+      }
+
+      List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
+
+      if (resultBatches.isEmpty()) {
+        resultBatch = null;
+      }
+      else {
+        resultBatch = query.getResultBatches().get(0);
+      }
+
     }
 
-    return preparedQueryBatch(null, null, rowType, prepare.getDescribedParameterTypes(), asList(params), prepare.getDescribedResultFields());
-  }
-
-  private <T> List<T> preparedQueryResults(PreparedQuery pq, Class<T> rowType, Object... params) throws IOException, NoticeException {
-
-    QueryCommand.ResultBatch resultBatch = preparedQueryBatch(pq.name, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+    if (resultBatch == null) {
+      return Collections.emptyList();
+    }
 
     @SuppressWarnings("unchecked")
-    List<T> res = (List<T>) resultBatch.results;
+    List<Object> results = (List<Object>) resultBatch.results;
 
-    return res;
+    return results;
   }
 
-  private QueryCommand.ResultBatch preparedQueryBatch(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
+  public void query(String queryTxt) throws IOException, NoticeException {
+
+    if (queryTxt.charAt(0) == '@') {
+
+      PreparedQuery pq = prepareQuery(queryTxt);
+
+      preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
+    }
+
+    QueryCommand query = protocol.createQuery(queryTxt);
+
+    protocol.execute(query);
+
+    if (query.getError() != null) {
+      throw new NoticeException("Error querying", query.getError());
+    }
+
+  }
+
+  public Object queryValue(String queryTxt) throws IOException, NoticeException {
+
+    QueryCommand.ResultBatch resultBatch;
+
+    if (queryTxt.charAt(0) == '@') {
+
+      PreparedQuery pq = prepareQuery(queryTxt);
+
+      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
+    }
+    else {
+
+      QueryCommand query = protocol.createQuery(queryTxt);
+
+      protocol.execute(query);
+
+      if (query.getError() != null) {
+        throw new NoticeException("Error preparing query", query.getError());
+      }
+
+      List<QueryCommand.ResultBatch> res = query.getResultBatches();
+      if (res.isEmpty()) {
+        return null;
+      }
+
+      resultBatch = res.get(0);
+    }
+
+    if (resultBatch.results == null || resultBatch.results.isEmpty()) {
+      return resultBatch.rowsAffected;
+    }
+
+    Object[] firstRow = (Object[]) resultBatch.results.get(0);
+    if (firstRow.length == 0)
+      return null;
+
+    return firstRow[0];
+  }
+
+  public String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
+
+    List<Object> res = queryResults(queryTxt);
+    if (res.isEmpty()) {
+      return "";
+    }
+
+    Object[] firstRow = (Object[]) res.get(0);
+    if (firstRow.length == 0)
+      return "";
+
+    if (firstRow[0] == null)
+      return "";
+
+    return firstRow[0].toString();
+  }
+
+  public QueryCommand.ResultBatch queryBatch(String queryTxt, Class<?> rowType, Object... params) throws IOException, NoticeException {
+
+    PreparedQuery pq = prepareQuery(queryTxt);
+
+    return preparedQuery(null, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+  }
+
+  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
       List<ResultField> resultFields) throws IOException, NoticeException {
 
     BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
@@ -426,76 +559,6 @@ public class BasicContext implements Context {
       return null;
 
     return resultBatches.get(0);
-  }
-
-  @SuppressWarnings("unchecked")
-  protected List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand query = protocol.createQuery(queryTxt);
-
-    protocol.execute(query);
-
-    if (query.getError() != null) {
-      throw new NoticeException("Error querying", query.getError());
-    }
-
-    return (List<Object>)query.getResultBatches().get(0).results;
-  }
-
-  protected void query(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand query = protocol.createQuery(queryTxt);
-
-    protocol.execute(query);
-
-    if (query.getError() != null) {
-      throw new NoticeException("Error querying", query.getError());
-    }
-
-  }
-
-  protected Object queryValue(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand query = protocol.createQuery(queryTxt);
-
-    protocol.execute(query);
-
-    if (query.getError() != null) {
-      throw new NoticeException("Error preparing query", query.getError());
-    }
-
-    List<QueryCommand.ResultBatch> res = query.getResultBatches();
-    if (res.isEmpty()) {
-      return null;
-    }
-
-    QueryCommand.ResultBatch resultBatch = res.get(0);
-    if (resultBatch.results == null || resultBatch.results.isEmpty()) {
-      return resultBatch.rowsAffected;
-    }
-
-    Object[] firstRow = (Object[]) resultBatch.results.get(0);
-    if (firstRow.length == 0)
-      return null;
-
-    return firstRow[0];
-  }
-
-  protected String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
-
-    List<Object> res = queryResults(queryTxt);
-    if (res.isEmpty()) {
-      return "";
-    }
-
-    Object[] firstRow = (Object[]) res.get(0);
-    if (firstRow.length == 0)
-      return "";
-
-    if (firstRow[0] == null)
-      return "";
-
-    return firstRow[0].toString();
   }
 
   public void setKeyData(int processId, int secretKey) {
@@ -619,6 +682,7 @@ public class BasicContext implements Context {
     }
   }
 
+  @Override
   public synchronized void reportNotification(int processId, String channelName, String payload) {
 
     Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
