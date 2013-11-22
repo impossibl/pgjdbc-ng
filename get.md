@@ -12,16 +12,29 @@ layout: default
 ### Releases
 Available in Maven Central:
 
+#### Driver
+
 	<dependency>
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng</artifactId>
 		<version>{{ latestRelVer }}</version>
 	</dependency>
 
+#### UDT Generator
+
+	<dependency>
+		<groupId>com.impossibl.pgjdbc-ng</groupId>
+		<artifactId>pgjdbc-ng-udt</artifactId>
+		<version>{{ latestRelVer }}</version>
+	</dependency>
+
+
 ### Snapshots
 Available in OSS repository:
 
 [https://oss.sonatype.org/content/repositories/snapshots/](https://oss.sonatype.org/content/repositories/snapshots/)
+
+#### Driver
 
 	<dependency>
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
@@ -30,10 +43,22 @@ Available in OSS repository:
 	</dependency>
 
 
+#### UDT Generator
+
+	<dependency>
+		<groupId>com.impossibl.pgjdbc-ng</groupId>
+		<artifactId>pgjdbc-ng-udt</artifactId>
+		<version>{{ latestSnapVer }}</version>
+	</dependency>
+
+
 ## DOWNLOAD
 Download driver JAR:
 
 ## Releases
+
+### Driver
+
 {% for post in site.categories.releases %}
 * [{{post.title}} JAR](releases/pgjdbc-ng-{{ post.title }}-complete.jar)
 {% endfor %}
@@ -41,4 +66,16 @@ Download driver JAR:
 ## Snapshots
 {% for post in site.categories.snapshots %}
 * [{{post.title}} JAR](snapshots/pgjdbc-ng-{{ post.title }}-SNAPSHOT-complete.jar)
+{% endfor %}
+
+
+### UDT Generator
+
+{% for post in site.categories.releases %}
+* [{{post.title}} JAR](releases/pgjdbc-ng-udt-{{ post.title }}-complete.jar)
+{% endfor %}
+
+## Snapshots
+{% for post in site.categories.snapshots %}
+* [{{post.title}} JAR](snapshots/pgjdbc-ng-udt-{{ post.title }}-SNAPSHOT-complete.jar)
 {% endfor %}
