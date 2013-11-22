@@ -55,27 +55,27 @@ Available in OSS repository:
 ## DOWNLOAD
 Download driver JAR:
 
-## Releases
+## Driver
 
-### Driver
-
+### Releases
 {% for post in site.categories.releases %}
 * [{{post.title}} JAR](releases/pgjdbc-ng-{{ post.title }}-complete.jar)
 {% endfor %}
 
-## Snapshots
+### Snapshots
 {% for post in site.categories.snapshots %}
 * [{{post.title}} JAR](snapshots/pgjdbc-ng-{{ post.title }}-SNAPSHOT-complete.jar)
 {% endfor %}
 
 
-### UDT Generator
+## UDT Generator
 
+### Releases
 {% for post in site.categories.releases %}
 * [{{post.title}} JAR](releases/pgjdbc-ng-udt-{{ post.title }}-complete.jar)
 {% endfor %}
 
-## Snapshots
+### Snapshots
 {% for post in site.categories.snapshots %}
 * [{{post.title}} JAR](snapshots/pgjdbc-ng-udt-{{ post.title }}-SNAPSHOT-complete.jar)
 {% endfor %}
