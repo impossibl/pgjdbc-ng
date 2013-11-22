@@ -5,7 +5,7 @@ layout: default
 
 * JDBC 4.1 target (with goal of complete conformance)
 * UDT support through standard SQLData, SQLInput & SQLOutput
-* Code Generator for UDTs (https://github.com/impossibl/pgjdbc-ng-udt)
+* Code Generator for UDTs ([(https://github.com/impossibl/pgjdbc-ng-udt)](https://github.com/impossibl/pgjdbc-ng-udt))
 * Support for JDBC custom type mappings
 * Pluggable custom type serialization
 * Compact binary format with text format fallback
