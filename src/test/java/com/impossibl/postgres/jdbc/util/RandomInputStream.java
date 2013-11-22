@@ -26,58 +26,69 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.jdbc.util;
 
-import com.impossibl.postgres.jdbc.util.RandomInputStream;
-import com.impossibl.postgres.utils.guava.ByteStreams;
-
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import java.util.Random;
 
 
 
-@RunWith(JUnit4.class)
-public class GiantBlobTest {
+public class RandomInputStream extends InputStream {
 
-  Connection conn;
+  private Random generator = new Random();
+  private boolean closed = false;
 
-  @Before
-  public void before() throws Exception {
-    conn = TestUtil.openDB();
+  @Override
+  public int read() throws IOException {
+    checkOpen();
+    int result = generator.nextInt() % 256;
+    if (result < 0) {
+      result = -result;
+    }
+    return result;
   }
 
-  @After
-  public void after() throws SQLException {
-    TestUtil.closeDB(conn);
+  @Override
+  public int read(byte[] data, int offset, int length) throws IOException {
+    checkOpen();
+    byte[] temp = new byte[length];
+    generator.nextBytes(temp);
+    System.arraycopy(temp, 0, data, offset, length);
+    return length;
+
   }
 
-  @Test
-  public void testUpload() throws Exception {
+  @Override
+  public int read(byte[] data) throws IOException {
+    checkOpen();
+    generator.nextBytes(data);
+    return data.length;
 
-    conn.setAutoCommit(false);
+  }
 
-    InputStream largeInputStream = ByteStreams.limit(new RandomInputStream(), 450 * 1024 * 1024);
+  @Override
+  public long skip(long bytesToSkip) throws IOException {
+    checkOpen();
+    // It's all random so skipping has no effect.
+    return bytesToSkip;
+  }
 
-    Blob blob = conn.createBlob();
-    OutputStream blobOut = blob.setBinaryStream(1);
+  @Override
+  public void close() {
+    this.closed = true;
+  }
 
-    long start = System.currentTimeMillis();
+  private void checkOpen() throws IOException {
+    if (closed) {
+      throw new IOException("Input stream closed");
+    }
+  }
 
-    ByteStreams.copy(largeInputStream, blobOut);
-
-    conn.commit();
-
-    System.out.println("Time: " + (System.currentTimeMillis() - start));
-
+  @Override
+  public int available() {
+    // Limited only by available memory and the size of an array.
+    return Integer.MAX_VALUE;
   }
 
 }

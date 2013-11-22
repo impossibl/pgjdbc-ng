@@ -2503,7 +2503,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-    // TODO look into...
     return false;
   }
 

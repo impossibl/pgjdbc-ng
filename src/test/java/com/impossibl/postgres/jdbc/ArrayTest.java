@@ -578,32 +578,23 @@ public class ArrayTest {
 
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
 
-    // Incorrect, but commonly attempted by many ORMs:
-  //TODO: reconcile against mainstream driver
-//    try {
-//      pstmt.setObject(1, strArray, Types.ARRAY);
-//      pstmt.executeUpdate();
-//      fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
-//    }
-//    catch(SQLException ex) {
-//      // Expected failure.
-//    }
-
-    // Also incorrect, but commonly attempted by many ORMs:
-//TODO: reconcile against mainstream driver
-//    try {
-//      pstmt.setObject(1, strArray);
-//      pstmt.executeUpdate();
-//      fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
-//    }
-//    catch(SQLException ex) {
-//      // Expected failure.
-//    }
-
     // Correct way, though the use of "text" as a type is non-portable.
     // Only supported for JDK 1.6 and JDBC4
     Array sqlArray = conn.createArrayOf("text", strArray);
     pstmt.setArray(1, sqlArray);
+    pstmt.executeUpdate();
+
+    /*
+     * The original driver reasons these 2 tests should fail but we support
+     * them; and supporting them doesn't cause any JDBC spec invalidation.
+     */
+
+    // Incorrect, but commonly attempted by many ORMs:
+    pstmt.setObject(1, strArray, Types.ARRAY);
+    pstmt.executeUpdate();
+
+    // Also incorrect, but commonly attempted by many ORMs:
+    pstmt.setObject(1, strArray);
     pstmt.executeUpdate();
 
     pstmt.close();

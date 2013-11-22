@@ -32,6 +32,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
@@ -139,7 +140,6 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
   @Override
   public boolean isSearchable(int column) throws SQLException {
-    //TODO is there any case that a column is not searchable
     return true;
   }
 
