@@ -191,7 +191,7 @@ public class Numerics extends SimpleProcProvider {
   }
 
   /**
-   * Encodes a string of the plain form XXXX.XXX into an NBASE packed sequence
+   * Encodes a string of the plain form xxxx.xxx into an NBASE packed sequence
    * of shorts.
    * 
    * @param num
@@ -274,7 +274,7 @@ public class Numerics extends SimpleProcProvider {
 
   /**
    * Decodes a sequence of digits NBASE packed in shorts into a string of the
-   * plain form XXXX.XXX
+   * plain form xxxx.xxx
    *
    * @param weight
    * @param sign
