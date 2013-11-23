@@ -1437,7 +1437,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     sql.append(
         "SELECT" +
-        " n.nspname,c.relname,r.rolname,c.relacl::text[] " +
+        " n.nspname,c.relname,r.rolname,c.relacl " +
         "FROM" +
         " pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r " +
         "WHERE" +
@@ -1534,12 +1534,16 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
 
     if (aclItems == null) {
-      //Null is shortcut for owner having full privileges
+      // Null is shortcut for owner having full privileges
       ACLItem fullPrivs = new ACLItem(owner, "arwdDxt", owner);
       aclItems = new ACLItem[] {fullPrivs};
     }
 
     for (ACLItem aclItem : aclItems) {
+
+      if (aclItem == null) {
+        continue;
+      }
 
       for (int i = 0; i < aclItem.privileges.length(); i++) {
 
