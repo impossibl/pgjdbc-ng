@@ -7,9 +7,26 @@ layout: default
 {% assign latestSnapVer = latestSnapPost.title %}
 # GET pgjdbc-ng
 
+## DOWNLOAD
+
+## Driver
+
+{% for post in site.categories.releases %}
+* [{{post.title}} JAR](releases/pgjdbc-ng-{{ post.title }}-complete.jar)
+{% endfor %}
+
+
+## UDT Generator
+
+{% for post in site.categories.releases %}
+* [{{post.title}} JAR](releases/pgjdbc-ng-udt-{{ post.title }}-complete.jar)
+{% endfor %}
+
+
 ## MAVEN
 
 ### Releases
+
 Available in Maven Central:
 
 #### Driver
@@ -18,6 +35,7 @@ Available in Maven Central:
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng</artifactId>
 		<version>{{ latestRelVer }}</version>
+		<classifier>complete</classifier>
 	</dependency>
 
 #### UDT Generator
@@ -26,6 +44,7 @@ Available in Maven Central:
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng-udt</artifactId>
 		<version>{{ latestRelVer }}</version>
+		<classifier>complete</classifier>
 	</dependency>
 
 
@@ -40,6 +59,7 @@ Available in OSS repository:
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng</artifactId>
 		<version>{{ latestSnapVer }}-SNAPSHOT</version>
+		<classifier>complete</classifier>
 	</dependency>
 
 
@@ -48,34 +68,7 @@ Available in OSS repository:
 	<dependency>
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng-udt</artifactId>
-		<version>{{ latestSnapVer }}</version>
+		<version>{{ latestSnapVer }}-SNAPSHOT</version>
+		<classifier>complete</classifier>
 	</dependency>
 
-
-## DOWNLOAD
-Download driver JAR:
-
-## Driver
-
-### Releases
-{% for post in site.categories.releases %}
-* [{{post.title}} JAR](releases/pgjdbc-ng-{{ post.title }}-complete.jar)
-{% endfor %}
-
-### Snapshots
-{% for post in site.categories.snapshots %}
-* [{{post.title}} JAR](snapshots/pgjdbc-ng-{{ post.title }}-SNAPSHOT-complete.jar)
-{% endfor %}
-
-
-## UDT Generator
-
-### Releases
-{% for post in site.categories.releases %}
-* [{{post.title}} JAR](releases/pgjdbc-ng-udt-{{ post.title }}-complete.jar)
-{% endfor %}
-
-### Snapshots
-{% for post in site.categories.snapshots %}
-* [{{post.title}} JAR](snapshots/pgjdbc-ng-udt-{{ post.title }}-SNAPSHOT-complete.jar)
-{% endfor %}
