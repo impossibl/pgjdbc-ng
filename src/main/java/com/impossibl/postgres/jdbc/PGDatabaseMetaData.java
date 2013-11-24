@@ -779,7 +779,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') " +
         " WHERE p.pronamespace=n.oid");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -831,7 +831,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
         " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1021,7 +1021,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " LEFT JOIN pg_catalog.pg_namespace dn ON (dn.oid=dc.relnamespace AND dn.nspname='pg_catalog') " +
         " WHERE c.relnamespace = n.oid ");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1087,7 +1087,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))" +
         " )");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1167,7 +1167,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
         "   WHERE a.attnum > 0 AND NOT a.attisdropped ");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1303,7 +1303,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
+  public ResultSet getColumnPrivileges(String catalog, String schemaPattern, String table, String columnNamePattern) throws SQLException {
 
     if (table == null) {
       table = "%";
@@ -1326,9 +1326,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "WHERE " +
         " c.relnamespace = n.oid AND c.relowner = r.oid AND c.oid = a.attrelid AND c.relkind = 'r' AND a.attnum > 0 AND NOT a.attisdropped ");
 
-    if (!isNullOrEmpty(schema)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname = ?");
-      params.add(schema);
+      params.add(schemaPattern);
     }
 
     sql.append(" AND c.relname = ?");
@@ -1443,7 +1443,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "WHERE" +
         " c.relnamespace = n.oid AND c.relowner = r.oid AND c.relkind = 'r' ");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -1623,7 +1623,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
+  public ResultSet getBestRowIdentifier(String catalog, String schemaPattern, String table, int scope, boolean nullable) throws SQLException {
 
     Registry reg = connection.getRegistry();
 
@@ -1640,9 +1640,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "        FROM pg_catalog.pg_index i) i " +
         "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) ");
 
-    if (!isNullOrEmpty(schema)) {
+    if (schemaPattern != null) {
       sql.append(" WHERE n.nspname = ?");
-      params.add(schema);
+      params.add(schemaPattern);
     }
 
     ResultField[] resultFields = new ResultField[8];
@@ -1686,7 +1686,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
+  public ResultSet getVersionColumns(String catalog, String schemaPattern, String table) throws SQLException {
 
     Registry reg = connection.getRegistry();
 
@@ -1731,7 +1731,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
+  public ResultSet getPrimaryKeys(String catalog, String schemaPattern, String table) throws SQLException {
 
     StringBuilder sql = new StringBuilder();
     List<Object> params = new ArrayList<>();
@@ -1749,9 +1749,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) " +
         "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) ");
 
-    if (!isNullOrEmpty(schema)) {
+    if (schemaPattern != null) {
       sql.append(" WHERE n.nspname = ?");
-      params.add(schema);
+      params.add(schemaPattern);
     }
 
     return execForResultSet(sql.toString(), params);
@@ -1824,13 +1824,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-    return getImportedExportedKeys(null, null, null, catalog, schema, table);
+  public ResultSet getImportedKeys(String catalog, String schemaPattern, String table) throws SQLException {
+    return getImportedExportedKeys(null, null, null, catalog, schemaPattern, table);
   }
 
   @Override
-  public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-    return getImportedExportedKeys(catalog, schema, table, null, null, null);
+  public ResultSet getExportedKeys(String catalog, String schemaPattern, String table) throws SQLException {
+    return getImportedExportedKeys(catalog, schemaPattern, table, null, null, null);
   }
 
   @Override
@@ -1907,7 +1907,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
+  public ResultSet getIndexInfo(String catalog, String schemaPattern, String table, boolean unique, boolean approximate) throws SQLException {
 
     StringBuilder sql = new StringBuilder();
     List<Object> params = new ArrayList<>();
@@ -1947,9 +1947,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) " +
         "WHERE true ");
 
-    if (!isNullOrEmpty(schema)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname = ?");
-      params.add(schema);
+      params.add(schemaPattern);
     }
 
     sql.append(" AND ct.relname = ?");
@@ -2279,7 +2279,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
         "   WHERE a.attnum > 0 AND NOT a.attisdropped AND t.typtype='c'");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
@@ -2567,7 +2567,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
         "   WHERE a.attnum < 1 AND NOT a.attisdropped ");
 
-    if (!isNullOrEmpty(schemaPattern)) {
+    if (schemaPattern != null) {
       sql.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }

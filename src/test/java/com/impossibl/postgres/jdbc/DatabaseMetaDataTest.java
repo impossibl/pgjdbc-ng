@@ -131,7 +131,7 @@ public class DatabaseMetaDataTest {
     assertTrue("getTables() returned too many rows", rs.next() == false);
     rs.close();
 
-    rs = dbmd.getColumns("", "", "meta%", "%");
+    rs = dbmd.getColumns(null, null, "meta%", "%");
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
@@ -525,7 +525,7 @@ public class DatabaseMetaDataTest {
   @Test
   public void testNotNullDomainColumn() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    ResultSet rs = dbmd.getColumns(null, null, "domaintable", "");
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
@@ -1122,7 +1122,7 @@ public class DatabaseMetaDataTest {
   @Test
   public void testInformationAboutArrayTypes() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns("", "", "arraytable", "");
+    ResultSet rs = dbmd.getColumns(null, null, "arraytable", "");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(5, rs.getInt("COLUMN_SIZE"));
