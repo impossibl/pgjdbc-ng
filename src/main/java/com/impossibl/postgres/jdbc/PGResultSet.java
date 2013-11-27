@@ -686,6 +686,9 @@ class PGResultSet implements ResultSet {
     checkColumnIndex(columnIndex);
 
     InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
+    if (data == null) {
+      return null;
+    }
 
     try {
       return ByteStreams.toByteArray(data);
