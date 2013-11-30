@@ -263,7 +263,7 @@ public class Interval {
 
   public void setMonths(int months) {
     totalMonths -= getMonths();
-    totalMonths = months;
+    totalMonths += months;
   }
 
   public int getYears() {

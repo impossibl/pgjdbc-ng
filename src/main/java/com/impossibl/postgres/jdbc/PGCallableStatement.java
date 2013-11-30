@@ -743,7 +743,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
-    return getObject(parameterName, type);
+    return getObject(findParameter(parameterName), type);
   }
 
   @Override
@@ -868,52 +868,52 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   public void setRowId(String parameterName, RowId x) throws SQLException {
-    setRowId(parameterName, x);
+    setRowId(findParameter(parameterName), x);
   }
 
   @Override
   public void setNString(String parameterName, String value) throws SQLException {
-    setNString(parameterName, value);
+    setNString(findParameter(parameterName), value);
   }
 
   @Override
   public void setNCharacterStream(String parameterName, Reader value, long length) throws SQLException {
-    setNCharacterStream(parameterName, value, length);
+    setNCharacterStream(findParameter(parameterName), value, length);
   }
 
   @Override
   public void setNClob(String parameterName, NClob value) throws SQLException {
-    setNClob(parameterName, value);
+    setNClob(findParameter(parameterName), value);
   }
 
   @Override
   public void setClob(String parameterName, Reader reader, long length) throws SQLException {
-    setClob(parameterName, reader, length);
+    setClob(findParameter(parameterName), reader, length);
   }
 
   @Override
   public void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException {
-    setBlob(parameterName, inputStream, length);
+    setBlob(findParameter(parameterName), inputStream, length);
   }
 
   @Override
   public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
-    setNClob(parameterName, reader, length);
+    setNClob(findParameter(parameterName), reader, length);
   }
 
   @Override
   public void setBlob(String parameterName, Blob x) throws SQLException {
-    setBlob(parameterName, x);
+    setBlob(findParameter(parameterName), x);
   }
 
   @Override
   public void setClob(String parameterName, Clob x) throws SQLException {
-    setClob(parameterName, x);
+    setClob(findParameter(parameterName), x);
   }
 
   @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
-    setSQLXML(parameterName, xmlObject);
+    setSQLXML(findParameter(parameterName), xmlObject);
   }
 
   @Override

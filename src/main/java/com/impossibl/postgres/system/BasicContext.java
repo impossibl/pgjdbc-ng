@@ -657,7 +657,7 @@ public class BasicContext implements Context {
       Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
 
       NotificationListener iterListener = entry.getValue().get();
-      if (iterListener.equals(listener) || iterListener == null) {
+      if (iterListener == null || iterListener.equals(listener)) {
 
         iter.remove();
       }

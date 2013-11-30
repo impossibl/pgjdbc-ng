@@ -188,9 +188,7 @@ public class PreparedStatementTest {
   }
 
   private void runBrokenStream(InputStream is, int length) throws SQLException {
-    PreparedStatement pstmt = null;
-    try {
-      pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
       pstmt.setBinaryStream(1, is, length);
       pstmt.setString(2, "Other");
       pstmt.executeUpdate();
@@ -198,7 +196,6 @@ public class PreparedStatementTest {
     }
     catch (SQLException sqle) {
       // don't need to rollback because we're in autocommit mode
-      pstmt.close();
 
       // verify the connection is still valid and the row didn't go in.
       Statement stmt = conn.createStatement();

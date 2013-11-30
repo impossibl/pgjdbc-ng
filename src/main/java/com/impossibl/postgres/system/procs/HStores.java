@@ -103,8 +103,7 @@ public class HStores extends SimpleProcProvider {
         Map<String, String> map = (Map<String, String>) val;
         // nb elements
         buffer.writeInt(map.size());
-        for (Iterator<Map.Entry<String, String>> i = map.entrySet().iterator(); i.hasNext();) {
-          Map.Entry<String, String> e = i.next();
+        for (Map.Entry<String, String> e : map.entrySet()) {
           Strings.BINARY_ENCODER.encode(type, buffer, e.getKey(), context);
           Strings.BINARY_ENCODER.encode(type, buffer, e.getValue(), context);
         }

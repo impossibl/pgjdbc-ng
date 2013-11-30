@@ -68,6 +68,7 @@ public class MacAddrs extends SimpleProcProvider {
       else if (length != 6) {
         throw new IOException("invalid length");
       }
+      // The external representation is just the six bytes, MSB first.
       byte[] bytes = new byte[6];
       buffer.readBytes(bytes);
       return bytes;

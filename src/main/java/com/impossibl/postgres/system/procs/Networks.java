@@ -82,6 +82,7 @@ abstract class Networks extends SimpleProcProvider {
       else if (length != 8 && length != 20) {
         throw new IOException("Invalid length: " + length);
       }
+      // family, bits, is_cidr, address length, address in network byte order.
       short family = buffer.readUnsignedByte();
       short mask = buffer.readUnsignedByte();
       /* byte isCidr = */buffer.readByte();
