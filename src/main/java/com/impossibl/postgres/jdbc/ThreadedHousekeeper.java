@@ -78,7 +78,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   }
 
-  private boolean logLeaks = false;
+  private boolean logLeaks = true;
   private ReferenceQueue<Object> cleanupQueue = new ReferenceQueue<>();
   private Set<HousekeeperReference<?>> cleanupReferences = synchronizedSet(new HashSet<HousekeeperReference<?>>());
   private Thread cleanupThread = new Thread() {
