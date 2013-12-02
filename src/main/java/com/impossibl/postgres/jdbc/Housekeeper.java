@@ -40,14 +40,14 @@ public interface Housekeeper {
 
     String getKind();
 
-    Exception getAllocationTracer();
+    StackTraceElement[] getAllocationStackTrace();
 
   }
 
   /**
    * Associate a cleanup runnable to be run when a referent is only phantom
    * reference-able.
-   * 
+   *
    * @param referent
    *          Reference to track
    * @param cleanup

@@ -120,12 +120,12 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
 
     Protocol protocol;
     List<WeakReference<PGStatement>> statements;
-    Exception allocationTracer;
+    StackTraceElement[] allocationStackTrace;
 
     public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
       this.protocol = protocol;
       this.statements = statements;
-      this.allocationTracer = new Exception();
+      this.allocationStackTrace = new Exception().getStackTrace();
     }
 
     @Override
@@ -134,8 +134,8 @@ class PGConnectionImpl extends BasicContext implements PGConnection {
     }
 
     @Override
-    public Exception getAllocationTracer() {
-      return allocationTracer;
+    public StackTraceElement[] getAllocationStackTrace() {
+      return allocationStackTrace;
     }
 
     @Override
