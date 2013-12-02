@@ -30,12 +30,12 @@ package com.impossibl.postgres.jdbc;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.Collections.synchronizedSet;
 
 
 
@@ -70,17 +70,49 @@ public class ThreadedHousekeeper implements Housekeeper {
     void cleanup() {
 
       if (logLeaks) {
-        logger.log(Level.WARNING, "cleaning up leaked " + cleanup.getKind(), cleanup.getAllocationTracer());
+        String allocationTrace = printStackTrace(getSimplifiedAllocationStackTrace());
+        logger.log(Level.WARNING, "cleaning up leaked " + cleanup.getKind() + "\n" + allocationTrace);
       }
 
       cleanup.run();
+    }
+
+    StackTraceElement[] getSimplifiedAllocationStackTrace() {
+
+      StackTraceElement[] allocationTrace = cleanup.getAllocationStackTrace();
+
+      // Find the first non driver related class
+      for (int c = 0; c < allocationTrace.length; ++c) {
+
+        StackTraceElement e = allocationTrace[c];
+        if (e.getClassName().startsWith("com.impossibl.postgres") == false) {
+          return Arrays.copyOfRange(allocationTrace, c, allocationTrace.length);
+
+        }
+
+      }
+
+      return new StackTraceElement[0];
+    }
+
+    String printStackTrace(StackTraceElement[] trace) {
+
+      StringBuilder sb = new StringBuilder();
+
+      for (StackTraceElement traceElement : trace) {
+
+        sb.append("  at ").append(traceElement).append('\n');
+
+      }
+
+      return sb.toString();
     }
 
   }
 
   private boolean logLeaks = true;
   private ReferenceQueue<Object> cleanupQueue = new ReferenceQueue<>();
-  private Set<HousekeeperReference<?>> cleanupReferences = synchronizedSet(new HashSet<HousekeeperReference<?>>());
+  private Set<HousekeeperReference<?>> cleanupReferences = new HashSet<HousekeeperReference<?>>();
   private Thread cleanupThread = new Thread() {
 
     @Override
@@ -103,7 +135,9 @@ public class ThreadedHousekeeper implements Housekeeper {
           // Ignore...
         }
 
-        cleanupReferences.remove(ref);
+        synchronized (ThreadedHousekeeper.this) {
+          cleanupReferences.remove(ref);
+        }
       }
 
     }
@@ -122,7 +156,7 @@ public class ThreadedHousekeeper implements Housekeeper {
   }
 
   @Override
-  public void emptyQueue() {
+  public synchronized void emptyQueue() {
 
     HousekeeperReference<?> ref;
 
@@ -140,25 +174,21 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   }
 
-  private HousekeeperReference<?>[] copyCleanupReferences() {
-    return cleanupReferences.toArray(new HousekeeperReference<?>[cleanupReferences.size()]);
-  }
-
   @Override
-  public <T> Object add(T referent, CleanupRunnable cleanup) {
+  public synchronized <T> Object add(T referent, CleanupRunnable cleanup) {
     HousekeeperReference<T> ref = new HousekeeperReference<T>(cleanup, referent, cleanupQueue);
     cleanupReferences.add(ref);
     return cleanup;
   }
 
   @Override
-  public void remove(Object cleanupKey) {
+  public synchronized void remove(Object cleanupKey) {
 
-    HousekeeperReference<?>[] refs = copyCleanupReferences();
-    for (HousekeeperReference<?> ref : refs) {
-
+    Iterator<HousekeeperReference<?>> refIter = cleanupReferences.iterator();
+    while (refIter.hasNext()) {
+      HousekeeperReference<?> ref = refIter.next();
       if (ref.cleanup == cleanupKey) {
-        cleanupReferences.remove(ref);
+        refIter.remove();
         return;
       }
     }
@@ -168,15 +198,14 @@ public class ThreadedHousekeeper implements Housekeeper {
   /**
    * Test only
    */
-  public boolean testCheckCleaned(int referentId) {
+  public synchronized boolean testCheckCleaned(int referentId) {
 
     System.gc();
 
     // Ensure queue is emptied before checking
     emptyQueue();
 
-    HousekeeperReference<?>[] refs = copyCleanupReferences();
-    for (HousekeeperReference<?> ref : refs) {
+    for (HousekeeperReference<?> ref : cleanupReferences) {
       if (ref.id == referentId)
         return false;
     }
@@ -187,7 +216,7 @@ public class ThreadedHousekeeper implements Housekeeper {
   /**
    * Test only
    */
-  public void testClear() {
+  public synchronized void testClear() {
     cleanupReferences.clear();
   }
 

@@ -119,12 +119,12 @@ class PGResultSet implements ResultSet {
 
     PGStatement statement;
     QueryCommand command;
-    Exception allocationTracer;
+    StackTraceElement[] allocationStackTrace;
 
     public Cleanup(PGStatement statement, QueryCommand command) {
       this.statement = statement;
       this.command = command;
-      this.allocationTracer = new Exception();
+      this.allocationStackTrace = new Exception().getStackTrace();
     }
 
     @Override
@@ -133,8 +133,8 @@ class PGResultSet implements ResultSet {
     }
 
     @Override
-    public Exception getAllocationTracer() {
-      return allocationTracer;
+    public StackTraceElement[] getAllocationStackTrace() {
+      return allocationStackTrace;
     }
 
     @Override

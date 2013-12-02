@@ -70,13 +70,13 @@ abstract class PGStatement implements Statement {
     PGConnectionImpl connection;
     String name;
     List<WeakReference<PGResultSet>> resultSets;
-    Exception allocationTracer;
+    StackTraceElement[] allocationStackTrace;
 
     public Cleanup(PGConnectionImpl connection, String name, List<WeakReference<PGResultSet>> resultSets) {
       this.connection = connection;
       this.name = name;
       this.resultSets = resultSets;
-      this.allocationTracer = new Exception();
+      this.allocationStackTrace = new Exception().getStackTrace();
     }
 
     @Override
@@ -85,8 +85,8 @@ abstract class PGStatement implements Statement {
     }
 
     @Override
-    public Exception getAllocationTracer() {
-      return allocationTracer;
+    public StackTraceElement[] getAllocationStackTrace() {
+      return allocationStackTrace;
     }
 
     @Override
