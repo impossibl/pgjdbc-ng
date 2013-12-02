@@ -135,7 +135,7 @@ public class Timestamps extends SettingSelectProcProvider {
       else {
 
         Instant inst = (Instant) val;
-        val.toString();
+        //val.toString();
 
         long micros;
         if (primitiveType == PrimitiveType.TimestampTZ) {
