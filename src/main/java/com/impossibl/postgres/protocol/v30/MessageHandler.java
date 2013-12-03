@@ -28,7 +28,10 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import java.nio.channels.ClosedChannelException;
+
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
@@ -43,6 +46,24 @@ public class MessageHandler extends SimpleChannelUpstreamHandler {
 
     ProtocolImpl protocol = (ProtocolImpl) ctx.getChannel().getAttachment();
     protocol.dispatch(msg);
+  }
+
+  @Override
+  public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+
+    ProtocolImpl protocol = (ProtocolImpl) ctx.getChannel().getAttachment();
+    if (protocol != null) {
+      protocol.dispatchException(new ClosedChannelException());
+    }
+  }
+
+  @Override
+  public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+
+    ProtocolImpl protocol = (ProtocolImpl) ctx.getChannel().getAttachment();
+    if (protocol != null) {
+      protocol.dispatchException(new ClosedChannelException());
+    }
   }
 
   @Override

@@ -59,25 +59,25 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
       @Override
       public boolean isComplete() {
-        return ready || error != null;
+        return ready || error != null || exception != null;
       }
 
       @Override
       public synchronized void ready(TransactionStatus txStatus) {
         StartupCommandImpl.this.ready = true;
-        notify();
+        notifyAll();
       }
 
       @Override
       public synchronized void error(Notice error) {
         setError(error);
-        notify();
+        notifyAll();
       }
 
       @Override
       public synchronized void exception(Throwable cause) {
         setException(cause);
-        notify();
+        notifyAll();
       }
 
       @Override

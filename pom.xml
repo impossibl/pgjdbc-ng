@@ -62,7 +62,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty</artifactId>
-			<version>3.6.3.Final</version>
+			<version>3.8.0.Final</version>
 		</dependency>
 	</dependencies>
 
@@ -113,6 +113,7 @@
 						<exclude>**/PerformanceTest.java</exclude>
 						<exclude>**/GiantBlobTest.java</exclude>
 						<exclude>**/SSLTest.java</exclude>
+            <exclude>**/ServerDisconnectTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

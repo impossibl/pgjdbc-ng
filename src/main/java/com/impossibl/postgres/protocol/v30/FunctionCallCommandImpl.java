@@ -49,17 +49,25 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 
     @Override
     public boolean isComplete() {
-      return result != null || error != null;
+      return result != null || error != null || exception != null;
     }
 
     @Override
-    public void functionResult(Object value) {
+    public synchronized void functionResult(Object value) {
       FunctionCallCommandImpl.this.result = value;
+      notifyAll();
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       FunctionCallCommandImpl.this.error = error;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void exception(Throwable cause) {
+      setException(cause);
+      notifyAll();
     }
 
     @Override
@@ -86,10 +94,12 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
     return functionName;
   }
 
+  @Override
   public List<Type> getParameterTypes() {
     return parameterTypes;
   }
 
+  @Override
   public List<Object> getParameterValues() {
     return parameterValues;
   }
@@ -99,6 +109,7 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
     return result;
   }
 
+  @Override
   public void execute(ProtocolImpl protocol) throws IOException {
 
     protocol.setListener(listener);
