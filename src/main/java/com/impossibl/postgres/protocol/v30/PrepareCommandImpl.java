@@ -61,7 +61,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
     @Override
     public boolean isComplete() {
-      return describedResultFields != null || error != null;
+      return describedResultFields != null || error != null || exception != null;
     }
 
     @Override
@@ -87,6 +87,12 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
     @Override
     public synchronized void error(Notice error) {
       PrepareCommandImpl.this.error = error;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void exception(Throwable cause) {
+      setException(cause);
       notifyAll();
     }
 

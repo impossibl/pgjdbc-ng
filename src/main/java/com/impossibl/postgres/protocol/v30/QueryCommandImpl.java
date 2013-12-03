@@ -55,7 +55,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
     @Override
     public boolean isComplete() {
-      return !resultBatches.isEmpty() || error != null;
+      return !resultBatches.isEmpty() || error != null || exception != null;
     }
 
     @Override
@@ -102,6 +102,12 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     @Override
     public synchronized void error(Notice error) {
       QueryCommandImpl.this.error = error;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void exception(Throwable cause) {
+      setException(cause);
       notifyAll();
     }
 

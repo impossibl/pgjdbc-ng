@@ -48,7 +48,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
     @Override
     public boolean isComplete() {
-      return complete || error != null;
+      return complete || error != null || exception != null;
     }
 
     @Override
@@ -57,8 +57,15 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
     }
 
     @Override
-    public void error(Notice error) {
+    public synchronized void error(Notice error) {
       CloseCommandImpl.this.error = error;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void exception(Throwable cause) {
+      setException(cause);
+      notifyAll();
     }
 
     @Override

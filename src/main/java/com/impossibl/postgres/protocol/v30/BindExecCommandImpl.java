@@ -73,7 +73,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     @Override
     public boolean isComplete() {
-      return status != null || error != null;
+      return status != null || error != null || exception != null;
     }
 
     @Override
@@ -149,6 +149,12 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     @Override
     public synchronized void error(Notice error) {
       BindExecCommandImpl.this.error = error;
+      notifyAll();
+    }
+
+    @Override
+    public synchronized void exception(Throwable cause) {
+      setException(cause);
       notifyAll();
     }
 
