@@ -85,7 +85,15 @@ public class ThreadedHousekeeper implements Housekeeper {
       for (int c = 0; c < allocationTrace.length; ++c) {
 
         StackTraceElement e = allocationTrace[c];
-        if (e.getClassName().startsWith("com.impossibl.postgres") == false) {
+
+        String className = e.getClassName();
+        String pkgName = className.substring(0, className.lastIndexOf('.'));
+
+        String rootPkgName = "com.impossibl.postgres";
+        String sqlPkgName = "java.sql";
+
+        if ((!pkgName.startsWith(rootPkgName) && !pkgName.startsWith(sqlPkgName)) ||
+            (pkgName.startsWith(rootPkgName) && className.endsWith("Test"))) {
           return Arrays.copyOfRange(allocationTrace, c, allocationTrace.length);
 
         }
