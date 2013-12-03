@@ -28,50 +28,56 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
+import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import java.sql.Connection;
+import java.sql.SQLException;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class,
-  CodecTest.class,
-  UpdateableResultTest.class,
-  CursorFetchTest.class,
-  CallableStatementTest.class,
-  NotificationTest.class,
-  DataSourceTest.class,
-  XADataSourceTest.class,
-})
-public class RequiredTests {
+import javax.sql.DataSource;
 
+/**
+ * DataSource implementation
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+public class PGDataSource extends AbstractDataSource implements DataSource {
+
+  /**
+   * Constructor
+   */
+  public PGDataSource() {
+    super();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Connection getConnection() throws SQLException {
+    return getConnection(getUser(), getPassword());
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Connection getConnection(String user, String password) throws SQLException {
+    return createConnection(user, password);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (!iface.isAssignableFrom(getClass())) {
+      throw UNWRAP_ERROR;
+    }
+
+    return iface.cast(this);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    return iface.isAssignableFrom(getClass());
+  }
 }
+

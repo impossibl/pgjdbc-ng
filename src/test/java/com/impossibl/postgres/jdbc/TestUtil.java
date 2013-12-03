@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.sql.XAConnection;
+
 public class TestUtil {
 
   public static String getURL(Object... urlParams) {
@@ -123,6 +125,14 @@ public class TestUtil {
    * Helper - closes an open connection.
    */
   public static void closeDB(Connection con) throws SQLException {
+    if (con != null)
+      con.close();
+  }
+
+  /*
+   * Helper - closes an open connection.
+   */
+  public static void closeDB(XAConnection con) throws SQLException {
     if (con != null)
       con.close();
   }

@@ -28,50 +28,36 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
+import java.sql.SQLException;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class,
-  CodecTest.class,
-  UpdateableResultTest.class,
-  CursorFetchTest.class,
-  CallableStatementTest.class,
-  NotificationTest.class,
-  DataSourceTest.class,
-  XADataSourceTest.class,
-})
-public class RequiredTests {
+/**
+ * ConnectionPoolDataSource implementation
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+public class PGConnectionPoolDataSource extends AbstractDataSource implements ConnectionPoolDataSource {
 
+  /**
+   * Constructor
+   */
+  public PGConnectionPoolDataSource() {
+    super();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public PooledConnection getPooledConnection() throws SQLException {
+    return getPooledConnection(getUser(), getPassword());
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public PooledConnection getPooledConnection(String user, String password) throws SQLException {
+    return new PGPooledConnection(createConnection(user, password), true, false);
+  }
 }
+

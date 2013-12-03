@@ -1,0 +1,295 @@
+/**
+ * Copyright (c) 2013, impossibl.com
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of impossibl.com nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+package com.impossibl.postgres.jdbc;
+
+import com.impossibl.postgres.system.NoticeException;
+
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DRIVER;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.lang.Boolean.parseBoolean;
+
+/**
+ * Utility class for connection
+ * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+class ConnectionUtil {
+  private static final String JDBC_USERNAME_PARAM = "user";
+  private static final String JDBC_PASSWORD_PARAM = "password";
+
+  static class ConnectionSpecifier {
+
+    private List<InetSocketAddress> addresses = new ArrayList<>();
+    private String database;
+    private Properties parameters = new Properties();
+
+    ConnectionSpecifier() {
+      addresses = new ArrayList<>();
+      database = null;
+      parameters = new Properties();
+    }
+
+    String getDatabase() {
+      return database;
+    }
+
+    void setDatabase(String v) {
+      database = v;
+    }
+
+    List<InetSocketAddress> getAddresses() {
+      return addresses;
+    }
+
+    void addAddress(InetSocketAddress v) {
+      addresses.add(v);
+    }
+
+    Properties getParameters() {
+      return parameters;
+    }
+
+    void addParameter(String key, String value) {
+      parameters.put(key, value);
+    }
+
+    String getHosts() {
+
+      StringBuilder hosts = new StringBuilder();
+
+      Iterator<InetSocketAddress> addrIter = addresses.iterator();
+      while (addrIter.hasNext()) {
+
+        InetSocketAddress addr = addrIter.next();
+
+        hosts.append(addr.getHostString());
+
+        if (addr.getPort() != 5432) {
+          hosts.append(':');
+          hosts.append(addr.getPort());
+        }
+
+        if (addrIter.hasNext()) {
+          hosts.append(",");
+        }
+      }
+
+      return hosts.toString();
+    }
+  }
+
+  static PGConnectionImpl createConnection(String url, Properties info, Housekeeper hk) throws SQLException {
+    ConnectionSpecifier connSpec = parseURL(url);
+    if (connSpec == null) {
+      return null;
+    }
+
+    SQLException lastException = null;
+
+    Properties settings = buildSettings(connSpec, info);
+
+    // Select housekeeper for connection
+    Housekeeper housekeeper = null;
+    if (parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
+      housekeeper = hk;
+    }
+
+    // Try to connect to each provided address in turn returning the first
+    // successful connection
+    for (InetSocketAddress address : connSpec.getAddresses()) {
+
+      if (address.isUnresolved()) {
+        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved");
+        continue;
+      }
+
+      try {
+
+        PGConnectionImpl conn = new PGConnectionImpl(address, settings, housekeeper);
+
+        conn.init();
+
+        return conn;
+
+      }
+      catch (IOException e) {
+
+        lastException = new SQLException("Connection Error: " + e.getMessage(), e);
+      }
+      catch (NoticeException e) {
+
+        lastException = makeSQLException("Connection Error: ", e.getNotice());
+      }
+    }
+
+    //Couldn't connect so report that last exception we saw
+    throw lastException;
+  }
+
+  /**
+   * Combines multiple sources of properties into one group. Connection info
+   * parameters take precedence over URL query parameters. Also, it ensure
+   * that all required parameters has some default value.
+   *
+   * @param connSpec Connection specification as parsed
+   * @param connectInfo Connection info properties passed to connect
+   * @return Single group of settings
+   */
+  private static Properties buildSettings(ConnectionSpecifier connSpec, Properties connectInfo) {
+    Properties settings = new Properties();
+
+    //Start by adding all parameters from the URL query string
+    settings.putAll(connSpec.getParameters());
+
+    //Add (or overwrite) parameters from the connection info
+    settings.putAll(connectInfo);
+
+    //Set PostgreSQL's database parameter from connSpec
+    settings.put("database", connSpec.getDatabase());
+
+    //Translate JDBC parameters to PostgreSQL parameters
+    settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
+    settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
+
+    //Create & store URL
+    settings.put(DATABASE_URL, "jdbc:postgresql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());
+
+    return settings;
+  }
+
+  /*
+   * URL Pattern jdbc:postgresql:(?://((?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?(?:,(?:[a-zA-Z0-9\-\.]+|\[[0-9a-f\:]+\])(?:\:(?:\d+))?)*)/)?(\w+)(?:\?(.*))?
+   *  Capturing Groups:
+   *    1 = (host name, IPv4, IPv6 : port) pairs  (optional)
+   *    2 = database name         (required)
+   *    3 = parameters            (optional)
+   */
+  private static final Pattern URL_PATTERN =
+      Pattern.compile("jdbc:postgresql:(?://((?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?)*)/)?((?:\\w|-|_)+)(?:[\\?\\&](.*))?");
+
+  private static final Pattern ADDRESS_PATTERN = Pattern.compile("(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)");
+
+  /**
+   * Parses a URL connection string.
+   * 
+   * Uses the URL_PATTERN to capture a hostname or ip address, port, database
+   * name and a list of parameters specified as query name=value pairs. All
+   * parts but the database name are optional.
+   * 
+   * @param url
+   *          Connection URL to parse
+   * @return Connection specifier of parsed URL
+   */
+  static ConnectionSpecifier parseURL(String url) {
+
+    try {
+
+      //First match aginst the entire URL pattern.  If that doesn't work
+      //then the url is invalid
+
+      Matcher urlMatcher = URL_PATTERN.matcher(url);
+      if (!urlMatcher.matches()) {
+        return null;
+      }
+
+      //Now build a conn-spec from the optional pieces of the URL
+      //
+
+      ConnectionSpecifier spec = new ConnectionSpecifier();
+
+      //Get hosts, if provided, or use the default "localhost:5432"
+
+      String hosts = urlMatcher.group(1);
+      if (hosts == null || hosts.isEmpty()) {
+        hosts = "localhost";
+      }
+
+      //Parse hosts into list of addresses
+      Matcher hostsMatcher = ADDRESS_PATTERN.matcher(hosts);
+      while (hostsMatcher.find()) {
+
+        String name = hostsMatcher.group(1);
+
+        String port = hostsMatcher.group(2);
+        if (port == null || port.isEmpty()) {
+          port = "5432";
+        }
+
+        InetSocketAddress address = new InetSocketAddress(name, Integer.parseInt(port));
+
+        spec.addAddress(address);
+      }
+
+
+      //Assign the database
+
+      spec.setDatabase(urlMatcher.group(2));
+
+      //Parse the query string as a list of name=value pairs separated by '&'
+      //then assign them as extra parameters
+
+      String params = urlMatcher.group(3);
+      if (params != null && !params.isEmpty()) {
+
+        for (String nameValue : params.split("&")) {
+
+          String[] items = nameValue.split("=");
+
+          if (items.length == 1) {
+            spec.addParameter(items[0], "");
+          }
+          else if (items.length == 2) {
+            spec.addParameter(items[0], items[1]);
+          }
+        }
+      }
+
+      return spec;
+
+    }
+    catch (Throwable e) {
+      return null;
+    }
+  }
+}
