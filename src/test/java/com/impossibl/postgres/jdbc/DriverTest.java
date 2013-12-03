@@ -77,11 +77,11 @@ public class DriverTest {
 
   private void verifyUrl(PGDriver drv, String url, String dbName, Object... hosts) throws Exception {
     assertTrue(url, drv.acceptsURL(url));
-    PGDriver.ConnectionSpecifier connSpec = drv.parseURL(url);
-    assertEquals(url, dbName, connSpec.database);
-    assertEquals(url, hosts.length / 2, connSpec.addresses.size());
+    ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL(url);
+    assertEquals(url, dbName, connSpec.getDatabase());
+    assertEquals(url, hosts.length / 2, connSpec.getAddresses().size());
     for (int c = 0; c < hosts.length / 2; ++c) {
-      InetSocketAddress addr = connSpec.addresses.get(c);
+      InetSocketAddress addr = connSpec.getAddresses().get(c);
       assertEquals(url, hosts[c * 2 + 0], addr.getHostString());
       assertEquals(url, hosts[c * 2 + 1], addr.getPort());
     }

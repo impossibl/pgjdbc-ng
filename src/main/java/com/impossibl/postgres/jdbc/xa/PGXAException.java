@@ -26,52 +26,35 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.jdbc.xa;
 
-import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
+import javax.transaction.xa.XAException;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+/**
+ * A convenience subclass of <code>XAException</code> which makes it easy to
+ * create an instance of <code>XAException</code> with a human-readable
+ * message, a <code>Throwable</code> cause, and an XA error code.
+ * 
+ * @author Michael S. Allman
+ */
+public class PGXAException extends XAException {
 
-@RunWith(Suite.class)
-@SuiteClasses({
-  VersionTest.class,
-  SQLTextTests.class,
-  ConnectionTest.class,
-  DatabaseMetaDataTest.class,
-  DatabaseMetaDataPropertiesTest.class,
-  SavepointTest.class,
-  StatementTest.class,
-  PreparedStatementTest.class,
-  ParameterMetaDataTest.class,
-  GeneratedKeysTest.class,
-  BatchExecuteTest.class,
-  ResultSetTest.class,
-  ResultSetMetaDataTest.class,
-  ArrayTest.class,
-  DateTest.class,
-  TimestampTest.class,
-  TimeTest.class,
-  TimezoneTest.class,
-  StructTest.class,
-  BlobTest.class,
-  XmlTest.class,
-  IntervalTest.class,
-  UUIDTest.class,
-  WrapperTest.class,
-  DriverTest.class,
-  LeakTest.class,
-  ServerErrorTest.class,
-  ExceptionTest.class,
-  CodecTest.class,
-  UpdateableResultTest.class,
-  CursorFetchTest.class,
-  CallableStatementTest.class,
-  NotificationTest.class,
-  DataSourceTest.class,
-  XADataSourceTest.class,
-})
-public class RequiredTests {
+  public PGXAException(String message, int errorCode) {
+    super(message);
 
+    this.errorCode = errorCode;
+  }
+
+  public PGXAException(String message, Throwable cause, int errorCode) {
+    super(message);
+
+    initCause(cause);
+    this.errorCode = errorCode;
+  }
+
+  public PGXAException(Throwable cause, int errorCode) {
+    super(errorCode);
+
+    initCause(cause);
+  }
 }

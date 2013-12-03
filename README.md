@@ -14,6 +14,25 @@ An example
 
 	jdbc:postgresql://localhost:5432/test
 
+## DataSource / XADataSource
+
+The DataSource class is
+
+	com.impossibl.postgres.jdbc.PGDataSource
+
+and the XADataSource class is
+
+	com.impossibl.postgres.jdbc.xa.PGXADataSource
+
+Both implementations supports the following properties
+
+	Host:		localhost
+	Port:		5432
+	Database:	<empty>
+	User:		<empty>
+	Password:	<empty>
+	Housekeeper:	true
+
 ## License
 
 pgjdbc-ng is released under the 3 clause BSD license.

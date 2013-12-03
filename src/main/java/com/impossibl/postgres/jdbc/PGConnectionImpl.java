@@ -108,7 +108,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
-class PGConnectionImpl extends BasicContext implements PGConnection {
+/**
+ * Connection implementation
+ * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
+ * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
+ */
+public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   /**
    * Cleans up server resources in the event of leaking connections
