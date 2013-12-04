@@ -54,10 +54,10 @@ public class TestUtil {
     }
 
     if (!"5432".equals(getPort())) {
-      return "jdbc:postgresql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
+      return "jdbc:pgsql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
     }
     else {
-      return "jdbc:postgresql://" + getServer() + "/" + getDatabase() + query;
+      return "jdbc:pgsql://" + getServer() + "/" + getDatabase() + query;
     }
   }
 
