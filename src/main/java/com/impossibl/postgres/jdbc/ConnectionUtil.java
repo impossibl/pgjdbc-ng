@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +58,7 @@ import static java.lang.Boolean.parseBoolean;
 class ConnectionUtil {
   private static final String JDBC_USERNAME_PARAM = "user";
   private static final String JDBC_PASSWORD_PARAM = "password";
+  private static Logger log = Logger.getLogger(ConnectionUtil.class.getName());
 
   static class ConnectionSpecifier {
 
@@ -116,6 +118,23 @@ class ConnectionUtil {
       }
 
       return hosts.toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb = sb.append("ConnectionSpecifier[");
+      sb = sb.append("hosts=").append(getHosts());
+      sb = sb.append(",");
+      sb = sb.append("database=").append(getDatabase());
+      sb = sb.append(",");
+      sb = sb.append("parameters=").append(getParameters());
+      sb = sb.append("]");
+
+      return sb.toString();
     }
   }
 
@@ -235,11 +254,9 @@ class ConnectionUtil {
 
       //Now build a conn-spec from the optional pieces of the URL
       //
-
       ConnectionSpecifier spec = new ConnectionSpecifier();
 
       //Get hosts, if provided, or use the default "localhost:5432"
-
       String hosts = urlMatcher.group(1);
       if (hosts == null || hosts.isEmpty()) {
         hosts = "localhost";
@@ -257,7 +274,6 @@ class ConnectionUtil {
         }
 
         InetSocketAddress address = new InetSocketAddress(name, Integer.parseInt(port));
-
         spec.addAddress(address);
       }
 
@@ -284,6 +300,8 @@ class ConnectionUtil {
           }
         }
       }
+
+      log.fine("parseURL: " + url + " => " + spec);
 
       return spec;
 
