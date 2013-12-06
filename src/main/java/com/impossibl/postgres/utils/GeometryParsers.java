@@ -100,7 +100,7 @@ public enum GeometryParsers {
    * x , y   , r
    * </pre>
    * @param s The circle to parse.
-   * @return A 3 elements array where the first 2 doubles represents a point and last element the radius.
+   * @return [p.x, p.y, r]: A 3 elements array where the first 2 doubles represents a center point and the last element the radius.
    */
   public double[] parseCircle(CharSequence s) {
     int max = s.length() - 1;
@@ -167,7 +167,7 @@ public enum GeometryParsers {
    *   x , y
    * </pre>
    * @param s The point to parse.
-   * @return An  array of size 2.
+   * @return [p.x, p.y]
    */
   public double[] parsePoint(CharSequence s) {
     double[] point = new double[2];
@@ -188,7 +188,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The box to parse.
-   * @return An  array of size 4 (2 point.)
+   * @return An  array of size 4 (2 points.)
    */
   public double[] parseBox(CharSequence s) {
     PathResult pr = parsePath(false, 2, s, 0);
@@ -209,7 +209,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The lseg to parse.
-   * @return An  array of size 4 (2 point.)
+   * @return An  array of size 4 (2 points.)
    */
   public double[] parseLSeg(CharSequence s) {
     PathResult pr = parsePath(true, 2, s, 0);
