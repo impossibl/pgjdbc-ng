@@ -282,7 +282,7 @@ public class SQLText {
         throw new IllegalArgumentException("error parsing SQL");
       }
 
-      return (MultiStatementNode)parents.getFirst();
+      return (MultiStatementNode)parents.getLast();
 
     }
     catch (ParseException e) {

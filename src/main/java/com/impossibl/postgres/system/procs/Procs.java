@@ -43,8 +43,10 @@ public class Procs {
     new BitMods(),
     new Bits(),
     new Bools(),
+    new Boxes(),
     new Bytes(),
     new Cidrs(),
+    new Circles(),
     new Dates(),
     new Domains(),
     new Float4s(),
@@ -55,12 +57,16 @@ public class Procs {
     new Int4s(),
     new Int8s(),
     new Intervals(),
+    new LSegs(),
     new MacAddrs(),
     new Moneys(),
     new Names(),
     new NumericMods(),
     new Numerics(),
     new Oids(),
+    new Paths(),
+    new Points(),
+    new Polygons(),
     new Ranges(),
     new Records(),
     new Strings(),
@@ -121,7 +127,6 @@ public class Procs {
   }
 
   public static Codec.Decoder loadDecoderProc(String name, Context context, Type.Codec.Decoder defaultDecoder) {
-
     if (!name.isEmpty()) {
       Codec.Decoder h;
 
