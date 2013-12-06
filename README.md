@@ -8,11 +8,11 @@ A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JD
 
 The connection format for the pgjdbc-ng driver is
 
-	jdbc:postgresql://<server>[:<port>]/<database>
+	jdbc:pgsql://<server>[:<port>]/<database>
 
 An example
 
-	jdbc:postgresql://localhost:5432/test
+	jdbc:pgsql://localhost:5432/test
 
 ## DataSource / XADataSource
 

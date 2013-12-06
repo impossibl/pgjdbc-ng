@@ -241,7 +241,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (getDatabase() == null)
        throw new SQLException("Database parameter mandatory for " + getHost() + ":" + getPort());
 
-    sb = sb.append("jdbc:postgresql://");
+    sb = sb.append("jdbc:pgsql://");
     sb = sb.append(getHost());
     sb = sb.append(":");
     sb = sb.append(getPort());
