@@ -30,8 +30,10 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.data.CidrAddr;
 import com.impossibl.postgres.data.InetAddr;
+import com.impossibl.postgres.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -829,6 +831,146 @@ public class PreparedStatementTest {
     assertTrue(cidr1.equals(rs.getObject(1)));
     assertTrue(rs.getObject(2).getClass() == CidrAddr.class);
     assertTrue(cidr2.equals(rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testPoint() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE point_tab (p1 point, p2 point, p3 point)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into point_tab values (?,?,?)");
+    double[] p1 = new double[] {45.0, 56.3};
+    double[] p2 = new double[] {0, 0};
+    pstmt.setObject(1, p1);
+    pstmt.setObject(2, p2);
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from point_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == double[].class);
+    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
+    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testPath() throws SQLException {
+    try (PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE path_tab (p1 path, p2 path, p3 path)")) {
+      pstmt.executeUpdate();
+    }
+    Path p1 = GeometryParsers.INSTANCE.parsePath("[(678.6,454),(10,89),(124.6,0)]");
+    Path p2 = GeometryParsers.INSTANCE.parsePath("((678.6,454),(10,89),(124.6,0))");
+    try (PreparedStatement pstmt = conn.prepareStatement("insert into path_tab values (?,?,?)")) {
+      pstmt.setObject(1, p1);
+      pstmt.setObject(2, p2);
+      pstmt.setObject(3, null, Types.OTHER);
+      pstmt.executeUpdate();
+    }
+
+    try (PreparedStatement pstmt = conn.prepareStatement("select * from path_tab");
+        ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertTrue(rs.getObject(1).getClass() == Path.class);
+      assertTrue(p1.equals(rs.getObject(1)));
+      assertTrue(p2.equals(rs.getObject(2)));
+      rs.getObject(3);
+      assertTrue(rs.wasNull());
+    }
+  }
+
+  @Test
+  public void testPolygon() throws SQLException {
+    try (PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE polygon_tab (p1 polygon, p2 polygon, p3 polygon)")) {
+      pstmt.executeUpdate();
+    }
+    double[][] p1 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0),(0,0))");
+    double[][] p2 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0))");
+    try (PreparedStatement pstmt = conn.prepareStatement("insert into polygon_tab values (?,?,?)")) {
+      pstmt.setObject(1, p1);
+      pstmt.setObject(2, p2);
+      pstmt.setObject(3, null, Types.OTHER);
+      pstmt.executeUpdate();
+    }
+
+    try (PreparedStatement pstmt = conn.prepareStatement("select * from polygon_tab");
+        ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertTrue(rs.getObject(1).getClass() == double[][].class);
+      assertTrue(Arrays.deepEquals(p1, (double[][]) rs.getObject(1)));
+      assertTrue(Arrays.deepEquals(p2, (double[][]) rs.getObject(2)));
+      rs.getObject(3);
+      assertTrue(rs.wasNull());
+    }
+  }
+
+  @Test
+  public void testCircle() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE circle_tab (p1 circle, p2 circle, p3 circle)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into circle_tab values (?,?,?)");
+    double[] p1 = new double[] {45.0, 56.3, 40};
+    double[] p2 = new double[] {0, 0, 0};
+    pstmt.setObject(1, p1);
+    pstmt.setObject(2, p2);
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from circle_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == double[].class);
+    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
+    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
+    rs.getObject(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testLSeg() throws SQLException {
+    testLSeg("lseg");
+  }
+
+  @Test
+  public void testBox() throws SQLException {
+    testLSeg("box");
+  }
+
+  private void testLSeg(String pgtype) throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE " + pgtype + "_tab (p1 " + pgtype + ", p2 " + pgtype + ", p3 " + pgtype + ")");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into " + pgtype + "_tab values (?,?,?)");
+    double[] p1 = new double[] {45.0, 60.0, 40.9, 56.3};
+    double[] p2 = new double[] {0, 0, 0, 0};
+    pstmt.setObject(1, p1);
+    pstmt.setObject(2, p2);
+    pstmt.setObject(3, null, Types.OTHER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from " + pgtype + "_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertTrue(rs.getObject(1).getClass() == double[].class);
+    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
+    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
