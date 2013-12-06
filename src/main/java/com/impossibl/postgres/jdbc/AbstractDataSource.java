@@ -235,8 +235,11 @@ public abstract class AbstractDataSource implements CommonDataSource {
     return ConnectionUtil.createConnection(url, props, hk);
   }
 
-  private String buildUrl() {
+  private String buildUrl() throws SQLException {
     StringBuilder sb = new StringBuilder();
+
+    if (getDatabase() == null)
+       throw new SQLException("Database parameter mandatory for " + getHost() + ":" + getPort());
 
     sb = sb.append("jdbc:postgresql://");
     sb = sb.append(getHost());
