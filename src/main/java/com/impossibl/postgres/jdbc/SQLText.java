@@ -45,8 +45,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.Deque;
-import java.util.LinkedList;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -117,7 +116,7 @@ public class SQLText {
 
   public static MultiStatementNode parse(String sql) throws ParseException {
 
-    Deque<CompositeNode> parents = new LinkedList<>();
+    Stack<CompositeNode> parents = new Stack<CompositeNode>();
 
     parents.push(new MultiStatementNode(0));
     parents.push(new StatementNode(0));
@@ -282,7 +281,7 @@ public class SQLText {
         throw new IllegalArgumentException("error parsing SQL");
       }
 
-      return (MultiStatementNode)parents.getFirst();
+      return (MultiStatementNode)parents.get(0);
 
     }
     catch (ParseException e) {
