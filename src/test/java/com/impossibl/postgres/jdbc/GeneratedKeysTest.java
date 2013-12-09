@@ -76,6 +76,8 @@ public class GeneratedKeysTest {
     assertEquals("a", rs.getString("b"));
     assertEquals(2, rs.getInt("c"));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -85,6 +87,7 @@ public class GeneratedKeysTest {
     assertEquals(1, stmt.getUpdateCount());
     assertNull(stmt.getResultSet());
     assertTrue(!stmt.getMoreResults());
+    stmt.close();
   }
 
   @Test
@@ -100,6 +103,9 @@ public class GeneratedKeysTest {
     catch (SQLException sqle) {
       // Ok
     }
+    finally {
+      rs.close();
+    }
   }
 
   @Test
@@ -110,6 +116,8 @@ public class GeneratedKeysTest {
     assertTrue(rs.next());
     assertEquals("a", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -119,6 +127,8 @@ public class GeneratedKeysTest {
     assertEquals(1, count);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -133,6 +143,8 @@ public class GeneratedKeysTest {
     assertEquals(1, rs.getInt("a"));
     assertEquals(2, rs.getInt("c"));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -146,6 +158,8 @@ public class GeneratedKeysTest {
     assertTrue(rs.next());
     assertEquals(4, rs.getInt(1));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -159,6 +173,8 @@ public class GeneratedKeysTest {
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -172,6 +188,8 @@ public class GeneratedKeysTest {
     assertEquals(3, rs.getInt(1));
     assertEquals("a", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -185,6 +203,8 @@ public class GeneratedKeysTest {
     assertEquals(2, rs.getInt(1));
     assertEquals("a", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -203,6 +223,8 @@ public class GeneratedKeysTest {
     assertEquals(3, rs.getInt(1));
     assertEquals("a", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
+    ps.close();
   }
 
   @Test
@@ -221,6 +243,7 @@ public class GeneratedKeysTest {
     assertEquals(2, rs.getInt(1));
     assertEquals("a", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
 
     ps.setInt(1, 2);
     assertEquals(1, ps.executeUpdate());
@@ -229,6 +252,9 @@ public class GeneratedKeysTest {
     assertEquals(4, rs.getInt(1));
     assertEquals("b", rs.getString(2));
     assertTrue(!rs.next());
+    rs.close();
+
+    ps.close();
   }
 
   @Test
@@ -237,9 +263,12 @@ public class GeneratedKeysTest {
     stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2); ", Statement.RETURN_GENERATED_KEYS);
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
+    rs.close();
     stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 3)");
     rs = stmt.getGeneratedKeys();
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -250,12 +279,32 @@ public class GeneratedKeysTest {
     ps.setInt(1, 7);
     ps.addBatch();
     ps.executeBatch();
-    ResultSet rs = ps.getGeneratedKeys();
-    assertTrue(rs.next());
-    assertEquals(1, rs.getInt("a"));
-    assertTrue(rs.next());
-    assertEquals(2, rs.getInt("a"));
-    assertTrue(!rs.next());
+    ResultSet batchRs1 = ps.getGeneratedKeys();
+    assertTrue(batchRs1.next());
+    assertEquals(1, batchRs1.getInt("a"));
+    assertTrue(batchRs1.next());
+    assertEquals(2, batchRs1.getInt("a"));
+    assertTrue(!batchRs1.next());
+    // BatchRs1 isn't explicit closed
+    assertFalse(batchRs1.isClosed());
+
+    ps.setInt(1, 4);
+    ps.addBatch();
+    ps.setInt(1, 7);
+    ps.addBatch();
+    ps.executeBatch();
+    ResultSet batchRs2 = ps.getGeneratedKeys();
+    assertTrue(batchRs2.next());
+    assertEquals(3, batchRs2.getInt("a"));
+    assertTrue(batchRs2.next());
+    assertEquals(4, batchRs2.getInt("a"));
+    assertTrue(!batchRs2.next());
+    batchRs2.close();
+
+    assertTrue(batchRs1.isClosed());
+    assertTrue(batchRs2.isClosed());
+
+    ps.close();
   }
 
 }
