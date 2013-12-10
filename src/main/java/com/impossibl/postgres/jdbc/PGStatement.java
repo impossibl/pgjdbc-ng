@@ -143,6 +143,7 @@ abstract class PGStatement implements Statement {
     this.processEscapes = true;
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
+    this.generatedKeysResultSet = null;
 
     this.housekeeper = connection.housekeeper;
 
@@ -227,6 +228,7 @@ abstract class PGStatement implements Statement {
    */
   void closeResultSets() throws SQLException {
     closeResultSets(activeResultSets);
+
     generatedKeysResultSet = null;
   }
 

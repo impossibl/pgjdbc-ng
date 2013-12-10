@@ -180,6 +180,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public boolean execute() throws SQLException {
 
     parseIfNeeded();
+    closeResultSets();
 
     for (int c = 0, sz = parameterTypes.size(); c < sz; ++c) {
 
@@ -256,6 +257,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public int[] executeBatch() throws SQLException {
     checkClosed();
+    closeResultSets();
 
     try {
 
