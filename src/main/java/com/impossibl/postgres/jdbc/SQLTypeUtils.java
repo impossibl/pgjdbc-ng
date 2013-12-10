@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.data.Path;
 import com.impossibl.postgres.data.Record;
 import com.impossibl.postgres.data.Tid;
 import com.impossibl.postgres.datetime.instants.Instant;
@@ -139,11 +140,23 @@ class SQLTypeUtils {
           targetType = Struct.class;
           break;
 
+        case Point:
+        case Box:
+        case Line:
+        case LineSegment:
+        case Circle:
+          targetType = double[].class;
+          break;
+        case Path:
+          targetType = Path.class;
+          break;
+        case Polygon:
+          targetType = double[][].class;
+          break;
         case Array:
           ArrayType arrayType = (ArrayType) sourceType;
           targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
           break;
-
         default:
           break;
       }

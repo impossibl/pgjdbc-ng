@@ -53,7 +53,7 @@ public class Polygons extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Polygon;
     }
 
     @Override
@@ -96,7 +96,7 @@ public class Polygons extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Polygon;
     }
 
     @Override
@@ -123,7 +123,7 @@ public class Polygons extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Polygon;
     }
 
     @Override
@@ -147,11 +147,14 @@ public class Polygons extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Polygon;
     }
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      if (val == null) {
+        return;
+      }
       buffer.append(new Path((double[][]) val, true));
     }
 

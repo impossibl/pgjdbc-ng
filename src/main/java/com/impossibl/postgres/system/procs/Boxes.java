@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 /**
@@ -53,31 +54,10 @@ public class Boxes extends LSegs {
       return GeometryParsers.INSTANCE.parseBox(buffer);
     }
 
-    // is done server side
-//    @Override
-//    public double[] reorder(double[] box) {
-//      double boxhighx = box[0];
-//      double boxhighy = box[1];
-//      double boxlowx = box[2];
-//      double boxlowy = box[3];
-//      if (boxhighx < boxlowx) {
-//        double x = boxhighx;
-//        boxhighx = boxlowx;
-//        boxlowx = x;
-//      }
-//      if (boxhighy < boxlowy) {
-//        double y = boxhighy;
-//        boxhighy = boxlowy;
-//        boxlowy = y;
-//      }
-//      return box;
-//    }
-
   }
 
   public Boxes() {
-    super("box_", new BoxFormatter());
+    super("box_", new BoxFormatter(), PrimitiveType.Box);
   }
-
 
 }

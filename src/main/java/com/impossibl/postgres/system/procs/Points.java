@@ -52,7 +52,7 @@ public class Points extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Point;
     }
 
     @Override
@@ -83,7 +83,7 @@ public class Points extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Point;
     }
 
     @Override
@@ -107,7 +107,7 @@ public class Points extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Point;
     }
 
     @Override
@@ -131,11 +131,14 @@ public class Points extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Point;
     }
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      if (val == null) {
+        return;
+      }
       double[] point = (double[]) val;
       if (point.length != 2) {
         throw new IOException("invalid length");
