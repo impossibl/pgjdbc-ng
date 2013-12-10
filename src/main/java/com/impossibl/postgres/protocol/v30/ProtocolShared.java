@@ -112,7 +112,7 @@ public class ProtocolShared {
     Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
     Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
 
-    int workerCount = Math.max(10, getRuntime().availableProcessors());
+    int workerCount = getRuntime().availableProcessors();
 
     ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, 1, new NioWorkerPool(workerExecutorService, workerCount), timer);
 

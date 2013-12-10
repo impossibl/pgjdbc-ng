@@ -55,5 +55,12 @@ public enum PrimitiveType {
   Domain,
   Range,
   ACLItem,
-  Unknown
+  Unknown,
+  Point,
+  Box,
+  LineSegment,
+  Line,
+  Path,
+  Polygon,
+  Circle
 }

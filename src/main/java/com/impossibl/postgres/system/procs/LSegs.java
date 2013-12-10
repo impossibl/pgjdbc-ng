@@ -51,7 +51,6 @@ public class LSegs extends SimpleProcProvider {
 
     double[] parse(CharSequence buffer);
 
-    //double[] reorder(double[] p);
   }
 
   static class LSegFormatter implements Formatter {
@@ -71,26 +70,26 @@ public class LSegs extends SimpleProcProvider {
       return GeometryParsers.INSTANCE.parseLSeg(buffer);
     }
 
-//    @Override
-//    public double[] reorder(double[] p) {
-//      return p;
-//    }
-
   }
 
   public LSegs() {
-    this("lseg_", new LSegFormatter());
+    this("lseg_", new LSegFormatter(), PrimitiveType.LineSegment);
   }
 
-  public LSegs(String pgtype, Formatter formatter) {
-    super(new TxtEncoder(formatter), new TxtDecoder(formatter), new BinEncoder(), new BinDecoder(), pgtype);
+  public LSegs(String pgtype, Formatter formatter, PrimitiveType pt) {
+    super(new TxtEncoder(formatter, pt), new TxtDecoder(formatter, pt), new BinEncoder(pt), new BinDecoder(pt), pgtype);
   }
 
   static class BinDecoder extends BinaryDecoder {
+    private PrimitiveType pt;
+
+    public BinDecoder(PrimitiveType pt) {
+      this.pt = pt;
+    }
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return pt;
     }
 
     @Override
@@ -114,6 +113,11 @@ public class LSegs extends SimpleProcProvider {
   }
 
   static class BinEncoder extends BinaryEncoder {
+    private PrimitiveType pt;
+
+    public BinEncoder(PrimitiveType pt) {
+      this.pt = pt;
+    }
 
     @Override
     public Class<?> getInputType() {
@@ -122,7 +126,7 @@ public class LSegs extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return pt;
     }
 
     @Override
@@ -146,14 +150,16 @@ public class LSegs extends SimpleProcProvider {
 
   static class TxtDecoder extends TextDecoder {
     private Formatter formatter;
+    private PrimitiveType pt;
 
-    TxtDecoder(Formatter f) {
+    TxtDecoder(Formatter f, PrimitiveType pt) {
       formatter = f;
+      this.pt = pt;
     }
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return pt;
     }
 
     @Override
@@ -170,9 +176,11 @@ public class LSegs extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
     private Formatter formatter;
+    private PrimitiveType pt;
 
-    TxtEncoder(Formatter f) {
+    TxtEncoder(Formatter f, PrimitiveType pt) {
       formatter = f;
+      this.pt = pt;
     }
 
     @Override
@@ -182,11 +190,14 @@ public class LSegs extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return pt;
     }
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      if (val == null) {
+        return;
+      }
       double[] lseg = (double[]) val;
       if (lseg.length != 4) {
         throw new IOException("invalid length");

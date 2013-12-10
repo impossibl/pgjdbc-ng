@@ -74,7 +74,7 @@ public class ParameterMetaDataTest {
     assertEquals(Types.VARCHAR, pmd.getParameterType(2));
     assertEquals("text", pmd.getParameterTypeName(2));
     assertEquals("java.lang.String", pmd.getParameterClassName(2));
-    assertEquals(Types.BINARY, pmd.getParameterType(3));
+    assertEquals(Types.OTHER, pmd.getParameterType(3));
     assertEquals("point", pmd.getParameterTypeName(3));
     //assertEquals("org.postgresql.geometric.PGpoint", pmd.getParameterClassName(3));
 

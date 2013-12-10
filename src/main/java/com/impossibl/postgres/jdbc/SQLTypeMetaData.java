@@ -244,6 +244,13 @@ class SQLTypeMetaData {
     primitiveToSQLTypeMatrix[PrimitiveType.UUID.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Interval.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Unknown.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Box.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Circle.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Line.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.LineSegment.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Path.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Point.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Polygon.ordinal()] = Types.OTHER;
 
     sqlToPrimitiveMatrix = new PrimitiveType[255][];
     sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NULL)]           = new PrimitiveType[] {};

@@ -52,7 +52,7 @@ public class Circles extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Circle;
     }
 
     @Override
@@ -84,7 +84,7 @@ public class Circles extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Circle;
     }
 
     @Override
@@ -109,7 +109,7 @@ public class Circles extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Circle;
     }
 
     @Override
@@ -133,11 +133,14 @@ public class Circles extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+      return PrimitiveType.Circle;
     }
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      if (val == null) {
+        return;
+      }
       double[] point = (double[]) val;
       if (point.length != 3) {
         throw new IOException("invalid length");

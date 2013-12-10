@@ -30,6 +30,8 @@ package com.impossibl.postgres.utils;
 
 import com.impossibl.postgres.data.Path;
 
+import java.util.Arrays;
+
 public enum GeometryParsers {
   INSTANCE;
 
@@ -65,32 +67,6 @@ public enum GeometryParsers {
     return path.getPoints();
   }
 
-  //  < ( x , y ) , r >
-  // ( ( x , y ) , r )
-  // ( x , y ) , r
-  // x , y   , r
-//  private static final Pattern circlePattern = Pattern.compile(
-//      "^\\s*\\(\\s*\\(\\s*(.+)\\s*,\\s*(.+)\\s*\\)\\s*,\\s*(.+)\\s*\\)\\s*|" +
-//      "\\s*<\\s*\\(\\s*(.+)\\s*,\\s*(.+)\\s*\\)\\s*,\\s*(.+)\\s*>\\s*|" +
-//      "\\s*\\(\\s*(.+)\\s*,\\s*(.+)\\s*\\)\\s*,\\s*(.+)\\s*|" +
-//      "\\s*(.+)\\s*,\\s*(.+)\\s*,\\s*(.+)\\s*$");
-//
-//  public double[] parseCircle(CharSequence s) {
-//    Matcher m = circlePattern.matcher(s);
-//    if (m.matches()) {
-//      int idx = m.group(1) != null ? 1 : m.group(4) != null ? 4 : m.group(7) != null ? 7 : 10;
-//      double[] circle = new double[] {Double.parseDouble(m.group(idx)), Double.parseDouble(m.group(idx + 1)), Double.parseDouble(m.group(idx + 2))};
-//      // check radius >= 0
-//      if (circle[3] < 0) {
-//        throw new IOException("Invalid input syntax for type circle: " + s);
-//      }
-//      return circle;
-//    }
-//    else {
-//      throw new IOException("Invalid input syntax for type circle: " + s);
-//    }
-//  }
-
   /**
    * Parses a circle.
    * <pre>
@@ -100,7 +76,7 @@ public enum GeometryParsers {
    * x , y   , r
    * </pre>
    * @param s The circle to parse.
-   * @return A 3 elements array where the first 2 doubles represents a point and last element the radius.
+   * @return [p.x, p.y, r]: A 3 elements array where the first 2 doubles represents a center point and the last element the radius.
    */
   public double[] parseCircle(CharSequence s) {
     int max = s.length() - 1;
@@ -159,7 +135,6 @@ public enum GeometryParsers {
     return new double[] {point[0], point[1], radius};
   }
 
-
   /**
    * Parses a point.
    * <pre>
@@ -167,7 +142,7 @@ public enum GeometryParsers {
    *   x , y
    * </pre>
    * @param s The point to parse.
-   * @return An  array of size 2.
+   * @return [p.x, p.y]
    */
   public double[] parsePoint(CharSequence s) {
     double[] point = new double[2];
@@ -188,7 +163,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The box to parse.
-   * @return An  array of size 4 (2 point.)
+   * @return An array of size 4 (2 points.)
    */
   public double[] parseBox(CharSequence s) {
     PathResult pr = parsePath(false, 2, s, 0);
@@ -209,7 +184,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The lseg to parse.
-   * @return An  array of size 4 (2 point.)
+   * @return An array of size 4 (2 points.)
    */
   public double[] parseLSeg(CharSequence s) {
     PathResult pr = parsePath(true, 2, s, 0);
@@ -222,82 +197,107 @@ public enum GeometryParsers {
   }
 
   /**
+   * Parses an infinite line represented by the linear equation Ax + By + C = 0.
+   * <pre>
+   * { A, B, C }
+   * also accepted:
+   * [ ( x1 , y1 ) , ( x2 , y2 ) ]
+   * ( ( x1 , y1 ) , ( x2 , y2 ) )
+   * ( x1 , y1 ) , ( x2 , y2 )
+   *  x1 , y1   ,   x2 , y2
+   * </pre>
+   * @param s The line to parse.
+   * @return An array of size 3 ([A,B,C] --> Ax+By+C=0.)
+   */
+  public double[] parseLine(CharSequence s) {
+    int pos = consummeSpace(s, 0, true);
+    double[] result;
+    if (s.charAt(pos) == '{') {
+      pos = parseLineABC(s, pos, result = new double[3]);
+    }
+    else {
+      PathResult pr = parsePath(true, 2, s, pos);
+      if (Arrays.equals(pr.p[0], pr.p[1])) {
+        throw new IllegalArgumentException("invalid line specification: must be two distinct points");
+      }
+      pos = pr.pos;
+      result = lineConstructPts(pr.p[0], pr.p[1]);
+    }
+    pos = consummeSpace(s, pos, false);
+    if (pos < s.length() - 1) {
+      // too much chars
+      throw new IllegalArgumentException("near " + pos + " in  " + s);
+    }
+    return result;
+  }
+
+  /**
    * Returns A,B and C as in Ax+By+C=0 given 2 points
    */
-//  public double[] lineConstructPts(double[] pt1, double[] pt2) {
-//    double[] lineabc = new double[3];
-//    if (pt1[0] == pt2[0]) { /* vertical */
-//      /* use "x = C" */
-//      lineabc[0] = -1;
-//      lineabc[1] = 0;
-//      lineabc[2] = pt1[0];
-//    }
-//    else if (pt1[1] == pt2[1]) { /* horizontal */
-//      /* use "y = C" */
-//      lineabc[0] = 0;
-//      lineabc[1] = -1;
-//      lineabc[2] = pt1[1];
-//    }
-//    else {
-//      /* use "mx - y + yinter = 0" */
-//      lineabc[0] = (pt2[1] - pt1[1]) / (pt2[0] - pt1[0]);
-//      lineabc[1] = -1.0;
-//      lineabc[2] = pt1[1] - lineabc[0] * pt1[0];
-//    }
-//    return lineabc;
-//  }
+  private double[] lineConstructPts(double[] pt1, double[] pt2) {
+    double[] lineabc = new double[3];
+    if (pt1[0] == pt2[0]) { /* vertical */
+      /* use "x = C" */
+      lineabc[0] = -1;
+      lineabc[1] = 0;
+      lineabc[2] = pt1[0];
+    }
+    else if (pt1[1] == pt2[1]) { /* horizontal */
+      /* use "y = C" */
+      lineabc[0] = 0;
+      lineabc[1] = -1;
+      lineabc[2] = pt1[1];
+    }
+    else {
+      /* use "mx - y + yinter = 0" */
+      lineabc[0] = (pt2[1] - pt1[1]) / (pt2[0] - pt1[0]);
+      lineabc[1] = -1.0;
+      lineabc[2] = pt1[1] - lineabc[0] * pt1[0];
+    }
+    return lineabc;
+  }
 
-//  int parseLine(CharSequence s, int pos) {
-//    pos = eatSpace(s, pos, true);
-//    if (s.charAt(pos) == '{') {
-//      parseLineABC(s, pos, new double[3]);
-//    }
-//    else {
-//      PathResult pr = parsePath(true, 2, s, pos);
-//    }
-//    return pos;
-//  }
+  private int parseLineABC(CharSequence s, int pos, double[] abc) {
+    // A,B,C --> Ax+By+C=0
+    if (s.charAt(pos) != '{') {
+      throw new IllegalArgumentException("near " + pos + " in  " + s);
+    }
+    int pos1 = ++pos;
+    pos = parseNumber(s, pos);
+    double a = Double.parseDouble(s.subSequence(pos1, pos).toString());
 
-//  private int parseLineABC(CharSequence s, int pos, double[] abc) {
-//    // A,B,C --> Ax+By+C=0
-//    pos = eatSpace(s, pos, true);
-//    if (s.charAt(pos) != '{') {
-//      throw new IllegalArgumentException("near " + pos + " in  " + s);
-//    }
-//    int pos1 = ++pos;
-//    pos = parseNumber(s, pos);
-//    double a = Double.parseDouble(s.subSequence(pos1, pos).toString());
-//
-//    pos = eatSpace(s, pos, true);
-//    if (s.charAt(pos) != ',') {
-//      throw new IllegalArgumentException("near " + pos + " in  " + s);
-//    }
-//    pos = eatSpace(s, ++pos, true);
-//
-//    pos1 = pos;
-//    pos = parseNumber(s, pos);
-//    double b = Double.parseDouble(s.subSequence(pos1, pos).toString());
-//
-//    pos = eatSpace(s, pos, true);
-//    if (s.charAt(pos) != ',') {
-//      throw new IllegalArgumentException("near " + pos + " in  " + s);
-//    }
-//    pos = eatSpace(s, ++pos, true);
-//
-//    pos1 = pos;
-//    pos = parseNumber(s, pos);
-//    double c = Double.parseDouble(s.subSequence(pos1, pos).toString());
-//
-//    pos = eatSpace(s, pos, true);
-//    if (s.charAt(pos) != '}') {
-//      throw new IllegalArgumentException("near " + pos + " in  " + s);
-//    }
-//    ++pos;
-//    abc[0] = a;
-//    abc[1] = b;
-//    abc[2] = c;
-//    return pos;
-//  }
+    pos = consummeSpace(s, pos, true);
+    if (s.charAt(pos) != ',') {
+      throw new IllegalArgumentException("near " + pos + " in  " + s);
+    }
+    pos = consummeSpace(s, ++pos, true);
+
+    pos1 = pos;
+    pos = parseNumber(s, pos);
+    double b = Double.parseDouble(s.subSequence(pos1, pos).toString());
+    if (a == 0 && b == 0) {
+      throw new IllegalArgumentException("invalid line specification: A and B cannot both be zero");
+    }
+    pos = consummeSpace(s, pos, true);
+    if (s.charAt(pos) != ',') {
+      throw new IllegalArgumentException("near " + pos + " in  " + s);
+    }
+    pos = consummeSpace(s, ++pos, true);
+
+    pos1 = pos;
+    pos = parseNumber(s, pos);
+    double c = Double.parseDouble(s.subSequence(pos1, pos).toString());
+
+    pos = consummeSpace(s, pos, true);
+    if (s.charAt(pos) != '}') {
+      throw new IllegalArgumentException("near " + pos + " in  " + s);
+    }
+    ++pos;
+    abc[0] = a;
+    abc[1] = b;
+    abc[2] = c;
+    return pos;
+  }
 
   private Path parsePath(CharSequence s, boolean acceptopen) {
     int npts = pairCount(s, ',');

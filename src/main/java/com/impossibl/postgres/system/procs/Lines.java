@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.Path;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -43,47 +42,35 @@ import org.jboss.netty.buffer.ChannelBuffer;
  *
  * @version $Revision:  $, $Date: $, $Name: $, $Author: $
  */
-public class Paths extends SimpleProcProvider {
+public class Lines extends SimpleProcProvider {
 
-  public Paths() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "path_");
+  public Lines() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "line_");
   }
 
   static class BinDecoder extends BinaryDecoder {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Path;
+      return PrimitiveType.Line;
     }
 
     @Override
     public Class<?> getOutputType() {
-      return Path.class;
+      return double[].class;
     }
 
     @Override
-    public Path decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public double[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
       }
-      else if (length < 21) {
-        // at least one point
+      else if (length != 24) {
         throw new IOException("invalid length " + length);
       }
-      boolean closed = buffer.readByte() != 0;
-      int npts = buffer.readInt();
-      if (npts <= 0 || npts >= Integer.MAX_VALUE) {
-        throw new IOException("invalid number of points in external \"path\" value");
-      }
-      double[][] points = new double[npts][];
-      for (int i = 0; i < npts; ++i) {
-        double[] point = new double[2];
-        point[0] = buffer.readDouble();
-        point[1] = buffer.readDouble();
-        points[i] = point;
-      }
-      return new Path(points, closed);
+      // linear equation Ax + By + C = 0
+      return new double[] {buffer.readDouble(), buffer.readDouble(), buffer.readDouble()};
     }
 
   }
@@ -92,12 +79,12 @@ public class Paths extends SimpleProcProvider {
 
     @Override
     public Class<?> getInputType() {
-      return Path.class;
+      return double[].class;
     }
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Path;
+      return PrimitiveType.Line;
     }
 
     @Override
@@ -106,20 +93,14 @@ public class Paths extends SimpleProcProvider {
         buffer.writeInt(-1);
       }
       else {
-        Path path = (Path) val;
-        double[][] points = path.getPoints();
-        // byte + int + npts * 2 points
-        int size = 1 + 4 + (points == null ? 0 : points.length * 8 * 2);
-        buffer.writeInt(size);
-        buffer.writeByte(path.isClosed() ? 1 : 0);
-        buffer.writeInt(points == null ? 0 : points.length);
-        if (points != null) {
-          for (int i = 0; i < points.length; ++i) {
-            double[] point = points[i];
-            buffer.writeDouble(point[0]);
-            buffer.writeDouble(point[1]);
-          }
+        double[] line = (double[]) val;
+        if (line.length != 3) {
+          throw new IOException("invalid length");
         }
+        buffer.writeInt(24);
+        buffer.writeDouble(line[0]);
+        buffer.writeDouble(line[1]);
+        buffer.writeDouble(line[2]);
       }
     }
   }
@@ -128,17 +109,17 @@ public class Paths extends SimpleProcProvider {
 
     @Override
     public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Path;
+      return PrimitiveType.Line;
     }
 
     @Override
     public Class<?> getOutputType() {
-      return Path.class;
+      return double[].class;
     }
 
     @Override
-    public Path decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-      return GeometryParsers.INSTANCE.parsePath(buffer);
+    public double[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+      return GeometryParsers.INSTANCE.parseLine(buffer);
     }
 
   }
@@ -147,12 +128,12 @@ public class Paths extends SimpleProcProvider {
 
     @Override
     public Class<?> getInputType() {
-      return Path.class;
+      return double[].class;
     }
 
     @Override
     public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Path;
+      return PrimitiveType.Line;
     }
 
     @Override
@@ -160,7 +141,11 @@ public class Paths extends SimpleProcProvider {
       if (val == null) {
         return;
       }
-      buffer.append(((Path) val).toString());
+      double[] point = (double[]) val;
+      if (point.length != 3) {
+        throw new IOException("invalid length");
+      }
+      buffer.append("{").append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append("),").append(Double.toString(point[2])).append('}');
     }
 
   }
