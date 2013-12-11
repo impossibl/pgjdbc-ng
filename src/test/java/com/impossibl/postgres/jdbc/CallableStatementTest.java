@@ -149,6 +149,7 @@ public class CallableStatementTest {
     stmt.execute("DROP FUNCTION testspg__getarray();");
     stmt.execute("DROP FUNCTION testspg__raisenotice();");
     stmt.execute("DROP FUNCTION testspg__insertInt(int);");
+    stmt.close();
     TestUtil.closeDB(con);
   }
 
@@ -533,12 +534,15 @@ public class CallableStatementTest {
 
       cstmt.executeUpdate();
       cstmt.close();
-      ResultSet rs = con.createStatement().executeQuery("select * from vartab");
+
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("select * from vartab");
       assertTrue(rs.next());
       assertTrue(rs.getString(1).equals(Boolean.TRUE.toString()));
 
       assertTrue(rs.getString(2).equals(Boolean.FALSE.toString()));
       rs.close();
+      stmt.close();
     }
     catch (Exception ex) {
       fail(ex.getMessage());
@@ -635,7 +639,9 @@ public class CallableStatementTest {
       cstmt.setNull(3, Types.BIT);
       cstmt.executeUpdate();
       cstmt.close();
-      ResultSet rs = con.createStatement().executeQuery("select * from bit_tab");
+
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("select * from bit_tab");
 
       assertTrue(rs.next());
       assertTrue(rs.getBoolean(1) == true);
@@ -644,6 +650,7 @@ public class CallableStatementTest {
       assertTrue(rs.wasNull());
 
       rs.close();
+      stmt.close();
       cstmt.close();
     }
     catch (Exception ex) {
@@ -902,6 +909,7 @@ public class CallableStatementTest {
       try {
         Statement dstmt = con.createStatement();
         dstmt.execute("drop function updatefloat_proc(float, float)");
+        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
@@ -956,6 +964,7 @@ public class CallableStatementTest {
       try {
         Statement dstmt = con.createStatement();
         dstmt.execute("drop function longvarbinary_proc()");
+        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
