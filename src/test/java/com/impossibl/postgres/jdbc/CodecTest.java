@@ -28,13 +28,13 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.ACLItem;
-import com.impossibl.postgres.data.CidrAddr;
-import com.impossibl.postgres.data.InetAddr;
-import com.impossibl.postgres.data.Interval;
-import com.impossibl.postgres.data.Range;
-import com.impossibl.postgres.data.Record;
-import com.impossibl.postgres.data.Tid;
+import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.api.data.Interval;
+import com.impossibl.postgres.api.data.Range;
+import com.impossibl.postgres.api.data.Record;
+import com.impossibl.postgres.api.data.Tid;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;

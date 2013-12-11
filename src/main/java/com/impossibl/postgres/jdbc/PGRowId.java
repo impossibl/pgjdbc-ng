@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.Tid;
+import com.impossibl.postgres.api.data.Tid;
 
 import java.sql.RowId;
 

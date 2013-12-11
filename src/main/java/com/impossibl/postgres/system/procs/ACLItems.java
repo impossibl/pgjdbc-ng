@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.ACLItem;
+import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;

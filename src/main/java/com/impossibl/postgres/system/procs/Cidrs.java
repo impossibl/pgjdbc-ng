@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.CidrAddr;
-import com.impossibl.postgres.data.InetAddr;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
 
 public class Cidrs extends Networks {
 

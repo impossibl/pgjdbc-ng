@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.Path;
-import com.impossibl.postgres.data.Record;
-import com.impossibl.postgres.data.Tid;
+import com.impossibl.postgres.api.data.Path;
+import com.impossibl.postgres.api.data.Record;
+import com.impossibl.postgres.api.data.Tid;
 import com.impossibl.postgres.datetime.instants.Instant;
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.ResultField.Format;

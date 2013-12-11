@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.Range;
+import com.impossibl.postgres.api.data.Range;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.RangeType;

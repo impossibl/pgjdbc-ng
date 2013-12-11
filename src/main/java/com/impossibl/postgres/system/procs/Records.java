@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.data.Record;
+import com.impossibl.postgres.api.data.Record;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;

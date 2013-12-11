@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.Interval;
+import com.impossibl.postgres.api.data.Interval;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

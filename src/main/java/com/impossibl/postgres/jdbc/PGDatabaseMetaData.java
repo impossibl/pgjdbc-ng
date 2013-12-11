@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.ACLItem;
+import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.CompositeType;

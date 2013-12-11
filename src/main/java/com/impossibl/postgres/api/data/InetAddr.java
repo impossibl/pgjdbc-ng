@@ -26,10 +26,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.data;
+package com.impossibl.postgres.api.data;
 
-import static com.impossibl.postgres.data.InetAddr.Family.IPv4;
-import static com.impossibl.postgres.data.InetAddr.Family.IPv6;
+import static com.impossibl.postgres.api.data.InetAddr.Family.IPv4;
+import static com.impossibl.postgres.api.data.InetAddr.Family.IPv6;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.net.InetAddress;

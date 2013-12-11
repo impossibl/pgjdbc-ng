@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.utils;
 
-import com.impossibl.postgres.data.Path;
+import com.impossibl.postgres.api.data.Path;
 
 import java.util.Arrays;
 

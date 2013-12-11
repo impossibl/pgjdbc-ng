@@ -135,7 +135,7 @@
                 <manifestEntries>
                   <Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
                   <Bundle-Version>${project.version}</Bundle-Version>
-                  <Export-Package>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.jdbc</Export-Package>
+                  <Export-Package>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.data,com.impossibl.postgres.api.jdbc</Export-Package>
                 </manifestEntries>
               </archive>
               <forceCreation>true</forceCreation>

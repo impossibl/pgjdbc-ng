@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.data.CidrAddr;
-import com.impossibl.postgres.data.InetAddr;
-import com.impossibl.postgres.data.Path;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.utils.GeometryParsers;
