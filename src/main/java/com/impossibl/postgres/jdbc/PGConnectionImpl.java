@@ -270,7 +270,9 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @return New unique statement name
    */
   String getNextStatementName() {
-    return String.format("%016X", ++statementId);
+    StringBuilder sb = new StringBuilder("0000000000000000");
+    sb.append(Long.toHexString(++statementId));
+    return sb.substring(sb.length() - 16);
   }
 
   /**
