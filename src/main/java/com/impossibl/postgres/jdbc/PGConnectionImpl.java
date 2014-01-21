@@ -68,6 +68,7 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -93,6 +94,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -164,11 +166,26 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
+  static Map<String, SQLText> parsedSqlCache;
 
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
     this.activeStatements = new ArrayList<>();
+
+    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, 250);
+    if (sqlCacheSize > 0) {
+      synchronized (PGConnectionImpl.class) {
+        if (parsedSqlCache == null) {
+          parsedSqlCache = Collections.synchronizedMap(new LinkedHashMap<String, SQLText>(sqlCacheSize + 1, 1.1f, true) {
+            private static final long serialVersionUID = 1L;
+            protected boolean removeEldestEntry(Map.Entry<String, SQLText> eldest) {
+              return size() > sqlCacheSize;
+            }
+          });
+        }
+      }
+    }
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
@@ -334,8 +351,19 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
+
     try {
-      return new SQLText(sqlText);
+      if (parsedSqlCache == null) {
+        return new SQLText(sqlText);
+      }
+
+      SQLText parsedSql = parsedSqlCache.get(sqlText);
+      if (parsedSql == null) {
+        parsedSql = new SQLText(sqlText);
+        parsedSqlCache.put(sqlText, parsedSql);
+      }
+
+      return parsedSql.copy();
     }
     catch (ParseException e) {
 

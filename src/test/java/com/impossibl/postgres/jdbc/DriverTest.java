@@ -28,13 +28,17 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.Settings;
+
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Properties;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
 import static org.junit.Assert.*;
 
 /*
@@ -134,4 +138,13 @@ public class DriverTest {
     con.close();
   }
 
+  /*
+   * Test that the parsedSqlCacheSize property works.
+   */
+  @Test
+  public void testParsedSqlCacheSize() throws Exception {
+    ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL("jdbc:pgsql://localhost/test?parsedSqlCacheSize=100");
+    Properties parameters = connSpec.getParameters();
+    assertSame(100, Integer.parseInt(parameters.getProperty(Settings.PARSED_SQL_CACHE)));
+  }
 }

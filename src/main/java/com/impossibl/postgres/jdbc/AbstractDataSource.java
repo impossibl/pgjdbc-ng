@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Settings;
 
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -51,6 +52,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String user;
   private String password;
   private boolean housekeeper;
+  private int parsedSqlCache;
 
   /**
    * Constructor
@@ -63,6 +65,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.user = null;
     this.password = null;
     this.housekeeper = true;
+    this.parsedSqlCache = 250;
   }
 
   /**
@@ -198,6 +201,24 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the size of the parsed SQL cache.
+   * @return the number of SQL statements' parsed structures allowed in the cache
+   */
+  public int getParsedSqlCacheSize() {
+    return parsedSqlCache;
+  }
+
+  /**
+   * Set the size of the parsed SQL cache.  A value of 0 will disable
+   * the cache.  This value is only honored before the creation of the
+   * first Connection, changing it at a later time will have no effect.
+   * @param cacheSize the number of SQL statements' parsed structures to cache
+   */
+  public void setParsedSqlCacheSize(int cacheSize) {
+    parsedSqlCache = cacheSize;
+  }
+
+  /**
    * Create a connection
    * @param u The user name
    * @param p The password
@@ -231,6 +252,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     Housekeeper hk = null;
     if (housekeeper)
       hk = new ThreadedHousekeeper();
+
+    props.put(Settings.PARSED_SQL_CACHE, parsedSqlCache);
 
     return ConnectionUtil.createConnection(url, props, hk);
   }
