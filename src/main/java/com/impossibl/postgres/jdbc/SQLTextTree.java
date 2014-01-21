@@ -122,10 +122,7 @@ public class SQLTextTree {
     @Override
     public Node copy() {
       CompositeNode clone = new CompositeNode(getStartPos());
-      clone.nodes = new ArrayList<>(nodes.size());
-      for (Node node : nodes) {
-        clone.nodes.add((Node) node.copy());
-      }
+      copyNodes(clone);
       return clone;
     }
 
