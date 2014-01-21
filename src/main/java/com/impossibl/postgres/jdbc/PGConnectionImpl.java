@@ -270,9 +270,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @return New unique statement name
    */
   String getNextStatementName() {
-    StringBuilder sb = new StringBuilder("0000000000000000");
-    sb.append(Long.toHexString(++statementId));
-    return sb.substring(sb.length() - 16);
+    return Long.toHexString(++statementId);
   }
 
   /**
@@ -281,7 +279,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @return New unique portal name
    */
   String getNextPortalName() {
-    return String.format("%016X", ++portalId);
+    return Long.toHexString(++portalId);
   }
 
   /**
