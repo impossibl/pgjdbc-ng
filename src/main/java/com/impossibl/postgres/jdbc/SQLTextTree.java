@@ -54,6 +54,10 @@ public class SQLTextTree {
       this.endPos = endPos;
     }
 
+    public Node copy() {
+      return this;
+    }
+
     public int getStartPos() {
       return startPos;
     }
@@ -113,6 +117,23 @@ public class SQLTextTree {
     public CompositeNode(List<Node> nodes, int startPos) {
       super(startPos, -1);
       this.nodes = nodes;
+    }
+
+    @Override
+    public Node copy() {
+      CompositeNode clone = new CompositeNode(getStartPos());
+      clone.nodes = new ArrayList<>(nodes.size());
+      for (Node node : nodes) {
+        clone.nodes.add((Node) node.copy());
+      }
+      return clone;
+    }
+
+    protected void copyNodes(CompositeNode newNode) {
+      newNode.nodes = new ArrayList<>(nodes.size());
+      for (Node node : nodes) {
+        newNode.nodes.add((Node) node.copy());
+      }
     }
 
     @Override
@@ -234,6 +255,13 @@ public class SQLTextTree {
     }
 
     @Override
+    public Node copy() {
+      MultiStatementNode clone = new MultiStatementNode(getStartPos());
+      copyNodes(clone);
+      return clone;
+    }
+
+    @Override
     void build(StringBuilder builder) {
 
       Iterator<Node> nodeIter = iterator();
@@ -252,12 +280,25 @@ public class SQLTextTree {
       super(startPos);
     }
 
+    @Override
+    public Node copy() {
+      StatementNode clone = new StatementNode(getStartPos());
+      copyNodes(clone);
+      return clone;
+    }
   }
 
   public static class EscapeNode extends CompositeNode {
 
     public EscapeNode(int startPos) {
       super(startPos);
+    }
+
+    @Override
+    public Node copy() {
+      EscapeNode clone = new EscapeNode(getStartPos());
+      copyNodes(clone);
+      return clone;
     }
 
     @Override
@@ -276,6 +317,13 @@ public class SQLTextTree {
 
     public ParenGroupNode(int startPos) {
       super(startPos);
+    }
+
+    @Override
+    public Node copy() {
+      ParenGroupNode clone = new ParenGroupNode(getStartPos());
+      copyNodes(clone);
+      return clone;
     }
 
     @Override
@@ -334,6 +382,11 @@ public class SQLTextTree {
     ParameterPiece(int idx, int pos) {
       super("$" + idx, pos);
       this.idx = idx;
+    }
+
+    @Override
+    public Node copy() {
+      return new ParameterPiece(idx, getStartPos());
     }
 
     public int getIdx() {

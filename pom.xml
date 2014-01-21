@@ -64,6 +64,11 @@
 			<artifactId>netty</artifactId>
 			<version>3.8.0.Final</version>
 		</dependency>
+        <dependency>
+        	<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+        	<artifactId>concurrentlinkedhashmap-lru</artifactId>
+        	<version>1.4</version>
+        </dependency>
 	</dependencies>
 
 	<build>

@@ -95,6 +95,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 
 import static java.lang.Boolean.parseBoolean;
@@ -105,6 +106,8 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
 import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
@@ -165,6 +168,13 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
+  static final ConcurrentMap<String, SQLText> parsedSqlCache;
+
+  static {
+    parsedSqlCache = new ConcurrentLinkedHashMap.Builder<String, SQLText>()
+        .maximumWeightedCapacity(500)
+        .build();
+  }
 
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
@@ -335,8 +345,16 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
+
     try {
-      return new SQLText(sqlText);
+      SQLText parsedSql = parsedSqlCache.get(sqlText);
+      if (parsedSql != null) {
+        return parsedSql.copy();
+      }
+
+      parsedSql = new SQLText(sqlText);
+      parsedSqlCache.put(sqlText, parsedSql);
+      return parsedSql.copy();
     }
     catch (ParseException e) {
 
