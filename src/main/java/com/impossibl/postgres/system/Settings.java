@@ -40,6 +40,8 @@ public class Settings {
 
   public static final String CONNECTION_READONLY = "readOnly";
 
+  public static final String PARSED_SQL_CACHE = "parsedSqlCacheSize";
+
   public static final String CLIENT_ENCODING = "client_encoding";
   public static final String APPLICATION_NAME = "application_name";
 
