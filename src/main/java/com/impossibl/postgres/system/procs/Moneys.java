@@ -41,7 +41,7 @@ import java.math.BigInteger;
 
 import static java.math.RoundingMode.HALF_UP;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Moneys extends SimpleProcProvider {
 
@@ -62,7 +62,7 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -94,7 +94,7 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

@@ -65,10 +65,10 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.handler.ssl.SslHandler;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.handler.ssl.SslHandler;
 
 public class ProtocolFactoryImpl implements ProtocolFactory {
 
@@ -96,14 +96,12 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
       ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
 
-      ClientBootstrap clientBootstrap = sharedRef.get().getBootstrap();
+      Bootstrap clientBootstrap = sharedRef.get().getBootstrap();
 
       ChannelFuture connectFuture = clientBootstrap.connect(address).syncUninterruptibly();
 
-      Channel channel = connectFuture.getChannel();
-      ProtocolImpl protocol = new ProtocolImpl(sharedRef, channel, context);
-
-      channel.setAttachment(protocol);
+      Channel channel = connectFuture.channel();
+      ProtocolImpl protocol = ProtocolImpl.newInstance(sharedRef, channel, context);
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
@@ -127,11 +125,11 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
           final SslHandler sslHandler = new SslHandler(sslEngine);
 
-          channel.getPipeline().addFirst("ssl", sslHandler);
+          channel.pipeline().addFirst("ssl", sslHandler);
 
           try {
 
-            sslHandler.handshake().syncUninterruptibly();
+            sslHandler.handshakeFuture().syncUninterruptibly();
 
           }
           catch (Exception e) {
@@ -158,7 +156,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
         if (sslMode == SSLMode.VerifyFull) {
 
-          SslHandler sslHandler = channel.getPipeline().get(SslHandler.class);
+          SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
           if (sslHandler != null) {
 
             String hostname;
@@ -169,7 +167,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
               hostname = "";
             }
 
-            verifyHostname(hostname, sslHandler.getEngine().getSession());
+            verifyHostname(hostname, sslHandler.engine().getSession());
           }
 
         }

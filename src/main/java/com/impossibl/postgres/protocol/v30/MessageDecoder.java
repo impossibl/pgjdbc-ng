@@ -28,24 +28,40 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.handler.codec.replay.ReplayingDecoder;
-import org.jboss.netty.handler.codec.replay.VoidEnum;
+import java.util.List;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 
-public class MessageDecoder extends ReplayingDecoder<VoidEnum> {
+public class MessageDecoder extends ByteToMessageDecoder {
+  private enum State {
+      HEADER,
+      BODY
+  }
+  private State state = State.HEADER;
+  private byte id;
+  private int length;
 
   @Override
-  protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer, VoidEnum state) throws Exception {
-
-    byte id = buffer.readByte();
-    int length = buffer.readInt() - 4;
-
-    ChannelBuffer dataBuffer = buffer.readBytes(length);
-
-    return new ResponseMessage(id, dataBuffer);
+  protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
+    switch (state) {
+      case HEADER:
+        if (buffer.readableBytes() < 5) {
+          return;
+        }
+        id = buffer.readByte();
+        length = buffer.readInt() - 4;
+        state = State.BODY;
+        // fall through
+      case BODY:
+        if (buffer.readableBytes() < length) {
+          return;
+        }
+        ByteBuf dataBuffer = buffer.readBytes(length);
+        out.add(new ResponseMessage(id, dataBuffer));
+        state = State.HEADER;
+    }
   }
 
 }

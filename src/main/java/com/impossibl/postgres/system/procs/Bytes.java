@@ -43,9 +43,9 @@ import java.util.Arrays;
 
 import static java.lang.Math.min;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferInputStream;
-import org.jboss.netty.buffer.ChannelBufferOutputStream;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.ByteBufOutputStream;
 
 public class Bytes extends SimpleProcProvider {
 
@@ -69,7 +69,7 @@ public class Bytes extends SimpleProcProvider {
     }
 
     @Override
-    public InputStream decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public InputStream decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -85,10 +85,16 @@ public class Bytes extends SimpleProcProvider {
         readLength = length;
       }
 
-      ChannelBuffer data = buffer.readBytes(readLength);
+      final ByteBuf data = buffer.readBytes(readLength);
       buffer.skipBytes(length - readLength);
 
-      return new ChannelBufferInputStream(data);
+      return new ByteBufInputStream(data) {
+        @Override
+        public void close() throws IOException {
+          super.close();
+          data.release();
+        }
+      };
     }
 
   }
@@ -106,7 +112,7 @@ public class Bytes extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 
@@ -143,7 +149,7 @@ public class Bytes extends SimpleProcProvider {
         buffer.writeInt(totalLength);
 
         // Copy stream to buffer
-        long totalRead = ByteStreams.copy(in, new ChannelBufferOutputStream(buffer));
+        long totalRead = ByteStreams.copy(in, new ByteBufOutputStream(buffer));
 
         if (totalLength != totalRead) {
           throw new IOException("invalid stream length");

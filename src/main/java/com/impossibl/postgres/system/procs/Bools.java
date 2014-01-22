@@ -36,7 +36,7 @@ import static com.impossibl.postgres.types.PrimitiveType.Bool;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Bools extends SimpleProcProvider {
 
@@ -57,7 +57,7 @@ public class Bools extends SimpleProcProvider {
     }
 
     @Override
-    public Boolean decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Boolean decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -85,7 +85,7 @@ public class Bools extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

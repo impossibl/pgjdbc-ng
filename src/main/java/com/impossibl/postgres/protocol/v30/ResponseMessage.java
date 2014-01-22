@@ -28,14 +28,14 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class ResponseMessage {
 
   public byte id;
-  public ChannelBuffer data;
+  public ByteBuf data;
 
-  public ResponseMessage(byte id, ChannelBuffer data) {
+  public ResponseMessage(byte id, ByteBuf data) {
     super();
     this.id = id;
     this.data = data;

@@ -35,7 +35,7 @@ import com.impossibl.postgres.types.Type;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class UUIDs extends SimpleProcProvider {
 
@@ -56,7 +56,7 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public UUID decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public UUID decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -84,7 +84,7 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

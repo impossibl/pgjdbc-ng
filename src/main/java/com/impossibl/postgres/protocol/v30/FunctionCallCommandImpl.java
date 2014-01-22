@@ -36,8 +36,7 @@ import com.impossibl.postgres.types.Type;
 import java.io.IOException;
 import java.util.List;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class FunctionCallCommandImpl extends CommandImpl implements FunctionCallCommand {
 
@@ -118,7 +117,7 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
     if (procId == 0)
       throw new IOException("invalid function name");
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ByteBuf msg = protocol.channel.alloc().buffer();
 
     protocol.writeFunctionCall(msg, procId, parameterTypes, parameterValues);
 

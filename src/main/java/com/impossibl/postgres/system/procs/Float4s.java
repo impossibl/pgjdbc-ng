@@ -34,7 +34,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Float4s extends SimpleProcProvider {
 
@@ -55,7 +55,7 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public Float decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Float decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -83,7 +83,7 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

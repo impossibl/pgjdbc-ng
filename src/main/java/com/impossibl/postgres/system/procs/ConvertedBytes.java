@@ -39,7 +39,7 @@ import java.io.IOException;
 
 import static java.lang.Math.min;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class ConvertedBytes extends SimpleProcProvider {
 
@@ -63,7 +63,7 @@ public class ConvertedBytes extends SimpleProcProvider {
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -101,7 +101,7 @@ public class ConvertedBytes extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

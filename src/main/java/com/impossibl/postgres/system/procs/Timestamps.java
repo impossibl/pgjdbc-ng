@@ -50,7 +50,7 @@ import java.util.TimeZone;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Timestamps extends SettingSelectProcProvider {
 
@@ -85,7 +85,7 @@ public class Timestamps extends SettingSelectProcProvider {
     }
 
     @Override
-    public Instant decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Instant decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -127,7 +127,7 @@ public class Timestamps extends SettingSelectProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
       if (val == null) {
 
         buffer.writeInt(-1);

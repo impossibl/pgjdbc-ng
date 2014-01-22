@@ -43,7 +43,7 @@ import java.util.List;
 
 import static java.lang.reflect.Array.newInstance;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 /*
  * Array codec
@@ -68,7 +68,7 @@ public class Arrays extends SimpleProcProvider {
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
 
@@ -120,7 +120,7 @@ public class Arrays extends SimpleProcProvider {
       return instance;
     }
 
-    Object readArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
+    Object readArray(ByteBuf buffer, Type type, int[] dims, Context context) throws IOException {
 
       if (dims.length == 0) {
         return readElements(buffer, type, 0, context);
@@ -134,7 +134,7 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    Object readSubArray(ChannelBuffer buffer, Type type, int[] dims, Context context) throws IOException {
+    Object readSubArray(ByteBuf buffer, Type type, int[] dims, Context context) throws IOException {
 
       Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
       Object inst = newInstance(elementClass, dims);
@@ -150,7 +150,7 @@ public class Arrays extends SimpleProcProvider {
       return inst;
     }
 
-    Object readElements(ChannelBuffer buffer, Type type, int len, Context context) throws IOException {
+    Object readElements(ByteBuf buffer, Type type, int len, Context context) throws IOException {
 
       Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
       Object inst = newInstance(elementClass, len);
@@ -179,7 +179,7 @@ public class Arrays extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       buffer.writeInt(-1);
 
@@ -234,7 +234,7 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    void writeArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+    void writeArray(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
 
       if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().encoder.getInputType().isArray()) {
 
@@ -247,7 +247,7 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    void writeElements(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+    void writeElements(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
 
       int len = Array.getLength(val);
 
@@ -258,7 +258,7 @@ public class Arrays extends SimpleProcProvider {
 
     }
 
-    void writeSubArray(ChannelBuffer buffer, Type type, Object val, Context context) throws IOException {
+    void writeSubArray(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
 
       int len = Array.getLength(val);
 

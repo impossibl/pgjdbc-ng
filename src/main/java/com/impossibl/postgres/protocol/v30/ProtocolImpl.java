@@ -52,8 +52,8 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
-import static com.impossibl.postgres.utils.ChannelBuffers.readCString;
-import static com.impossibl.postgres.utils.ChannelBuffers.writeCString;
+import static com.impossibl.postgres.utils.ByteBufs.readCString;
+import static com.impossibl.postgres.utils.ByteBufs.writeCString;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.DataOutputStream;
@@ -64,7 +64,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -73,18 +75,17 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.FINEST;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.TimerTask;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.util.AttributeKey;
 
 public class ProtocolImpl implements Protocol {
 
+  private static AttributeKey<ProtocolImpl> PROTOCOL_KEY = AttributeKey.valueOf("protocol");
   private static Logger logger = Logger.getLogger(ProtocolImpl.class.getName());
 
-  public abstract static class ExecutionTimerTask implements TimerTask {
+  public abstract static class ExecutionTimerTask implements Callable<Void> {
 
     enum State {
       NotStarted,
@@ -99,14 +100,14 @@ public class ProtocolImpl implements Protocol {
     public abstract void run();
 
     @Override
-    public void run(Timeout timeout) throws Exception {
+    public Void call() throws Exception {
 
       try {
 
         thread = Thread.currentThread();
 
         if (!state.compareAndSet(State.NotStarted, State.Running))
-          return;
+          return null;
 
         run();
 
@@ -120,7 +121,7 @@ public class ProtocolImpl implements Protocol {
           state.notify();
         }
       }
-
+      return null;
     }
 
     void cancel() {
@@ -189,20 +190,23 @@ public class ProtocolImpl implements Protocol {
 
   };
 
+  private final InetSocketAddress remote;
   AtomicBoolean connected = new AtomicBoolean(true);
   ProtocolShared.Ref sharedRef;
   Channel channel;
   WeakReference<BasicContext> contextRef;
   TransactionStatus txStatus;
   ProtocolListener listener;
-  Timeout executionTimeout;
+  ScheduledFuture<?> executionTimeout;
+  ExecutionTimerTask task;
   Throwable lastException;
 
-  public ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
+  private ProtocolImpl(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
     this.sharedRef = sharedRef;
     this.channel = channel;
     this.contextRef = new WeakReference<>(context);
     this.txStatus = Idle;
+    this.remote = (InetSocketAddress) channel.remoteAddress();
   }
 
   public BasicContext getContext() {
@@ -227,9 +231,9 @@ public class ProtocolImpl implements Protocol {
     }
 
     try {
-      ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+      ByteBuf msg = channel.alloc().buffer();
       writeTerminate(msg);
-      channel.write(msg).addListener(ChannelFutureListener.CLOSE);
+      channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE);
     }
     catch (Exception e) {
       //Close anyway...
@@ -323,8 +327,8 @@ public class ProtocolImpl implements Protocol {
     if (executionTimeout != null) {
       throw new IllegalStateException("execution timer already enabled");
     }
-
-    executionTimeout = sharedRef.get().getTimer().newTimeout(task, timeout, MILLISECONDS);
+    this.task = task;
+    executionTimeout = channel.eventLoop().schedule(task, timeout, MILLISECONDS);
   }
 
   public void cancelExecutionTimer() {
@@ -332,15 +336,15 @@ public class ProtocolImpl implements Protocol {
     if (executionTimeout != null) {
 
       try {
-        executionTimeout.cancel();
+        executionTimeout.cancel(true);
 
         //Ensure any task that is currently running also gets
         //completely cancelled, or finishes, before returning
-        ExecutionTimerTask task = (ExecutionTimerTask) executionTimeout.getTask();
         task.cancel();
 
       }
       finally {
+        task = null;
         executionTimeout = null;
       }
 
@@ -404,14 +408,14 @@ public class ProtocolImpl implements Protocol {
     return txStatus;
   }
 
-  public void writeSSLRequest(ChannelBuffer msg) throws IOException {
+  public void writeSSLRequest(ByteBuf msg) throws IOException {
 
     msg.writeInt(8);
     msg.writeInt(80877103);
 
   }
 
-  public void writeStartup(ChannelBuffer msg, Map<String, Object> params) throws IOException {
+  public void writeStartup(ByteBuf msg, Map<String, Object> params) throws IOException {
 
     Context context = getContext();
 
@@ -435,7 +439,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writePassword(ChannelBuffer msg, String password) throws IOException {
+  public void writePassword(ByteBuf msg, String password) throws IOException {
 
     Context context = getContext();
 
@@ -449,7 +453,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeQuery(ChannelBuffer msg, String query) throws IOException {
+  public void writeQuery(ByteBuf msg, String query) throws IOException {
 
     Context context = getContext();
 
@@ -463,7 +467,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeParse(ChannelBuffer msg, String stmtName, String query, List<Type> paramTypes) throws IOException {
+  public void writeParse(ByteBuf msg, String stmtName, String query, List<Type> paramTypes) throws IOException {
 
     Context context = getContext();
 
@@ -484,7 +488,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeBind(ChannelBuffer msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats, boolean computeLength) throws IOException {
+  public void writeBind(ByteBuf msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats, boolean computeLength) throws IOException {
 
     Context context = getContext();
 
@@ -520,7 +524,7 @@ public class ProtocolImpl implements Protocol {
 
   }
 
-  private void writeBind(ChannelBuffer msg, byte[] portalNameBytes, byte[] stmtNameBytes, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats,
+  private void writeBind(ByteBuf msg, byte[] portalNameBytes, byte[] stmtNameBytes, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats,
       Context context) throws IOException {
 
     writeCString(msg, portalNameBytes);
@@ -544,7 +548,7 @@ public class ProtocolImpl implements Protocol {
 
   }
 
-  public void writeDescribe(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
+  public void writeDescribe(ByteBuf msg, ServerObjectType target, String targetName) throws IOException {
 
     Context context = getContext();
 
@@ -559,7 +563,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeExecute(ChannelBuffer msg, String portalName, int maxRows) throws IOException {
+  public void writeExecute(ByteBuf msg, String portalName, int maxRows) throws IOException {
 
     Context context = getContext();
 
@@ -574,7 +578,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeFunctionCall(ChannelBuffer msg, int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
+  public void writeFunctionCall(ByteBuf msg, int functionId, List<Type> paramTypes, List<Object> paramValues) throws IOException {
 
     Context context = getContext();
 
@@ -589,7 +593,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeClose(ChannelBuffer msg, ServerObjectType target, String targetName) throws IOException {
+  public void writeClose(ByteBuf msg, ServerObjectType target, String targetName) throws IOException {
 
     Context context = getContext();
 
@@ -604,7 +608,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeFlush(ChannelBuffer msg) throws IOException {
+  public void writeFlush(ByteBuf msg) throws IOException {
 
     if (logger.isLoggable(FINEST))
       logger.finest("FLUSH");
@@ -612,7 +616,7 @@ public class ProtocolImpl implements Protocol {
     writeMessage(msg, FLUSH_MSG_ID);
   }
 
-  public void writeSync(ChannelBuffer msg) throws IOException {
+  public void writeSync(ByteBuf msg) throws IOException {
 
     if (logger.isLoggable(FINEST))
       logger.finest("SYNC");
@@ -620,7 +624,7 @@ public class ProtocolImpl implements Protocol {
     writeMessage(msg, SYNC_MSG_ID);
   }
 
-  public void writeTerminate(ChannelBuffer msg) throws IOException {
+  public void writeTerminate(ByteBuf msg) throws IOException {
 
     if (logger.isLoggable(FINEST))
       logger.finest("TERM");
@@ -628,8 +632,8 @@ public class ProtocolImpl implements Protocol {
     writeMessage(msg, TERMINATE_MSG_ID);
   }
 
-  public void send(ChannelBuffer msg) throws IOException {
-    channel.write(msg);
+  public void send(ByteBuf msg) throws IOException {
+    channel.writeAndFlush(msg);
   }
 
   void sendCancelRequest() {
@@ -638,12 +642,11 @@ public class ProtocolImpl implements Protocol {
 
     logger.finer("CANCEL");
 
-    InetSocketAddress serverAddress = (InetSocketAddress)channel.getRemoteAddress();
     KeyData keyData = context.getKeyData();
 
     logger.finest("OPEN-SOCKET");
 
-    try (Socket abortSocket = new Socket(serverAddress.getAddress(), serverAddress.getPort())) {
+    try (Socket abortSocket = new Socket(remote.getAddress(), remote.getPort())) {
 
       logger.finest("SEND-DATA");
 
@@ -661,7 +664,7 @@ public class ProtocolImpl implements Protocol {
 
   }
 
-  protected void loadParams(ChannelBuffer buffer, List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
+  protected void loadParams(ByteBuf buffer, List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
 
     // Select format for parameters
     if (paramTypes == null) {
@@ -725,17 +728,17 @@ public class ProtocolImpl implements Protocol {
     return length;
   }
 
-  protected void writeMessage(ChannelBuffer msg, byte msgId) throws IOException {
+  protected void writeMessage(ByteBuf msg, byte msgId) throws IOException {
 
     msg.writeByte(msgId);
     msg.writeInt(4);
   }
 
-  protected void beginMessage(ChannelBuffer msg, byte msgId) {
+  protected void beginMessage(ByteBuf msg, byte msgId) {
     beginMessage(msg, msgId, -1);
   }
 
-  protected void beginMessage(ChannelBuffer msg, byte msgId, int length) {
+  protected void beginMessage(ByteBuf msg, byte msgId, int length) {
 
     if (msgId != 0)
       msg.writeByte(msgId);
@@ -745,7 +748,7 @@ public class ProtocolImpl implements Protocol {
     msg.writeInt(length);
   }
 
-  protected void endMessage(ChannelBuffer msg) throws IOException {
+  protected void endMessage(ByteBuf msg) throws IOException {
 
     int endPos = msg.writerIndex();
 
@@ -851,7 +854,7 @@ public class ProtocolImpl implements Protocol {
     }
   }
 
-  private void receiveAuthentication(ChannelBuffer buffer) throws IOException {
+  private void receiveAuthentication(ByteBuf buffer) throws IOException {
 
     int code = buffer.readInt();
     switch (code) {
@@ -917,7 +920,7 @@ public class ProtocolImpl implements Protocol {
     }
   }
 
-  private void receiveBackendKeyData(ChannelBuffer buffer) throws IOException {
+  private void receiveBackendKeyData(ByteBuf buffer) throws IOException {
 
     int processId = buffer.readInt();
     int secretKey = buffer.readInt();
@@ -925,7 +928,7 @@ public class ProtocolImpl implements Protocol {
     listener.backendKeyData(processId, secretKey);
   }
 
-  private void receiveError(ChannelBuffer buffer) throws IOException {
+  private void receiveError(ByteBuf buffer) throws IOException {
 
     Notice notice = parseNotice(buffer);
 
@@ -934,7 +937,7 @@ public class ProtocolImpl implements Protocol {
     listener.error(notice);
   }
 
-  private void receiveNotice(ChannelBuffer buffer) throws IOException {
+  private void receiveNotice(ByteBuf buffer) throws IOException {
 
     Notice notice = parseNotice(buffer);
 
@@ -943,7 +946,7 @@ public class ProtocolImpl implements Protocol {
     listener.notice(notice);
   }
 
-  private void receiveParameterDescriptions(ChannelBuffer buffer) throws IOException {
+  private void receiveParameterDescriptions(ByteBuf buffer) throws IOException {
 
     Context context = getContext();
 
@@ -962,7 +965,7 @@ public class ProtocolImpl implements Protocol {
     listener.parametersDescription(asList(paramTypes));
   }
 
-  private void receiveRowDescription(ChannelBuffer buffer) throws IOException {
+  private void receiveRowDescription(ByteBuf buffer) throws IOException {
 
     Context context = getContext();
 
@@ -991,49 +994,49 @@ public class ProtocolImpl implements Protocol {
     listener.rowDescription(asList(fields));
   }
 
-  private void receiveRowData(ChannelBuffer buffer) throws IOException {
+  private void receiveRowData(ByteBuf buffer) throws IOException {
     logger.finest("DATA");
     listener.rowData(buffer);
   }
 
-  private void receivePortalSuspended(ChannelBuffer buffer) throws IOException {
+  private void receivePortalSuspended(ByteBuf buffer) throws IOException {
     logger.finest("SUSPEND");
     listener.portalSuspended();
   }
 
-  private void receiveNoData(ChannelBuffer buffer) throws IOException {
+  private void receiveNoData(ByteBuf buffer) throws IOException {
     logger.finest("NO-DATA");
     listener.noData();
   }
 
-  private void receiveCloseComplete(ChannelBuffer buffer) throws IOException {
+  private void receiveCloseComplete(ByteBuf buffer) throws IOException {
     logger.finest("CLOSE-COMP");
     listener.closeComplete();
   }
 
-  private void receiveBindComplete(ChannelBuffer buffer) throws IOException {
+  private void receiveBindComplete(ByteBuf buffer) throws IOException {
     logger.finest("BIND-COMP");
     listener.bindComplete();
   }
 
-  private void receiveParseComplete(ChannelBuffer buffer) throws IOException {
+  private void receiveParseComplete(ByteBuf buffer) throws IOException {
     logger.finest("PARSE-COMP");
     listener.parseComplete();
   }
 
-  private void receiveEmptyQuery(ChannelBuffer buffer) throws IOException {
+  private void receiveEmptyQuery(ByteBuf buffer) throws IOException {
     logger.finest("EMPTY");
     listener.emptyQuery();
   }
 
-  private void receiveFunctionResult(ChannelBuffer buffer) throws IOException {
+  private void receiveFunctionResult(ByteBuf buffer) throws IOException {
 
     logger.finest("FUNCTION-RES");
 
     listener.functionResult(buffer);
   }
 
-  private void receiveCommandComplete(ChannelBuffer buffer) throws IOException {
+  private void receiveCommandComplete(ByteBuf buffer) throws IOException {
 
     Context context = getContext();
 
@@ -1130,7 +1133,7 @@ public class ProtocolImpl implements Protocol {
     listener.commandComplete(command, rowsAffected, oid);
   }
 
-  protected void receiveNotification(ChannelBuffer buffer) throws IOException {
+  protected void receiveNotification(ByteBuf buffer) throws IOException {
 
     Context context = getContext();
 
@@ -1145,7 +1148,7 @@ public class ProtocolImpl implements Protocol {
     context.reportNotification(processId, channelName, payload);
   }
 
-  private void receiveParameterStatus(ChannelBuffer buffer) throws IOException {
+  private void receiveParameterStatus(ByteBuf buffer) throws IOException {
 
     BasicContext context = getContext();
 
@@ -1155,7 +1158,7 @@ public class ProtocolImpl implements Protocol {
     context.updateSystemParameter(name, value);
   }
 
-  private void receiveReadyForQuery(ChannelBuffer buffer) throws IOException {
+  private void receiveReadyForQuery(ByteBuf buffer) throws IOException {
 
     switch(buffer.readByte()) {
       case 'T':
@@ -1176,7 +1179,7 @@ public class ProtocolImpl implements Protocol {
     listener.ready(txStatus);
   }
 
-  private Notice parseNotice(ChannelBuffer buffer) {
+  private Notice parseNotice(ByteBuf buffer) {
 
     Context context = getContext();
 
@@ -1258,4 +1261,13 @@ public class ProtocolImpl implements Protocol {
     return notice;
   }
 
+  static ProtocolImpl getAttached(Channel channel) {
+    return channel.attr(PROTOCOL_KEY).get();
+  }
+
+  static ProtocolImpl newInstance(ProtocolShared.Ref sharedRef, Channel channel, BasicContext context) {
+    ProtocolImpl impl = new ProtocolImpl(sharedRef, channel, context);
+    channel.attr(PROTOCOL_KEY).set(impl);
+    return impl;
+  }
 }

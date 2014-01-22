@@ -35,7 +35,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Domains extends SimpleProcProvider {
 
@@ -56,7 +56,7 @@ public class Domains extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object value, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object value, Context context) throws IOException {
 
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();

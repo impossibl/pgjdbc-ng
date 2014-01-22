@@ -40,8 +40,7 @@ import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import java.io.IOException;
 import java.util.Map;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
@@ -105,7 +104,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
         String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
 
-        ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+        ByteBuf msg = protocol.channel.alloc().buffer();
 
         protocol.writePassword(msg, password);
 
@@ -126,7 +125,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
         String response = MD5Authentication.encode(password, username, salt);
 
-        ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+        ByteBuf msg = protocol.channel.alloc().buffer();
 
         protocol.writePassword(msg, response);
 
@@ -153,7 +152,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ByteBuf msg = protocol.channel.alloc().buffer();
 
     protocol.writeStartup(msg, params);
 

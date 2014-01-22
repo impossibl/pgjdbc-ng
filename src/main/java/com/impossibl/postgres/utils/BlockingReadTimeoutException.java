@@ -26,46 +26,16 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol.v30;
+package com.impossibl.postgres.utils;
 
-import java.nio.channels.ClosedChannelException;
+import java.io.InterruptedIOException;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.ReferenceCountUtil;
+public class BlockingReadTimeoutException extends InterruptedIOException {
 
-
-public class MessageHandler extends ChannelInboundHandlerAdapter {
-
-  @Override
-  public void channelRead(ChannelHandlerContext ctx, Object message) throws Exception {
-    try {
-      ResponseMessage msg = (ResponseMessage) message;
-
-      ProtocolImpl protocol = ProtocolImpl.getAttached(ctx.channel());
-      protocol.dispatch(msg);
-    }
-    finally {
-      ReferenceCountUtil.release(message);
-    }
+  public BlockingReadTimeoutException() {
   }
 
-  @Override
-  public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
-    ProtocolImpl protocol = ProtocolImpl.getAttached(ctx.channel());
-    if (protocol != null) {
-      protocol.dispatchException(new ClosedChannelException());
-    }
+  public BlockingReadTimeoutException(String message) {
+    super(message);
   }
-
-  @Override
-  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-
-    ProtocolImpl protocol = ProtocolImpl.getAttached(ctx.channel());
-    if (protocol != null) {
-      protocol.dispatchException(cause);
-    }
-  }
-
 }

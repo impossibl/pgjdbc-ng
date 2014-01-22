@@ -32,9 +32,8 @@ import com.impossibl.postgres.api.data.Tid;
 
 import java.sql.RowId;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 
 /**
@@ -53,7 +52,7 @@ public class PGRowId implements RowId {
 
   @Override
   public byte[] getBytes() {
-    ChannelBuffer buf = ChannelBuffers.buffer(8);
+    ByteBuf buf = Unpooled.buffer(8);
     buf.writeInt(tid.block);
     buf.writeShort(tid.offset);
     return buf.array();

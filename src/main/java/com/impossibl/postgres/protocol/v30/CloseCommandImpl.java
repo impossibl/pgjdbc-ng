@@ -35,8 +35,7 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
@@ -100,7 +99,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ByteBuf msg = protocol.channel.alloc().buffer();
 
     protocol.writeClose(msg, objectType, objectName);
 

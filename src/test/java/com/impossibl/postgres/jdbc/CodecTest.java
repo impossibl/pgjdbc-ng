@@ -39,7 +39,7 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
-import com.impossibl.postgres.utils.NullChannelBuffer;
+import com.impossibl.postgres.utils.NullByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import java.io.ByteArrayInputStream;
@@ -67,8 +67,9 @@ import java.util.Random;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -248,7 +249,7 @@ public class CodecTest {
 
     Codec codec = type.getCodec(format);
 
-    ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+    ByteBuf buffer = Unpooled.buffer();
     codec.encoder.encode(type, buffer, value, conn);
     Object res = codec.decoder.decode(type, null, null, buffer, conn);
 
@@ -327,7 +328,7 @@ public class CodecTest {
     int length = codec.encoder.length(type, val, conn);
 
     // Compute length using null channel buffer
-    NullChannelBuffer lengthComputer = new NullChannelBuffer();
+    NullByteBuf lengthComputer = new NullByteBuf();
     codec.encoder.encode(type, lengthComputer, val, conn);
 
     assertEquals(typeName + " computes length incorrectly", lengthComputer.readableBytes(), length);
