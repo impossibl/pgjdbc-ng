@@ -43,8 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
@@ -147,7 +146,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ByteBuf msg = protocol.channel.alloc().buffer();
 
     protocol.writeParse(msg, statementName, query, parseParameterTypes);
 

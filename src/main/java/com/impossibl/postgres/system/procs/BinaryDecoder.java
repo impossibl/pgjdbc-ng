@@ -33,15 +33,15 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class BinaryDecoder implements Type.Codec.Decoder {
 
-  abstract Object decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException;
+  abstract Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException;
 
   @Override
   public Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException {
-    return decode(type, typeLength, typeModifier, (ChannelBuffer) buffer, context);
+    return decode(type, typeLength, typeModifier, (ByteBuf) buffer, context);
   }
 
 }

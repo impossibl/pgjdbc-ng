@@ -31,6 +31,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
+import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,8 +39,6 @@ import java.util.List;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.emptyList;
-
-import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 public abstract class CommandImpl implements Command {
 

@@ -33,7 +33,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class TextDecoder implements Type.Codec.Decoder {
 
@@ -42,7 +42,7 @@ public abstract class TextDecoder implements Type.Codec.Decoder {
   @Override
   public Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException {
 
-    if (buffer instanceof ChannelBuffer)  {
+    if (buffer instanceof ByteBuf)  {
 
       CharSequence textBuffer = (CharSequence) Strings.BINARY_DECODER.decode(type, typeLength, typeModifier, buffer, context);
       if (textBuffer == null)

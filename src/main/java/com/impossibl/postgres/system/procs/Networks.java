@@ -36,7 +36,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 abstract class Networks extends SimpleProcProvider {
   private static final short PGSQL_AF_INET = 2;
@@ -74,7 +74,7 @@ abstract class Networks extends SimpleProcProvider {
     }
 
     @Override
-    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -130,7 +130,7 @@ abstract class Networks extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
       if (val == null) {
         buffer.writeInt(-1);
       }

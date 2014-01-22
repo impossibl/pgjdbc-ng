@@ -72,10 +72,10 @@ import java.util.UUID;
 
 import static java.math.RoundingMode.HALF_EVEN;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferInputStream;
-import org.jboss.netty.buffer.ChannelBuffers;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.Unpooled;
 
 class SQLTypeUtils {
 
@@ -773,7 +773,7 @@ class SQLTypeUtils {
 
       // Encode into byte array using type encoder
 
-      ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+      final ByteBuf buffer = Unpooled.buffer();
 
       try {
         sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
@@ -785,7 +785,13 @@ class SQLTypeUtils {
       // Skip written length
       buffer.skipBytes(4);
 
-      return new ChannelBufferInputStream(buffer);
+      return new ByteBufInputStream(buffer) {
+        @Override
+        public void close() throws IOException {
+          super.close();
+          buffer.release();
+        }
+      };
     }
 
     throw createCoercionException(val.getClass(), byte[].class);
@@ -822,7 +828,7 @@ class SQLTypeUtils {
 
       // Encode into byte array using type encoder
 
-      ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+      ByteBuf buffer = Unpooled.buffer();
 
       try {
         sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
@@ -834,7 +840,9 @@ class SQLTypeUtils {
       // Skip written length
       buffer.skipBytes(4);
 
-      return buffer.readBytes(buffer.readableBytes()).array();
+      byte[] array = new byte[buffer.readableBytes()];
+      buffer.readBytes(array);
+      return array;
     }
 
     throw createCoercionException(val.getClass(), byte[].class);

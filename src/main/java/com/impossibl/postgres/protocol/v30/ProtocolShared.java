@@ -28,23 +28,18 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import static java.lang.Runtime.getRuntime;
 
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioWorkerPool;
-import org.jboss.netty.util.HashedWheelTimer;
-import org.jboss.netty.util.ThreadNameDeterminer;
-import org.jboss.netty.util.ThreadRenamingRunnable;
-import org.jboss.netty.util.Timer;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 public class ProtocolShared {
 
@@ -73,15 +68,10 @@ public class ProtocolShared {
     return instance.addReference();
   }
 
-  private Timer timer;
-  private ClientBootstrap bootstrap;
+  private Bootstrap bootstrap;
   private int count = 0;
 
-  public Timer getTimer() {
-    return timer;
-  }
-
-  public ClientBootstrap getBootstrap() {
+  public Bootstrap getBootstrap() {
     return bootstrap;
   }
 
@@ -104,35 +94,20 @@ public class ProtocolShared {
   }
 
   private void init() {
-
-    ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
-
-    timer = new HashedWheelTimer(new NamedThreadFactory("PG-JDBC Timer"));
-
-    Executor bossExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Boss"));
-    Executor workerExecutorService = Executors.newCachedThreadPool(new NamedThreadFactory("PG-JDBC Worker"));
-
     int workerCount = getRuntime().availableProcessors();
+    NioEventLoopGroup group = new NioEventLoopGroup(workerCount, new NamedThreadFactory("PG-JDBC EventLoop"));
 
-    ChannelFactory channelFactory = new NioClientSocketChannelFactory(bossExecutorService, 1, new NioWorkerPool(workerExecutorService, workerCount), timer);
-
-    bootstrap = new ClientBootstrap(channelFactory);
-    bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-
+    bootstrap = new Bootstrap();
+    bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
       @Override
-      public ChannelPipeline getPipeline() throws Exception {
-        return Channels.pipeline(new MessageDecoder(), new MessageHandler());
+      protected void initChannel(SocketChannel ch) throws Exception {
+        ch.pipeline().addLast(new MessageDecoder(), new MessageHandler());
       }
-
-    });
-
+    }).option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
   }
 
   private void shutdown() {
-
-    bootstrap.shutdown();
-
-    bootstrap.releaseExternalResources();
+    bootstrap.group().shutdownGracefully(10, 10, TimeUnit.MILLISECONDS);
   }
 
 }

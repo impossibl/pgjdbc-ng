@@ -37,66 +37,63 @@ import java.nio.InvalidMarkException;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
-import org.jboss.netty.buffer.AbstractChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferFactory;
-import org.jboss.netty.buffer.DuplicatedChannelBuffer;
-import org.jboss.netty.buffer.HeapChannelBufferFactory;
-import org.jboss.netty.buffer.WrappedChannelBuffer;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
+import io.netty.buffer.AbstractReferenceCountedByteBuf;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.DuplicatedByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
+public class StreamingByteBuf extends AbstractReferenceCountedByteBuf {
 
-
-public class StreamingChannelBuffer extends AbstractChannelBuffer implements WrappedChannelBuffer {
-
-  private final ChannelBufferFactory factory;
+  private final ByteBufAllocator allocator;
   private final ByteOrder endianness;
-  private ChannelBuffer buffer;
+  private ByteBuf buffer;
   private Channel streamChannel;
   private ChannelFuture lastStreamChannelWrite;
   private int totalWritten;
 
-  public StreamingChannelBuffer(Channel streamChannel, int estimatedLength) {
+  public StreamingByteBuf(Channel streamChannel, int estimatedLength) {
     this(streamChannel, ByteOrder.BIG_ENDIAN, estimatedLength);
   }
 
-  public StreamingChannelBuffer(Channel streamChannel, ByteOrder endianness, int estimatedLength) {
-    this(streamChannel, endianness, estimatedLength, HeapChannelBufferFactory.getInstance(endianness));
+  public StreamingByteBuf(Channel streamChannel, ByteOrder endianness, int estimatedLength) {
+    this(streamChannel, endianness, estimatedLength, streamChannel.alloc());
   }
 
-  public StreamingChannelBuffer(Channel streamChannel, ByteOrder endianness, int estimatedLength, ChannelBufferFactory factory) {
+  public StreamingByteBuf(Channel streamChannel, ByteOrder endianness, int estimatedLength, ByteBufAllocator allocator) {
+    super(Integer.MAX_VALUE);
     if (estimatedLength < 0) {
       throw new IllegalArgumentException("estimatedLength: " + estimatedLength);
     }
     if (endianness == null) {
       throw new NullPointerException("endianness");
     }
-    if (factory == null) {
-      throw new NullPointerException("factory");
+    if (allocator == null) {
+      throw new NullPointerException("allocator");
     }
-    this.factory = factory;
+    this.allocator = allocator;
     this.endianness = endianness;
     this.streamChannel = streamChannel;
-    buffer = factory.getBuffer(order(), estimatedLength);
+    buffer = allocator.buffer(estimatedLength).order(endianness);
   }
 
   public void flush() {
-    ensureWritableBytes(buffer.capacity());
+    ensureWritable(buffer.capacity());
   }
 
   @Override
-  public void resetReaderIndex() {
+  public ByteBuf resetReaderIndex() {
     throw new InvalidMarkException();
   }
 
   @Override
-  public void resetWriterIndex() {
+  public ByteBuf resetWriterIndex() {
     throw new InvalidMarkException();
   }
 
   @Override
-  public ChannelBuffer unwrap() {
+  public ByteBuf unwrap() {
     return buffer;
   }
 
@@ -105,14 +102,14 @@ public class StreamingChannelBuffer extends AbstractChannelBuffer implements Wra
   }
 
   @Override
-  public void ensureWritableBytes(int minWritableBytes) {
+  public ByteBuf ensureWritable(int minWritableBytes) {
 
     if (minWritableBytes > buffer.capacity()) {
       throw new IllegalArgumentException("illegal write size");
     }
 
     if (minWritableBytes <= writableBytes()) {
-      return;
+      return this;
     }
 
     if (lastStreamChannelWrite != null)
@@ -120,20 +117,21 @@ public class StreamingChannelBuffer extends AbstractChannelBuffer implements Wra
 
     totalWritten += readableBytes();
 
-    ChannelBuffer replacement = factory.getBuffer(order(), buffer.capacity());
+    ByteBuf replacement = alloc().buffer(buffer.capacity()).order(order());
 
     buffer.setIndex(readerIndex(), writerIndex());
 
-    lastStreamChannelWrite = streamChannel.write(buffer);
+    lastStreamChannelWrite = streamChannel.writeAndFlush(buffer);
 
     buffer = replacement;
 
     clear();
+    return this;
   }
 
   @Override
-  public ChannelBufferFactory factory() {
-    return factory;
+  public ByteBufAllocator alloc() {
+    return allocator;
   }
 
   @Override
@@ -192,18 +190,21 @@ public class StreamingChannelBuffer extends AbstractChannelBuffer implements Wra
   }
 
   @Override
-  public void getBytes(int index, byte[] dst, int dstIndex, int length) {
+  public ByteBuf getBytes(int index, byte[] dst, int dstIndex, int length) {
     buffer.getBytes(index, dst, dstIndex, length);
+    return this;
   }
 
   @Override
-  public void getBytes(int index, ChannelBuffer dst, int dstIndex, int length) {
+  public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
     buffer.getBytes(index, dst, dstIndex, length);
+    return this;
   }
 
   @Override
-  public void getBytes(int index, ByteBuffer dst) {
+  public ByteBuf getBytes(int index, ByteBuffer dst) {
     buffer.getBytes(index, dst);
+    return this;
   }
 
   @Override
@@ -212,48 +213,57 @@ public class StreamingChannelBuffer extends AbstractChannelBuffer implements Wra
   }
 
   @Override
-  public void getBytes(int index, OutputStream out, int length) throws IOException {
+  public ByteBuf getBytes(int index, OutputStream out, int length) throws IOException {
     buffer.getBytes(index, out, length);
+    return this;
   }
 
   @Override
-  public void setByte(int index, int value) {
+  public ByteBuf setByte(int index, int value) {
     buffer.setByte(index, value);
+    return this;
   }
 
   @Override
-  public void setShort(int index, int value) {
+  public ByteBuf setShort(int index, int value) {
     buffer.setShort(index, value);
+    return this;
   }
 
   @Override
-  public void setMedium(int index, int value) {
+  public ByteBuf setMedium(int index, int value) {
     buffer.setMedium(index, value);
+    return this;
   }
 
   @Override
-  public void setInt(int index, int value) {
+  public ByteBuf setInt(int index, int value) {
     buffer.setInt(index, value);
+    return this;
   }
 
   @Override
-  public void setLong(int index, long value) {
+  public ByteBuf setLong(int index, long value) {
     buffer.setLong(index, value);
+    return this;
   }
 
   @Override
-  public void setBytes(int index, byte[] src, int srcIndex, int length) {
+  public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
     buffer.setBytes(index, src, srcIndex, length);
+    return this;
   }
 
   @Override
-  public void setBytes(int index, ChannelBuffer src, int srcIndex, int length) {
+  public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
     buffer.setBytes(index, src, srcIndex, length);
+    return this;
   }
 
   @Override
-  public void setBytes(int index, ByteBuffer src) {
+  public ByteBuf setBytes(int index, ByteBuffer src) {
     buffer.setBytes(index, src);
+    return this;
   }
 
   @Override
@@ -267,89 +277,182 @@ public class StreamingChannelBuffer extends AbstractChannelBuffer implements Wra
   }
 
   @Override
-  public void writeByte(int value) {
-    ensureWritableBytes(1);
+  public ByteBuf writeByte(int value) {
+    ensureWritable(1);
     super.writeByte(value);
+    return this;
   }
 
   @Override
-  public void writeShort(int value) {
-    ensureWritableBytes(2);
+  public ByteBuf writeShort(int value) {
+    ensureWritable(2);
     super.writeShort(value);
+    return this;
   }
 
   @Override
-  public void writeMedium(int value) {
-    ensureWritableBytes(3);
+  public ByteBuf writeMedium(int value) {
+    ensureWritable(3);
     super.writeMedium(value);
+    return this;
   }
 
   @Override
-  public void writeInt(int value) {
-    ensureWritableBytes(4);
+  public ByteBuf writeInt(int value) {
+    ensureWritable(4);
     super.writeInt(value);
+    return this;
   }
 
   @Override
-  public void writeLong(long value) {
-    ensureWritableBytes(8);
+  public ByteBuf writeLong(long value) {
+    ensureWritable(8);
     super.writeLong(value);
+    return this;
   }
 
   @Override
-  public void writeBytes(byte[] src, int srcIndex, int length) {
-    ensureWritableBytes(length);
+  public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
+    ensureWritable(length);
     super.writeBytes(src, srcIndex, length);
+    return this;
   }
 
   @Override
-  public void writeBytes(ChannelBuffer src, int srcIndex, int length) {
-    ensureWritableBytes(length);
+  public ByteBuf writeBytes(ByteBuf src, int srcIndex, int length) {
+    ensureWritable(length);
     super.writeBytes(src, srcIndex, length);
+    return this;
   }
 
   @Override
-  public void writeBytes(ByteBuffer src) {
-    ensureWritableBytes(src.remaining());
+  public ByteBuf writeBytes(ByteBuffer src) {
+    ensureWritable(src.remaining());
     super.writeBytes(src);
+    return this;
   }
 
   @Override
   public int writeBytes(InputStream in, int length) throws IOException {
-    ensureWritableBytes(length);
+    ensureWritable(length);
     return super.writeBytes(in, length);
   }
 
   @Override
   public int writeBytes(ScatteringByteChannel in, int length) throws IOException {
-    ensureWritableBytes(length);
+    ensureWritable(length);
     return super.writeBytes(in, length);
   }
 
   @Override
-  public void writeZero(int length) {
-    ensureWritableBytes(length);
+  public ByteBuf writeZero(int length) {
+    ensureWritable(length);
     super.writeZero(length);
+    return this;
   }
 
   @Override
-  public ChannelBuffer duplicate() {
-    return new DuplicatedChannelBuffer(this);
+  public ByteBuf duplicate() {
+    return new DuplicatedByteBuf(this);
   }
 
   @Override
-  public ChannelBuffer copy(int index, int length) {
+  public ByteBuf copy(int index, int length) {
     return null;
   }
 
   @Override
-  public ChannelBuffer slice(int index, int length) {
+  public ByteBuf slice(int index, int length) {
     return null;
   }
 
   @Override
-  public ByteBuffer toByteBuffer(int index, int length) {
+  public ByteBuffer nioBuffer(int index, int length) {
     return null;
   }
 
+  @Override
+  protected byte _getByte(int index) {
+    return buffer.getByte(index);
+  }
+
+  @Override
+  protected short _getShort(int index) {
+    return buffer.getShort(index);
+  }
+
+  @Override
+  protected int _getUnsignedMedium(int index) {
+    return buffer.getUnsignedMedium(index);
+  }
+
+  @Override
+  protected int _getInt(int index) {
+    return buffer.getInt(index);
+  }
+
+  @Override
+  protected long _getLong(int index) {
+    return buffer.getLong(index);
+  }
+
+  @Override
+  protected void _setByte(int index, int value) {
+    buffer.setByte(index, value);
+  }
+
+  @Override
+  protected void _setShort(int index, int value) {
+    buffer.setShort(index, value);
+  }
+
+  @Override
+  protected void _setMedium(int index, int value) {
+    buffer.setMedium(index, value);
+  }
+
+  @Override
+  protected void _setInt(int index, int value) {
+    buffer.setInt(index, value);
+  }
+
+  @Override
+  protected void _setLong(int index, long value) {
+    buffer.setLong(index, value);
+  }
+
+  @Override
+  public ByteBuf capacity(int newCapacity) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int nioBufferCount() {
+    return 0;
+  }
+
+  @Override
+  public ByteBuffer internalNioBuffer(int index, int length) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ByteBuffer[] nioBuffers(int index, int length) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean hasMemoryAddress() {
+    return false;
+  }
+
+  @Override
+  public long memoryAddress() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected void deallocate() {
+    buffer.release();
+  }
 }

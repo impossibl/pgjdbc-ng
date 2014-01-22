@@ -30,24 +30,24 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.NullChannelBuffer;
+import com.impossibl.postgres.utils.NullByteBuf;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class BinaryEncoder implements Type.Codec.Encoder {
 
-  abstract void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException;
+  abstract void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException;
 
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
-    encode(type, (ChannelBuffer)buffer, value, context);
+    encode(type, (ByteBuf)buffer, value, context);
   }
 
   @Override
   public int length(Type type, Object val, Context context) throws IOException {
-    NullChannelBuffer computer = new NullChannelBuffer();
+    NullByteBuf computer = new NullByteBuf();
     encode(type, computer, val, context);
     return computer.readableBytes();
   }

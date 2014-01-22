@@ -42,6 +42,7 @@ import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
@@ -105,8 +106,6 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import org.jboss.netty.handler.queue.BlockingReadTimeoutException;
 
 /**
  * Connection implementation

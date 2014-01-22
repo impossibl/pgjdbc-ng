@@ -33,7 +33,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class TextEncoder implements Type.Codec.Encoder {
 
@@ -42,9 +42,9 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
 
-    if (buffer instanceof ChannelBuffer) {
+    if (buffer instanceof ByteBuf) {
 
-      ChannelBuffer channelBuffer = (ChannelBuffer) buffer;
+      ByteBuf channelBuffer = (ByteBuf) buffer;
 
       if (value == null) {
 

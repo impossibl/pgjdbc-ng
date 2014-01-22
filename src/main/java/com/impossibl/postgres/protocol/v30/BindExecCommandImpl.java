@@ -38,7 +38,7 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.StreamingChannelBuffer;
+import com.impossibl.postgres.utils.StreamingByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
@@ -55,8 +55,7 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
@@ -97,28 +96,32 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     }
 
     @Override
-    public void rowData(ChannelBuffer buffer) throws IOException {
+    public void rowData(ByteBuf buffer) throws IOException {
+      try {
+        int itemCount = buffer.readShort();
 
-      int itemCount = buffer.readShort();
+        Object rowInstance = createInstance(rowType, itemCount);
 
-      Object rowInstance = createInstance(rowType, itemCount);
+        for (int c = 0; c < itemCount; ++c) {
 
-      for (int c = 0; c < itemCount; ++c) {
+          ResultField field = resultBatch.fields.get(c);
 
-        ResultField field = resultBatch.fields.get(c);
+          Type fieldType = field.typeRef.get();
 
-        Type fieldType = field.typeRef.get();
+          Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
+          Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
 
-        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
+          resultSetters.get(c).set(rowInstance, fieldVal);
+        }
 
-        resultSetters.get(c).set(rowInstance, fieldVal);
+        @SuppressWarnings("unchecked")
+        List<Object> res = (List<Object>) resultBatch.results;
+        res.add(rowInstance);
       }
-
-      @SuppressWarnings("unchecked")
-      List<Object> res = (List<Object>) resultBatch.results;
-      res.add(rowInstance);
+      finally {
+        buffer.release();
+      }
     }
 
     @Override
@@ -298,13 +301,13 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer(DEFAULT_MESSAGE_SIZE);
+    ByteBuf msg = protocol.channel.alloc().buffer(DEFAULT_MESSAGE_SIZE);
 
     if (status != Status.Suspended) {
 
       if (shouldStreamBind(parsingContext, parameterValues)) {
 
-        StreamingChannelBuffer bindMsg = new StreamingChannelBuffer(protocol.channel, STREAM_MESSAGE_SIZE);
+        StreamingByteBuf bindMsg = new StreamingByteBuf(protocol.channel, STREAM_MESSAGE_SIZE);
 
         protocol.writeBind(bindMsg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
 

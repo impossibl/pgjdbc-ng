@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class HStores extends SimpleProcProvider {
 
@@ -63,7 +63,7 @@ public class HStores extends SimpleProcProvider {
     }
 
     @Override
-    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
       // length
       int length = buffer.readInt();
       if (length == -1) {
@@ -94,7 +94,7 @@ public class HStores extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
       // length
       buffer.writeInt(-1);
       if (val != null) {

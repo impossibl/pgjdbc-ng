@@ -39,8 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
 
 public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
@@ -65,7 +64,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     }
 
     @Override
-    public void rowData(ChannelBuffer buffer) throws IOException {
+    public void rowData(ByteBuf buffer) throws IOException {
 
       int fieldCount = buffer.readShort();
 
@@ -161,7 +160,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
     protocol.setListener(listener);
 
-    ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+    ByteBuf msg = protocol.channel.alloc().buffer();
 
     protocol.writeQuery(msg, command);
 

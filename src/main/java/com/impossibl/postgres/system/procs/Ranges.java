@@ -36,7 +36,7 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Ranges extends SimpleProcProvider {
 
@@ -57,7 +57,7 @@ public class Ranges extends SimpleProcProvider {
     }
 
     @Override
-    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
@@ -102,7 +102,7 @@ public class Ranges extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       buffer.writeInt(-1);
 

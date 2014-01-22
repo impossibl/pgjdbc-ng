@@ -35,7 +35,7 @@ import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 /**
  * @author croudet
@@ -98,7 +98,7 @@ public class LSegs extends SimpleProcProvider {
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public double[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
       int length = buffer.readInt();
       if (length == -1) {
         return null;
@@ -130,7 +130,7 @@ public class LSegs extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
       if (val == null) {
         buffer.writeInt(-1);
       }

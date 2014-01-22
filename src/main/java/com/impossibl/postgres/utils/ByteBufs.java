@@ -30,11 +30,11 @@ package com.impossibl.postgres.utils;
 
 import java.nio.charset.Charset;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
-public class ChannelBuffers {
+public class ByteBufs {
 
-  public static String readCString(ChannelBuffer buffer, Charset charset) {
+  public static String readCString(ByteBuf buffer, Charset charset) {
 
     byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
     buffer.readBytes(bytes);
@@ -44,12 +44,12 @@ public class ChannelBuffers {
     return res;
   }
 
-  public static void writeCString(ChannelBuffer buffer, String val, Charset charset) {
+  public static void writeCString(ByteBuf buffer, String val, Charset charset) {
 
     writeCString(buffer, val.getBytes(charset));
   }
 
-  public static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
+  public static void writeCString(ByteBuf buffer, byte[] valBytes) {
 
     buffer.writeBytes(valBytes);
     buffer.writeByte(0);

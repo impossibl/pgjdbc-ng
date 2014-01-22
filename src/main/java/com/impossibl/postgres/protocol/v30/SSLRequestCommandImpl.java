@@ -32,13 +32,9 @@ import com.impossibl.postgres.protocol.SSLRequestCommand;
 
 import java.io.IOException;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-
-
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
 public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestCommand {
 
@@ -56,13 +52,10 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
     try {
 
       // Add special channel handler to intercept SSL request responses
-      protocol.channel.getPipeline().addFirst("ssl-query", new SimpleChannelUpstreamHandler() {
+      protocol.channel.pipeline().addFirst("ssl-query", new SimpleChannelInboundHandler<ByteBuf>() {
 
         @Override
-        public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-
-          ChannelBuffer msg = (ChannelBuffer) e.getMessage();
-
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
           try {
 
             completed = true;
@@ -91,7 +84,7 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
 
       });
 
-      ChannelBuffer msg = ChannelBuffers.dynamicBuffer();
+      ByteBuf msg = protocol.channel.alloc().buffer();
 
       protocol.writeSSLRequest(msg);
 
@@ -116,7 +109,7 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
 
     }
     finally {
-      protocol.channel.getPipeline().remove("ssl-query");
+      protocol.channel.pipeline().remove("ssl-query");
     }
 
   }

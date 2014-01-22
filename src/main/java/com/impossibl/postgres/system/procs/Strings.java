@@ -43,7 +43,7 @@ import java.util.Map;
 
 import static java.lang.Math.min;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class Strings extends SimpleProcProvider {
 
@@ -67,7 +67,7 @@ public class Strings extends SimpleProcProvider {
     }
 
     @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, ChannelBuffer buffer, Context context) throws IOException {
+    public String decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -109,7 +109,7 @@ public class Strings extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ChannelBuffer buffer, Object val, Context context) throws IOException {
+    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 

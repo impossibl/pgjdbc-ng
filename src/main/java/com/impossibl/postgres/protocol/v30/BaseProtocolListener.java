@@ -36,7 +36,7 @@ import com.impossibl.postgres.protocol.TypeRef;
 import java.io.IOException;
 import java.util.List;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class BaseProtocolListener implements ProtocolListener {
 
@@ -82,7 +82,7 @@ public class BaseProtocolListener implements ProtocolListener {
   }
 
   @Override
-  public void rowData(ChannelBuffer buffer) throws IOException {
+  public void rowData(ByteBuf buffer) throws IOException {
   }
 
   @Override

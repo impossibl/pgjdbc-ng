@@ -36,15 +36,14 @@ import java.nio.ByteOrder;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
-import org.jboss.netty.buffer.AbstractChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferFactory;
+import io.netty.buffer.AbstractByteBuf;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 
-public class NullChannelBuffer extends AbstractChannelBuffer {
+public class NullByteBuf extends AbstractByteBuf {
 
-  @Override
-  public ChannelBufferFactory factory() {
-    return null;
+  public NullByteBuf() {
+    super(Integer.MAX_VALUE);
   }
 
   @Override
@@ -88,19 +87,23 @@ public class NullChannelBuffer extends AbstractChannelBuffer {
   }
 
   @Override
-  public void getBytes(int index, ChannelBuffer dst, int dstIndex, int length) {
+  public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
+    return this;
   }
 
   @Override
-  public void getBytes(int index, byte[] dst, int dstIndex, int length) {
+  public ByteBuf getBytes(int index, byte[] dst, int dstIndex, int length) {
+    return this;
   }
 
   @Override
-  public void getBytes(int index, ByteBuffer dst) {
+  public ByteBuf getBytes(int index, ByteBuffer dst) {
+    return this;
   }
 
   @Override
-  public void getBytes(int index, OutputStream out, int length) throws IOException {
+  public ByteBuf getBytes(int index, OutputStream out, int length) throws IOException {
+    return this;
   }
 
   @Override
@@ -109,35 +112,43 @@ public class NullChannelBuffer extends AbstractChannelBuffer {
   }
 
   @Override
-  public void setByte(int index, int value) {
+  public ByteBuf setByte(int index, int value) {
+    return this;
   }
 
   @Override
-  public void setShort(int index, int value) {
+  public ByteBuf setShort(int index, int value) {
+    return this;
   }
 
   @Override
-  public void setMedium(int index, int value) {
+  public ByteBuf setMedium(int index, int value) {
+    return this;
   }
 
   @Override
-  public void setInt(int index, int value) {
+  public ByteBuf setInt(int index, int value) {
+    return this;
   }
 
   @Override
-  public void setLong(int index, long value) {
+  public ByteBuf setLong(int index, long value) {
+    return this;
   }
 
   @Override
-  public void setBytes(int index, ChannelBuffer src, int srcIndex, int length) {
+  public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
+    return this;
   }
 
   @Override
-  public void setBytes(int index, byte[] src, int srcIndex, int length) {
+  public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
+    return this;
   }
 
   @Override
-  public void setBytes(int index, ByteBuffer src) {
+  public ByteBuf setBytes(int index, ByteBuffer src) {
+    return this;
   }
 
   @Override
@@ -151,22 +162,22 @@ public class NullChannelBuffer extends AbstractChannelBuffer {
   }
 
   @Override
-  public ChannelBuffer copy(int index, int length) {
+  public ByteBuf copy(int index, int length) {
     return null;
   }
 
   @Override
-  public ChannelBuffer slice(int index, int length) {
+  public ByteBuf slice(int index, int length) {
     return null;
   }
 
   @Override
-  public ChannelBuffer duplicate() {
+  public ByteBuf duplicate() {
     return null;
   }
 
   @Override
-  public ByteBuffer toByteBuffer(int index, int length) {
+  public ByteBuffer nioBuffer(int index, int length) {
     return null;
   }
 
@@ -185,4 +196,118 @@ public class NullChannelBuffer extends AbstractChannelBuffer {
     return 0;
   }
 
+  @Override
+  protected byte _getByte(int index) {
+    return 0;
+  }
+
+  @Override
+  protected short _getShort(int index) {
+    return 0;
+  }
+
+  @Override
+  protected int _getUnsignedMedium(int index) {
+    return 0;
+  }
+
+  @Override
+  protected int _getInt(int index) {
+    return 0;
+  }
+
+  @Override
+  protected long _getLong(int index) {
+    return 0;
+  }
+
+  @Override
+  protected void _setByte(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setShort(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setMedium(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setInt(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setLong(int index, long value) {
+
+  }
+
+  @Override
+  public ByteBuf capacity(int newCapacity) {
+    return null;
+  }
+
+  @Override
+  public ByteBufAllocator alloc() {
+    return null;
+  }
+
+  @Override
+  public ByteBuf unwrap() {
+    return null;
+  }
+
+  @Override
+  public int nioBufferCount() {
+    return 0;
+  }
+
+  @Override
+  public ByteBuffer internalNioBuffer(int index, int length) {
+    return null;
+  }
+
+  @Override
+  public ByteBuffer[] nioBuffers(int index, int length) {
+    return new ByteBuffer[0];
+  }
+
+  @Override
+  public boolean hasMemoryAddress() {
+    return false;
+  }
+
+  @Override
+  public long memoryAddress() {
+    return 0;
+  }
+
+  @Override
+  public ByteBuf retain(int increment) {
+    return null;
+  }
+
+  @Override
+  public ByteBuf retain() {
+    return null;
+  }
+
+  @Override
+  public int refCnt() {
+    return 0;
+  }
+
+  @Override
+  public boolean release() {
+    return false;
+  }
+
+  @Override
+  public boolean release(int decrement) {
+    return false;
+  }
 }
