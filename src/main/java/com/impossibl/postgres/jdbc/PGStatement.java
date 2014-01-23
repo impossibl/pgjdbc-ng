@@ -124,6 +124,8 @@ abstract class PGStatement implements Statement {
   QueryCommand command;
   List<QueryCommand.ResultBatch> resultBatches;
   boolean autoClose;
+  boolean isClosed;
+  boolean cached;
   List<WeakReference<PGResultSet>> activeResultSets;
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
@@ -285,12 +287,17 @@ abstract class PGStatement implements Statement {
 
     closeResultSets();
 
-    dispose(connection, Statement, name);
+    if (!cached) {
+      dispose(connection, Statement, name);
 
-    if (housekeeper != null)
-      housekeeper.remove(cleanupKey);
+      if (housekeeper != null) {
+        housekeeper.remove(cleanupKey);
+      }
 
-    connection = null;
+      connection = null;
+    }
+
+    isClosed = true;
     command = null;
     resultFields = null;
     resultBatches = null;
@@ -437,6 +444,7 @@ abstract class PGStatement implements Statement {
     checkClosed();
 
     autoClose = true;
+    cached = false;
   }
 
   @Override
@@ -624,7 +632,7 @@ abstract class PGStatement implements Statement {
 
   @Override
   public boolean isClosed() throws SQLException {
-    return connection == null;
+    return isClosed;
   }
 
   @Override

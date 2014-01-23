@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.Instants;
+import com.impossibl.postgres.jdbc.LruStatementCache.CacheKey;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -91,6 +92,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 
   String sqlText;
+  CacheKey cacheKey;
   List<Type> parameterTypes;
   List<Object> parameterValues;
   List<List<Type>> batchParameterTypes;
@@ -145,10 +147,17 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   void internalClose() throws SQLException {
 
-    super.internalClose();
+    if (cached) {
+      clearBatch();
+      clearParameters();
+      clearWarnings();
+    }
+    else {
+      parameterTypes = null;
+      parameterValues = null;
+    }
 
-    parameterTypes = null;
-    parameterValues = null;
+    super.internalClose();
   }
 
   void parseIfNeeded() throws SQLException {

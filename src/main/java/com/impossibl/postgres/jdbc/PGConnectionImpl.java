@@ -31,6 +31,8 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
+import com.impossibl.postgres.jdbc.LruStatementCache.CacheKey;
+import com.impossibl.postgres.jdbc.LruStatementCache.LruEvictionListener;
 import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
@@ -69,6 +71,7 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -114,7 +117,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
-public class PGConnectionImpl extends BasicContext implements PGConnection {
+public class PGConnectionImpl extends BasicContext implements PGConnection, LruEvictionListener {
 
   /**
    * Cleans up server resources in the event of leaking connections
@@ -154,6 +157,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   }
 
+  static final String[] NO_GENERATED_KEYS = null;
+  static final String[] SIMPLE_GENERATED_KEYS = new String[0];
 
   long statementId = 0L;
   long portalId = 0L;
@@ -163,6 +168,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
+  LruStatementCache preparedStatementCache;
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
@@ -172,6 +178,11 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
     this.activeStatements = new ArrayList<>();
+
+    final int stmtCacheSize = getSetting(PREPARED_STATEMENT_CACHE, 0);
+    if (stmtCacheSize > 0) {
+      this.preparedStatementCache = new LruStatementCache(stmtCacheSize, this);
+    }
 
     final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, 250);
     if (sqlCacheSize > 0) {
@@ -298,12 +309,29 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     return String.format("%016X", ++portalId);
   }
 
+  @Override
+  public void onEviction(PGPreparedStatement statement) {
+    try {
+      statement.cached = false;
+      statement.internalClose();
+    }
+    catch (SQLException e) {
+      // catch exception if throw during cache eviction, who could we throw it to?
+    }
+  }
+
   /**
    * Called by statements to notify the connection of their closure
    *
    * @param statement
    */
   void handleStatementClosure(PGStatement statement) {
+
+    if (preparedStatementCache != null && statement.cached) {
+      PGPreparedStatement preparedStatement = (PGPreparedStatement) statement;
+      preparedStatementCache.returnStatement(preparedStatement.cacheKey, preparedStatement);
+      return;
+    }
 
     //Remove given & abandoned statements
     Iterator<WeakReference<PGStatement>> statementRefIter = activeStatements.iterator();
@@ -348,6 +376,9 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    */
   void closeStatements() throws SQLException {
     closeStatements(activeStatements);
+    if (preparedStatementCache != null) {
+      preparedStatementCache.clear();
+    }
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
@@ -584,6 +615,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   void internalClose() throws SQLException {
 
     closeStatements();
+
+    preparedStatementCache = null;
 
     shutdown();
 
@@ -886,14 +919,35 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   @Override
   public PGPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+
+    return prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability, NO_GENERATED_KEYS);
+  }
+
+  private PGPreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability, String[] columnNames) throws SQLException {
     checkClosed();
+
+    CacheKey cacheKey = null;
+    if (preparedStatementCache != null) {
+      cacheKey = new LruStatementCache.CacheKey(sql, resultSetType, resultSetConcurrency, resultSetHoldability, columnNames);
+      PGPreparedStatement preparedStatement = preparedStatementCache.borrowStatement(cacheKey);
+      if (preparedStatement != null) {
+        preparedStatement.isClosed = false;
+        return preparedStatement;
+      }
+    }
 
     SQLText sqlText = parseSQL(sql);
 
-    return prepareStatement(sqlText, resultSetType, resultSetConcurrency, resultSetHoldability);
-  }
-
-  public PGPreparedStatement prepareStatement(SQLText sqlText, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+    if (columnNames == SIMPLE_GENERATED_KEYS) {
+      if (!appendReturningClause(sqlText)) {
+        throw INVALID_COMMAND_FOR_GENERATED_KEYS;
+      }
+    }
+    else if (columnNames != NO_GENERATED_KEYS) {
+      if (!appendReturningClause(sqlText, asList(columnNames))) {
+        throw INVALID_COMMAND_FOR_GENERATED_KEYS;
+      }
+    }
 
     SQLTextEscapes.processEscapes(sqlText, this);
 
@@ -930,24 +984,22 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     activeStatements.add(new WeakReference<PGStatement>(statement));
 
+    if (preparedStatementCache != null) {
+      statement.cached = true;
+      statement.cacheKey = cacheKey;
+    }
+
     return statement;
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-    checkClosed();
-
-    SQLText sqlText = parseSQL(sql);
 
     if (autoGeneratedKeys != RETURN_GENERATED_KEYS) {
       return prepareStatement(sql);
     }
 
-    if (!appendReturningClause(sqlText)) {
-      throw INVALID_COMMAND_FOR_GENERATED_KEYS;
-    }
-
-    PGPreparedStatement statement = prepareStatement(sqlText, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
+    PGPreparedStatement statement = prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT, SIMPLE_GENERATED_KEYS);
 
     statement.setWantsGeneratedKeys(true);
 
@@ -962,15 +1014,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   @Override
   public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-    checkClosed();
 
-    SQLText sqlText = parseSQL(sql);
-
-    if (!appendReturningClause(sqlText, asList(columnNames))) {
-      throw INVALID_COMMAND_FOR_GENERATED_KEYS;
-    }
-
-    PGPreparedStatement statement = prepareStatement(sqlText, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
+    PGPreparedStatement statement = prepareStatement(sql, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT, columnNames);
 
     statement.setWantsGeneratedKeys(true);
 
