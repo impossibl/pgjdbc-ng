@@ -58,6 +58,14 @@ public class SQLText {
     root = parse(sqlText);
   }
 
+  private SQLText(MultiStatementNode copyRoot) {
+    root = copyRoot;
+  }
+
+  public SQLText copy() {
+    return new SQLText((MultiStatementNode) root.copy());
+  }
+
   public int getStatementCount() {
     if (root == null)
       return 0;
