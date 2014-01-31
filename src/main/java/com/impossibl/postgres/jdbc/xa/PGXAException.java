@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013, impossibl.com
+ * Copyright (c) 2014, impossibl.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2009-2014, PostgreSQL Global Development Group
+*
+*
+*-------------------------------------------------------------------------
+*/
 package com.impossibl.postgres.jdbc.xa;
 
 import javax.transaction.xa.XAException;

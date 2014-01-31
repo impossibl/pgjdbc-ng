@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013, impossibl.com
+ * Copyright (c) 2014, impossibl.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ public class PGXAConnectionDelegator extends PGPooledConnectionDelegator {
   @Override
   public void commit() throws SQLException {
     if (owner.getState() != PGXAConnection.STATE_IDLE) {
-      SQLException se = new PGSQLSimpleException("Transaction control method commit not allowed while an XA transaction is active.", "55000");
+      SQLException se = new PGSQLSimpleException("commit not allowed", "55000");
       owner.fireConnectionError(se);
       throw se;
     }
@@ -71,7 +71,7 @@ public class PGXAConnectionDelegator extends PGPooledConnectionDelegator {
   @Override
   public void rollback() throws SQLException {
     if (owner.getState() != PGXAConnection.STATE_IDLE) {
-      SQLException se = new PGSQLSimpleException("Transaction control method rollback not allowed while an XA transaction is active.", "55000");
+      SQLException se = new PGSQLSimpleException("rollback not allowed", "55000");
       owner.fireConnectionError(se);
       throw se;
     }
@@ -84,7 +84,7 @@ public class PGXAConnectionDelegator extends PGPooledConnectionDelegator {
   @Override
   public void rollback(Savepoint savepoint) throws SQLException {
     if (owner.getState() != PGXAConnection.STATE_IDLE) {
-      SQLException se = new PGSQLSimpleException("Transaction control method rollback not allowed while an XA transaction is active.", "55000");
+      SQLException se = new PGSQLSimpleException("rollback(Savepoint) not allowed", "55000");
       owner.fireConnectionError(se);
       throw se;
     }
@@ -97,7 +97,7 @@ public class PGXAConnectionDelegator extends PGPooledConnectionDelegator {
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     if (owner.getState() != PGXAConnection.STATE_IDLE && autoCommit) {
-      SQLException se = new PGSQLSimpleException("Transaction control method setAutoCommit(true) not allowed while an XA transaction is active.", "55000");
+      SQLException se = new PGSQLSimpleException("setAutoCommit(true) not allowed", "55000");
       owner.fireConnectionError(se);
       throw se;
     }
