@@ -32,6 +32,8 @@ import java.io.InterruptedIOException;
 
 public class BlockingReadTimeoutException extends InterruptedIOException {
 
+  private static final long serialVersionUID = 6684451706667809583L;
+
   public BlockingReadTimeoutException() {
   }
 

@@ -46,6 +46,8 @@ import javax.transaction.xa.XAException;
  */
 public class PGXAException extends XAException {
 
+  private static final long serialVersionUID = 424083710983892405L;
+
   public PGXAException(String message, int errorCode) {
     super(message);
 
