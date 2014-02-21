@@ -37,6 +37,8 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
@@ -109,6 +111,13 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+
+
+
 /**
  * Connection implementation
  * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
@@ -163,6 +172,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
+  Cache<CachedStatementKey, CachedStatement> preparedStatementCache;
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
@@ -170,6 +180,20 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
+
+    this.preparedStatementCache = CacheBuilder.newBuilder().maximumSize(500).removalListener(new RemovalListener<CachedStatementKey, CachedStatement>() {
+
+      @Override
+      public void onRemoval(RemovalNotification<CachedStatementKey, CachedStatement> notification) {
+        try {
+          execute(getProtocol().createClose(ServerObjectType.Statement, notification.getValue().name), false);
+        }
+        catch (SQLException e) {
+          // Ignore...
+        }
+      }
+
+    }).build();
 
     this.activeStatements = new ArrayList<>();
 
@@ -179,6 +203,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
         if (parsedSqlCache == null) {
           parsedSqlCache = Collections.synchronizedMap(new LinkedHashMap<String, SQLText>(sqlCacheSize + 1, 1.1f, true) {
             private static final long serialVersionUID = 1L;
+            @Override
             protected boolean removeEldestEntry(Map.Entry<String, SQLText> eldest) {
               return size() > sqlCacheSize;
             }
@@ -1211,6 +1236,65 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   @Override
   public void removeNotificationListener(PGNotificationListener listener) {
     super.removeNotificationListener(listener);
+  }
+
+}
+
+class CachedStatementKey {
+
+  String sql;
+  List<Type> parameterTypes;
+
+  public CachedStatementKey(String sql, List<Type> parameterTypes) {
+    this.sql = sql;
+    this.parameterTypes = parameterTypes;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((parameterTypes == null) ? 0 : parameterTypes.hashCode());
+    result = prime * result + ((sql == null) ? 0 : sql.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    CachedStatementKey other = (CachedStatementKey) obj;
+    if (parameterTypes == null) {
+      if (other.parameterTypes != null)
+        return false;
+    }
+    else if (!parameterTypes.equals(other.parameterTypes))
+      return false;
+    if (sql == null) {
+      if (other.sql != null)
+        return false;
+    }
+    else if (!sql.equals(other.sql))
+      return false;
+    return true;
+  }
+
+}
+
+class CachedStatement {
+
+  String name;
+  List<Type> parameterTypes;
+  List<ResultField> resultFields;
+
+  public CachedStatement(String statementName, List<Type> parameterTypes, List<ResultField> resultFields) {
+    this.name = statementName;
+    this.parameterTypes = parameterTypes;
+    this.resultFields = resultFields;
   }
 
 }
