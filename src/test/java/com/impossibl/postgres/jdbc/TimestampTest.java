@@ -26,6 +26,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
@@ -49,7 +56,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /*
  * Test get/setTimestamp for both timestamp with time zone and

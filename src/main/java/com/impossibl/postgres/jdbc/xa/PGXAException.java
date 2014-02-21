@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2009-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc.xa;
 
 import javax.transaction.xa.XAException;
@@ -41,7 +41,7 @@ import javax.transaction.xa.XAException;
  * A convenience subclass of <code>XAException</code> which makes it easy to
  * create an instance of <code>XAException</code> with a human-readable
  * message, a <code>Throwable</code> cause, and an XA error code.
- * 
+ *
  * @author Michael S. Allman
  */
 public class PGXAException extends XAException {

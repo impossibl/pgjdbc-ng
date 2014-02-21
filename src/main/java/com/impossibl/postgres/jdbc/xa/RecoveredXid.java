@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2009-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc.xa;
 
 import java.util.Arrays;
@@ -44,18 +44,22 @@ class RecoveredXid implements Xid {
   private byte[] globalTransactionId;
   private byte[] branchQualifier;
 
+  @Override
   public int getFormatId() {
     return formatId;
   }
 
+  @Override
   public byte[] getGlobalTransactionId() {
     return globalTransactionId;
   }
 
+  @Override
   public byte[] getBranchQualifier() {
     return branchQualifier;
   }
 
+  @Override
   public boolean equals(Object o) {
     if (o == this) // optimization for the common case.
       return true;
@@ -74,6 +78,7 @@ class RecoveredXid implements Xid {
     return true;
   }
 
+  @Override
   public int hashCode() {
     int hashCode = 37;
 
@@ -87,6 +92,7 @@ class RecoveredXid implements Xid {
   /**
    * This is for debugging purposes only
    */
+  @Override
   public String toString() {
     return xidToString(this);
   }

@@ -26,6 +26,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc;
 
 import java.io.IOException;
@@ -60,7 +67,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.w3c.dom.Node;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(JUnit4.class)
 public class XmlTest {
@@ -342,12 +353,15 @@ public class XmlTest {
   // Don't print warning and errors to System.err, it just
   // clutters the display.
   static class Ignorer implements ErrorListener {
+    @Override
     public void error(TransformerException t) {
     }
 
+    @Override
     public void fatalError(TransformerException t) {
     }
 
+    @Override
     public void warning(TransformerException t) {
     }
   }

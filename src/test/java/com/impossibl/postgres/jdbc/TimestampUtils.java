@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2003-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;

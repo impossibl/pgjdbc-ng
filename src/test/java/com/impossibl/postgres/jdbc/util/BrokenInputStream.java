@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc.util;
 
 import java.io.IOException;
@@ -50,6 +50,7 @@ public class BrokenInputStream extends InputStream {
     _numRead = 0;
   }
 
+  @Override
   public int read() throws IOException {
     if (_breakOn > _numRead++) {
       throw new IOException("I was told to break on " + _breakOn);

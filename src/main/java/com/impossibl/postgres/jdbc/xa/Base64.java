@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2004-2014, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc.xa;
 
 /**
@@ -145,7 +145,7 @@ public class Base64 {
     ALPHABET = __bytes;
   }
 
-  /** 
+  /**
    * Translates a Base64 value to either its 6-bit reconstruction value
    * or a negative number indicating some other meaning.
    */
@@ -402,7 +402,7 @@ public class Base64 {
    * the <var>destination</var> array.
    * This method returns the actual number of bytes that
    * were converted from the Base64 encoding.
-   * 
+   *
    *
    * @param source the array to convert
    * @param srcOffset the index where conversion begins

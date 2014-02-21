@@ -27,12 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2009-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2009-2014, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.jdbc.xa;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
@@ -56,13 +56,13 @@ import javax.transaction.xa.Xid;
 
 /**
  * The PostgreSQL implementation of {@link XAConnection} and {@link XAResource}.
- * 
+ *
  * This implementation doesn't support transaction interleaving
  * (see JTA specification, section 3.4.4) and suspend/resume.
- * 
+ *
  * Two-phase commit requires PostgreSQL server version 8.1
  * or higher.
- * 
+ *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
@@ -137,6 +137,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     return new PGXAConnectionDelegator(this, c);
   }
 
+  @Override
   public XAResource getXAResource() {
     return this;
   }
@@ -156,10 +157,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *    and xid must be the current transaction
    * 3. unless flags is TMJOIN, previous transaction using the
    *    connection must be committed or prepared or rolled back
-   * 
+   *
    * Postconditions:
    * 1. Connection is associated with the transaction
    */
+  @Override
   public void start(Xid xid, int flags) throws XAException {
     if (logger.isLoggable(Level.FINE))
       debug("starting transaction xid = " + xid);
@@ -212,10 +214,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *
    * Implementation deficiency preconditions:
    * 1. Flags is not TMSUSPEND
-   * 
+   *
    * Postconditions:
    * 1. connection is disassociated from the transaction.
    */
+  @Override
   public void end(Xid xid, int flags) throws XAException {
     if (logger.isLoggable(Level.FINE))
       debug("ending transaction xid = " + xid);
@@ -249,10 +252,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *
    * Implementation deficiency preconditions:
    * 1. xid was associated with this connection
-   * 
+   *
    * Postconditions:
    * 1. Transaction is prepared
    */
+  @Override
   public int prepare(Xid xid) throws XAException {
     if (logger.isLoggable(Level.FINE))
       debug("preparing transaction xid = " + xid);
@@ -298,6 +302,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions:
    * 1. list of prepared xids is returned
    */
+  @Override
   public Xid[] recover(int flag) throws XAException {
     // Check preconditions
     if (flag != TMSTARTRSCAN && flag != TMENDRSCAN && flag != TMNOFLAGS && flag != (TMSTARTRSCAN | TMENDRSCAN))
@@ -328,7 +333,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           }
           rs.close();
 
-          return (Xid[]) l.toArray(new Xid[l.size()]);
+          return l.toArray(new Xid[l.size()]);
         }
         finally {
           stmt.close();
@@ -346,10 +351,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *
    * Implementation deficiency preconditions:
    * 1. xid must be associated with this connection if it's not in prepared state.
-   * 
+   *
    * Postconditions:
    * 1. Transaction is rolled back and disassociated from connection
    */
+  @Override
   public void rollback(Xid xid) throws XAException {
     if (logger.isLoggable(Level.FINE))
       debug("rolling back xid = " + xid);
@@ -384,6 +390,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
   }
 
+  @Override
   public void commit(Xid xid, boolean onePhase) throws XAException {
     if (logger.isLoggable(Level.FINE))
       debug("committing xid = " + xid + (onePhase ? " (one phase) " : " (two phase)"));
@@ -403,7 +410,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *
    * Implementation deficiency preconditions:
    * 1. this connection must have been used to run the transaction
-   * 
+   *
    * Postconditions:
    * 1. Transaction is committed
    */
@@ -437,7 +444,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    *
    * Implementation deficiency preconditions:
    * 1. Connection must be in idle state
-   * 
+   *
    * Postconditions:
    * 1. Transaction is committed
    */
@@ -468,6 +475,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
   }
 
+  @Override
   public boolean isSameRM(XAResource xares) throws XAException {
     // This trivial implementation makes sure that the
     // application server doesn't try to use another connection
@@ -478,6 +486,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   /**
    * Does nothing, since we don't do heuristics,
    */
+  @Override
   public void forget(Xid xid) throws XAException {
     throw new PGXAException("Heuristic commit/rollback not supported", XAException.XAER_NOTA);
   }
@@ -485,6 +494,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   /**
    * We don't do transaction timeouts. Just returns 0.
    */
+  @Override
   public int getTransactionTimeout() {
     return 0;
   }
@@ -492,6 +502,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   /**
    * We don't do transaction timeouts. Returns false.
    */
+  @Override
   public boolean setTransactionTimeout(int seconds) {
     return false;
   }
