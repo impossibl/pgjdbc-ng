@@ -125,6 +125,8 @@ import com.google.common.cache.RemovalNotification;
  */
 public class PGConnectionImpl extends BasicContext implements PGConnection {
 
+  private static final int DEFAULT_STATEMENT_CACHE_SIZE = 500;
+
   /**
    * Cleans up server resources in the event of leaking connections
    *
@@ -181,7 +183,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
-    this.preparedStatementCache = CacheBuilder.newBuilder().maximumSize(500).removalListener(new RemovalListener<CachedStatementKey, CachedStatement>() {
+    this.preparedStatementCache = CacheBuilder.newBuilder().maximumSize(DEFAULT_STATEMENT_CACHE_SIZE).removalListener(new RemovalListener<CachedStatementKey, CachedStatement>() {
 
       @Override
       public void onRemoval(RemovalNotification<CachedStatementKey, CachedStatement> notification) {
