@@ -140,6 +140,7 @@ public class ArrayTest {
     String[] strarr = (String[]) arr.getArray();
     assertEquals("abc", strarr[0]);
     assertEquals("def", strarr[1]);
+    ps.close();
   }
 
   @Test
@@ -457,6 +458,7 @@ public class ArrayTest {
     assertEquals(2, i[0][1].intValue());
     assertEquals(3, i[1][0].intValue());
     assertEquals(4, i[1][1].intValue());
+    pstmt.close();
   }
 
   @Test
@@ -477,6 +479,7 @@ public class ArrayTest {
     assertEquals(0, out[0].intValue());
     assertEquals(-1, out[1].intValue());
     assertEquals(2, out[2].intValue());
+    pstmt.close();
   }
 
   @Test
@@ -500,6 +503,7 @@ public class ArrayTest {
     assertEquals("", out[0][1]);
     assertEquals("\\", out[1][0]);
     assertEquals("\"\\'z", out[1][1]);
+    pstmt.close();
   }
 
   @Test
@@ -521,6 +525,7 @@ public class ArrayTest {
     assertEquals(2, out.length);
     assertNull(out[0]);
     assertNull(out[1]);
+    pstmt.close();
   }
 
   @Test
@@ -539,6 +544,7 @@ public class ArrayTest {
 
     ResultSet arrRs = arr.getResultSet();
     assertFalse(arrRs.next());
+    pstmt.close();
   }
 
   @Test

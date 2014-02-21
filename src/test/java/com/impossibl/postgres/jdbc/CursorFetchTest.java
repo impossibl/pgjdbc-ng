@@ -112,6 +112,7 @@ public class CursorFetchTest {
 
       assertEquals("total query size error with fetch size " + testSizes[i], 100, count);
     }
+    stmt.close();
   }
 
   // Similar, but for scrollable resultsets.

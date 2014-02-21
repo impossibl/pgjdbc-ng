@@ -53,6 +53,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String password;
   private boolean housekeeper;
   private int parsedSqlCache;
+  private int prepStmtCacheSize;
 
   /**
    * Constructor
@@ -66,6 +67,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.password = null;
     this.housekeeper = true;
     this.parsedSqlCache = 250;
+    this.prepStmtCacheSize = 0;
   }
 
   /**
@@ -218,6 +220,23 @@ public abstract class AbstractDataSource implements CommonDataSource {
     parsedSqlCache = cacheSize;
   }
 
+  /*
+   * Get the size of the PreparedStatment cache.
+   * @return the maximum number of PreparedStatements cached per connection
+   */
+  public int getPreparedStatementCacheSize() {
+    return prepStmtCacheSize;
+  }
+
+  /**
+   * Set the size of the PreparedStatment cache. A value of 0 will disable
+   * the cache.
+   * @return the maximum number of PreparedStatements cached per connection
+   */
+  public void setPreparedStatementCacheSize(int cacheSize) {
+    this.prepStmtCacheSize = cacheSize;
+  }
+
   /**
    * Create a connection
    * @param u The user name
@@ -254,6 +273,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
       hk = new ThreadedHousekeeper();
 
     props.put(Settings.PARSED_SQL_CACHE, parsedSqlCache);
+    props.put(Settings.PREPARED_STATEMENT_CACHE, prepStmtCacheSize);
 
     return ConnectionUtil.createConnection(url, props, hk);
   }
