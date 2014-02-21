@@ -186,7 +186,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       @Override
       public void onRemoval(RemovalNotification<CachedStatementKey, CachedStatement> notification) {
         try {
-          execute(getProtocol().createClose(ServerObjectType.Statement, notification.getValue().name), false);
+          PGStatement.dispose(PGConnectionImpl.this, ServerObjectType.Statement, notification.getValue().name);
         }
         catch (SQLException e) {
           // Ignore...
