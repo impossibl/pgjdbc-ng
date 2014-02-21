@@ -193,7 +193,7 @@ public class Numerics extends SimpleProcProvider {
   /**
    * Encodes a string of the plain form xxxx.xxx into an NBASE packed sequence
    * of shorts.
-   * 
+   *
    * @param num
    * @param info
    * @return NBASE encoded version of num
@@ -207,14 +207,14 @@ public class Numerics extends SimpleProcProvider {
     boolean haveDP = false;
 
     //Swallow leading zeros
-    while (numChars[ch] == '0')
+    while (ch < numChars.length && numChars[ch] == '0')
       ch++;
 
     short sign = NUMERIC_POS;
     short displayWeight = -1;
     short displayScale = 0;
 
-    if (numChars[ch] == '-') {
+    if (ch < numChars.length && numChars[ch] == '-') {
       sign = NUMERIC_NEG;
       ++ch;
     }
