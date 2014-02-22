@@ -71,6 +71,9 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_DEFAULT;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -100,6 +103,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
 import static java.lang.Boolean.parseBoolean;
@@ -111,11 +115,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-
 
 
 /**
@@ -124,8 +123,6 @@ import com.google.common.cache.RemovalNotification;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 public class PGConnectionImpl extends BasicContext implements PGConnection {
-
-  private static final int DEFAULT_STATEMENT_CACHE_SIZE = 500;
 
   /**
    * Cleans up server resources in the event of leaking connections
@@ -174,7 +171,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
-  Cache<CachedStatementKey, CachedStatement> preparedStatementCache;
+  Map<CachedStatementKey, CachedStatement> preparedStatementCache;
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
@@ -183,23 +180,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
-    this.preparedStatementCache = CacheBuilder.newBuilder().maximumSize(DEFAULT_STATEMENT_CACHE_SIZE).removalListener(new RemovalListener<CachedStatementKey, CachedStatement>() {
-
-      @Override
-      public void onRemoval(RemovalNotification<CachedStatementKey, CachedStatement> notification) {
-        try {
-          PGStatement.dispose(PGConnectionImpl.this, ServerObjectType.Statement, notification.getValue().name);
-        }
-        catch (SQLException e) {
-          // Ignore...
-        }
-      }
-
-    }).build();
-
     this.activeStatements = new ArrayList<>();
 
-    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, 250);
+    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE, PREPARED_STATEMENT_CACHE_DEFAULT);
+    if (statementCacheSize > 0) {
+      preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
+        private static final long serialVersionUID = 1L;
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<CachedStatementKey, CachedStatement> eldest) {
+          if (size() > statementCacheSize) {
+            try {
+              PGStatement.dispose(PGConnectionImpl.this, ServerObjectType.Statement, eldest.getValue().name);
+            }
+            catch (SQLException e) {
+              // Ignore...
+            }
+            return true;
+          }
+          else {
+            return false;
+          }
+        }
+      });
+    }
+
+    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, PARSED_SQL_CACHE_DEFAULT);
     if (sqlCacheSize > 0) {
       synchronized (PGConnectionImpl.class) {
         if (parsedSqlCache == null) {
@@ -1238,6 +1243,23 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   @Override
   public void removeNotificationListener(PGNotificationListener listener) {
     super.removeNotificationListener(listener);
+  }
+
+  CachedStatement getCachedStatement(CachedStatementKey key, Callable<CachedStatement> loader) throws Exception {
+
+    if (preparedStatementCache == null) {
+      return loader.call();
+    }
+
+    CachedStatement cached = preparedStatementCache.get(key);
+    if (cached == null) {
+
+      cached = loader.call();
+
+      preparedStatementCache.put(key, cached);
+    }
+
+    return cached;
   }
 
 }

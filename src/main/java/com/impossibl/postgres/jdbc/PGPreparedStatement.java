@@ -83,6 +83,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -170,7 +171,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         final CachedStatementKey key = new CachedStatementKey(sqlText, Collections.<Type> emptyList());
 
-        cachedStatement = connection.preparedStatementCache.get(key, new Callable<CachedStatement>() {
+        cachedStatement = connection.getCachedStatement(key, new Callable<CachedStatement>() {
 
           @Override
           public CachedStatement call() throws Exception {
@@ -186,6 +187,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         });
 
+      }
+      catch (ExecutionException e) {
+        throw (SQLException) e.getCause();
       }
       catch (Exception e) {
         throw (SQLException) e;

@@ -61,7 +61,14 @@ public class PerformanceTest {
 
     long start = System.nanoTime();
     for (int i = 0; i < 10000; i++) {
-      PreparedStatement prepareStatement = conn.prepareStatement("");
+      PreparedStatement prepareStatement = conn.prepareStatement("SELECT md5(?),md5(?),md5(?),md5(?),md5(?),md5(?)");
+      prepareStatement.setString(1, "Some text to hash");
+      prepareStatement.setString(2, "Some text to hash");
+      prepareStatement.setString(3, "Some text to hash");
+      prepareStatement.setString(4, "Some text to hash");
+      prepareStatement.setString(5, "Some text to hash");
+      prepareStatement.setString(6, "Some text to hash");
+      prepareStatement.execute();
       prepareStatement.close();
     }
 

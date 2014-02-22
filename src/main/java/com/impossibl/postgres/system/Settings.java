@@ -41,6 +41,10 @@ public class Settings {
   public static final String CONNECTION_READONLY = "readOnly";
 
   public static final String PARSED_SQL_CACHE = "parsedSqlCacheSize";
+  public static final int PARSED_SQL_CACHE_DEFAULT = 250;
+
+  public static final String PREPARED_STATEMENT_CACHE = "preparedStatementCacheSize";
+  public static final int PREPARED_STATEMENT_CACHE_DEFAULT = 50;
 
   public static final String CLIENT_ENCODING = "client_encoding";
   public static final String APPLICATION_NAME = "application_name";
