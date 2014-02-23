@@ -37,6 +37,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import static java.lang.Boolean.parseBoolean;
+
 import javax.sql.CommonDataSource;
 
 /**
@@ -65,9 +67,9 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.database = null;
     this.user = null;
     this.password = null;
-    this.housekeeper = true;
-    this.parsedSqlCacheSize = 250;
-    this.preparedStatementCacheSize = 0;
+    this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE);
+    this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_DEFAULT;
+    this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_DEFAULT;
   }
 
   /**
