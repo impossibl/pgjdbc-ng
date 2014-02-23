@@ -283,7 +283,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     Housekeeper hk = null;
     if (housekeeper)
-      hk = new ThreadedHousekeeper();
+      hk = ThreadedHousekeeper.instance;
 
     props.put(Settings.PARSED_SQL_CACHE, parsedSqlCacheSize);
     props.put(Settings.PREPARED_STATEMENT_CACHE, preparedStatementCacheSize);

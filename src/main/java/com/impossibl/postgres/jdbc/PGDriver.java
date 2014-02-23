@@ -51,16 +51,13 @@ public class PGDriver implements Driver {
   /** The version of the driver */
   public static final Version VERSION = Version.get(0, 1, 0);
 
-  /** The housekeeper */
-  private ThreadedHousekeeper realHousekeeper = new ThreadedHousekeeper();
-
   public PGDriver() throws SQLException {
     DriverManager.registerDriver(this);
   }
 
   @Override
   public PGConnection connect(String url, Properties info) throws SQLException {
-    return ConnectionUtil.createConnection(url, info, realHousekeeper);
+    return ConnectionUtil.createConnection(url, info, ThreadedHousekeeper.instance);
   }
 
   @Override
