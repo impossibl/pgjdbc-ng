@@ -156,6 +156,6 @@ public class DriverTest {
   public void testParsedSqlCacheSize() throws Exception {
     ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL("jdbc:pgsql://localhost/test?parsedSqlCacheSize=100");
     Properties parameters = connSpec.getParameters();
-    assertSame(100, Integer.parseInt(parameters.getProperty(Settings.PARSED_SQL_CACHE)));
+    assertSame(100, Integer.parseInt(parameters.getProperty(Settings.PARSED_SQL_CACHE_SIZE)));
   }
 }

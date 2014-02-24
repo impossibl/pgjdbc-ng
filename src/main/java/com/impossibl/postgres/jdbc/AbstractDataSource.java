@@ -68,8 +68,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.user = null;
     this.password = null;
     this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE);
-    this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_DEFAULT;
-    this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_DEFAULT;
+    this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
+    this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
   }
 
   /**
@@ -285,8 +285,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (housekeeper)
       hk = ThreadedHousekeeper.instance;
 
-    props.put(Settings.PARSED_SQL_CACHE, parsedSqlCacheSize);
-    props.put(Settings.PREPARED_STATEMENT_CACHE, preparedStatementCacheSize);
+    props.put(Settings.PARSED_SQL_CACHE_SIZE, parsedSqlCacheSize);
+    props.put(Settings.PREPARED_STATEMENT_CACHE_SIZE, preparedStatementCacheSize);
 
     return ConnectionUtil.createConnection(url, props, hk);
   }

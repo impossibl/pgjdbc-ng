@@ -70,10 +70,10 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
-import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE;
-import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -182,7 +182,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     this.activeStatements = new ArrayList<>();
 
-    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE, PREPARED_STATEMENT_CACHE_DEFAULT);
+    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
     if (statementCacheSize > 0) {
       preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
@@ -204,7 +204,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       });
     }
 
-    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, PARSED_SQL_CACHE_DEFAULT);
+    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE_SIZE, PARSED_SQL_CACHE_SIZE_DEFAULT);
     if (sqlCacheSize > 0) {
       synchronized (PGConnectionImpl.class) {
         if (parsedSqlCache == null) {
