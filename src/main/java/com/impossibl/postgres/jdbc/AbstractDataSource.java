@@ -37,6 +37,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import static java.lang.Boolean.parseBoolean;
+
 import javax.sql.CommonDataSource;
 
 /**
@@ -52,7 +54,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String user;
   private String password;
   private boolean housekeeper;
-  private int parsedSqlCache;
+  private int parsedSqlCacheSize;
+  private int preparedStatementCacheSize;
 
   /**
    * Constructor
@@ -64,13 +67,15 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.database = null;
     this.user = null;
     this.password = null;
-    this.housekeeper = true;
-    this.parsedSqlCache = 250;
+    this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE);
+    this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
+    this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
   }
 
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getLoginTimeout() throws SQLException {
     return loginTimeout;
   }
@@ -78,6 +83,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setLoginTimeout(int seconds) throws SQLException {
     loginTimeout = seconds;
   }
@@ -85,6 +91,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PrintWriter getLogWriter() throws SQLException {
     // Not supported
     return null;
@@ -93,6 +100,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setLogWriter(PrintWriter out) throws SQLException {
     // Not supported
   }
@@ -100,6 +108,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
     return Logger.getLogger(Context.class.getPackage().getName());
   }
@@ -205,7 +214,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @return the number of SQL statements' parsed structures allowed in the cache
    */
   public int getParsedSqlCacheSize() {
-    return parsedSqlCache;
+    return parsedSqlCacheSize;
   }
 
   /**
@@ -215,15 +224,38 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param cacheSize the number of SQL statements' parsed structures to cache
    */
   public void setParsedSqlCacheSize(int cacheSize) {
-    parsedSqlCache = cacheSize;
+    parsedSqlCacheSize = cacheSize;
+  }
+
+  /**
+   * Get the size of the prepared statement cache
+   *
+   * @return the maximum number of PreparedStatements cached per connection
+   */
+  public int getPreparedStatementCacheSize() {
+    return preparedStatementCacheSize;
+  }
+
+  /**
+   * Set the size of the preapred statement cache
+   *
+   * @param preparedStatementCacheSize
+   *          the maximum number of PreparedStatements cached per connection
+   */
+  public void setPreparedStatementCacheSize(int preparedStatementCacheSize) {
+    this.preparedStatementCacheSize = preparedStatementCacheSize;
   }
 
   /**
    * Create a connection
-   * @param u The user name
-   * @param p The password
+   *
+   * @param u
+   *          The user name
+   * @param p
+   *          The password
    * @return The connection
-   * @exception SQLException Thrown in case of an error
+   * @exception SQLException
+   *              Thrown in case of an error
    */
   protected PGConnectionImpl createConnection(String u, String p) throws SQLException {
     String url = buildUrl();
@@ -251,9 +283,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     Housekeeper hk = null;
     if (housekeeper)
-      hk = new ThreadedHousekeeper();
+      hk = ThreadedHousekeeper.instance;
 
-    props.put(Settings.PARSED_SQL_CACHE, parsedSqlCache);
+    props.put(Settings.PARSED_SQL_CACHE_SIZE, parsedSqlCacheSize);
+    props.put(Settings.PREPARED_STATEMENT_CACHE_SIZE, preparedStatementCacheSize);
 
     return ConnectionUtil.createConnection(url, props, hk);
   }

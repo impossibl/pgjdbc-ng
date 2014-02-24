@@ -47,6 +47,7 @@ import java.util.logging.Logger;
  */
 public class ThreadedHousekeeper implements Housekeeper {
 
+  public static final ThreadedHousekeeper instance = new ThreadedHousekeeper();
 
   private static final Logger logger = Logger.getLogger(ThreadedHousekeeper.class.getName());
 
@@ -152,7 +153,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   };
 
-  public ThreadedHousekeeper() {
+  private ThreadedHousekeeper() {
     cleanupThread.setName("PG-JDBC Housekeeper");
     cleanupThread.setDaemon(true);
     cleanupThread.start();

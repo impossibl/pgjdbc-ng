@@ -31,8 +31,11 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.utils.Timer;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -51,6 +54,25 @@ public class PerformanceTest {
   @After
   public void tearDown() throws Exception {
     TestUtil.closeDB(conn);
+  }
+
+  @Test
+  public void testPreparedStatementCache() throws SQLException {
+
+    long start = System.nanoTime();
+    for (int i = 0; i < 10000; i++) {
+      PreparedStatement prepareStatement = conn.prepareStatement("SELECT md5(?),md5(?),md5(?),md5(?),md5(?),md5(?)");
+      prepareStatement.setString(1, "Some text to hash");
+      prepareStatement.setString(2, "Some text to hash");
+      prepareStatement.setString(3, "Some text to hash");
+      prepareStatement.setString(4, "Some text to hash");
+      prepareStatement.setString(5, "Some text to hash");
+      prepareStatement.setString(6, "Some text to hash");
+      prepareStatement.execute();
+      prepareStatement.close();
+    }
+
+    System.out.println("Prepare: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
   }
 
   @Test

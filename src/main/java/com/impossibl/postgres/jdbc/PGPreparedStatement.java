@@ -82,6 +82,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -100,7 +102,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 
   PGPreparedStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
-    super(connection, type, concurrency, holdability, name, null);
+    super(connection, type, concurrency, holdability, null, null);
     this.sqlText = sqlText;
     this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));
     this.parameterValues = new ArrayList<>(asList(new Object[parameterCount]));
@@ -159,17 +161,43 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     if (!parsed) {
 
-      if (name != null) {
+      if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
         connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name), false);
       }
 
-      PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), Collections.<Type>emptyList());
+      CachedStatement cachedStatement;
 
-      warningChain = connection.execute(prep, true);
+      try {
 
-      parameterTypes = prep.getDescribedParameterTypes();
-      resultFields = prep.getDescribedResultFields();
+        final CachedStatementKey key = new CachedStatementKey(sqlText, Collections.<Type> emptyList());
 
+        cachedStatement = connection.getCachedStatement(key, new Callable<CachedStatement>() {
+
+          @Override
+          public CachedStatement call() throws Exception {
+
+            String name = CACHED_STATEMENT_PREFIX + Integer.toString(key.hashCode());
+
+            PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText, Collections.<Type> emptyList());
+
+            warningChain = connection.execute(prep, true);
+
+            return new CachedStatement(name, prep.getDescribedParameterTypes(), prep.getDescribedResultFields());
+          }
+
+        });
+
+      }
+      catch (ExecutionException e) {
+        throw (SQLException) e.getCause();
+      }
+      catch (Exception e) {
+        throw (SQLException) e;
+      }
+
+      name = cachedStatement.name;
+      parameterTypes = copyNonNullTypes(parameterTypes, cachedStatement.parameterTypes);
+      resultFields = cachedStatement.resultFields;
       parsed = true;
 
     }
@@ -344,6 +372,22 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         type = defaultTypes.get(c);
 
       list.set(c, type);
+    }
+
+    return list;
+  }
+
+  List<Type> copyNonNullTypes(List<Type> list, List<Type> sourceTypes) {
+
+    if (sourceTypes == null)
+      return list;
+
+    for (int c = 0, sz = list.size(); c < sz; ++c) {
+
+      Type type = sourceTypes.get(c);
+      if (type != null) {
+        list.set(c, type);
+      }
     }
 
     return list;

@@ -59,6 +59,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 abstract class PGStatement implements Statement {
 
+  protected static final String CACHED_STATEMENT_PREFIX = "cached-";
+
   /**
    * Cleans up server resources in the event of leaking statements
    *
@@ -285,7 +287,9 @@ abstract class PGStatement implements Statement {
 
     closeResultSets();
 
-    dispose(connection, Statement, name);
+    if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
+      dispose(connection, Statement, name);
+    }
 
     if (housekeeper != null)
       housekeeper.remove(cleanupKey);

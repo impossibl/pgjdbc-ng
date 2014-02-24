@@ -37,6 +37,8 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.ArrayType;
@@ -68,7 +70,10 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
-import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
+import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -98,6 +103,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
 import static java.lang.Boolean.parseBoolean;
@@ -108,6 +114,8 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+
 
 /**
  * Connection implementation
@@ -163,6 +171,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   int networkTimeout;
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
+  Map<CachedStatementKey, CachedStatement> preparedStatementCache;
   final Housekeeper housekeeper;
   final Object cleanupKey;
 
@@ -173,12 +182,35 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     this.activeStatements = new ArrayList<>();
 
-    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE, 250);
+    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
+    if (statementCacheSize > 0) {
+      preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
+        private static final long serialVersionUID = 1L;
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<CachedStatementKey, CachedStatement> eldest) {
+          if (size() > statementCacheSize) {
+            try {
+              PGStatement.dispose(PGConnectionImpl.this, ServerObjectType.Statement, eldest.getValue().name);
+            }
+            catch (SQLException e) {
+              // Ignore...
+            }
+            return true;
+          }
+          else {
+            return false;
+          }
+        }
+      });
+    }
+
+    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE_SIZE, PARSED_SQL_CACHE_SIZE_DEFAULT);
     if (sqlCacheSize > 0) {
       synchronized (PGConnectionImpl.class) {
         if (parsedSqlCache == null) {
           parsedSqlCache = Collections.synchronizedMap(new LinkedHashMap<String, SQLText>(sqlCacheSize + 1, 1.1f, true) {
             private static final long serialVersionUID = 1L;
+            @Override
             protected boolean removeEldestEntry(Map.Entry<String, SQLText> eldest) {
               return size() > sqlCacheSize;
             }
@@ -1211,6 +1243,82 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   @Override
   public void removeNotificationListener(PGNotificationListener listener) {
     super.removeNotificationListener(listener);
+  }
+
+  CachedStatement getCachedStatement(CachedStatementKey key, Callable<CachedStatement> loader) throws Exception {
+
+    if (preparedStatementCache == null) {
+      return loader.call();
+    }
+
+    CachedStatement cached = preparedStatementCache.get(key);
+    if (cached == null) {
+
+      cached = loader.call();
+
+      preparedStatementCache.put(key, cached);
+    }
+
+    return cached;
+  }
+
+}
+
+class CachedStatementKey {
+
+  String sql;
+  List<Type> parameterTypes;
+
+  public CachedStatementKey(String sql, List<Type> parameterTypes) {
+    this.sql = sql;
+    this.parameterTypes = parameterTypes;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((parameterTypes == null) ? 0 : parameterTypes.hashCode());
+    result = prime * result + ((sql == null) ? 0 : sql.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    CachedStatementKey other = (CachedStatementKey) obj;
+    if (parameterTypes == null) {
+      if (other.parameterTypes != null)
+        return false;
+    }
+    else if (!parameterTypes.equals(other.parameterTypes))
+      return false;
+    if (sql == null) {
+      if (other.sql != null)
+        return false;
+    }
+    else if (!sql.equals(other.sql))
+      return false;
+    return true;
+  }
+
+}
+
+class CachedStatement {
+
+  String name;
+  List<Type> parameterTypes;
+  List<ResultField> resultFields;
+
+  public CachedStatement(String statementName, List<Type> parameterTypes, List<ResultField> resultFields) {
+    this.name = statementName;
+    this.parameterTypes = parameterTypes;
+    this.resultFields = resultFields;
   }
 
 }
