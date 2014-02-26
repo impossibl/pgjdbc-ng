@@ -106,7 +106,7 @@ public class PgType implements Table<PgType.Row> {
   }
 
   private static final Object[] SQL = {
-    Version.get(9, 0, 0),
+    Version.get(9, 2, 0),
     " select" +
       "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
@@ -116,7 +116,16 @@ public class PgType implements Table<PgType.Row> {
       " from" +
       "   pg_catalog.pg_type t" +
       " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) " +
-      " left join pg_catalog.pg_range r on (t.oid = r.rngtypid)"
+      " left join pg_catalog.pg_range r on (t.oid = r.rngtypid)",
+    Version.get(9, 1, 0),
+    " select" +
+      "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
+      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
+      "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
+      "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
+      " from" +
+      "   pg_catalog.pg_type t" +
+      " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) ",
   };
 
 }

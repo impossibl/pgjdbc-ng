@@ -42,6 +42,9 @@ import com.impossibl.postgres.types.Type.Codec;
 import com.impossibl.postgres.utils.NullByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,9 +69,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.UUID;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 import org.junit.After;
 import org.junit.Before;
@@ -348,7 +348,7 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
-      {"aclitem", new ACLItem(TestUtil.getUser(), "rw", "postgres")},
+ {"aclitem", new ACLItem(TestUtil.getUser(), "rw", "pgjdbc")},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
       {"bool", true},
@@ -371,7 +371,17 @@ public class CodecTest {
       {"name", "hi"},
       {"numeric", new BigDecimal("2342.00")},
       {"oid", 132},
-      {"int4range", Range.create(0, true, 5, false)},
+      {"int4range", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) throws SQLException {
+          if (conn.getRegistry().loadType("int4range") == null) {
+            throw new SQLFeatureNotSupportedException();
+          }
+          return Range.create(0, true, 5, false);
+        }
+
+      } },
       {"text", "hi',\""},
       {"timestamp", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
       {"timestamptz", new Timestamp(2000, 1, 1, 0, 0, 0, 123000)},
