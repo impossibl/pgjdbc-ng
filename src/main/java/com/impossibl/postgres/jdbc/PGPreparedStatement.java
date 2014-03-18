@@ -204,11 +204,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   }
 
-  @Override
-  public boolean execute() throws SQLException {
-
-    parseIfNeeded();
-    closeResultSets();
+  private void coerceParameters() throws SQLException {
 
     for (int c = 0, sz = parameterTypes.size(); c < sz; ++c) {
 
@@ -229,6 +225,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
       parameterValues.set(c, parameterValue);
     }
+
+  }
+
+  @Override
+  public boolean execute() throws SQLException {
+
+    parseIfNeeded();
+    closeResultSets();
+
+    coerceParameters();
 
     boolean res = super.executeStatement(name, parameterTypes, parameterValues);
 
@@ -270,6 +276,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     if (batchParameterValues == null) {
       batchParameterValues = new ArrayList<>();
     }
+
+    coerceParameters();
 
     batchParameterTypes.add(new ArrayList<>(parameterTypes));
     batchParameterValues.add(new ArrayList<>(parameterValues));
