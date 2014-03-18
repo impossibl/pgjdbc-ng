@@ -1120,6 +1120,9 @@ public class ProtocolImpl implements Protocol {
 
         break;
 
+      case "TRUNCATE":
+        break;
+
       default:
 
         if (parts.length != 1)
