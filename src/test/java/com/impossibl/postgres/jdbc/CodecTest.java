@@ -42,9 +42,6 @@ import com.impossibl.postgres.types.Type.Codec;
 import com.impossibl.postgres.utils.NullByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,6 +66,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.UUID;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import org.junit.After;
 import org.junit.Before;
@@ -348,7 +348,7 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
- {"aclitem", new ACLItem(TestUtil.getUser(), "rw", "pgjdbc")},
+      {"aclitem", new ACLItem(TestUtil.getUser(), "rw", "pgjdbc")},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
       {"bool", true},
