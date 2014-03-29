@@ -39,7 +39,7 @@ public class Version {
   private Integer revision;
 
   public static Version parse(String versionString) {
-    String[] version = versionString.split("\\.");
+    String[] version = versionString.split("[^0-9]");
 
     int major = parsePart(version, 0);
     Integer minor = parsePart(version, 1);

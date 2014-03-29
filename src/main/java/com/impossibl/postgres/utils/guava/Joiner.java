@@ -146,8 +146,7 @@ public class Joiner {
   /**
    * Appends to {@code appendable} the string representation of each of the remaining arguments.
    */
-  public final <A extends Appendable> A appendTo(A appendable, Object first, Object second, Object... rest)
-    throws IOException {
+  public final <A extends Appendable> A appendTo(A appendable, Object first, Object second, Object... rest) throws IOException {
     return appendTo(appendable, iterable(first, second, rest));
   }
 
@@ -258,8 +257,7 @@ public class Joiner {
    */
   public Joiner skipNulls() {
     return new Joiner(this) {
-      @Override public <A extends Appendable> A appendTo(A appendable, Iterator<?> parts)
-        throws IOException {
+      @Override public <A extends Appendable> A appendTo(A appendable, Iterator<?> parts) throws IOException {
         checkNotNull(appendable, "appendable");
         checkNotNull(parts, "parts");
         while (parts.hasNext()) {
@@ -357,8 +355,7 @@ public class Joiner {
      *
      * @since 10.0
      */
-    public <A extends Appendable> A appendTo(A appendable, Iterable<? extends Entry<?, ?>> entries)
-      throws IOException {
+    public <A extends Appendable> A appendTo(A appendable, Iterable<? extends Entry<?, ?>> entries) throws IOException {
       return appendTo(appendable, entries.iterator());
     }
 
@@ -368,8 +365,7 @@ public class Joiner {
      *
      * @since 11.0
      */
-    public <A extends Appendable> A appendTo(A appendable, Iterator<? extends Entry<?, ?>> parts)
-      throws IOException {
+    public <A extends Appendable> A appendTo(A appendable, Iterator<? extends Entry<?, ?>> parts) throws IOException {
       checkNotNull(appendable);
       if (parts.hasNext()) {
         Entry<?, ?> entry = parts.next();

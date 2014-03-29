@@ -281,6 +281,9 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
     if (e instanceof IOException) {
       io = (IOException) e;
     }
+    else if (e.getCause() == null) {
+      io = new IOException(e);
+    }
     else if (e.getCause() instanceof IOException) {
       io = (IOException) e.getCause();
     }

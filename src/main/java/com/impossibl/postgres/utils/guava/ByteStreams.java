@@ -79,8 +79,7 @@ public final class ByteStreams {
    * @return the number of bytes copied
    * @throws IOException if an I/O error occurs
    */
-  public static long copy(InputStream from, OutputStream to)
-    throws IOException {
+  public static long copy(InputStream from, OutputStream to) throws IOException {
     checkNotNull(from);
     checkNotNull(to);
     byte[] buf = new byte[BUF_SIZE];
@@ -347,8 +346,7 @@ public final class ByteStreams {
    * @return the number of bytes read
    * @throws IOException if an I/O error occurs
    */
-  public static int read(InputStream in, byte[] b, int off, int len)
-    throws IOException {
+  public static int read(InputStream in, byte[] b, int off, int len) throws IOException {
     checkNotNull(in);
     checkNotNull(b);
     if (len < 0) {
