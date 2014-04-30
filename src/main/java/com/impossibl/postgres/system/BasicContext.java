@@ -180,7 +180,7 @@ public class BasicContext implements Context {
   public boolean isSettingEnabled(String name) {
     Object val = getSetting(name);
     if (val instanceof String)
-      return ((String)val).toLowerCase().equals("on");
+      return ((String)val).equalsIgnoreCase("on");
     if (val instanceof Boolean)
       return (Boolean) val;
     return false;
