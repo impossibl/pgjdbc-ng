@@ -37,7 +37,7 @@ import com.impossibl.postgres.types.Type.Codec;
 
 public class Procs {
 
-  private static ProcProvider[] PROVIDERS = {
+  private static final ProcProvider[] PROVIDERS = {
     new ACLItems(),
     new Arrays(),
     new BitMods(),
