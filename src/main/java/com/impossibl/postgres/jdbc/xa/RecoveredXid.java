@@ -113,8 +113,8 @@ class RecoveredXid implements Xid {
   static Xid stringToXid(String s) {
     RecoveredXid xid = new RecoveredXid();
 
-    int a = s.indexOf("_");
-    int b = s.lastIndexOf("_");
+    int a = s.indexOf('_');
+    int b = s.lastIndexOf('_');
 
     if (a == b) // this also catches the case a == b == -1.
       return null;
