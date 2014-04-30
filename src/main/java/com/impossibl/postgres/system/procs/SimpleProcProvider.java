@@ -60,6 +60,7 @@ public class SimpleProcProvider extends BaseProcProvider {
     this.modParser = modParser;
   }
 
+  @Override
   public Codec.Encoder findEncoder(String name, Context context) {
     if (name.endsWith("recv") && hasName(name, "recv", context)) {
       return binEncoder;
@@ -70,6 +71,7 @@ public class SimpleProcProvider extends BaseProcProvider {
     return null;
   }
 
+  @Override
   public Codec.Decoder findDecoder(String name, Context context) {
     if (name.endsWith("send") && hasName(name, "send", context)) {
       return binDecoder;

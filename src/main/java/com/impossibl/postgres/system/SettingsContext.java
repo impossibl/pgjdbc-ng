@@ -45,6 +45,7 @@ public class SettingsContext extends DecoratorContext {
     settings = new HashMap<>();
   }
 
+  @Override
   public Object getSetting(String name) {
     Object res = settings.get(name);
     if (res != null)

@@ -56,6 +56,7 @@ public class BlobInputStream extends InputStream {
     return (pos < buf.length) ? (buf[pos++] & 0xff) : -1;
   }
 
+  @Override
   public int read(byte[] b, int off, int len) throws IOException {
     if (b == null) {
       throw new NullPointerException();

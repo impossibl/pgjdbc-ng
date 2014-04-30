@@ -89,10 +89,12 @@ public class PgAttribute implements Table<PgAttribute.Row> {
   private PgAttribute() {
   }
 
+  @Override
   public String getSQL(Version currentVersion) {
     return Tables.getSQL(SQL, currentVersion);
   }
 
+  @Override
   public Row createRow() {
     return new Row();
   }

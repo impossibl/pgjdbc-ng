@@ -63,6 +63,7 @@ public class SettingSelectProcProvider extends BaseProcProvider {
     this.unmatchedBinDecoder = unmatchedBinDecoder;
   }
 
+  @Override
   public Codec.Encoder findEncoder(String name, Context context) {
     if (name.endsWith("recv") && hasName(name, "recv", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
@@ -79,6 +80,7 @@ public class SettingSelectProcProvider extends BaseProcProvider {
     return null;
   }
 
+  @Override
   public Codec.Decoder findDecoder(String name, Context context) {
     if (name.endsWith("send") && hasName(name, "send", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))

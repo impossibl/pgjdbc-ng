@@ -73,6 +73,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isServerMinimumVersion(int major, int minor) {
     try {
       checkClosed();
@@ -86,6 +87,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener) {
     try {
       checkClosed();
@@ -99,6 +101,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void addNotificationListener(String channelNameFilter, PGNotificationListener listener) {
     try {
       checkClosed();
@@ -112,6 +115,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void addNotificationListener(PGNotificationListener listener) {
     try {
       checkClosed();
@@ -125,6 +129,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void removeNotificationListener(String name) {
     try {
       checkClosed();
@@ -138,6 +143,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void removeNotificationListener(PGNotificationListener listener) {
     try {
       checkClosed();
@@ -151,6 +157,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void abort(Executor executor) throws SQLException {
     try {
       checkClosed();
@@ -165,6 +172,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void clearWarnings() throws SQLException {
     try {
       checkClosed();
@@ -179,6 +187,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void close() throws SQLException {
     if (delegator != null) {
       SQLException ex = null;
@@ -204,6 +213,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void commit() throws SQLException {
     try {
       checkClosed();
@@ -218,6 +228,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     try {
       checkClosed();
@@ -232,6 +243,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Blob createBlob() throws SQLException {
     try {
       checkClosed();
@@ -246,6 +258,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Clob createClob() throws SQLException {
     try {
       checkClosed();
@@ -260,6 +273,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public NClob createNClob() throws SQLException {
     try {
       checkClosed();
@@ -274,6 +288,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public SQLXML createSQLXML() throws SQLException {
     try {
       checkClosed();
@@ -288,6 +303,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Statement createStatement() throws SQLException {
     try {
       checkClosed();
@@ -302,6 +318,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
     try {
       checkClosed();
@@ -316,6 +333,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     try {
       checkClosed();
@@ -330,6 +348,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     try {
       checkClosed();
@@ -344,6 +363,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean getAutoCommit() throws SQLException {
     try {
       checkClosed();
@@ -358,6 +378,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getCatalog() throws SQLException {
     try {
       checkClosed();
@@ -372,6 +393,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Properties getClientInfo() throws SQLException {
     try {
       checkClosed();
@@ -386,6 +408,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getClientInfo(String name) throws SQLException {
     try {
       checkClosed();
@@ -400,6 +423,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getHoldability() throws SQLException {
     try {
       checkClosed();
@@ -414,6 +438,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public DatabaseMetaData getMetaData() throws SQLException {
     try {
       checkClosed();
@@ -428,6 +453,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getNetworkTimeout() throws SQLException {
     try {
       checkClosed();
@@ -442,6 +468,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getSchema() throws SQLException {
     try {
       checkClosed();
@@ -456,6 +483,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getTransactionIsolation() throws SQLException {
     try {
       checkClosed();
@@ -470,6 +498,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     try {
       checkClosed();
@@ -484,6 +513,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public SQLWarning getWarnings() throws SQLException {
     try {
       checkClosed();
@@ -498,6 +528,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isClosed() throws SQLException {
     return delegator == null ? Boolean.TRUE : Boolean.FALSE;
   }
@@ -505,6 +536,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isReadOnly() throws SQLException {
     try {
       checkClosed();
@@ -519,6 +551,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isValid(int timeout) throws SQLException {
     try {
       checkClosed();
@@ -533,6 +566,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public String nativeSQL(String sql) throws SQLException {
     try {
       checkClosed();
@@ -547,6 +581,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public CallableStatement prepareCall(String sql) throws SQLException {
     try {
       checkClosed();
@@ -561,6 +596,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
     try {
       checkClosed();
@@ -575,6 +611,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     try {
       checkClosed();
@@ -589,6 +626,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
     try {
       checkClosed();
@@ -603,6 +641,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
     try {
       checkClosed();
@@ -617,6 +656,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
     try {
       checkClosed();
@@ -631,6 +671,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
     try {
       checkClosed();
@@ -645,6 +686,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     try {
       checkClosed();
@@ -659,6 +701,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
     try {
       checkClosed();
@@ -673,6 +716,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void releaseSavepoint(Savepoint savepoint) throws SQLException {
     try {
       checkClosed();
@@ -687,6 +731,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void rollback() throws SQLException {
     try {
       checkClosed();
@@ -701,6 +746,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void rollback(Savepoint savepoint) throws SQLException {
     try {
       checkClosed();
@@ -715,6 +761,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     try {
       checkClosed();
@@ -729,6 +776,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     try {
       checkClosed();
@@ -743,6 +791,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setClientInfo(Properties properties) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -764,6 +813,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setClientInfo(String name, String value) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -785,6 +835,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setHoldability(int holdability) throws SQLException {
     try {
       delegator.setHoldability(holdability);
@@ -798,6 +849,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
     try {
       checkClosed();
@@ -812,6 +864,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     try {
       checkClosed();
@@ -826,6 +879,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Savepoint setSavepoint() throws SQLException {
     try {
       checkClosed();
@@ -840,6 +894,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     try {
       checkClosed();
@@ -854,6 +909,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setSchema(String schema) throws SQLException {
     try {
       checkClosed();
@@ -868,6 +924,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     try {
       checkClosed();
@@ -882,6 +939,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     try {
       checkClosed();
@@ -896,6 +954,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     try {
       checkClosed();
@@ -910,6 +969,7 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     try {
       checkClosed();

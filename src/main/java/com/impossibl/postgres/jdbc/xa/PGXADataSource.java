@@ -51,6 +51,7 @@ public class PGXADataSource extends AbstractDataSource implements XADataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public XAConnection getXAConnection() throws SQLException {
     return getXAConnection(getUser(), getPassword());
   }
@@ -58,6 +59,7 @@ public class PGXADataSource extends AbstractDataSource implements XADataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public XAConnection getXAConnection(String user, String password) throws SQLException {
     return new PGXAConnection(createConnection(user, password));
   }
