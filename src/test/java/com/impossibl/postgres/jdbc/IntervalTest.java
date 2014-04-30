@@ -53,6 +53,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -66,11 +68,13 @@ public class IntervalTest {
   public void before() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "testinterval", "v interval");
+    TestUtil.createTable(_conn, "testdate", "v date");
   }
 
   @After
   public void after() throws Exception {
     TestUtil.dropTable(_conn, "testinterval");
+    TestUtil.dropTable(_conn, "testdate");
     TestUtil.closeDB(_conn);
   }
 
@@ -94,6 +98,55 @@ public class IntervalTest {
     assertTrue(!rs.next());
     rs.close();
     stmt.close();
+  }
+
+  @Test
+  public void testStringToIntervalCoercion() throws SQLException {
+    Statement stmt = _conn.createStatement();
+    stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-01'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-02'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-04'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-05'"));
+    stmt.close();
+
+    PreparedStatement pstmt = _conn
+        .prepareStatement("SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
+    pstmt.setObject(1, makeDate(2010, 1, 1));
+    pstmt.setObject(2, Integer.valueOf(2));
+    pstmt.setObject(3, "1 day");
+    ResultSet rs = pstmt.executeQuery();
+
+    assertNotNull(rs);
+
+    java.sql.Date d;
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(2010, 1, 1), d);
+
+    assertTrue(rs.next());
+    d = rs.getDate(1);
+    assertNotNull(d);
+    assertEquals(makeDate(2010, 1, 2), d);
+
+    assertFalse(rs.next());
+
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testIntervalToStringCoercion() throws SQLException {
+    Interval interval = new Interval("1 year 3 months");
+    String coercedStringValue = SQLTypeUtils.coerceToString(interval, _conn.unwrap(PGConnectionImpl.class));
+
+    assertEquals("@ 1 years 3 months 0 days 0 hours 0 minutes 0.000000 seconds", coercedStringValue);
+  }
+
+  @Test(expected = SQLException.class)
+  public void testIntervalCoercionFailure() throws SQLException {
+    SQLTypeUtils.coerceToInterval(Boolean.FALSE);
   }
 
   @Test
@@ -250,6 +303,11 @@ public class IntervalTest {
     pgi2.addTo(date);
 
     assertEquals(date2, date);
+  }
+
+  @SuppressWarnings("deprecation")
+  private java.sql.Date makeDate(int y, int m, int d) {
+    return new java.sql.Date(y - 1900, m - 1, d);
   }
 
 }

@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.data.Interval;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.api.data.Record;
 import com.impossibl.postgres.api.data.Tid;
@@ -227,6 +228,9 @@ class SQLTypeUtils {
     }
     else if (targetType == Instant.class) {
       return coerceToInstant(val, sourceType, zone, connection);
+    }
+    else if (targetType == Interval.class) {
+      return coerceToInterval(val);
     }
     else if (targetType == URL.class) {
       return coerceToURL(val);
@@ -542,6 +546,9 @@ class SQLTypeUtils {
     else if (val instanceof Timestamp) {
       return val.toString();
     }
+    else if (val instanceof Interval) {
+      return val.toString();
+    }
     else if (val instanceof Instant) {
       return ((Instant) val).disambiguate(TimeZone.getDefault()).print(context);
     }
@@ -615,6 +622,21 @@ class SQLTypeUtils {
     }
 
     throw createCoercionException(val.getClass(), Timestamp.class);
+  }
+
+  public static Interval coerceToInterval(Object val) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+    else if (val instanceof Interval) {
+      return (Interval) val;
+    }
+    else if (val instanceof String) {
+      return new Interval((String) val);
+    }
+
+    throw createCoercionException(val.getClass(), Interval.class);
   }
 
   public static Instant coerceToInstant(Object val, Type sourceType, TimeZone zone, Context context) throws SQLException {
