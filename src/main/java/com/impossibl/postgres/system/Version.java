@@ -29,9 +29,11 @@
 package com.impossibl.postgres.system;
 
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 public class Version {
 
+  private static final Pattern VERSION_SPLIT_PATTERN = Pattern.compile("\\.");
   private static final HashMap<Version, Version> all = new HashMap<Version, Version>();
 
   private int major;
@@ -39,7 +41,7 @@ public class Version {
   private Integer revision;
 
   public static Version parse(String versionString) {
-    String[] version = versionString.split("\\.");
+    String[] version = VERSION_SPLIT_PATTERN.split(versionString);
 
     int major = parsePart(version, 0);
     Integer minor = parsePart(version, 1);
