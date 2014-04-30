@@ -82,7 +82,7 @@ import io.netty.util.AttributeKey;
 
 public class ProtocolImpl implements Protocol {
 
-  private static AttributeKey<ProtocolImpl> PROTOCOL_KEY = AttributeKey.valueOf("protocol");
+  private static final AttributeKey<ProtocolImpl> PROTOCOL_KEY = AttributeKey.valueOf("protocol");
   private static Logger logger = Logger.getLogger(ProtocolImpl.class.getName());
 
   public abstract static class ExecutionTimerTask implements Callable<Void> {
@@ -181,7 +181,7 @@ public class ProtocolImpl implements Protocol {
   private static final byte CLOSE_COMPLETE_MSG_ID = '3';
   private static final byte FUNCTION_RESULT_MSG_ID = 'V';
 
-  private final ProtocolListener NULL_LISTENER = new BaseProtocolListener() {
+  private final ProtocolListener nullListener = new BaseProtocolListener() {
 
     @Override
     public void exception(Throwable cause) throws IOException {
@@ -399,7 +399,7 @@ public class ProtocolImpl implements Protocol {
       cancelExecutionTimer();
 
       //Ensure listener is reset
-      listener = NULL_LISTENER;
+      listener = nullListener;
     }
   }
 
