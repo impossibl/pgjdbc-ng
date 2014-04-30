@@ -64,7 +64,7 @@ class RecoveredXid implements Xid {
     if (o == this) // optimization for the common case.
       return true;
 
-    if (o == null || !(o instanceof Xid))
+    if (!(o instanceof Xid))
       return false;
 
     Xid other = (Xid) o;
