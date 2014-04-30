@@ -1870,38 +1870,45 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) " +
         " WHERE n.nspname != 'pg_toast'";
 
-    ResultSet rs = execForResultSet(sql);
-    while (rs.next()) {
+    ResultSet rs = null;
+    try {
+      rs = execForResultSet(sql);
+      while (rs.next()) {
 
-      Object[] row = new Object[18];
-      int typeOid = rs.getInt(2);
-      Type type = registry.loadType(typeOid);
+        Object[] row = new Object[18];
+        int typeOid = rs.getInt(2);
+        Type type = registry.loadType(typeOid);
 
-      row[0] = SQLTypeMetaData.getTypeName(type, null, 0);
-      row[1] = SQLTypeMetaData.getSQLType(type);
-      row[2] = SQLTypeMetaData.getMaxPrecision(type);
+        row[0] = SQLTypeMetaData.getTypeName(type, null, 0);
+        row[1] = SQLTypeMetaData.getSQLType(type);
+        row[2] = SQLTypeMetaData.getMaxPrecision(type);
 
-      if (SQLTypeMetaData.requiresQuoting(type)) {
-        row[3] = "\'";
-        row[4] = "\'";
+        if (SQLTypeMetaData.requiresQuoting(type)) {
+          row[3] = "\'";
+          row[4] = "\'";
+        }
+
+        row[6] = SQLTypeMetaData.isNullable(type, null, 0);
+        row[7] = SQLTypeMetaData.isCaseSensitive(type);
+        row[8] = true;
+        row[9] = !SQLTypeMetaData.isSigned(type);
+        row[10] = SQLTypeMetaData.isCurrency(type);
+        row[11] = SQLTypeMetaData.isAutoIncrement(type, null, 0);
+        row[13] = SQLTypeMetaData.getMinScale(type);
+        row[14] = SQLTypeMetaData.getMaxScale(type);
+        row[15] = null; //Unused
+        row[16] = null; //Unused
+        row[17] = SQLTypeMetaData.getPrecisionRadix(type);
+
+        results.add(row);
+
       }
-
-      row[6] = SQLTypeMetaData.isNullable(type, null, 0);
-      row[7] = SQLTypeMetaData.isCaseSensitive(type);
-      row[8] = true;
-      row[9] = !SQLTypeMetaData.isSigned(type);
-      row[10] = SQLTypeMetaData.isCurrency(type);
-      row[11] = SQLTypeMetaData.isAutoIncrement(type, null, 0);
-      row[13] = SQLTypeMetaData.getMinScale(type);
-      row[14] = SQLTypeMetaData.getMaxScale(type);
-      row[15] = null; //Unused
-      row[16] = null; //Unused
-      row[17] = SQLTypeMetaData.getPrecisionRadix(type);
-
-      results.add(row);
-
     }
-    rs.close();
+    finally {
+      if (rs != null) {
+        rs.close();
+      }
+    }
 
     return createResultSet(Arrays.asList(resultFields), results);
   }
