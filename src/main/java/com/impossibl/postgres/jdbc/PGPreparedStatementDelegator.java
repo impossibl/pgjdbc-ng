@@ -64,6 +64,7 @@ public class PGPreparedStatementDelegator extends PGStatementDelegator implement
    */
   public PGPreparedStatementDelegator(PGPooledConnectionDelegator owner, PreparedStatement delegator) {
     super(owner, delegator);
+    this.owner = owner;
     this.delegator = delegator;
   }
 
