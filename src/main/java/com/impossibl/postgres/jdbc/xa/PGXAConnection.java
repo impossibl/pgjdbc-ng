@@ -316,31 +316,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     if ((flag & TMSTARTRSCAN) == 0)
       return new Xid[0];
     else {
-      try {
-        Statement stmt = conn.createStatement();
-        ResultSet rs = null;
-        try {
-          // If this connection is simultaneously used for a transaction,
-          // this query gets executed inside that transaction. It's OK,
-          // except if the transaction is in abort-only state and the
-          // backed refuses to process new queries. Hopefully not a problem
-          // in practise.
-          rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts");
-          List<Xid> l = new ArrayList<Xid>();
-          while (rs.next()) {
-            Xid recoveredXid = RecoveredXid.stringToXid(rs.getString(1));
-            if (recoveredXid != null)
-              l.add(recoveredXid);
-          }
+      // If this connection is simultaneously used for a transaction,
+      // this query gets executed inside that transaction. It's OK,
+      // except if the transaction is in abort-only state and the
+      // backed refuses to process new queries. Hopefully not a problem
+      // in practice.
+      try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts")) {
+        List<Xid> l = new ArrayList<Xid>();
+        while (rs.next()) {
+          Xid recoveredXid = RecoveredXid.stringToXid(rs.getString(1));
+          if (recoveredXid != null)
+            l.add(recoveredXid);
+        }
 
-          return l.toArray(new Xid[l.size()]);
-        }
-        finally {
-          if (rs != null) {
-            rs.close();
-          }
-          stmt.close();
-        }
+        return l.toArray(new Xid[l.size()]);
       }
       catch (SQLException ex) {
         throw new PGXAException("Error during recover", ex, XAException.XAER_RMERR);

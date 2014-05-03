@@ -1870,9 +1870,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) " +
         " WHERE n.nspname != 'pg_toast'";
 
-    ResultSet rs = null;
-    try {
-      rs = execForResultSet(sql);
+    try (ResultSet rs = execForResultSet(sql)) {
       while (rs.next()) {
 
         Object[] row = new Object[18];
@@ -1902,11 +1900,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
         results.add(row);
 
-      }
-    }
-    finally {
-      if (rs != null) {
-        rs.close();
       }
     }
 
