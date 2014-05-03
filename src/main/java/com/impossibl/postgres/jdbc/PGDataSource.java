@@ -51,6 +51,7 @@ public class PGDataSource extends AbstractDataSource implements DataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Connection getConnection() throws SQLException {
     return getConnection(getUser(), getPassword());
   }
@@ -58,6 +59,7 @@ public class PGDataSource extends AbstractDataSource implements DataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public Connection getConnection(String user, String password) throws SQLException {
     return createConnection(user, password);
   }
@@ -65,6 +67,7 @@ public class PGDataSource extends AbstractDataSource implements DataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (!iface.isAssignableFrom(getClass())) {
       throw UNWRAP_ERROR;
@@ -76,6 +79,7 @@ public class PGDataSource extends AbstractDataSource implements DataSource {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }

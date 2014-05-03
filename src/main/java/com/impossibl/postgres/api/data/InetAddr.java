@@ -235,7 +235,7 @@ public class InetAddr {
     byte[] dst = new byte[IPv6.getByteSize()];
     short maskBits = 128;
 
-    int pc = ipv6Addr.indexOf("%");
+    int pc = ipv6Addr.indexOf('%');
     if (pc == srcbLength - 1) {
       throw new IllegalArgumentException("invalid address");
     }

@@ -64,7 +64,7 @@ class RecoveredXid implements Xid {
     if (o == this) // optimization for the common case.
       return true;
 
-    if (o == null || !(o instanceof Xid))
+    if (!(o instanceof Xid))
       return false;
 
     Xid other = (Xid) o;
@@ -113,8 +113,8 @@ class RecoveredXid implements Xid {
   static Xid stringToXid(String s) {
     RecoveredXid xid = new RecoveredXid();
 
-    int a = s.indexOf("_");
-    int b = s.lastIndexOf("_");
+    int a = s.indexOf('_');
+    int b = s.lastIndexOf('_');
 
     if (a == b) // this also catches the case a == b == -1.
       return null;

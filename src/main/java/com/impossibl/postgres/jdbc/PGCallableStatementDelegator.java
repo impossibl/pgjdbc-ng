@@ -62,12 +62,14 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
    */
   public PGCallableStatementDelegator(PGPooledConnectionDelegator owner, CallableStatement delegator) {
     super(owner, delegator);
+    this.owner = owner;
     this.delegator = delegator;
   }
 
   /**
    * {@inheritDoc}
    */
+  @Override
   public Array getArray(int parameterIndex) throws SQLException {
     try {
       return delegator.getArray(parameterIndex);
@@ -81,6 +83,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Array getArray(String parameterName) throws SQLException {
     try {
       return delegator.getArray(parameterName);
@@ -94,6 +97,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
     try {
       return delegator.getBigDecimal(parameterIndex);
@@ -107,6 +111,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   @Deprecated
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     try {
@@ -121,6 +126,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public BigDecimal getBigDecimal(String parameterName) throws SQLException {
     try {
       return delegator.getBigDecimal(parameterName);
@@ -134,6 +140,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Blob getBlob(int parameterIndex) throws SQLException {
     try {
       return delegator.getBlob(parameterIndex);
@@ -147,6 +154,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Blob getBlob(String parameterName) throws SQLException {
     try {
       return delegator.getBlob(parameterName);
@@ -160,6 +168,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean getBoolean(int parameterIndex) throws SQLException {
     try {
       return delegator.getBoolean(parameterIndex);
@@ -173,6 +182,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean getBoolean(String parameterName) throws SQLException {
     try {
       return delegator.getBoolean(parameterName);
@@ -186,6 +196,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public byte getByte(int parameterIndex) throws SQLException {
     try {
       return delegator.getByte(parameterIndex);
@@ -199,6 +210,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public byte getByte(String parameterName) throws SQLException {
     try {
       return delegator.getByte(parameterName);
@@ -212,6 +224,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public byte[] getBytes(int parameterIndex) throws SQLException {
     try {
       return delegator.getBytes(parameterIndex);
@@ -225,6 +238,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public byte[] getBytes(String parameterName) throws SQLException {
     try {
       return delegator.getBytes(parameterName);
@@ -238,6 +252,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Reader getCharacterStream(int parameterIndex) throws SQLException {
     try {
       return delegator.getCharacterStream(parameterIndex);
@@ -251,6 +266,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Reader getCharacterStream(String parameterName) throws SQLException {
     try {
       return delegator.getCharacterStream(parameterName);
@@ -264,6 +280,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Clob getClob(int parameterIndex) throws SQLException {
     try {
       return delegator.getClob(parameterIndex);
@@ -277,6 +294,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Clob getClob(String parameterName) throws SQLException {
     try {
       return delegator.getClob(parameterName);
@@ -290,6 +308,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Date getDate(int parameterIndex) throws SQLException {
     try {
       return delegator.getDate(parameterIndex);
@@ -303,6 +322,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
     try {
       return delegator.getDate(parameterIndex, cal);
@@ -316,6 +336,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Date getDate(String parameterName) throws SQLException {
     try {
       return delegator.getDate(parameterName);
@@ -329,6 +350,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Date getDate(String parameterName, Calendar cal) throws SQLException {
     try {
       return delegator.getDate(parameterName, cal);
@@ -342,6 +364,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public double getDouble(int parameterIndex) throws SQLException {
     try {
       return delegator.getDouble(parameterIndex);
@@ -355,6 +378,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public double getDouble(String parameterName) throws SQLException {
     try {
       return delegator.getDouble(parameterName);
@@ -368,6 +392,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public float getFloat(int parameterIndex) throws SQLException {
     try {
       return delegator.getFloat(parameterIndex);
@@ -381,6 +406,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public float getFloat(String parameterName) throws SQLException {
     try {
       return delegator.getFloat(parameterName);
@@ -394,6 +420,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getInt(int parameterIndex) throws SQLException {
     try {
       return delegator.getInt(parameterIndex);
@@ -407,6 +434,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getInt(String parameterName) throws SQLException {
     try {
       return delegator.getInt(parameterName);
@@ -420,6 +448,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public long getLong(int parameterIndex) throws SQLException {
     try {
       return delegator.getLong(parameterIndex);
@@ -433,6 +462,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public long getLong(String parameterName) throws SQLException {
     try {
       return delegator.getLong(parameterName);
@@ -446,6 +476,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Reader getNCharacterStream(int parameterIndex) throws SQLException {
     try {
       return delegator.getNCharacterStream(parameterIndex);
@@ -459,6 +490,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Reader getNCharacterStream(String parameterName) throws SQLException {
     try {
       return delegator.getNCharacterStream(parameterName);
@@ -472,6 +504,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public NClob getNClob(int parameterIndex) throws SQLException {
     try {
       return delegator.getNClob(parameterIndex);
@@ -485,6 +518,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public NClob getNClob(String parameterName) throws SQLException {
     try {
       return delegator.getNClob(parameterName);
@@ -498,6 +532,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getNString(int parameterIndex) throws SQLException {
     try {
       return delegator.getNString(parameterIndex);
@@ -511,6 +546,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getNString(String parameterName) throws SQLException {
     try {
       return delegator.getNString(parameterName);
@@ -524,6 +560,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Object getObject(int parameterIndex) throws SQLException {
     try {
       return delegator.getObject(parameterIndex);
@@ -537,6 +574,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
     try {
       return delegator.getObject(parameterIndex, type);
@@ -550,6 +588,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
     try {
       return delegator.getObject(parameterIndex, map);
@@ -563,6 +602,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Object getObject(String parameterName) throws SQLException {
     try {
       return delegator.getObject(parameterName);
@@ -576,6 +616,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
     try {
       return delegator.getObject(parameterName, type);
@@ -589,6 +630,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Object getObject(String parameterName, Map<String, Class<?>> map) throws SQLException {
     try {
       return delegator.getObject(parameterName, map);
@@ -602,6 +644,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Ref getRef(int parameterIndex) throws SQLException {
     try {
       return delegator.getRef(parameterIndex);
@@ -615,6 +658,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Ref getRef(String parameterName) throws SQLException {
     try {
       return delegator.getRef(parameterName);
@@ -628,6 +672,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
     try {
       return delegator.getRowId(parameterIndex);
@@ -641,6 +686,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public RowId getRowId(String parameterName) throws SQLException {
     try {
       return delegator.getRowId(parameterName);
@@ -654,6 +700,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public short getShort(int parameterIndex) throws SQLException {
     try {
       return delegator.getShort(parameterIndex);
@@ -667,6 +714,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public short getShort(String parameterName) throws SQLException {
     try {
       return delegator.getShort(parameterName);
@@ -680,6 +728,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
     try {
       return delegator.getSQLXML(parameterIndex);
@@ -693,6 +742,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
     try {
       return delegator.getSQLXML(parameterName);
@@ -706,6 +756,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getString(int parameterIndex) throws SQLException {
     try {
       return delegator.getString(parameterIndex);
@@ -719,6 +770,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public String getString(String parameterName) throws SQLException {
     try {
       return delegator.getString(parameterName);
@@ -732,6 +784,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Time getTime(int parameterIndex) throws SQLException {
     try {
       return delegator.getTime(parameterIndex);
@@ -745,6 +798,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Time getTime(int parameterIndex, Calendar cal) throws SQLException {
     try {
       return delegator.getTime(parameterIndex, cal);
@@ -758,6 +812,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Time getTime(String parameterName) throws SQLException {
     try {
       return delegator.getTime(parameterName);
@@ -771,6 +826,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Time getTime(String parameterName, Calendar cal) throws SQLException {
     try {
       return delegator.getTime(parameterName, cal);
@@ -784,6 +840,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Timestamp getTimestamp(int parameterIndex) throws SQLException {
     try {
       return delegator.getTimestamp(parameterIndex);
@@ -797,6 +854,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SQLException {
     try {
       return delegator.getTimestamp(parameterIndex, cal);
@@ -810,6 +868,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Timestamp getTimestamp(String parameterName) throws SQLException {
     try {
       return delegator.getTimestamp(parameterName);
@@ -823,6 +882,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
     try {
       return delegator.getTimestamp(parameterName, cal);
@@ -836,6 +896,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public URL getURL(int parameterIndex) throws SQLException {
     try {
       return delegator.getURL(parameterIndex);
@@ -849,6 +910,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public URL getURL(String parameterName) throws SQLException {
     try {
       return delegator.getURL(parameterName);
@@ -862,6 +924,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
     try {
       delegator.registerOutParameter(parameterIndex, sqlType);
@@ -875,6 +938,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
     try {
       delegator.registerOutParameter(parameterIndex, sqlType, scale);
@@ -888,6 +952,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
     try {
       delegator.registerOutParameter(parameterIndex, sqlType, typeName);
@@ -901,6 +966,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
     try {
       delegator.registerOutParameter(parameterName, sqlType);
@@ -914,6 +980,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(String parameterName, int sqlType, int scale) throws SQLException {
     try {
       delegator.registerOutParameter(parameterName, sqlType, scale);
@@ -927,6 +994,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void registerOutParameter(String parameterName, int sqlType, String typeName) throws SQLException {
     try {
       delegator.registerOutParameter(parameterName, sqlType, typeName);
@@ -940,6 +1008,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setAsciiStream(String parameterName, InputStream x) throws SQLException {
     try {
       delegator.setAsciiStream(parameterName, x);
@@ -953,6 +1022,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setAsciiStream(String parameterName, InputStream x, int length) throws SQLException {
     try {
       delegator.setAsciiStream(parameterName, x, length);
@@ -966,6 +1036,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setAsciiStream(String parameterName, InputStream x, long length) throws SQLException {
     try {
       delegator.setAsciiStream(parameterName, x, length);
@@ -979,6 +1050,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBigDecimal(String parameterName, BigDecimal x) throws SQLException {
     try {
       delegator.setBigDecimal(parameterName, x);
@@ -992,6 +1064,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBinaryStream(String parameterName, InputStream x) throws SQLException {
     try {
       delegator.setBinaryStream(parameterName, x);
@@ -1005,6 +1078,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBinaryStream(String parameterName, InputStream x, int length) throws SQLException {
     try {
       delegator.setBinaryStream(parameterName, x, length);
@@ -1018,6 +1092,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBinaryStream(String parameterName, InputStream x, long length) throws SQLException {
     try {
       delegator.setBinaryStream(parameterName, x, length);
@@ -1031,6 +1106,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBlob(String parameterName, Blob x) throws SQLException {
     try {
       delegator.setBlob(parameterName, x);
@@ -1044,6 +1120,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBlob(String parameterName, InputStream inputStream) throws SQLException {
     try {
       delegator.setBlob(parameterName, inputStream);
@@ -1057,6 +1134,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException {
     try {
       delegator.setBlob(parameterName, inputStream, length);
@@ -1070,6 +1148,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBoolean(String parameterName, boolean x) throws SQLException {
     try {
       delegator.setBoolean(parameterName, x);
@@ -1083,6 +1162,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setByte(String parameterName, byte x) throws SQLException {
     try {
       delegator.setByte(parameterName, x);
@@ -1096,6 +1176,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setBytes(String parameterName, byte[] x) throws SQLException {
     try {
       delegator.setBytes(parameterName, x);
@@ -1109,6 +1190,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setCharacterStream(String parameterName, Reader reader) throws SQLException {
     try {
       delegator.setCharacterStream(parameterName, reader);
@@ -1122,6 +1204,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setCharacterStream(String parameterName, Reader reader, int length) throws SQLException {
     try {
       delegator.setCharacterStream(parameterName, reader, length);
@@ -1135,6 +1218,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
     try {
       delegator.setCharacterStream(parameterName, reader, length);
@@ -1148,6 +1232,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setClob(String parameterName, Clob x) throws SQLException {
     try {
       delegator.setClob(parameterName, x);
@@ -1161,6 +1246,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setClob(String parameterName, Reader reader) throws SQLException {
     try {
       delegator.setClob(parameterName, reader);
@@ -1174,6 +1260,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setClob(String parameterName, Reader reader, long length) throws SQLException {
     try {
       delegator.setClob(parameterName, reader, length);
@@ -1187,6 +1274,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setDate(String parameterName, Date x) throws SQLException {
     try {
       delegator.setDate(parameterName, x);
@@ -1200,6 +1288,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setDate(String parameterName, Date x, Calendar cal) throws SQLException {
     try {
       delegator.setDate(parameterName, x, cal);
@@ -1213,6 +1302,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setDouble(String parameterName, double x) throws SQLException {
     try {
       delegator.setDouble(parameterName, x);
@@ -1226,6 +1316,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setFloat(String parameterName, float x) throws SQLException {
     try {
       delegator.setFloat(parameterName, x);
@@ -1239,6 +1330,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setInt(String parameterName, int x) throws SQLException {
     try {
       delegator.setInt(parameterName, x);
@@ -1252,6 +1344,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setLong(String parameterName, long x) throws SQLException {
     try {
       delegator.setLong(parameterName, x);
@@ -1265,6 +1358,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNCharacterStream(String parameterName, Reader value) throws SQLException {
     try {
       delegator.setNCharacterStream(parameterName, value);
@@ -1278,6 +1372,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNCharacterStream(String parameterName, Reader value, long length) throws SQLException {
     try {
       delegator.setNCharacterStream(parameterName, value, length);
@@ -1291,6 +1386,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNClob(String parameterName, NClob value) throws SQLException {
     try {
       delegator.setNClob(parameterName, value);
@@ -1304,6 +1400,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNClob(String parameterName, Reader reader) throws SQLException {
     try {
       delegator.setNClob(parameterName, reader);
@@ -1317,6 +1414,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
     try {
       delegator.setNClob(parameterName, reader, length);
@@ -1330,6 +1428,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNString(String parameterName, String value) throws SQLException {
     try {
       delegator.setNString(parameterName, value);
@@ -1343,6 +1442,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNull(String parameterName, int sqlType) throws SQLException {
     try {
       delegator.setNull(parameterName, sqlType);
@@ -1356,6 +1456,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
     try {
       delegator.setNull(parameterName, sqlType, typeName);
@@ -1369,6 +1470,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setObject(String parameterName, Object x) throws SQLException {
     try {
       delegator.setObject(parameterName, x);
@@ -1382,6 +1484,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setObject(String parameterName, Object x, int targetSqlType) throws SQLException {
     try {
       delegator.setObject(parameterName, x, targetSqlType);
@@ -1395,6 +1498,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setObject(String parameterName, Object x, int targetSqlType, int scale) throws SQLException {
     try {
       delegator.setObject(parameterName, x, targetSqlType, scale);
@@ -1408,6 +1512,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setRowId(String parameterName, RowId x) throws SQLException {
     try {
       delegator.setRowId(parameterName, x);
@@ -1421,6 +1526,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setShort(String parameterName, short x) throws SQLException {
     try {
       delegator.setShort(parameterName, x);
@@ -1434,6 +1540,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
     try {
       delegator.setSQLXML(parameterName, xmlObject);
@@ -1447,6 +1554,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setString(String parameterName, String x) throws SQLException {
     try {
       delegator.setString(parameterName, x);
@@ -1460,6 +1568,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTime(String parameterName, Time x) throws SQLException {
     try {
       delegator.setTime(parameterName, x);
@@ -1473,6 +1582,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTime(String parameterName, Time x, Calendar cal) throws SQLException {
     try {
       delegator.setTime(parameterName, x, cal);
@@ -1486,6 +1596,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTimestamp(String parameterName, Timestamp x) throws SQLException {
     try {
       delegator.setTimestamp(parameterName, x);
@@ -1499,6 +1610,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
     try {
       delegator.setTimestamp(parameterName, x, cal);
@@ -1512,6 +1624,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setURL(String parameterName, URL val) throws SQLException {
     try {
       delegator.setURL(parameterName, val);
@@ -1525,6 +1638,7 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean wasNull() throws SQLException {
     try {
       return delegator.wasNull();

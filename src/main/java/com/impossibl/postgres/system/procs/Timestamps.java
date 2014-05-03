@@ -54,7 +54,7 @@ import io.netty.buffer.ByteBuf;
 
 public class Timestamps extends SettingSelectProcProvider {
 
-  private static long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
+  private static final long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
 
   private TimeZone zone;
   private PrimitiveType primitiveType;

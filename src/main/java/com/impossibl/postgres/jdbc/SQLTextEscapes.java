@@ -307,7 +307,7 @@ public class SQLTextEscapes {
 
   private static void checkLiteralNode(Node test, String text) throws SQLException {
 
-    if (!test.toString().toUpperCase().equals(text.toUpperCase())) {
+    if (!test.toString().equalsIgnoreCase(text)) {
       throw new SQLException("Invalid escape (" + test.getStartPos() + ")", "Syntax Error");
     }
 

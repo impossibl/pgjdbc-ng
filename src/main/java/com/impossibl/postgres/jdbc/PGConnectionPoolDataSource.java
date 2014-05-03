@@ -49,6 +49,7 @@ public class PGConnectionPoolDataSource extends AbstractDataSource implements Co
   /**
    * {@inheritDoc}
    */
+  @Override
   public PooledConnection getPooledConnection() throws SQLException {
     return getPooledConnection(getUser(), getPassword());
   }
@@ -56,6 +57,7 @@ public class PGConnectionPoolDataSource extends AbstractDataSource implements Co
   /**
    * {@inheritDoc}
    */
+  @Override
   public PooledConnection getPooledConnection(String user, String password) throws SQLException {
     return new PGPooledConnection(createConnection(user, password), true, false);
   }

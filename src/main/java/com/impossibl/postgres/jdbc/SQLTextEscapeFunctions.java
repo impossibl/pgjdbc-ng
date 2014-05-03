@@ -635,7 +635,7 @@ class SQLTextEscapeFunctions {
   }
 
   static Node grammar(String val) {
-    return new GrammarPiece(val.toString(), -1);
+    return new GrammarPiece(val, -1);
   }
 
   static Node literal(Number val) {

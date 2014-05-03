@@ -91,6 +91,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void addConnectionEventListener(ConnectionEventListener connectionEventListener) {
     connectionListeners.add(connectionEventListener);
   }
@@ -98,6 +99,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void removeConnectionEventListener(ConnectionEventListener connectionEventListener) {
     connectionListeners.remove(connectionEventListener);
   }
@@ -105,6 +107,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void addStatementEventListener(StatementEventListener statementEventListener) {
     statementListeners.add(statementEventListener);
   }
@@ -112,6 +115,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void removeStatementEventListener(StatementEventListener statementEventListener) {
     statementListeners.remove(statementEventListener);
   }
@@ -121,6 +125,7 @@ public class PGPooledConnection implements PooledConnection {
    * PooledConnection.  If any client has a connection based on
    * this PooledConnection, it is forcibly closed as well.
    */
+  @Override
   public void close() throws SQLException {
     if (last != null) {
       last.reset();
@@ -153,6 +158,7 @@ public class PGPooledConnection implements PooledConnection {
    * there is a previous handle active when this is called, the previous
    * one is forcibly closed and its work rolled back.</p>
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
