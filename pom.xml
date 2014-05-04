@@ -50,6 +50,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- Checkstyle configuration -->
 		<linkXRef>false</linkXRef>
+		<project.osgi.exports>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.data,com.impossibl.postgres.api.jdbc</project.osgi.exports>
+		<project.osgi.imports>io.netty.buffer,io.netty.channel,io.netty.channel.nio,io.netty.channel.socket,io.netty.channel.socket.nio,io.netty.bootstrap,io.netty.util,io.netty.util.concurrent,io.netty.handler.codec,io.netty.handler.ssl</project.osgi.imports>
 	</properties>
 
 	<dependencies>
@@ -78,6 +80,19 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<id>parse-version</id>
+						<goals>
+							<goal>parse-version</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>2.1</version>
@@ -95,8 +110,9 @@
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<manifestEntries>
 										<Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
-										<Bundle-Version>${project.version}</Bundle-Version>
-										<Export-Package>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.jdbc</Export-Package>
+										<Bundle-Version>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</Bundle-Version>
+										<Export-Package>${project.osgi.exports}</Export-Package>
+										<Import-Package>${project.osgi.imports}</Import-Package>
 									</manifestEntries>
 								</transformer>
 							</transformers>
@@ -113,7 +129,7 @@
 						<exclude>**/PerformanceTest.java</exclude>
 						<exclude>**/GiantBlobTest.java</exclude>
 						<exclude>**/SSLTest.java</exclude>
-            <exclude>**/ServerDisconnectTest.java</exclude>
+						<exclude>**/ServerDisconnectTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -126,23 +142,24 @@
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>2.4</version>
 				<executions>
-          <execution>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <archive>
-                <manifestEntries>
-                  <Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
-                  <Bundle-Version>${project.version}</Bundle-Version>
-                  <Export-Package>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.data,com.impossibl.postgres.api.jdbc</Export-Package>
-                </manifestEntries>
-              </archive>
-              <forceCreation>true</forceCreation>
-            </configuration>
-          </execution>
 					<execution>
-            <id>test-manifest.mf</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<archive>
+								<manifestEntries>
+									<Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
+									<Bundle-Version>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</Bundle-Version>
+									<Export-Package>${project.osgi.exports}</Export-Package>
+									<Import-Package>${project.osgi.imports}</Import-Package>
+								</manifestEntries>
+							</archive>
+							<forceCreation>true</forceCreation>
+						</configuration>
+					</execution>
+					<execution>
+						<id>test-manifest.mf</id>
 						<goals>
 							<goal>test-jar</goal>
 						</goals>
