@@ -54,6 +54,10 @@
 		<project.osgi.imports>io.netty.buffer,io.netty.channel,io.netty.channel.nio,io.netty.channel.socket,io.netty.channel.socket.nio,io.netty.bootstrap,io.netty.util,io.netty.util.concurrent,io.netty.handler.codec,io.netty.handler.ssl</project.osgi.imports>
 	</properties>
 
+	<prerequisites>
+		<maven>3.1</maven>
+	</prerequisites>
+
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -64,7 +68,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
-			<version>4.0.15.Final</version>
+			<version>4.0.19.Final</version>
 		</dependency>
 	</dependencies>
 
@@ -73,7 +77,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.0</version>
+				<version>3.1</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -95,7 +99,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.1</version>
+				<version>2.3</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -123,7 +127,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.14.1</version>
+				<version>2.17</version>
 				<configuration>
 					<excludes>
 						<exclude>**/PerformanceTest.java</exclude>
@@ -173,13 +177,14 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
-					<version>2.10</version>
+					<version>2.12.1</version>
 					<configuration>
 						<configLocation>src/support/checkstyle.xml</configLocation>
 						<sourceDirectory>.</sourceDirectory>
 						<consoleOutput>true</consoleOutput>
 						<failsOnError>true</failsOnError>
 						<useFile />
+						<excludes>src/main/java/com/impossibl/postgres/utils/guava/**</excludes>
 					</configuration>
 					<executions>
 						<execution>
