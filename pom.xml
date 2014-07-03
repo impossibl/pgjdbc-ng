@@ -68,7 +68,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
-			<version>4.0.19.Final</version>
+			<version>4.0.20.Final</version>
 		</dependency>
 	</dependencies>
 
@@ -86,7 +86,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.8</version>
+				<version>1.9</version>
 				<executions>
 					<execution>
 						<id>parse-version</id>
