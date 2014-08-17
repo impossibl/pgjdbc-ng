@@ -40,6 +40,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -51,8 +52,23 @@ public class PGDriver implements Driver {
   /** The version of the driver */
   public static final Version VERSION = Version.get(0, 1, 0);
 
+  public static final Logger logger = Logger.getLogger(PGDriver.class.getName());
+
+  private static PGDriver registered;
+
+  static {
+
+    try {
+      registered = new PGDriver();
+      DriverManager.registerDriver(registered);
+    }
+    catch (SQLException e) {
+      logger.log(Level.SEVERE, "Error registering driver", e);
+    }
+
+  }
+
   public PGDriver() throws SQLException {
-    DriverManager.registerDriver(this);
   }
 
   @Override
