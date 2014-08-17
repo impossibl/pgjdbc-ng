@@ -288,17 +288,17 @@ public class NullByteBuf extends AbstractByteBuf {
 
   @Override
   public ByteBuf retain(int increment) {
-    return null;
+    return this;
   }
 
   @Override
   public ByteBuf retain() {
-    return null;
+    return this;
   }
 
   @Override
   public int refCnt() {
-    return 0;
+    return 1;
   }
 
   @Override
