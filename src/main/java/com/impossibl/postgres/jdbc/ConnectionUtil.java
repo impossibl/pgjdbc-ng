@@ -138,7 +138,7 @@ class ConnectionUtil {
     }
   }
 
-  static PGConnectionImpl createConnection(String url, Properties info, Housekeeper hk) throws SQLException {
+  static PGConnectionImpl createConnection(String url, Properties info, boolean allowHousekeeper) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -149,9 +149,9 @@ class ConnectionUtil {
     Properties settings = buildSettings(connSpec, info);
 
     // Select housekeeper for connection
-    Housekeeper housekeeper = null;
-    if (parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
-      housekeeper = hk;
+    Housekeeper.Ref housekeeper = null;
+    if (allowHousekeeper && parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
+      housekeeper = ThreadedHousekeeper.acquire();
     }
 
     // Try to connect to each provided address in turn returning the first

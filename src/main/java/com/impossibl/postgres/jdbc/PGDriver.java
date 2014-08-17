@@ -57,7 +57,7 @@ public class PGDriver implements Driver {
 
   @Override
   public PGConnection connect(String url, Properties info) throws SQLException {
-    return ConnectionUtil.createConnection(url, info, ThreadedHousekeeper.instance);
+    return ConnectionUtil.createConnection(url, info, true);
   }
 
   @Override

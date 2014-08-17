@@ -28,7 +28,22 @@
  */
 package com.impossibl.postgres.jdbc;
 
+
+
+
 public interface Housekeeper {
+
+  public interface Ref {
+
+    Housekeeper get();
+
+    <T> Object add(T reference, CleanupRunnable cleanup);
+
+    void remove(Object cleanupKey);
+
+    void release();
+
+  }
 
   /**
    * Cleanup runnable to execute when a reference needs to be cleaned up

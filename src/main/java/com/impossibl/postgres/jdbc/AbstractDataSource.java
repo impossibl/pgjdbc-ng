@@ -281,14 +281,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
       props.put("password", "");
     }
 
-    Housekeeper hk = null;
-    if (housekeeper)
-      hk = ThreadedHousekeeper.instance;
-
     props.put(Settings.PARSED_SQL_CACHE_SIZE, parsedSqlCacheSize);
     props.put(Settings.PREPARED_STATEMENT_CACHE_SIZE, preparedStatementCacheSize);
 
-    return ConnectionUtil.createConnection(url, props, hk);
+    return ConnectionUtil.createConnection(url, props, housekeeper);
   }
 
   private String buildUrl() throws SQLException {

@@ -169,7 +169,7 @@ class PGResultSet implements ResultSet {
   Object[] updatedRowValues;
   Boolean nullFlag;
   Map<String, Class<?>> typeMap;
-  final Housekeeper housekeeper;
+  final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
 
 

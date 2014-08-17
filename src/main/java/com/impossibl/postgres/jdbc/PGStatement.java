@@ -130,7 +130,7 @@ abstract class PGStatement implements Statement {
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
   int queryTimeout;
-  final Housekeeper housekeeper;
+  final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
 
 

@@ -71,7 +71,7 @@ public class LeakTest {
 
   ThreadedHousekeeper getHousekeeper() {
     if (((PGConnectionImpl) conn).housekeeper != null)
-      return (ThreadedHousekeeper)((PGConnectionImpl) conn).housekeeper;
+      return (ThreadedHousekeeper)((PGConnectionImpl) conn).housekeeper.get();
     else
       return null;
   }
@@ -237,7 +237,7 @@ public class LeakTest {
       try (Statement stmt = conn.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
 
-          Housekeeper housekeeper = ((PGConnectionImpl) conn).housekeeper;
+          Housekeeper.Ref housekeeper = ((PGConnectionImpl) conn).housekeeper;
           assertNull(housekeeper);
 
         }

@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,10 +49,67 @@ import java.util.logging.Logger;
  */
 public class ThreadedHousekeeper implements Housekeeper {
 
-  public static final ThreadedHousekeeper instance = new ThreadedHousekeeper();
-
   private static final Logger logger = Logger.getLogger(ThreadedHousekeeper.class.getName());
 
+  private static AtomicInteger instanceRefs = new AtomicInteger(0);
+  private static ThreadedHousekeeper instance;
+
+  public class Ref implements Housekeeper.Ref {
+
+    private boolean released;
+
+    @Override
+    public ThreadedHousekeeper get() {
+      return ThreadedHousekeeper.this;
+    }
+
+    @Override
+    public void release() {
+      if (!released) {
+        released = true;
+        ThreadedHousekeeper.release();
+      }
+    }
+
+    @Override
+    public <T> Object add(T reference, CleanupRunnable cleanup) {
+      return ThreadedHousekeeper.this.add(reference, cleanup);
+    }
+
+    @Override
+    public void remove(Object cleanupKey) {
+      ThreadedHousekeeper.this.remove(cleanupKey);
+    }
+
+  }
+
+  public static Ref acquire() {
+
+    if (instanceRefs.compareAndSet(0, 1)) {
+      assert instance == null;
+      instance = new ThreadedHousekeeper();
+    }
+    else {
+      assert instance != null;
+      instanceRefs.incrementAndGet();
+    }
+
+    return instance.new Ref();
+  }
+
+  private static void release() {
+
+    if (instanceRefs.compareAndSet(1, 0)) {
+
+      instance.close();
+      instance = null;
+    }
+    else {
+
+      instanceRefs.decrementAndGet();
+    }
+
+  }
 
   private class HousekeeperReference<T> extends PhantomReference<T> {
 
@@ -122,12 +181,13 @@ public class ThreadedHousekeeper implements Housekeeper {
   private boolean logLeaks = true;
   private ReferenceQueue<Object> cleanupQueue = new ReferenceQueue<>();
   private Set<HousekeeperReference<?>> cleanupReferences = new HashSet<HousekeeperReference<?>>();
+  private AtomicBoolean cleanupThreadEnabled = new AtomicBoolean(true);
   private Thread cleanupThread = new Thread() {
 
     @Override
     public void run() {
 
-      while (true) {
+      while (cleanupThreadEnabled.get()) {
 
         HousekeeperReference<?> ref;
         try {
@@ -202,6 +262,19 @@ public class ThreadedHousekeeper implements Housekeeper {
       }
     }
 
+  }
+
+  private synchronized void close() {
+
+    cleanupThreadEnabled.set(false);
+    cleanupThread.interrupt();
+
+    try {
+      cleanupThread.join();
+    }
+    catch (InterruptedException e) {
+      // Not much to do
+    }
   }
 
   /**

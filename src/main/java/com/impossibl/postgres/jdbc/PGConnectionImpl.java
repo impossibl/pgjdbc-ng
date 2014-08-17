@@ -134,6 +134,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     Protocol protocol;
     List<WeakReference<PGStatement>> statements;
+    Housekeeper.Ref housekeeper;
     StackTraceElement[] allocationStackTrace;
 
     public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
@@ -158,6 +159,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       protocol.shutdown();
 
       closeStatements(statements);
+
+      housekeeper.release();
     }
 
   }
@@ -172,12 +175,12 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
   Map<CachedStatementKey, CachedStatement> preparedStatementCache;
-  final Housekeeper housekeeper;
+  final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
 
   static Map<String, SQLText> parsedSqlCache;
 
-  PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper housekeeper) throws IOException, NoticeException {
+  PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
     this.activeStatements = new ArrayList<>();
@@ -619,8 +622,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     shutdown();
 
-    if (housekeeper != null)
+    if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
+      housekeeper.release();
+    }
   }
 
   /**
