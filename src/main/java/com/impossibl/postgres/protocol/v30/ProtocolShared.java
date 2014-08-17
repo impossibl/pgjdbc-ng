@@ -31,6 +31,7 @@ package com.impossibl.postgres.protocol.v30;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import static java.lang.Runtime.getRuntime;
 
 import io.netty.bootstrap.Bootstrap;
@@ -40,6 +41,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.ThreadDeathWatcher;
+import io.netty.util.concurrent.Future;
 
 public class ProtocolShared {
 
@@ -106,8 +109,24 @@ public class ProtocolShared {
     }).option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
   }
 
-  private void shutdown() {
-    bootstrap.group().shutdownGracefully(10, 10, TimeUnit.MILLISECONDS);
+  public Future<?> shutdown() {
+
+    return bootstrap.group().shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
+  }
+
+  public void waitForShutdown() {
+
+    Future<?> term = shutdown();
+
+    try {
+      ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+    }
+    catch (InterruptedException e) {
+      // Ignore
+    }
+
+    term.awaitUninterruptibly();
+
   }
 
 }

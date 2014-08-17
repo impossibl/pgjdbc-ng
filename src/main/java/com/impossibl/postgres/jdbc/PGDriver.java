@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.protocol.v30.ProtocolShared;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
@@ -120,4 +121,19 @@ public class PGDriver implements Driver {
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
     return Logger.getLogger(Context.class.getPackage().getName());
   }
+
+  public static void cleanup() {
+
+    if (registered != null) {
+      try {
+        DriverManager.deregisterDriver(registered);
+      }
+      catch (SQLException e) {
+        logger.log(Level.WARNING, "Error deregistering driver", e);
+      }
+    }
+
+    ProtocolShared.acquire().get().waitForShutdown();
+  }
+
 }
