@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 
 public class Version {
 
-  private static final Pattern VERSION_SPLIT_PATTERN = Pattern.compile("\\.");
+  private static final Pattern VERSION_SPLIT_PATTERN = Pattern.compile("[^0-9]");
   private static final HashMap<Version, Version> all = new HashMap<Version, Version>();
 
   private int major;

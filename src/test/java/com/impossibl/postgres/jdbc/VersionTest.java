@@ -82,6 +82,12 @@ public class VersionTest {
     assertEquals(ver.getRevision(), null);
     assertEquals(ver.getRevisionValue(), 0);
 
+    ver = Version.parse("9.4devel");
+
+    assertEquals(ver.getMajor(), 9);
+    assertEquals((int)ver.getMinor(), 4);
+    assertEquals(ver.getRevision(), null);
+
     try {
       ver = Version.parse("1..3.");
       fail("Version shouldn't be allowed");
