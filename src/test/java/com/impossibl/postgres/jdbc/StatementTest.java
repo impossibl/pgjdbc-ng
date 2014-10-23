@@ -211,6 +211,12 @@ public class StatementTest {
   }
 
   @Test
+  public void testAlterTable() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO pgjdbc");
+  }
+
+  @Test
   public void testNumericFunctions() throws SQLException {
     Statement stmt = con.createStatement();
 

@@ -1114,6 +1114,10 @@ public class ProtocolImpl implements Protocol {
           command += " " + parts[1];
           rowsAffected = 0L;
         }
+        else if (parts.length == 3) {
+          command += " " + parts[1] + " " + parts[2];
+          rowsAffected = 0L;
+        }
         else {
           throw new IOException("error parsing command tag");
         }
