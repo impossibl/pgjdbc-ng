@@ -124,17 +124,22 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     sqlText = fullSqlText;
 
+    int reSeq = 1;
     for (int c = 0; c < allParameterModes.size(); ++c) {
 
       if (allParameterModes.get(c) == ParameterMode.Out) {
-        sqlText = sqlText.replaceAll("\\s*\\$" + (c + 1) + "\\s*", "");
+        sqlText = sqlText.replaceAll("\\s*\\$" + (c + 1) + "\\s*([,)])|\\s*\\$" + (c + 1) + "(\\s*)$", "$1$2");
+      }
+      else {  // re-sequence
+        sqlText = sqlText.replaceAll("\\s*\\$(" + (c + 1) + ")\\s*([,)])|\\s*\\$(" + (c + 1) + ")(\\s*)$", "\\$" + reSeq + "$2$4");
+        ++reSeq;
       }
 
     }
 
-    sqlText = sqlText.replaceAll("\\(\\s*,", "(");
-    sqlText = sqlText.replaceAll(",\\s*,", ",");
-    sqlText = sqlText.replaceAll(",\\s*\\)", ")");
+    sqlText = sqlText.replaceAll("\\(\\s*,+", "(");
+    sqlText = sqlText.replaceAll(",+\\s*,", ",");
+    sqlText = sqlText.replaceAll(",+\\s*\\)", ")");
 
     super.parseIfNeeded();
   }
