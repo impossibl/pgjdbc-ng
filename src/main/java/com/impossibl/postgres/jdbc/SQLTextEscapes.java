@@ -220,8 +220,6 @@ public class SQLTextEscapes {
 
     escape.removeAll(WhitespacePiece.class, false);
 
-    checkSize(escape, 4, 5);
-
     checkLiteralNode(escape, 1, "=");
     checkLiteralNode(escape, 2, "call");
 
@@ -240,7 +238,12 @@ public class SQLTextEscapes {
 
     }, true);
 
-    return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 3, UnquotedIdentifierPiece.class), space(), getNode(escape, 4, ParenGroupNode.class));
+    if (escape.getNodeCount() > 4) {
+      return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 3, UnquotedIdentifierPiece.class), space(), getNode(escape, 4, ParenGroupNode.class));
+    }
+    else {
+      return groupedSequence("SELECT", space(), grammar("*"), "FROM", getNode(escape, 3, UnquotedIdentifierPiece.class));
+    }
   }
 
   private static Node processCallEscape(EscapeNode escape) throws SQLException {
