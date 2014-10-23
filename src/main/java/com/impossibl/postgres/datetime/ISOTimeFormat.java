@@ -156,7 +156,6 @@ public class ISOTimeFormat implements DateTimeFormat {
       String secondString;
       String microsString;
       String zeros = "000000000";
-      StringBuffer timestampBuf;
 
       if (hour < 10) {
         hourString = "0" + hour;
@@ -196,8 +195,8 @@ public class ISOTimeFormat implements DateTimeFormat {
         microsString = new String(microsChar, 0, truncIndex + 1);
       }
 
-      // do a string buffer here instead.
-      timestampBuf = new StringBuffer(20 + microsString.length());
+      // do a string builder here instead.
+      StringBuilder timestampBuf = new StringBuilder(20 + microsString.length());
       timestampBuf.append(hourString);
       timestampBuf.append(":");
       timestampBuf.append(minuteString);

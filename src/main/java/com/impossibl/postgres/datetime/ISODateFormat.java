@@ -125,7 +125,6 @@ public class ISODateFormat implements DateTimeFormat {
       String monthString;
       String dayString;
       String yearZeros = "0000";
-      StringBuffer timestampBuf;
 
       if (year < 1000) {
         // Add leading zeros
@@ -148,8 +147,8 @@ public class ISODateFormat implements DateTimeFormat {
         dayString = Integer.toString(day);
       }
 
-      // do a string buffer here instead.
-      timestampBuf = new StringBuffer(20);
+      // do a string builder here instead.
+      StringBuilder timestampBuf = new StringBuilder(20);
       timestampBuf.append(yearString);
       timestampBuf.append("-");
       timestampBuf.append(monthString);

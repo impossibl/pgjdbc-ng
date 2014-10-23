@@ -138,7 +138,6 @@ public class ISOTimestampFormat implements DateTimeFormat {
       String microsString;
       String zeros = "000000000";
       String yearZeros = "0000";
-      StringBuffer timestampBuf;
 
       if (year < 1000) {
         // Add leading zeros
@@ -198,8 +197,8 @@ public class ISOTimestampFormat implements DateTimeFormat {
         microsString = new String(microsChar, 0, truncIndex + 1);
       }
 
-      // do a string buffer here instead.
-      timestampBuf = new StringBuffer(20 + microsString.length());
+      // do a string builder here instead.
+      StringBuilder timestampBuf = new StringBuilder(20 + microsString.length());
       timestampBuf.append(yearString);
       timestampBuf.append("-");
       timestampBuf.append(monthString);

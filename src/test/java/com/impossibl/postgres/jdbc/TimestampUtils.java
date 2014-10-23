@@ -56,9 +56,7 @@ public class TimestampUtils {
    */
   private static final int ONEDAY = 24 * 3600 * 1000;
 
-  private StringBuffer sbuf = new StringBuffer();
-
-  private Calendar defaultCal = new GregorianCalendar();
+  private final Calendar defaultCal = new GregorianCalendar();
   private final TimeZone defaultTz = defaultCal.getTimeZone();
 
   private Calendar calCache;
@@ -72,7 +70,7 @@ public class TimestampUtils {
     if (calCache != null && calCacheZone == rawOffset)
       return calCache;
 
-    StringBuffer zoneID = new StringBuffer("GMT");
+    StringBuilder zoneID = new StringBuilder("GMT");
     zoneID.append(sign < 0 ? '-' : '+');
     if (hr < 10) zoneID.append('0');
     zoneID.append(hr);
@@ -284,7 +282,7 @@ public class TimestampUtils {
 //         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd G HH:mm:ss Z");
 //         sdf.setTimeZone(resultCal.getTimeZone());
 
-//         StringBuffer sb = new StringBuffer("Parsed ");
+//         StringBuilder sb = new StringBuilder("Parsed ");
 //         sb.append(type);
 //         sb.append(" '");
 //         sb.append(what);
@@ -303,7 +301,7 @@ public class TimestampUtils {
 //         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd G HH:mm:ss Z");
 //         sdf.setTimeZone(cal.getTimeZone());
 
-//         StringBuffer sb = new StringBuffer("Stringized ");
+//         StringBuilder sb = new StringBuilder("Stringized ");
 //         sb.append(type);
 //         sb.append(" ");
 //         sb.append(sdf.format(value));
@@ -325,7 +323,7 @@ public class TimestampUtils {
    *
    * @throws SQLException if there is a problem parsing s.
    **/
-  public synchronized Timestamp toTimestamp(Calendar cal, String s) throws SQLException {
+  public Timestamp toTimestamp(Calendar calParameter, String s) throws SQLException {
     if (s == null)
       return null;
 
@@ -340,8 +338,7 @@ public class TimestampUtils {
       return PastInfiniteInstant.INSTANCE.toTimestamp();
     }
 
-    if (cal == null)
-      cal = defaultCal;
+    Calendar cal = getLocalCalendar(calParameter);
 
     ParsedTimestamp ts = loadCalendar(cal, s, "timestamp");
     Calendar useCal = (ts.tz == null ? cal : ts.tz);
@@ -360,7 +357,7 @@ public class TimestampUtils {
     return result;
   }
 
-  public synchronized Time toTime(Calendar cal, String s) throws SQLException {
+  public Time toTime(Calendar calParameter, String s) throws SQLException {
     if (s == null)
       return null;
 
@@ -372,8 +369,7 @@ public class TimestampUtils {
       throw new SQLException(GT.tr("Infinite value found for timestamp/date. This cannot be represented as time."));
     }
 
-    if (cal == null)
-      cal = defaultCal;
+    Calendar cal = getLocalCalendar(calParameter);
 
     ParsedTimestamp ts = loadCalendar(cal, s, "time");
 
@@ -403,7 +399,7 @@ public class TimestampUtils {
     return result;
   }
 
-  public synchronized Date toDate(Calendar cal, String s) throws SQLException {
+  public Date toDate(Calendar calParameter, String s) throws SQLException {
     if (s == null)
       return null;
 
@@ -418,8 +414,7 @@ public class TimestampUtils {
       return new Date(Long.MIN_VALUE);
     }
 
-    if (cal == null)
-      cal = defaultCal;
+    Calendar cal = getLocalCalendar(calParameter);
 
     ParsedTimestamp ts = loadCalendar(cal, s, "date");
     Calendar useCal = (ts.tz == null ? cal : ts.tz);
@@ -449,29 +444,28 @@ public class TimestampUtils {
     return result;
   }
 
-  public synchronized String toString(Calendar cal, Timestamp x) {
-    if (cal == null)
-      cal = defaultCal;
-
+  public String toString(Calendar calParameter, Timestamp x) {
+    Calendar cal = getLocalCalendar(calParameter);
     cal.setTime(x);
-    sbuf.setLength(0);
+
+    StringBuilder sb = new StringBuilder();
 
     if (x.equals(FutureInfiniteInstant.INSTANCE.toTimestamp())) {
-      sbuf.append("infinity");
+      sb.append("infinity");
     }
     else if (x.equals(PastInfiniteInstant.INSTANCE.toTimestamp())) {
-      sbuf.append("-infinity");
+      sb.append("-infinity");
     }
     else {
-      appendDate(sbuf, cal);
-      sbuf.append(' ');
-      appendTime(sbuf, cal, x.getNanos());
-      appendTimeZone(sbuf, cal);
-      appendEra(sbuf, cal);
+      appendDate(sb, cal);
+      sb.append(' ');
+      appendTime(sb, cal, x.getNanos());
+      appendTimeZone(sb, cal);
+      appendEra(sb, cal);
     }
 
-    showString("timestamp", cal, x, sbuf.toString());
-    return sbuf.toString();
+    showString("timestamp", cal, x, sb.toString());
+    return sb.toString();
   }
 
   public String toTimestampString(Calendar cal, Date x) {
@@ -487,51 +481,49 @@ public class TimestampUtils {
     }
   }
 
-  public synchronized String toString(Calendar cal, Date x) {
-    if (cal == null)
-      cal = defaultCal;
+  public String toString(Calendar calParameter, Date x) {
+    Calendar cal = getLocalCalendar(calParameter);
 
     cal.setTime(x);
-    sbuf.setLength(0);
+
+    StringBuilder sb = new StringBuilder();
 
     if (x.equals(FutureInfiniteInstant.INSTANCE.toDate())) {
-      sbuf.append("infinity");
+      sb.append("infinity");
     }
     else if (x.equals(PastInfiniteInstant.INSTANCE.toDate())) {
-      sbuf.append("-infinity");
+      sb.append("-infinity");
     }
     else {
-      appendDate(sbuf, cal);
-      appendEra(sbuf, cal);
-      appendTimeZone(sbuf, cal);
+      appendDate(sb, cal);
+      appendEra(sb, cal);
+      appendTimeZone(sb, cal);
     }
 
-    showString("date", cal, x, sbuf.toString());
+    showString("date", cal, x, sb.toString());
 
-    return sbuf.toString();
+    return sb.toString();
   }
 
   public String toTimestampString(Calendar cal, Time x) {
     return toString(cal, new Timestamp(x.getTime()));
   }
 
-  public synchronized String toString(Calendar cal, Time x) {
-    if (cal == null)
-      cal = defaultCal;
+  public String toString(Calendar calParameter, Time x) {
+    Calendar cal = getLocalCalendar(calParameter);
 
-    cal.setTime(x);
-    sbuf.setLength(0);
+    StringBuilder sb = new StringBuilder();
 
-    appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
+    appendTime(sb, cal, cal.get(Calendar.MILLISECOND) * 1000000);
 
-    appendTimeZone(sbuf, cal);
+    appendTimeZone(sb, cal);
 
-    showString("time", cal, x, sbuf.toString());
+    showString("time", cal, x, sb.toString());
 
-    return sbuf.toString();
+    return sb.toString();
   }
 
-  private static void appendDate(StringBuffer sb, Calendar cal) {
+  private static void appendDate(StringBuilder sb, Calendar cal) {
     int l_year = cal.get(Calendar.YEAR);
     // always use at least four digits for the year so very
     // early years, like 2, don't get misinterpreted
@@ -554,7 +546,7 @@ public class TimestampUtils {
     sb.append(l_day);
   }
 
-  private static void appendTime(StringBuffer sb, Calendar cal, int nanos) {
+  private static void appendTime(StringBuilder sb, Calendar cal, int nanos) {
     int hours = cal.get(Calendar.HOUR_OF_DAY);
     if (hours < 10)
       sb.append('0');
@@ -584,7 +576,7 @@ public class TimestampUtils {
     sb.append(decimalStr, 0, 6);
   }
 
-  private void appendTimeZone(StringBuffer sb, java.util.Calendar cal) {
+  private void appendTimeZone(StringBuilder sb, java.util.Calendar cal) {
     int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000;
 
     int absoff = Math.abs(offset);
@@ -610,7 +602,7 @@ public class TimestampUtils {
     sb.append(secs);
   }
 
-  private static void appendEra(StringBuffer sb, Calendar cal) {
+  private static void appendEra(StringBuilder sb, Calendar cal) {
     if (cal.get(Calendar.ERA) == GregorianCalendar.BC) {
       sb.append(" BC");
     }
@@ -651,6 +643,13 @@ public class TimestampUtils {
       return s[pos];
     }
     return '\0';
+  }
+
+  private Calendar getLocalCalendar(Calendar cal) {
+    if (cal == null) {
+      return (Calendar) defaultCal.clone();
+    }
+    return (Calendar) cal.clone();
   }
 
   /**
