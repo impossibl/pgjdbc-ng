@@ -47,6 +47,7 @@ import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -126,6 +127,26 @@ public class CallableStatementTest {
             + "pc := pa + 1;"
             + "end;'"
             + "LANGUAGE plpgsql VOLATILE;");
+    stmt.execute("CREATE OR REPLACE FUNCTION test_somein_someout2("
+        + "pb OUT varchar,"
+        + "pc OUT int8,"
+        + "pa IN int4)"
+        + " AS "
+        + "'begin "
+        + "pb := ''out'';"
+        + "pc := pa + 1;"
+        + "end;'"
+        + "LANGUAGE plpgsql VOLATILE;");
+    stmt.execute("CREATE OR REPLACE FUNCTION test_somein_someout3("
+        + "pb OUT varchar,"
+        + "pa IN int4,"
+        + "pc OUT int8)"
+        + " AS "
+        + "'begin "
+        + "pb := ''out'';"
+        + "pc := pa + 1;"
+        + "end;'"
+        + "LANGUAGE plpgsql VOLATILE;");
     stmt.execute("CREATE OR REPLACE FUNCTION test_allinout("
             + "pa INOUT int4,"
             + "pb INOUT varchar,"
@@ -381,10 +402,38 @@ public class CallableStatementTest {
   public void testSomeInOut() throws Throwable {
     CallableStatement call = con.prepareCall("{ call test_somein_someout(?,?,?) }");
 
+    call.setInt(1, 20);
     call.registerOutParameter(2, Types.VARCHAR);
     call.registerOutParameter(3, Types.BIGINT);
-    call.setInt(1, 20);
     call.execute();
+    Assert.assertEquals("out", call.getString(2));
+    Assert.assertEquals(21, call.getInt(3));
+    call.close();
+  }
+
+  @Test
+  public void testSomeInOut2() throws Throwable {
+    CallableStatement call = con.prepareCall("{ call test_somein_someout2(?,?,?) }");
+
+    call.registerOutParameter(1, Types.VARCHAR);
+    call.registerOutParameter(2, Types.BIGINT);
+    call.setInt(3, 20);
+    call.execute();
+    Assert.assertEquals("out", call.getString(1));
+    Assert.assertEquals(21, call.getInt(2));
+    call.close();
+  }
+
+  @Test
+  public void testSomeInOut3() throws Throwable {
+    CallableStatement call = con.prepareCall("{ call test_somein_someout3(?,?,?) }");
+
+    call.registerOutParameter(1, Types.VARCHAR);
+    call.setInt(2, 20);
+    call.registerOutParameter(3, Types.BIGINT);
+    call.execute();
+    Assert.assertEquals("out", call.getString(1));
+    Assert.assertEquals(21, call.getInt(3));
     call.close();
   }
 
