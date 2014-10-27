@@ -81,6 +81,9 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.math.RoundingMode.HALF_UP;
 import static java.util.Collections.nCopies;
@@ -103,6 +106,10 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   Map<String, Class<?>> typeMap;
   Boolean nullFlag;
 
+  private static final Map<Integer, Pattern> PARAM_REPLACE_REGEXES = new ConcurrentHashMap<>();
+  private static final Pattern CLEANUP_LEADING_COMMAS_REGEX = Pattern.compile("\\(\\s*,+");
+  private static final Pattern CLEANUP_MIDDLE_COMMAS_REGEX = Pattern.compile(",\\s*,");
+  private static final Pattern CLEANUP_TAILING_COMMAS_REGEX = Pattern.compile(",+\\s*\\)");
 
   PGCallableStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
     super(connection, type, concurrency, holdability, name, sqlText, 0, cursorName);
@@ -124,19 +131,34 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     sqlText = fullSqlText;
 
+    int reSeq = 1;
     for (int c = 0; c < allParameterModes.size(); ++c) {
 
-      if (allParameterModes.get(c) == ParameterMode.Out) {
-        sqlText = sqlText.replaceAll("\\s*\\$" + (c + 1) + "\\s*", "");
+      Matcher matcher = getRegexForParameter(c + 1).matcher(sqlText);
+      if (allParameterModes.get(c) == ParameterMode.Out) {  // redact parameter
+        sqlText = matcher.replaceFirst("$2");
       }
-
+      else {  // re-sequence parameter
+        sqlText = matcher.replaceFirst("\\$" + (reSeq++) + "$2");
+      }
     }
 
-    sqlText = sqlText.replaceAll("\\(\\s*,", "(");
-    sqlText = sqlText.replaceAll(",\\s*,", ",");
-    sqlText = sqlText.replaceAll(",\\s*\\)", ")");
+    sqlText = CLEANUP_LEADING_COMMAS_REGEX.matcher(sqlText).replaceAll("(");
+    sqlText = CLEANUP_MIDDLE_COMMAS_REGEX.matcher(sqlText).replaceAll(",");
+    sqlText = CLEANUP_TAILING_COMMAS_REGEX.matcher(sqlText).replaceAll(")");
 
     super.parseIfNeeded();
+  }
+
+  private Pattern getRegexForParameter(int paramIndex) {
+
+    Pattern pattern = PARAM_REPLACE_REGEXES.get(paramIndex);
+    if (pattern == null) {
+      pattern = Pattern.compile("\\s*\\$(" + paramIndex + ")\\s*([,)])");
+      PARAM_REPLACE_REGEXES.put(paramIndex, pattern);
+    }
+
+    return pattern;
   }
 
   @Override
