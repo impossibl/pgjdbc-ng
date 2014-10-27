@@ -36,6 +36,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.Interval;
+import com.impossibl.postgres.types.Type;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -139,7 +140,9 @@ public class IntervalTest {
   @Test
   public void testIntervalToStringCoercion() throws SQLException {
     Interval interval = new Interval("1 year 3 months");
-    String coercedStringValue = SQLTypeUtils.coerceToString(interval, _conn.unwrap(PGConnectionImpl.class));
+    PGConnectionImpl pgConnectionImpl = _conn.unwrap(PGConnectionImpl.class);
+    Type type = pgConnectionImpl.getRegistry().loadType("Interval");
+    String coercedStringValue = SQLTypeUtils.coerceToString(interval, type, pgConnectionImpl);
 
     assertEquals("@ 1 years 3 months 0 days 0 hours 0 minutes 0.000000 seconds", coercedStringValue);
   }

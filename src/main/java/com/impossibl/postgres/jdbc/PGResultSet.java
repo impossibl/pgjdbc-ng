@@ -592,7 +592,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToString(get(columnIndex), statement.connection);
+    return coerceToString(get(columnIndex), getType(columnIndex), statement.connection);
   }
 
   @Override
