@@ -168,7 +168,15 @@ public class Strings extends SimpleProcProvider {
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
-      buffer.append((String)val);
+      if (val instanceof String) {
+        buffer.append((String)val);
+      }
+      else if (val.getClass() == byte[].class) {
+        buffer.append(new String((byte[]) val, context.getCharset()));
+      }
+      else {
+        throw new IOException(val.getClass() + " cannot be encoded as a String");
+      }
     }
 
   }

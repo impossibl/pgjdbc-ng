@@ -111,7 +111,7 @@ public class PGSQLInputImpl implements PGSQLInput {
 
   @Override
   public String readString() throws SQLException {
-    return coerceToString(getNextAttributeValue(), connection);
+    return coerceToString(getNextAttributeValue(), type, connection);
   }
 
   @Override
@@ -196,12 +196,12 @@ public class PGSQLInputImpl implements PGSQLInput {
 
   @Override
   public Reader readCharacterStream() throws SQLException {
-    return new StringReader(coerceToString(getNextAttributeValue(), connection));
+    return new StringReader(coerceToString(getNextAttributeValue(), type, connection));
   }
 
   @Override
   public InputStream readAsciiStream() throws SQLException {
-    return new ByteArrayInputStream(coerceToString(getNextAttributeValue(), connection).getBytes(US_ASCII));
+    return new ByteArrayInputStream(coerceToString(getNextAttributeValue(), type, connection).getBytes(US_ASCII));
   }
 
   @Override

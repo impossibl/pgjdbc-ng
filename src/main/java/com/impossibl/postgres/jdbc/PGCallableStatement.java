@@ -368,7 +368,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToString(get(parameterIndex), connection);
+    return coerceToString(get(parameterIndex), getOutType(parameterIndex), connection);
   }
 
   @Override

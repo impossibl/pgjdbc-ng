@@ -215,7 +215,7 @@ class SQLTypeUtils {
       return coerceToBoolean(val);
     }
     else if (targetType == String.class) {
-      return coerceToString(val, connection);
+      return coerceToString(val, sourceType, connection);
     }
     else if (targetType == Date.class) {
       return coerceToDate(val, zone, connection);
@@ -270,6 +270,14 @@ class SQLTypeUtils {
     }
     else if (SQLData.class.isAssignableFrom(targetType)) {
       return coerceToCustomType(val, sourceType, targetType, typeMap, connection);
+    }
+    else if (val instanceof String && sourceType.isParameterFormatSupported(Format.Text)) {
+      try {
+        return sourceType.getCodec(Format.Text).decoder.decode(sourceType, sourceType.getLength(), null, val, connection);
+      }
+      catch (IOException e) {
+        // fall-thru
+      }
     }
 
     throw createCoercionException(val.getClass(), targetType);
@@ -517,7 +525,7 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), boolean.class);
   }
 
-  public static String coerceToString(Object val, Context context) throws SQLException {
+  public static String coerceToString(Object val, Type type, Context context) throws SQLException {
 
     if (val == null) {
       return null;
@@ -552,11 +560,14 @@ class SQLTypeUtils {
     else if (val instanceof Instant) {
       return ((Instant) val).disambiguate(TimeZone.getDefault()).print(context);
     }
-    else if (val instanceof byte[]) {
-      return new String((byte[]) val, context.getCharset());
-    }
     else if (val instanceof PGSQLXML) {
       return ((PGSQLXML) val).getString();
+    }
+    else if (type.isResultFormatSupported(Format.Text)) {
+      return coerceToStringFromType(val, type, context);
+    }
+    else if (val instanceof byte[]) {
+      return new String((byte[]) val, context.getCharset());
     }
     else {
       return val.toString();
@@ -841,7 +852,18 @@ class SQLTypeUtils {
       return (byte[]) val;
     }
     else if (val instanceof String) {
-      return ((String) val).getBytes(context.getCharset());
+
+      if (sourceType.isParameterFormatSupported(Format.Text) && sourceType.getTextCodec().decoder.getOutputType() == byte[].class) {
+        try {
+          return (byte[]) sourceType.getTextCodec().decoder.decode(sourceType, sourceType.getLength(), null, val, context);
+        }
+        catch (IOException e) {
+          throw createCoercionException(val.getClass(), byte[].class);
+        }
+      }
+      else {
+        return ((String) val).getBytes(context.getCharset());
+      }
     }
     else if (val instanceof PGSQLXML) {
       return ((PGSQLXML) val).getData();
@@ -1175,4 +1197,15 @@ class SQLTypeUtils {
     return new SQLException("Coercion from 'String' to '" + dstType.getName() + "' failed. Parser error near '" + errorText + "'");
   }
 
+  public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException
+  {
+    try {
+      StringBuilder buffer = new StringBuilder();
+      type.getCodec(Format.Text).encoder.encode(type, buffer, val, context);
+      return buffer.toString();
+    }
+    catch (IOException e) {
+      throw createCoercionException(val.getClass(), String.class);
+    }
+  }
 }
