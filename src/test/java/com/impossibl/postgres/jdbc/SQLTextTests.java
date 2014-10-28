@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.text.ParseException;
 
 import org.junit.Test;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -117,4 +118,69 @@ public class SQLTextTests {
     }
   }
 
+  @Test
+  public void testTruncate() throws SQLException, ParseException {
+    String sql = "SELECT\n" +
+        "      folder.entity_id  AS folder_id\n" +
+        "    , archive_pers.entity_id AS person_id\n" +
+        "/*\n" +
+        "    , archive_pers.initials AS person_initials\n" +
+        "*/\n" +
+        "    ,ARRAY(WITH RECURSIVE t AS (SELECT\n" +
+        "                                   1 AS level,\n" +
+        "                                   p.entity_id,\n" +
+        "                                   p.id,\n" +
+        "                                   p.parent_id,\n" +
+        "                                   p.name\n" +
+        "                               FROM pants_krank_project p\n" +
+        "                               WHERE p.entity_id = 1\n" +
+        "                               UNION ALL\n" +
+        "                               SELECT\n" +
+        "                                   t.level + 1,\n" +
+        "                                   c.entity_id,\n" +
+        "                                   c.id,\n" +
+        "                                   c.parent_id,\n" +
+        "                                   c.name\n" +
+        "                               FROM pants_krank_project c JOIN t ON c.id = t.parent_id)\n" +
+        "          SELECT\n" +
+        "              t.name\n" +
+        "          FROM t\n" +
+        "          ORDER BY level DESC)\n" +
+        "      AS project_name_array\n" +
+        "FROM\n" +
+        "    fishy_email_delivery del JOIN fishy_email_folder_message fm ON fm.delivery_id = del.entity_id\n" +
+        "    JOIN fishy_email_folder folder ON folder.entity_id = fm.folder_id\n" +
+        "    JOIN pants_krank_entity ent ON ent.entity_id = folder.owner_id\n" +
+        "    CROSS JOIN pants_krank_relation archive_comp\n" +
+        "    LEFT OUTER JOIN pants_krank_person archive_pers ON archive_pers.entity_id = folder.owner_id\n" +
+        "WHERE 1 = 1\n" +
+        "      AND NOT EXISTS(SELECT * FROM\n" +
+        "    fishy_email_folder ef JOIN fishy_email_mailbox em ON ef.entity_id = em.folder_id\n" +
+        "WHERE ef.entity_id = folder.entity_id)\n" +
+        "      AND folder.owner_id IN (\n" +
+        "    SELECT\n" +
+        "        archive_comp.entity_id\n" +
+        "    WHERE archive_comp.entity_id = folder.owner_id\n" +
+        "    UNION ALL SELECT\n" +
+        "                  pers.entity_id\n" +
+        "              FROM pants_krank_person pers\n" +
+        "              WHERE pers.relation_id = archive_comp.entity_id AND folder.owner_id = pers.entity_id\n" +
+        "    UNION ALL SELECT\n" +
+        "                  pr.entity_id\n" +
+        "              FROM pants_krank_project pr\n" +
+        "              WHERE pr.relation_id = archive_comp.entity_id AND folder.owner_id = pr.entity_id\n" +
+        "    UNION ALL SELECT\n" +
+        "                  1\n" +
+        "              FROM fishy_project_phase ph\n" +
+        "                  JOIN fishy_project_phase_category cat ON 1 = cat.entity_id\n" +
+        "                  JOIN pants_krank_project pr ON cat.project_id = pr.entity_id\n" +
+        "              WHERE pr.relation_id = archive_comp.entity_id AND folder.owner_id = 3\n" +
+        ")\n" +
+        "      AND archive_comp.entity_id = 2\n" +
+        "--          AND proj.entity_id = 890\n" +
+        "ORDER BY del.received_timestamp DESC";
+
+    SQLText sqlText = new SQLText(sql);
+    SQLTextEscapes.processEscapes(sqlText, null);
+  }
 }
