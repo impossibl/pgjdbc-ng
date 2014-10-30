@@ -352,6 +352,11 @@ public class SQLTextTree {
       this.text = text;
     }
 
+    void coalesce(PieceNode otherPiece) {
+      setText(getText() + otherPiece.getText());
+      setEndPos(getStartPos() + getText().length());
+    }
+
     @Override
     void build(StringBuilder builder) {
       builder.append(text);

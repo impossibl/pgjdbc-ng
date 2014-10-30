@@ -58,7 +58,7 @@ public class SQLText {
     root = parse(sqlText);
   }
 
-  private SQLText(MultiStatementNode copyRoot) {
+  public SQLText(MultiStatementNode copyRoot) {
     root = copyRoot;
   }
 
@@ -97,182 +97,109 @@ public class SQLText {
     return root.toString();
   }
 
-  /*
-   * Lexical pattern for the parser that finds these things:
-   *  > SQL identifier
-   *  > SQL quoted identifier (ignoring escaped double quotes)
-   *  > Single quoted strings (ignoring escaped single quotes)
-   *  > SQL comments... from "--" to end of line
-   *  > C-Style comments (including nested sections)
-   *  > ? Parameter placeholders
-   *  > ; Statement breaks
-   */
-  private static final Pattern LEXER = Pattern
-      .compile(
-          "(?:\"((?:[^\"\"]|\\\\.)*)\")|" +                   /* Quoted identifier */
-          "(?:'((?:[^\'\']|\\\\.)*)')|" +                     /* String literal */
-          "((?:\\-\\-.*$)|(?:/\\*(?:(?:.|\\n)*)\\*/))|" +     /* Comments */
-          "(\\?)|" +                                          /* Parameter marker */
-          "(;)|" +                                            /* Statement break */
-          "(\\{|\\})|" +                                      /* Escape open/close */
-          "([a-zA-Z_][\\w_]*)|" +                             /* Unquoted identifier */
-          "((?:[+-]?(?:\\d+)?(?:\\.\\d+(?:[eE][+-]?\\d+)?))|(?:[+-]?\\d+))|" + /* Numeric literal */
-          "(\\(|\\))|" +                                      /* Parens (grouping) */
-          "(,)|" +                                            /* Comma (breaking) */
-          "(\\s+)|" +                                         /* Whitespace */
-          "(\\$\\w*\\$)",                                     /* Dollar quote */
-          Pattern.MULTILINE);
-
-  public static MultiStatementNode parse(String sql) throws ParseException {
+  public static MultiStatementNode parse(final String sql) throws ParseException {
 
     Deque<CompositeNode> parents = new LinkedList<>();
 
     parents.push(new MultiStatementNode(0));
     parents.push(new StatementNode(0));
 
-    Matcher matcher = LEXER.matcher(sql);
-
     int paramId = 1;
-    int startIdx = 0;
+    int ndx = 0;
 
     try {
+      while (ndx < sql.length()) {
 
-      while (matcher.find(startIdx)) {
-
-        //Add the unmatched region as grammar...
-        if (startIdx != matcher.start()) {
-          String txt = sql.substring(startIdx, matcher.start()).trim();
-          parents.peek().add(new GrammarPiece(txt, matcher.start()));
-        }
-
-        startIdx = matcher.end();
-
-        //Add whatever we matched...
-        String val;
-        if ((val = matcher.group(1)) != null) {
-
-          parents.peek().add(new QuotedIdentifierPiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(2)) != null) {
-
-          parents.peek().add(new StringLiteralPiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(3)) != null) {
-
-          parents.peek().add(new CommentPiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(4)) != null) {
-
-          parents.peek().add(new ParameterPiece(paramId++, matcher.start()));
-        }
-        else if ((val = matcher.group(5)) != null) {
-
-          if (parents.size() == 2) {
-
-            paramId = 1;
-
-            CompositeNode comp = parents.pop();
-            comp.setEndPos(matcher.end());
-            parents.peek().add(comp);
-            parents.push(new StatementNode(matcher.start()));
-          }
-          else {
-
-            parents.peek().add(new GrammarPiece(val, matcher.start()));
-          }
-
-        }
-        else if ((val = matcher.group(6)) != null) {
-
-          if (val.equals("{")) {
-            parents.push(new EscapeNode(matcher.start()));
-          }
-          else {
-
-            if (parents.peek() instanceof EscapeNode) {
-
-              EscapeNode tmp = (EscapeNode) parents.pop();
-              tmp.setEndPos(matcher.end());
-              parents.peek().add(tmp);
+        char c = sql.charAt(ndx);
+        switch (c) {
+          case '\'':
+            ndx = consumeStringLiteral(sql, ndx + 1, parents.peek());
+            continue;
+          case '"':
+            ndx = consumeQuotedIdentifier(sql, ndx, parents.peek());
+            continue;
+          case '?':
+            ParameterPiece parameterPiece = new ParameterPiece(paramId++, ndx);
+            parents.peek().add(parameterPiece);
+            break;
+          case '$':
+            ndx = consumeDollar(sql, ndx, parents.peek());
+            continue;
+          case ',':
+            parents.peek().add(new GrammarPiece(",", ndx));
+            break;
+          case '(':
+          case ')':
+            ndx = consumeParens(sql, ndx, parents);
+            continue;
+          case '{':
+          case '}':
+            ndx = consumeBraces(sql, ndx, parents);
+            continue;
+          case '/':
+            if (lookAhead(sql, ndx) == '*') {
+              ndx = consumeMultilineComment(sql, ndx, parents.peek());
+            }
+            continue;
+          case '-':
+            if (lookAhead(sql, ndx) == '-') {
+              ndx = consumeSinglelineComment(sql, ndx, parents.peek());
+              continue;
+            }
+            else if (Character.isDigit(lookAhead(sql, ndx))) {
+              ndx = consumeNumeric(sql, ndx, parents.peek());
+              continue;
             }
             else {
-
-              throw new ParseException("Mismatched curly brace", matcher.start());
+              GrammarPiece grammarPiece = new GrammarPiece(sql.substring(ndx, ndx + 1), ndx);
+              parents.peek().add(grammarPiece);
+              break;
             }
-          }
-        }
-        else if ((val = matcher.group(7)) != null) {
-
-          parents.peek().add(new UnquotedIdentifierPiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(8)) != null) {
-
-          parents.peek().add(new NumericLiteralPiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(9)) != null) {
-
-          if (val.equals("(")) {
-            parents.push(new ParenGroupNode(matcher.start()));
-          }
-          else {
-
-            if (parents.peek() instanceof ParenGroupNode) {
-
-              ParenGroupNode tmp = (ParenGroupNode) parents.pop();
-              tmp.setEndPos(matcher.end());
-              parents.peek().add(tmp);
+          case ';':
+            if (parents.size() == 2) {
+              paramId = 1;
+              CompositeNode comp = parents.pop();
+              comp.setEndPos(ndx);
+              parents.peek().add(comp);
+              parents.push(new StatementNode(ndx));
             }
             else {
-
-              throw new ParseException("Mismmatched parenthesis", matcher.start());
+              parents.peek().add(new GrammarPiece(sql.substring(ndx, ndx + 1), ndx));
             }
-          }
-        }
-        else if ((val = matcher.group(10)) != null) {
-
-          parents.peek().add(new GrammarPiece(",", matcher.start()));
-        }
-        else if ((val = matcher.group(11)) != null) {
-
-          parents.peek().add(new WhitespacePiece(val, matcher.start()));
-        }
-        else if ((val = matcher.group(12)) != null) {
-
-          //Find the end of the $$ quoted block
-          int pos = sql.indexOf(val, matcher.end());
-
-          //Is this part of an identifier?
-          boolean ident = parents.peek().getLastNode() instanceof UnquotedIdentifierPiece;
-
-          //For $$ quotes to be valid they
-          //  a) need to be closed
-          //  b) must not be adjacent to an identifier
-
-          if (!ident && pos != -1) {
-
-            String quotedText = sql.substring(matcher.end(), pos);
-
-            parents.peek().add(new StringLiteralPiece(quotedText, val, matcher.start()));
-
-            startIdx = pos + val.length();
-
-          }
-          else {
-
-            //No end found... treat it as grammar
-            parents.peek().add(new GrammarPiece(val, matcher.start()));
-          }
-
+            break;
+          default:
+            if (Character.isWhitespace(c)) {
+              WhitespacePiece whitespacePiece = new WhitespacePiece(sql.substring(ndx, ndx + 1), ndx);
+              if (parents.peek().getLastNode() instanceof WhitespacePiece) {
+                ((WhitespacePiece) parents.peek().getLastNode()).coalesce(whitespacePiece);
+              }
+              else {
+                parents.peek().add(whitespacePiece);
+              }
+            }
+            else if (Character.isDigit(c) || (c == '+' && Character.isDigit(lookAhead(sql, ndx)))) {
+              ndx = consumeNumeric(sql, ndx, parents.peek());
+              continue;
+            }
+            else if (Character.isJavaIdentifierStart(c)) {
+              ndx = consumeUnquotedIdentifier(sql, ndx, parents.peek());
+              continue;
+            }
+            else {
+              GrammarPiece grammarPiece = new GrammarPiece(sql.substring(ndx, ndx + 1), ndx);
+              if (parents.peek().getLastNode() instanceof GrammarPiece) {
+                ((GrammarPiece) parents.peek().getLastNode()).coalesce(grammarPiece);
+              }
+              else {
+                parents.peek().add(grammarPiece);
+              }
+            }
         }
 
+        ++ndx;
       }
 
-      //Add last grammar node
-      if (startIdx != sql.length()) {
-        parents.peek().add(new GrammarPiece(sql.substring(startIdx), startIdx));
-      }
-
-      //Auto close last statement
+      // Auto close last statement
       if (parents.peek() instanceof StatementNode) {
 
         StatementNode stmt = (StatementNode) parents.peek();
@@ -281,7 +208,7 @@ public class SQLText {
 
         if (stmt.getNodeCount() > 0) {
           CompositeNode tmp = parents.pop();
-          tmp.setEndPos(startIdx);
+          tmp.setEndPos(ndx);
           parents.peek().add(tmp);
         }
       }
@@ -290,20 +217,201 @@ public class SQLText {
         throw new IllegalArgumentException("error parsing SQL");
       }
 
-      return (MultiStatementNode)parents.getLast();
-
+      return (MultiStatementNode) parents.getLast();
     }
     catch (ParseException e) {
       throw e;
     }
     catch (Exception e) {
-
-      //Grab about 10 characters to report context of error
-      String errorTxt = sql.substring(startIdx, Math.min(sql.length(), startIdx + 10));
-
-      throw new ParseException("Error near: " + errorTxt, startIdx);
+      String errorTxt = sql.substring(ndx, Math.min(sql.length(), ndx + 10));
+      throw new ParseException("Error near: " + errorTxt, ndx);
     }
-
   }
 
+  private static int consumeNumeric(final String sql, final int start, final CompositeNode parent) throws ParseException {
+    Matcher matcher = Pattern.compile("((?:[+-]?(?:\\d+)?(?:\\.\\d+(?:[eE][+-]?\\d+)?))|(?:[+-]?\\d+))").matcher(sql.substring(start));
+    if (matcher.find()) {
+      parent.add(new NumericLiteralPiece(matcher.group(1), matcher.start()));
+      return start + matcher.group(1).length();
+    }
+    else {
+      throw new ParseException("Invalid numeric literal", start);
+    }
+  }
+
+  private static int consumeUnquotedIdentifier(final String sql, final int start, final CompositeNode parent) {
+    int ndx = start;
+    char c;
+    do {
+      c = lookAhead(sql, ndx++);
+    }
+    while (ndx < sql.length() && Character.isJavaIdentifierPart(c));
+
+    parent.add(new UnquotedIdentifierPiece(sql.substring(start, ndx), start));
+
+    return ndx;
+  }
+
+  private static int consumeBraces(final String sql, final int start, final Deque<CompositeNode> parents) throws ParseException {
+    if (sql.charAt(start) == '{') {
+      parents.push(new EscapeNode(start));
+    }
+    else {
+      if (parents.peek() instanceof EscapeNode) {
+        EscapeNode tmp = (EscapeNode) parents.pop();
+        tmp.setEndPos(start);
+        parents.peek().add(tmp);
+      }
+      else {
+        throw new ParseException("Mismatched curly brace", start);
+      }
+    }
+
+    return start + 1;
+  }
+
+  private static int consumeParens(final String sql, final int start, final Deque<CompositeNode> parents) throws ParseException {
+    if (sql.charAt(start) == '(') {
+      parents.push(new ParenGroupNode(start));
+    }
+    else {
+      if (parents.peek() instanceof ParenGroupNode) {
+        ParenGroupNode tmp = (ParenGroupNode) parents.pop();
+        tmp.setEndPos(start);
+        parents.peek().add(tmp);
+      }
+      else {
+        throw new ParseException("Mismmatched parenthesis", start);
+      }
+    }
+
+    return start + 1;
+  }
+
+  private static int consumeDollar(final String sql, final int start, final CompositeNode parent) throws ParseException {
+    int ndx = start;
+    do {
+      if (lookAhead(sql, ndx) == '$') {
+        final String ident = sql.substring(start, ndx + 2);
+        final int pos = sql.indexOf(ident, ndx + 2);
+        if (pos != -1) {
+          String quotedText = sql.substring(ndx + 2, pos);
+          parent.add(new StringLiteralPiece(quotedText, ident, start));
+          return pos + ident.length();
+        }
+        else {
+          ++ndx;
+          break;
+        }
+      }
+    } while (++ndx < sql.length());
+
+    // Just treat as a grammar piece
+    parent.add(new GrammarPiece(sql.substring(start, ndx), start));
+    return ndx;
+  }
+
+  private static int consumeStringLiteral(final String sql, final int start, final CompositeNode parent) throws ParseException {
+    int ndx = start;
+    do {
+      char c = sql.charAt(ndx);
+      if (c == '\'') {
+        if (sql.charAt(ndx - 1) == '\\') {  // look-behind
+          // skip escaped
+        }
+        else {
+          break;
+        }
+      }
+
+      if (lookAhead(sql, ndx) == 0) {
+        throw new ParseException("Unterminated string literal", start);
+      }
+
+      ++ndx;
+    } while (true);
+
+    StringLiteralPiece literalPiece = new StringLiteralPiece(sql.substring(start, ndx), start);
+    parent.add(literalPiece);
+
+    return ndx + 1;
+  }
+
+  private static int consumeQuotedIdentifier(final String sql, final int start, final CompositeNode parent) throws ParseException {
+    int ndx = start + 1;
+    do {
+      char c = sql.charAt(ndx);
+      if (c == '"') {
+        if (sql.charAt(ndx - 1) == '"') {  // look-behind
+          // skip escaped
+        }
+        else {
+          break;
+        }
+      }
+
+      if (lookAhead(sql, ndx) == 0) {
+        throw new ParseException("Unterminated string literal", start);
+      }
+
+      ++ndx;
+    } while (true);
+
+    QuotedIdentifierPiece literalPiece = new QuotedIdentifierPiece(sql.substring(start + 1, ndx), start);
+    parent.add(literalPiece);
+
+    return ndx + 1;
+  }
+
+  private static int consumeSinglelineComment(final String sql, final int start, final CompositeNode parent) {
+    int ndx = start + 2;
+    do {
+      char c = sql.charAt(ndx);
+      if (c == '\r' || c == '\n') {
+        ndx = (lookAhead(sql, ndx) == '\n') ? ndx + 2 : ndx + 1;
+        break;
+      }
+
+    } while (++ndx < sql.length());
+
+    CommentPiece commentPiece = new CommentPiece(sql.substring(start, ndx), start);
+    parent.add(commentPiece);
+
+    return ndx;
+  }
+
+  private static int consumeMultilineComment(final String sql, final int start, final CompositeNode parent) throws ParseException {
+    int nestLevel = 1;
+    int ndx = start + 1;
+    do {
+      char c = lookAhead(sql, ndx);
+      if (c == 0) {
+        throw new ParseException("Unterminated comment", start);
+      }
+
+      if (c == '/' && lookAhead(sql, ndx + 1) == '*') {
+        ++nestLevel;
+        ++ndx;
+      }
+      else if (c == '*' && lookAhead(sql, ndx + 1) == '/') {
+        --nestLevel;
+        ++ndx;
+      }
+
+      ++ndx;
+    } while (nestLevel > 0);
+
+    CommentPiece commentPiece = new CommentPiece(sql.substring(start, ndx + 1), start);
+    parent.add(commentPiece);
+
+    return ndx + 1;
+  }
+
+  private static char lookAhead(final String sql, final int ndx) {
+    if (ndx + 1 < sql.length()) {
+      return sql.charAt(ndx + 1);
+    }
+
+    return 0;
+  }
 }
