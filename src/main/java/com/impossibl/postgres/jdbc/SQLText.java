@@ -125,9 +125,6 @@ public class SQLText {
           case '$':
             ndx = consumeDollar(sql, ndx, parents.peek());
             continue;
-          case ',':
-            parents.peek().add(new GrammarPiece(",", ndx));
-            break;
           case '(':
           case ')':
             ndx = consumeParens(sql, ndx, parents);
@@ -139,8 +136,12 @@ public class SQLText {
           case '/':
             if (lookAhead(sql, ndx) == '*') {
               ndx = consumeMultilineComment(sql, ndx, parents.peek());
+              continue;
             }
-            continue;
+            else {
+              parents.peek().add(new GrammarPiece("/", ndx));
+              break;
+            }
           case '-':
             if (lookAhead(sql, ndx) == '-') {
               ndx = consumeSinglelineComment(sql, ndx, parents.peek());
@@ -151,7 +152,7 @@ public class SQLText {
               continue;
             }
             else {
-              GrammarPiece grammarPiece = new GrammarPiece(sql.substring(ndx, ndx + 1), ndx);
+              GrammarPiece grammarPiece = new GrammarPiece("-", ndx);
               parents.peek().add(grammarPiece);
               break;
             }
@@ -164,7 +165,7 @@ public class SQLText {
               parents.push(new StatementNode(ndx));
             }
             else {
-              parents.peek().add(new GrammarPiece(sql.substring(ndx, ndx + 1), ndx));
+              parents.peek().add(new GrammarPiece(";", ndx));
             }
             break;
           default:
