@@ -28,7 +28,11 @@
  */
 package com.impossibl.postgres.protocol;
 
-public class Notice {
+import java.io.Serializable;
+
+public class Notice implements Serializable {
+
+  private static final long serialVersionUID = 649470514407379521L;
 
   public static final String SUCCESS_CLASS                    = "00";
   public static final String WARNING_CLASS                    = "01";
