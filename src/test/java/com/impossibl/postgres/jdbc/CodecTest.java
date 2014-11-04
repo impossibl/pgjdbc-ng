@@ -348,7 +348,7 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
-      {"aclitem", new ACLItem(TestUtil.getUser(), "rw", "pgjdbc")},
+      {"aclitem", new ACLItem(TestUtil.getUser(), "rw", TestUtil.getUser())},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
       {"bool", true},

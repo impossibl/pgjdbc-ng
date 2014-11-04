@@ -213,7 +213,7 @@ public class StatementTest {
   @Test
   public void testAlterTable() throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.execute("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO pgjdbc");
+    stmt.execute("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO " + TestUtil.getUser());
   }
 
   @Test
