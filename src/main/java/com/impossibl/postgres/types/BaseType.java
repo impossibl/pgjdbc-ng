@@ -28,9 +28,8 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgType.Row;
-import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
-import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
 import java.util.Collection;
 
@@ -49,8 +48,8 @@ public class BaseType extends Type {
     super(id, name, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec);
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null));
+  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs) {
+    super(id, name, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null));
   }
 
   @Override

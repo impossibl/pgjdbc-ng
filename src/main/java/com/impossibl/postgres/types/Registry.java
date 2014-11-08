@@ -67,14 +67,17 @@ public class Registry {
   private Map<String, PgProc.Row> pgProcNameMap;
 
   private Context context;
+  private Procs procs;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
 
   private Map<String, String> typeNameAliases;
 
+
   public Registry(Context context) {
 
-
     this.context = context;
+
+    this.procs = new Procs(context.getClass().getClassLoader());
 
     pgTypeData = new TreeMap<>();
     pgAttrData = new TreeMap<>();
@@ -91,15 +94,15 @@ public class Registry {
 
     // Required initial types for bootstrapping
     oidMap = new TreeMap<Integer, Type>();
-    oidMap.put(16, new BaseType(16, "bool",     (short) 1,  (byte) 0, Category.Boolean, ',', 0, "bool"));
-    oidMap.put(17, new BaseType(17, "bytea",    (short) 1,  (byte) 0, Category.User,    ',', 0, "bytea"));
-    oidMap.put(18, new BaseType(18, "char",     (short) 1,  (byte) 0, Category.String,  ',', 0, "char"));
-    oidMap.put(19, new BaseType(19, "name",     (short) 64, (byte) 0, Category.String,  ',', 0, "name"));
-    oidMap.put(21, new BaseType(21, "int2",     (short) 2,  (byte) 0, Category.Numeric, ',', 0, "int2"));
-    oidMap.put(23, new BaseType(23, "int4",     (short) 4,  (byte) 0, Category.Numeric, ',', 0, "int4"));
-    oidMap.put(24, new BaseType(24, "regproc",  (short) 4,  (byte) 0, Category.Numeric, ',', 0, "regproc"));
-    oidMap.put(25, new BaseType(25, "text",     (short) 1,  (byte) 0, Category.String,  ',', 0, "text"));
-    oidMap.put(26, new BaseType(26, "oid",      (short) 4,  (byte) 0, Category.Numeric, ',', 0, "oid"));
+    oidMap.put(16, new BaseType(16, "bool",     (short) 1,  (byte) 0, Category.Boolean, ',', 0, "bool", procs));
+    oidMap.put(17, new BaseType(17, "bytea",    (short) 1,  (byte) 0, Category.User,    ',', 0, "bytea", procs));
+    oidMap.put(18, new BaseType(18, "char",     (short) 1,  (byte) 0, Category.String,  ',', 0, "char", procs));
+    oidMap.put(19, new BaseType(19, "name",     (short) 64, (byte) 0, Category.String,  ',', 0, "name", procs));
+    oidMap.put(21, new BaseType(21, "int2",     (short) 2,  (byte) 0, Category.Numeric, ',', 0, "int2", procs));
+    oidMap.put(23, new BaseType(23, "int4",     (short) 4,  (byte) 0, Category.Numeric, ',', 0, "int4", procs));
+    oidMap.put(24, new BaseType(24, "regproc",  (short) 4,  (byte) 0, Category.Numeric, ',', 0, "regproc", procs));
+    oidMap.put(25, new BaseType(25, "text",     (short) 1,  (byte) 0, Category.String,  ',', 0, "text", procs));
+    oidMap.put(26, new BaseType(26, "oid",      (short) 4,  (byte) 0, Category.Numeric, ',', 0, "oid", procs));
 
     relIdMap = new TreeMap<>();
     nameMap = new HashMap<>();
@@ -551,8 +554,8 @@ public class Registry {
   public Codec loadCodec(int encoderId, int decoderId, Format format) {
 
     Codec io = new Codec();
-    io.decoder = loadDecoderProc(decoderId, Procs.getDefaultDecoder(format));
-    io.encoder = loadEncoderProc(encoderId, Procs.getDefaultEncoder(format));
+    io.decoder = loadDecoderProc(decoderId, procs.getDefaultDecoder(format));
+    io.encoder = loadEncoderProc(encoderId, procs.getDefaultEncoder(format));
     return io;
   }
 
@@ -566,7 +569,7 @@ public class Registry {
       return defaultEncoder;
     }
 
-    return Procs.loadEncoderProc(name, context, defaultEncoder);
+    return procs.loadEncoderProc(name, context, defaultEncoder);
   }
 
   /*
@@ -579,7 +582,7 @@ public class Registry {
       return defaultDecoder;
     }
 
-    return Procs.loadDecoderProc(name, context, defaultDecoder);
+    return procs.loadDecoderProc(name, context, defaultDecoder);
   }
 
   /*
@@ -592,7 +595,7 @@ public class Registry {
       name = ""; //get the default proc
     }
 
-    return Procs.loadModifierParserProc(name, context);
+    return procs.loadModifierParserProc(name, context);
   }
 
 }

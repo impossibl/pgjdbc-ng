@@ -29,11 +29,9 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
-
-import static com.impossibl.postgres.system.procs.Procs.loadNamedBinaryCodec;
-import static com.impossibl.postgres.system.procs.Procs.loadNamedTextCodec;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,12 +70,12 @@ public class CompositeType extends Type {
 
   private List<Attribute> attributes;
 
-  public CompositeType(int id, String name, int arrayTypeId, String procName) {
-    super(id, name, null, null, Category.Composite, ',', arrayTypeId, loadNamedBinaryCodec(procName, null), loadNamedTextCodec(procName, null));
+  public CompositeType(int id, String name, int arrayTypeId, String procName, Procs procs) {
+    super(id, name, null, null, Category.Composite, ',', arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null));
   }
 
-  public CompositeType(int id, String name, int arrayTypeId) {
-    this(id, name, arrayTypeId, "record_");
+  public CompositeType(int id, String name, int arrayTypeId, Procs procs) {
+    this(id, name, arrayTypeId, "record_", procs);
   }
 
   public CompositeType() {
