@@ -211,7 +211,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       Type parameterType = parameterTypes.get(c);
       Object parameterValue = parameterValues.get(c);
 
-      if (parameterValue != null) {
+      if (parameterType != null && parameterValue != null) {
 
         Class<?> targetType = mapSetType(parameterType);
 

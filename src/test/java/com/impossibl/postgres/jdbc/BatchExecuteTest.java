@@ -336,4 +336,32 @@ public class BatchExecuteTest {
     stmt.close();
   }
 
+  @Test
+  public void testPreparedStatementWithObject() throws SQLException {
+
+    try (Statement stmt = con.createStatement()) {
+
+      stmt.execute("CREATE TEMP TABLE testinet (ip inet)");
+
+      con.commit();
+
+      try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO testinet VALUES (?)")) {
+
+        pstmt.setObject(1, "192.168.1.1");
+        pstmt.addBatch();
+        pstmt.execute();
+
+        con.commit();
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testinet")) {
+
+        assertTrue(rs.next());
+        assertEquals("192.168.1.1", rs.getString(1));
+      }
+
+    }
+
+  }
+
 }
