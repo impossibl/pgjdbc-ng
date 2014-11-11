@@ -116,16 +116,14 @@ public class ProtocolShared {
 
   public void waitForShutdown() {
 
-    Future<?> term = shutdown();
+    shutdown().awaitUninterruptibly();
 
     try {
-      ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+      ThreadDeathWatcher.awaitInactivity(30, TimeUnit.SECONDS);
     }
     catch (InterruptedException e) {
       // Ignore
     }
-
-    term.awaitUninterruptibly();
 
   }
 
