@@ -173,6 +173,9 @@ public class BasicContext implements Context {
     Object val = settings.get(name);
     if (val == null)
       return defaultValue;
+    if ((defaultValue.getClass() == int.class || defaultValue.getClass() == Integer.class) && val instanceof String) {
+      return (T) defaultValue.getClass().cast(Integer.valueOf((String) val));
+    }
     return (T) defaultValue.getClass().cast(val);
   }
 
