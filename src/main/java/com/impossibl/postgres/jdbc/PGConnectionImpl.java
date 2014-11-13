@@ -612,7 +612,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   /**
-   * Closes all statemens and shuts down the protocol
+   * Closes all statements and shuts down the protocol
    *
    * @throws SQLException If an error occurs closing any of the statements
    */
