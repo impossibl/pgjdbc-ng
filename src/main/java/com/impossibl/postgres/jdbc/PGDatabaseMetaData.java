@@ -1754,6 +1754,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       params.add(schemaPattern);
     }
 
+    sql.append(" AND ct.relname = ?");
+    params.add(table);
+
+    sql.append(" AND i.indisprimary ORDER BY table_name, pk_name, key_seq");
+
     return execForResultSet(sql.toString(), params);
   }
 

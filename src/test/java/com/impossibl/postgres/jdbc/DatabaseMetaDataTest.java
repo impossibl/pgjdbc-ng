@@ -465,12 +465,35 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testPrimaryKeys() throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getPrimaryKeys(null, null, "pg_class");
-    rs.close();
+  public void testPrimaryKeys() throws Exception {
+
+    Connection conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "pkt2", "id int, id2 int, CONSTRAINT pkt2_pkey PRIMARY KEY (id, id2)");
+    try {
+
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
+      ResultSet rs = dbmd.getPrimaryKeys(null, null, "pkt2");
+
+      while (rs.next()) {
+
+        assertEquals("public", rs.getString("TABLE_SCHEM"));
+        assertEquals("pkt2", rs.getString("TABLE_NAME"));
+
+        String colName = rs.getString("COLUMN_NAME");
+        assertTrue(colName.equals("id") || colName.equals("id2"));
+
+        assertEquals("pkt2_pkey", rs.getString("PK_NAME"));
+      }
+
+      rs.close();
+
+    }
+    finally {
+      TestUtil.dropTable(conn, "pkt2");
+      TestUtil.closeDB(conn);
+    }
+
   }
 
   @Test
