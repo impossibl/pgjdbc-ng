@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,7 +50,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   private static final Logger logger = Logger.getLogger(ThreadedHousekeeper.class.getName());
 
-  private static AtomicInteger instanceRefs = new AtomicInteger(0);
+  private static long instanceRefs = 0;
   private static ThreadedHousekeeper instance;
 
   public class Ref implements Housekeeper.Ref {
@@ -83,32 +82,22 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   }
 
-  public static Ref acquire() {
+  public static synchronized Ref acquire() {
 
-    if (instanceRefs.compareAndSet(0, 1)) {
-      assert instance == null;
+    if (instanceRefs == 0) {
       instance = new ThreadedHousekeeper();
     }
-    else {
-      assert instance != null;
-      instanceRefs.incrementAndGet();
-    }
-
+    ++instanceRefs;
     return instance.new Ref();
   }
 
-  private static void release() {
+  private static synchronized void release() {
 
-    if (instanceRefs.compareAndSet(1, 0)) {
-
+    --instanceRefs;
+    if (instanceRefs == 0) {
       instance.close();
       instance = null;
     }
-    else {
-
-      instanceRefs.decrementAndGet();
-    }
-
   }
 
   private class HousekeeperReference<T> extends PhantomReference<T> {
