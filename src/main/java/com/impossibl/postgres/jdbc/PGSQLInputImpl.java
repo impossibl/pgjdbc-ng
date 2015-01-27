@@ -167,7 +167,7 @@ public class PGSQLInputImpl implements PGSQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    InputStream data = coerceToByteStream(getNextAttributeValue(), attr.type, connection);
+    InputStream data = coerceToByteStream(val, attr.type, connection);
 
     try {
       return ByteStreams.toByteArray(data);
