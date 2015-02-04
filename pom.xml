@@ -68,7 +68,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
-			<version>4.0.23.Final</version>
+			<version>4.0.24.Final</version>
 		</dependency>
 	</dependencies>
 
@@ -77,7 +77,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.1</version>
+				<version>3.2</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -86,7 +86,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.9</version>
+				<version>1.9.1</version>
 				<executions>
 					<execution>
 						<id>parse-version</id>
@@ -127,7 +127,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.17</version>
+				<version>2.18</version>
 				<configuration>
 					<excludes>
 						<exclude>**/PerformanceTest.java</exclude>
@@ -144,7 +144,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
+				<version>2.5</version>
 				<executions>
 					<execution>
 						<goals>
@@ -177,7 +177,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
-					<version>2.12.1</version>
+					<version>2.13</version>
 					<configuration>
 						<configLocation>src/support/checkstyle.xml</configLocation>
 						<sourceDirectory>.</sourceDirectory>
