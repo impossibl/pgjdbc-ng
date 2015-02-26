@@ -176,6 +176,12 @@ public class BasicContext implements Context {
     if ((defaultValue.getClass() == int.class || defaultValue.getClass() == Integer.class) && val instanceof String) {
       return (T) defaultValue.getClass().cast(Integer.valueOf((String) val));
     }
+    if ((defaultValue.getClass() == long.class || defaultValue.getClass() == Long.class) && val instanceof String) {
+      return (T) defaultValue.getClass().cast(Long.valueOf((String) val));
+    }
+    if ((defaultValue.getClass() == boolean.class || defaultValue.getClass() == Boolean.class) && val instanceof String) {
+      return (T) defaultValue.getClass().cast(Boolean.valueOf((String) val));
+    }
     return (T) defaultValue.getClass().cast(val);
   }
 
