@@ -572,7 +572,7 @@ public class BasicContext implements Context {
 
     logger.config("system paramter: " + name + "=" + value);
 
-    switch(name) {
+    switch (name) {
 
       case "server_version":
 

@@ -730,7 +730,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
 
-    switch(level) {
+    switch (level) {
       case Connection.TRANSACTION_NONE:
       case Connection.TRANSACTION_READ_UNCOMMITTED:
       case Connection.TRANSACTION_READ_COMMITTED:
@@ -1276,7 +1276,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[16] = columnData.relationAttrNum;
 
       String nullable = null;
-      switch((int)row[10]) {
+      switch ((int)row[10]) {
         case columnNoNulls:
           nullable = "NO";
           break;
@@ -1559,7 +1559,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             grantable = "NO";
           }
 
-          switch(c) {
+          switch (c) {
             case 'a':
               sqlpriv = "INSERT";
               break;
@@ -1971,7 +1971,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean supportsResultSetType(int type) throws SQLException {
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return true;
@@ -1984,7 +1984,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         //Support all types
@@ -2000,7 +2000,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2015,7 +2015,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2030,7 +2030,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2045,7 +2045,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2060,7 +2060,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2075,7 +2075,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2090,7 +2090,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2105,7 +2105,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2120,7 +2120,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //TODO this depends of TX state & isolation level
 
-    switch(type) {
+    switch (type) {
       case ResultSet.TYPE_FORWARD_ONLY:
       case ResultSet.TYPE_SCROLL_INSENSITIVE:
         return false;
@@ -2159,7 +2159,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       sql.append(" AND (false ");
 
       for (int i = 0; i < types.length; i++) {
-        switch(types[i]) {
+        switch (types[i]) {
           case java.sql.Types.STRUCT:
             sql.append(" or t.typtype = 'c'");
             break;
@@ -2387,7 +2387,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[15] = attrData.relationAttrNum;
 
       String nullable = null;
-      switch((int)row[9]) {
+      switch ((int)row[9]) {
         case attributeNoNulls:
           nullable = "NO";
           break;
@@ -2449,7 +2449,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean supportsResultSetHoldability(int holdability) throws SQLException {
 
-    switch(holdability) {
+    switch (holdability) {
       case ResultSet.CLOSE_CURSORS_AT_COMMIT:
       case ResultSet.HOLD_CURSORS_OVER_COMMIT:
         return true;

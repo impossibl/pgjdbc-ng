@@ -105,7 +105,7 @@ class SQLTypeUtils {
     }
     else {
 
-      switch(sourceType.getPrimitiveType()) {
+      switch (sourceType.getPrimitiveType()) {
         case Oid:
           if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
             targetType = Blob.class;
@@ -510,7 +510,7 @@ class SQLTypeUtils {
         // Ignore
       }
 
-      switch(str) {
+      switch (str) {
         case "on":
         case "true":
         case "t":
@@ -671,7 +671,7 @@ class SQLTypeUtils {
 
       String str = (String) val;
 
-      switch(sourceType.getPrimitiveType()) {
+      switch (sourceType.getPrimitiveType()) {
 
         case Date: {
           Map<String, Object> pieces = new HashMap<>();

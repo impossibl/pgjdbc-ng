@@ -837,10 +837,14 @@ public class TimestampUtils {
     long low = -tz.getOffset(millis);
     long high = low + ONEDAY;
     if (millis < low) {
-      do { millis += ONEDAY; } while (millis < low);
+      do {
+        millis += ONEDAY;
+      } while (millis < low);
     }
     else if (millis >= high) {
-      do { millis -= ONEDAY; } while (millis > high);
+      do {
+        millis -= ONEDAY;
+      } while (millis > high);
     }
 
     return new Time(millis);

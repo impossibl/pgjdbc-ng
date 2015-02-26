@@ -253,7 +253,7 @@ public class Records extends SimpleProcProvider {
       for (c = 0; c < data.length(); ++c) {
 
         char ch = data.charAt(c);
-        switch(ch) {
+        switch (ch) {
           case '(':
             if (!string)
               opened++;

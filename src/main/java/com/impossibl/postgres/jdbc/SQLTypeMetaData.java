@@ -58,7 +58,7 @@ class SQLTypeMetaData {
   public static boolean requiresQuoting(Type type) {
 
     int sqlType = getSQLType(type);
-    switch(sqlType) {
+    switch (sqlType) {
       case Types.BIGINT:
       case Types.DOUBLE:
       case Types.FLOAT:
@@ -86,7 +86,7 @@ class SQLTypeMetaData {
 
   public static boolean isCaseSensitive(Type type) throws SQLException {
 
-    switch(type.getCategory()) {
+    switch (type.getCategory()) {
       case Enumeration:
       case String:
         return true;
@@ -152,7 +152,7 @@ class SQLTypeMetaData {
 
   public static Type getType(int sqlType, Registry reg) {
 
-    switch(sqlType) {
+    switch (sqlType) {
       case Types.BOOLEAN:
       case Types.BIT:
         return reg.loadType("bool");
@@ -302,7 +302,7 @@ class SQLTypeMetaData {
 
   public static int getSQLTypeAlias(int sqlType) {
 
-    switch(sqlType) {
+    switch (sqlType) {
       case Types.BIT:
         return Types.BOOLEAN;
 
@@ -330,7 +330,7 @@ class SQLTypeMetaData {
     //int4/int8 auto-increment fields -> serial/bigserial
     if (isAutoIncrement(type, relType, relAttrNum)) {
 
-      switch(type.getPrimitiveType()) {
+      switch (type.getPrimitiveType()) {
         case Int4:
           return "serial";
 
@@ -347,7 +347,7 @@ class SQLTypeMetaData {
 
   public static int getPrecisionRadix(Type type) {
 
-    switch(type.unwrap().getCategory()) {
+    switch (type.unwrap().getCategory()) {
       case Numeric:
         return 10;
 
@@ -373,7 +373,7 @@ class SQLTypeMetaData {
       return 0;
     }
 
-    switch(ptype) {
+    switch (ptype) {
       case Numeric:
         return 1000;
       case Time:
@@ -420,7 +420,7 @@ class SQLTypeMetaData {
     }
     else {
 
-      switch(ptype) {
+      switch (ptype) {
         case Int2:
           prec = 5;
           break;
@@ -495,7 +495,7 @@ class SQLTypeMetaData {
       return 0;
     }
 
-    switch(ptype) {
+    switch (ptype) {
       case Money:
         return 2;
       default:
@@ -513,7 +513,7 @@ class SQLTypeMetaData {
       return 0;
     }
 
-    switch(ptype) {
+    switch (ptype) {
       case Numeric:
         return 1000;
       default:
@@ -535,7 +535,7 @@ class SQLTypeMetaData {
 
     int scale = 0;
 
-    switch(type.getPrimitiveType()) {
+    switch (type.getPrimitiveType()) {
       case Float:
         scale = 8;
         break;
@@ -606,7 +606,7 @@ class SQLTypeMetaData {
 
     int size = 0;
 
-    switch(type.getCategory()) {
+    switch (type.getCategory()) {
       case Numeric:
         if (precMod == -1) {
           size = 131089;
@@ -663,7 +663,7 @@ class SQLTypeMetaData {
 
     int size;
 
-    switch(primType) {
+    switch (primType) {
       case Date:
         size = 13;
         break;
@@ -674,7 +674,7 @@ class SQLTypeMetaData {
       case TimestampTZ:
 
         int secondSize;
-        switch(precision) {
+        switch (precision) {
           case -1:
             secondSize = 6 + 1;
             break;
@@ -689,7 +689,7 @@ class SQLTypeMetaData {
             break;
         }
 
-        switch(primType) {
+        switch (primType) {
           case Time:
             size = 8 + secondSize;
             break;

@@ -795,13 +795,13 @@ public class TimezoneTest {
       do {
         millis += DAY;
       }
-      while(millis < low);
+      while (millis < low);
     }
     else if (millis >= high) {
       do {
         millis -= DAY;
       }
-      while(millis > high);
+      while (millis > high);
     }
     return millis;
   }

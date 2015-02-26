@@ -489,7 +489,7 @@ public class Registry {
     }
     else {
 
-      switch(pgType.discriminator.charAt(0)) {
+      switch (pgType.discriminator.charAt(0)) {
         case 'b':
           type = new BaseType();
           break;

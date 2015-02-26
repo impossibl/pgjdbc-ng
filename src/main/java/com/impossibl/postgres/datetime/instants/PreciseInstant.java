@@ -108,7 +108,7 @@ public class PreciseInstant extends InstantBase {
   @Override
   public String print(Context context) {
 
-    switch(type) {
+    switch (type) {
       case Time:
         return toTime().toString();
       case Date:

@@ -68,7 +68,7 @@ public class DateStyle {
    */
   public static DateTimeFormat getDateFormatter(String[] dateStyle) {
 
-    switch(dateStyle[0]) {
+    switch (dateStyle[0]) {
       case "ISO":
         return new ISODateFormat();
 
@@ -90,7 +90,7 @@ public class DateStyle {
    */
   public static DateTimeFormat getTimeFormatter(String[] dateStyle) {
 
-    switch(dateStyle[0]) {
+    switch (dateStyle[0]) {
       case "ISO":
         return new ISOTimeFormat();
 
@@ -113,7 +113,7 @@ public class DateStyle {
    */
   public static DateTimeFormat getTimestampFormatter(String[] dateStyle) {
 
-    switch(dateStyle[0]) {
+    switch (dateStyle[0]) {
       case "ISO":
         return new ISOTimestampFormat();
 

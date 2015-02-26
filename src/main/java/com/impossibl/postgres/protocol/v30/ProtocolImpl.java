@@ -1167,7 +1167,7 @@ public class ProtocolImpl implements Protocol {
 
   private void receiveReadyForQuery(ByteBuf buffer) throws IOException {
 
-    switch(buffer.readByte()) {
+    switch (buffer.readByte()) {
       case 'T':
         txStatus = Active;
         break;

@@ -356,7 +356,7 @@ public abstract class Type {
     if (align == null)
       return null;
 
-    switch(align) {
+    switch (align) {
       case 'c':
         return 1;
       case 's':

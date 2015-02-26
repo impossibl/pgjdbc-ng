@@ -86,7 +86,7 @@ public class SQLTextEscapes {
 
     Node result = null;
 
-    switch(type.toString().toLowerCase()) {
+    switch (type.toString().toLowerCase()) {
       case "fn":
         result = processFunctionEscape(escape);
         break;

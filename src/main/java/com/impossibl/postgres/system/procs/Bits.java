@@ -169,7 +169,7 @@ public class Bits extends SimpleProcProvider {
 
       for (int c = 0, sz = buffer.length(); c < sz; ++c) {
 
-        switch(buffer.charAt(c)) {
+        switch (buffer.charAt(c)) {
           case '0':
             bits.clear(c);
             break;
