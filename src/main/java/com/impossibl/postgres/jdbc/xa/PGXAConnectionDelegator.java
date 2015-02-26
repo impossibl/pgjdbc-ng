@@ -103,4 +103,26 @@ public class PGXAConnectionDelegator extends PGPooledConnectionDelegator {
     }
     super.setAutoCommit(autoCommit);
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || !(o instanceof PGXAConnectionDelegator))
+      return false;
+
+    PGXAConnectionDelegator other = (PGXAConnectionDelegator)o;
+    return owner.equals(other.owner);
+  }
 }

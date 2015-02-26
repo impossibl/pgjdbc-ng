@@ -416,4 +416,26 @@ public class PGStatementDelegator implements Statement {
       throw se;
     }
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || !(o instanceof PGStatementDelegator))
+      return false;
+
+    PGStatementDelegator other = (PGStatementDelegator)o;
+    return delegator.equals(other.delegator);
+  }
 }

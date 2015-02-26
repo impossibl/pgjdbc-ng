@@ -1648,4 +1648,26 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
       throw se;
     }
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || !(o instanceof PGCallableStatementDelegator))
+      return false;
+
+    PGCallableStatementDelegator other = (PGCallableStatementDelegator)o;
+    return delegator.equals(other.delegator);
+  }
 }

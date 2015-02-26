@@ -1006,4 +1006,26 @@ public class PGPooledConnectionDelegator implements PGConnection {
                                      "08003");
     }
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || !(o instanceof PGPooledConnectionDelegator))
+      return false;
+
+    PGPooledConnectionDelegator other = (PGPooledConnectionDelegator)o;
+    return delegator.equals(other.delegator);
+  }
 }
