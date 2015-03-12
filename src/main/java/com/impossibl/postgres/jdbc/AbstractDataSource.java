@@ -56,6 +56,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private boolean housekeeper;
   private int parsedSqlCacheSize;
   private int preparedStatementCacheSize;
+  private String applicationName;
+  private String clientEncoding;
 
   /**
    * Constructor
@@ -70,6 +72,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE);
     this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
     this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
+    this.applicationName = null;
+    this.clientEncoding = null;
   }
 
   /**
@@ -247,6 +251,38 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the application name
+   * @return The value
+   */
+  public String getApplicationName() {
+    return applicationName;
+  }
+
+  /**
+   * Set the application name
+   * @param v The value
+   */
+  public void setApplicationName(String v) {
+    applicationName = v;
+  }
+
+  /**
+   * Get the client encoding
+   * @return The value
+   */
+  public String getClientEncoding() {
+    return clientEncoding;
+  }
+
+  /**
+   * Set the client encoding
+   * @param v The value
+   */
+  public void setClientEncoding(String v) {
+    clientEncoding = v;
+  }
+
+  /**
    * Create a connection
    *
    * @param u
@@ -283,6 +319,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     props.put(Settings.PARSED_SQL_CACHE_SIZE, parsedSqlCacheSize);
     props.put(Settings.PREPARED_STATEMENT_CACHE_SIZE, preparedStatementCacheSize);
+    if (applicationName != null)
+      props.put(Settings.APPLICATION_NAME, applicationName);
+    if (clientEncoding != null)
+      props.put(Settings.CLIENT_ENCODING, clientEncoding);
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }

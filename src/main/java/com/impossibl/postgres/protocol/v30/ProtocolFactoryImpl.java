@@ -205,8 +205,8 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
     Map<String, Object> params = new HashMap<String, Object>();
 
-    params.put(APPLICATION_NAME, "pgjdbc app");
-    params.put(CLIENT_ENCODING, "UTF8");
+    params.put(APPLICATION_NAME, context.getSetting(APPLICATION_NAME, "pgjdbc app"));
+    params.put(CLIENT_ENCODING, context.getSetting(CLIENT_ENCODING, "UTF8"));
     params.put(DATABASE, context.getSetting(DATABASE, ""));
     params.put(CREDENTIALS_USERNAME, context.getSetting(CREDENTIALS_USERNAME, ""));
 

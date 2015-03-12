@@ -33,6 +33,8 @@ import com.impossibl.postgres.system.NoticeException;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED;
 import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DRIVER;
+import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
@@ -58,6 +60,8 @@ import static java.lang.Boolean.parseBoolean;
 class ConnectionUtil {
   private static final String JDBC_USERNAME_PARAM = "user";
   private static final String JDBC_PASSWORD_PARAM = "password";
+  private static final String JDBC_APPLICATION_NAME_PARAM = "application_name";
+  private static final String JDBC_CLIENT_ENCODING_PARAM = "client_encoding";
   private static Logger log = Logger.getLogger(ConnectionUtil.class.getName());
 
   static class ConnectionSpecifier {
@@ -210,6 +214,10 @@ class ConnectionUtil {
     //Translate JDBC parameters to PostgreSQL parameters
     settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
     settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
+    if (settings.getProperty(JDBC_APPLICATION_NAME_PARAM) != null)
+       settings.put(APPLICATION_NAME, settings.getProperty(JDBC_APPLICATION_NAME_PARAM, ""));
+    if (settings.getProperty(JDBC_CLIENT_ENCODING_PARAM) != null)
+       settings.put(CLIENT_ENCODING, settings.getProperty(JDBC_CLIENT_ENCODING_PARAM, ""));
 
     //Create & store URL
     settings.put(DATABASE_URL, "jdbc:pgsql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());
