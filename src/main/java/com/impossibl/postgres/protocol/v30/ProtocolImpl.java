@@ -62,6 +62,7 @@ import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -1058,7 +1059,7 @@ public class ProtocolImpl implements Protocol {
           rowsAffected = Long.parseLong(parts[2]);
         }
         else {
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
         }
 
         break;
@@ -1070,7 +1071,7 @@ public class ProtocolImpl implements Protocol {
           rowsAffected = null;
         }
         else {
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
         }
 
         break;
@@ -1084,7 +1085,7 @@ public class ProtocolImpl implements Protocol {
           rowsAffected = Long.parseLong(parts[1]);
         }
         else {
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
         }
 
         break;
@@ -1098,7 +1099,7 @@ public class ProtocolImpl implements Protocol {
           rowsAffected = Long.parseLong(parts[1]);
         }
         else {
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
         }
 
         break;
@@ -1119,7 +1120,7 @@ public class ProtocolImpl implements Protocol {
           rowsAffected = 0L;
         }
         else {
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
         }
 
         break;
@@ -1127,10 +1128,37 @@ public class ProtocolImpl implements Protocol {
       case "TRUNCATE":
         break;
 
+      case "PREPARE":
+        if (parts.length == 2) {
+          // Nothing to parse but accepted
+        }
+        else {
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        }
+        break;
+
+      case "COMMIT":
+        if (parts.length == 1 || parts.length == 2) {
+          // Nothing to parse but accepted
+        }
+        else {
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        }
+        break;
+
+      case "ROLLBACK":
+        if (parts.length == 1 || parts.length == 2) {
+          // Nothing to parse but accepted
+        }
+        else {
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        }
+        break;
+
       default:
 
         if (parts.length != 1)
-          throw new IOException("error parsing command tag");
+          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
 
         rowsAffected = 0L;
     }
