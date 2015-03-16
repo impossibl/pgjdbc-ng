@@ -39,6 +39,10 @@ import java.util.logging.Logger;
 
 import static java.lang.Boolean.parseBoolean;
 
+import javax.naming.NamingException;
+import javax.naming.RefAddr;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
 import javax.sql.CommonDataSource;
 
 /**
@@ -115,6 +119,114 @@ public abstract class AbstractDataSource implements CommonDataSource {
   @Override
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
     return Logger.getLogger(Context.class.getPackage().getName());
+  }
+
+  /**
+   * Create a reference using the correct ObjectFactory instance
+   * @return The reference
+   */
+  protected abstract Reference createReference();
+
+  /**
+   * {@inheritDoc}
+   */
+  public Reference getReference() throws NamingException {
+    Reference ref = createReference();
+
+    if (host != null)
+      ref.add(new StringRefAddr("host", host));
+
+    if (port != 5432)
+      ref.add(new StringRefAddr("port", Integer.toString(port)));
+
+    if (database != null)
+      ref.add(new StringRefAddr("database", database));
+
+    if (user != null)
+      ref.add(new StringRefAddr("user", user));
+
+    if (password != null)
+      ref.add(new StringRefAddr("password", password));
+
+    if (housekeeper != parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE))
+      ref.add(new StringRefAddr("housekeeper", Boolean.toString(housekeeper)));
+
+    if (parsedSqlCacheSize != Settings.PARSED_SQL_CACHE_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("parsedSqlCacheSize", Integer.toString(parsedSqlCacheSize)));
+
+    if (preparedStatementCacheSize != Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("preparedStatementCacheSize", Integer.toString(preparedStatementCacheSize)));
+
+    if (applicationName != null)
+      ref.add(new StringRefAddr("applicationName", applicationName));
+
+    if (clientEncoding != null)
+      ref.add(new StringRefAddr("clientEncoding", clientEncoding));
+
+    return ref;
+  }
+
+  /**
+   * Init
+   * @param reference The reference
+   */
+  public void init(Reference reference) {
+    String value = null;
+
+    value = getReferenceValue(reference, "host");
+    if (value != null)
+      host = value;
+
+    value = getReferenceValue(reference, "port");
+    if (value != null)
+      port = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "database");
+    if (value != null)
+      database = value;
+
+    value = getReferenceValue(reference, "user");
+    if (value != null)
+      user = value;
+
+    value = getReferenceValue(reference, "password");
+    if (value != null)
+      password = value;
+
+    value = getReferenceValue(reference, "housekeeper");
+    if (value != null)
+      housekeeper = Boolean.valueOf(value);
+
+    value = getReferenceValue(reference, "parsedSqlCacheSize");
+    if (value != null)
+       parsedSqlCacheSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "preparedStatementCacheSize");
+    if (value != null)
+       preparedStatementCacheSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "applicationName");
+    if (value != null)
+      applicationName = value;
+
+    value = getReferenceValue(reference, "clientEncoding");
+    if (value != null)
+      clientEncoding = value;
+  }
+
+  /**
+   * Get reference value
+   * @param reference The reference
+   * @param key The key
+   * @return The value
+   */
+  private String getReferenceValue(Reference reference, String key) {
+    RefAddr refAddr = reference.get(key);
+
+    if (refAddr == null)
+      return null;
+
+    return (String)refAddr.getContent();
   }
 
   /**

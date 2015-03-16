@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013, impossibl.com
+ * Copyright (c) 2015, impossibl.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,73 +26,40 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.jdbc.xa;
 
-import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import java.util.Hashtable;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
+import javax.naming.Context;
+import javax.naming.Name;
 import javax.naming.Reference;
-import javax.naming.Referenceable;
-import javax.sql.DataSource;
+import javax.naming.spi.ObjectFactory;
 
 /**
- * DataSource implementation
+ * An ObjectFactory for PGXADataSource
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
-public class PGDataSource extends AbstractDataSource implements DataSource, Referenceable {
+public class PGXADataSourceObjectFactory implements ObjectFactory {
 
   /**
    * Constructor
    */
-  public PGDataSource() {
-    super();
+  public PGXADataSourceObjectFactory() {
   }
 
   /**
    * {@inheritDoc}
    */
-  @Override
-  public Connection getConnection() throws SQLException {
-    return getConnection(getUser(), getPassword());
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Connection getConnection(String user, String password) throws SQLException {
-    return createConnection(user, password);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public <T> T unwrap(Class<T> iface) throws SQLException {
-    if (!iface.isAssignableFrom(getClass())) {
-      throw UNWRAP_ERROR;
+  public Object getObjectInstance(Object o, Name n, Context ctx, Hashtable env) throws Exception {
+    Reference ref = (Reference)o;
+    String className = ref.getClassName();
+    if (className.equals("com.impossibl.postgres.jdbc.xa.PGXADataSource")) {
+      PGXADataSource ds = new PGXADataSource();
+      ds.init(ref);
+      return ds;
     }
-
-    return iface.cast(this);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
-    return iface.isAssignableFrom(getClass());
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  protected Reference createReference() {
-    return new Reference(getClass().getName(),
-                         PGDataSourceObjectFactory.class.getName(),
-                         null);
+    else {
+      return null;
+    }
   }
 }
-

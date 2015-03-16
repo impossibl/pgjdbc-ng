@@ -32,6 +32,8 @@ import com.impossibl.postgres.jdbc.AbstractDataSource;
 
 import java.sql.SQLException;
 
+import javax.naming.Reference;
+import javax.naming.Referenceable;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
@@ -39,7 +41,7 @@ import javax.sql.XADataSource;
  * XADataSource implementation
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
-public class PGXADataSource extends AbstractDataSource implements XADataSource {
+public class PGXADataSource extends AbstractDataSource implements XADataSource, Referenceable {
 
   /**
    * Constructor
@@ -62,6 +64,15 @@ public class PGXADataSource extends AbstractDataSource implements XADataSource {
   @Override
   public XAConnection getXAConnection(String user, String password) throws SQLException {
     return new PGXAConnection(createConnection(user, password));
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  protected Reference createReference() {
+    return new Reference(getClass().getName(),
+                         PGXADataSourceObjectFactory.class.getName(),
+                         null);
   }
 }
 

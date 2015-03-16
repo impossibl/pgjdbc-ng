@@ -30,6 +30,8 @@ package com.impossibl.postgres.jdbc;
 
 import java.sql.SQLException;
 
+import javax.naming.Reference;
+import javax.naming.Referenceable;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 
@@ -37,7 +39,7 @@ import javax.sql.PooledConnection;
  * ConnectionPoolDataSource implementation
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
-public class PGConnectionPoolDataSource extends AbstractDataSource implements ConnectionPoolDataSource {
+public class PGConnectionPoolDataSource extends AbstractDataSource implements ConnectionPoolDataSource, Referenceable {
 
   /**
    * Constructor
@@ -60,6 +62,15 @@ public class PGConnectionPoolDataSource extends AbstractDataSource implements Co
   @Override
   public PooledConnection getPooledConnection(String user, String password) throws SQLException {
     return new PGPooledConnection(createConnection(user, password), true, false);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  protected Reference createReference() {
+    return new Reference(getClass().getName(),
+                         PGConnectionPoolDataSourceObjectFactory.class.getName(),
+                         null);
   }
 }
 
