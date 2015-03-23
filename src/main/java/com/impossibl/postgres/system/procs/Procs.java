@@ -96,7 +96,12 @@ public class Procs {
   private ServiceLoader<ProcProvider> providers;
 
   public Procs(ClassLoader classLoader) {
-    providers = ServiceLoader.load(ProcProvider.class, classLoader);
+    try {
+      providers = ServiceLoader.load(ProcProvider.class, classLoader);
+    }
+    catch (Exception e) {
+      providers = ServiceLoader.load(ProcProvider.class, Procs.class.getClassLoader());
+    }
   }
 
   public Type.Codec.Decoder getDefaultDecoder(Format format) {
