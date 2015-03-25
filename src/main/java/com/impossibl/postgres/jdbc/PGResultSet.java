@@ -163,7 +163,7 @@ class PGResultSet implements ResultSet {
 
   PGStatement statement;
   Scroller scroller;
-  Integer fetchDir;
+  int fetchDirection;
   Integer fetchSize;
   SQLWarning warningChain;
   Object[] updatedRowValues;
@@ -177,21 +177,36 @@ class PGResultSet implements ResultSet {
   PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<?> results) throws SQLException {
     this(statement, command);
     this.scroller = new CommandScroller(this, command, resultFields, results);
+
+    if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
+      if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
+        throw CURSOR_NOT_SCROLLABLE;
+    }
   }
 
   PGResultSet(PGStatement statement, List<ResultField> resultFields, List<?> results) throws SQLException {
     this(statement, null);
     this.scroller = new ListScroller(resultFields, results);
+
+    if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
+      if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
+        throw CURSOR_NOT_SCROLLABLE;
+    }
   }
 
   PGResultSet(PGStatement statement, String cursorName, int type, int holdability, List<ResultField> resultFields) throws SQLException {
     this(statement, null);
     this.scroller = new CursorScroller(this, cursorName, type, holdability, resultFields);
+
+    if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
+      if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
+        throw CURSOR_NOT_SCROLLABLE;
+    }
   }
 
   private PGResultSet(PGStatement statement, QueryCommand command) throws SQLException {
     this.statement = statement;
-    this.fetchDir = FETCH_FORWARD;
+    this.fetchDirection = statement.fetchDirection;
     this.fetchSize = statement.fetchSize;
     this.typeMap = statement.getConnection().getTypeMap();
 
@@ -338,17 +353,17 @@ class PGResultSet implements ResultSet {
   @Override
   public int getFetchDirection() throws SQLException {
     checkClosed();
-    return fetchDir != null ? fetchDir : 0;
+    return fetchDirection;
   }
 
   @Override
   public void setFetchDirection(int direction) throws SQLException {
     checkClosed();
-    if (direction != FETCH_FORWARD) {
+    if (direction != ResultSet.FETCH_FORWARD) {
       if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
         throw CURSOR_NOT_SCROLLABLE;
     }
-    fetchDir = direction;
+    fetchDirection = direction;
   }
 
   @Override

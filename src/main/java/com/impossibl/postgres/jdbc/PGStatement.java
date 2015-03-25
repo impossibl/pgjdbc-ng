@@ -141,6 +141,7 @@ abstract class PGStatement implements Statement {
     this.resultSetType = resultSetType;
     this.resultSetConcurrency = resultSetConcurrency;
     this.resultSetHoldability = resultSetHoldability;
+    this.fetchDirection = ResultSet.FETCH_FORWARD;
     this.name = name;
     this.processEscapes = true;
     this.resultFields = resultFields;

@@ -465,7 +465,20 @@ public class ResultSetTest {
     assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
     assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
     assertEquals(100, rs.getFetchSize());
-    assertEquals(ResultSet.FETCH_FORWARD, rs.getFetchDirection());
+    assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
+
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testFetchDirection() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+    rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
+
+    assertEquals(ResultSet.FETCH_FORWARD, stmt.getFetchDirection());
+    assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
 
     rs.close();
     stmt.close();
