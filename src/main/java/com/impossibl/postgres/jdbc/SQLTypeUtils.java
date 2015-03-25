@@ -280,7 +280,7 @@ class SQLTypeUtils {
       }
     }
 
-    throw createCoercionException(val.getClass(), targetType);
+    throw createCoercionException(val.getClass(), targetType, val);
   }
 
   public static byte coerceToByte(Object val) throws SQLException {
@@ -301,13 +301,13 @@ class SQLTypeUtils {
       }
     }
     else if (val instanceof String) {
-      return Byte.parseByte((String) val);
+      return Byte.parseByte(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? (byte) 1 : (byte) 0;
     }
 
-    throw createCoercionException(val.getClass(), byte.class);
+    throw createCoercionException(val.getClass(), byte.class, val);
   }
 
   public static short coerceToShort(Object val) throws SQLException {
@@ -331,13 +331,13 @@ class SQLTypeUtils {
       }
     }
     else if (val instanceof String) {
-      return Short.parseShort((String) val);
+      return Short.parseShort(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? (short) 1 : (short) 0;
     }
 
-    throw createCoercionException(val.getClass(), short.class);
+    throw createCoercionException(val.getClass(), short.class, val);
   }
 
   public static int coerceToInt(Object val) throws SQLException {
@@ -364,7 +364,7 @@ class SQLTypeUtils {
       }
     }
     else if (val instanceof String) {
-      return Integer.parseInt((String) val);
+      return Integer.parseInt(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1 : 0;
@@ -376,7 +376,7 @@ class SQLTypeUtils {
       return ((PGClob) val).lo.oid;
     }
 
-    throw createCoercionException(val.getClass(), int.class);
+    throw createCoercionException(val.getClass(), int.class, val);
   }
 
   public static long coerceToLong(Object val) throws SQLException {
@@ -406,7 +406,7 @@ class SQLTypeUtils {
       }
     }
     else if (val instanceof String) {
-      return Long.parseLong((String) val);
+      return Long.parseLong(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1 : 0;
@@ -415,7 +415,7 @@ class SQLTypeUtils {
       return ((PGBlob) val).lo.oid;
     }
 
-    throw createCoercionException(val.getClass(), long.class);
+    throw createCoercionException(val.getClass(), long.class, val);
   }
 
   public static float coerceToFloat(Object val) throws SQLException {
@@ -430,13 +430,13 @@ class SQLTypeUtils {
       return ((Number) val).floatValue();
     }
     else if (val instanceof String) {
-      return Float.parseFloat((String) val);
+      return Float.parseFloat(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1.0f : 0.0f;
     }
 
-    throw createCoercionException(val.getClass(), float.class);
+    throw createCoercionException(val.getClass(), float.class, val);
   }
 
   public static double coerceToDouble(Object val) throws SQLException {
@@ -451,13 +451,13 @@ class SQLTypeUtils {
       return ((Number) val).doubleValue();
     }
     else if (val instanceof String) {
-      return Double.parseDouble((String) val);
+      return Double.parseDouble(((String) val).trim());
     }
     else if (val instanceof Boolean) {
       return ((Boolean) val) ? 1.0 : 0.0;
     }
 
-    throw createCoercionException(val.getClass(), double.class);
+    throw createCoercionException(val.getClass(), double.class, val);
   }
 
   public static BigDecimal coerceToBigDecimal(Object val) throws SQLException {
@@ -475,10 +475,10 @@ class SQLTypeUtils {
       return new BigDecimal((boolean) val ? "1.0" : "0.0");
     }
     else if (val instanceof String) {
-      return new BigDecimal((String) val);
+      return new BigDecimal(((String) val).trim());
     }
 
-    throw createCoercionException(val.getClass(), BigDecimal.class);
+    throw createCoercionException(val.getClass(), BigDecimal.class, val);
   }
 
   public static boolean coerceToBoolean(Object val) throws SQLException {
@@ -494,7 +494,7 @@ class SQLTypeUtils {
     }
     else if (val instanceof String) {
 
-      String str = ((String) val).toLowerCase();
+      String str = (((String) val).trim()).toLowerCase();
 
       try {
         return Long.parseLong(str) != 0;
@@ -522,7 +522,7 @@ class SQLTypeUtils {
 
     }
 
-    throw createCoercionException(val.getClass(), boolean.class);
+    throw createCoercionException(val.getClass(), boolean.class, val);
   }
 
   public static String coerceToString(Object val, Type type, Context context) throws SQLException {
@@ -594,7 +594,7 @@ class SQLTypeUtils {
       }
     }
 
-    throw createCoercionException(val.getClass(), Date.class);
+    throw createCoercionException(val.getClass(), Date.class, val);
   }
 
   public static Time coerceToTime(Object val, TimeZone zone, Context context) throws SQLException {
@@ -616,8 +616,11 @@ class SQLTypeUtils {
       }
 
     }
+    else if (val instanceof String) {
+      return Time.valueOf(((String) val).trim());
+    }
 
-    throw createCoercionException(val.getClass(), Time.class);
+    throw createCoercionException(val.getClass(), Time.class, val);
   }
 
   public static Timestamp coerceToTimestamp(Object val, TimeZone zone, Context context) throws SQLException {
@@ -631,8 +634,11 @@ class SQLTypeUtils {
     else if (val instanceof Instant) {
       return ((Instant) val).switchTo(zone).toTimestamp();
     }
+    else if (val instanceof String) {
+      return Timestamp.valueOf(((String) val).trim());
+    }
 
-    throw createCoercionException(val.getClass(), Timestamp.class);
+    throw createCoercionException(val.getClass(), Timestamp.class, val);
   }
 
   public static Interval coerceToInterval(Object val) throws SQLException {
@@ -647,7 +653,7 @@ class SQLTypeUtils {
       return new Interval((String) val);
     }
 
-    throw createCoercionException(val.getClass(), Interval.class);
+    throw createCoercionException(val.getClass(), Interval.class, val);
   }
 
   public static Instant coerceToInstant(Object val, Type sourceType, TimeZone zone, Context context) throws SQLException {
@@ -707,7 +713,7 @@ class SQLTypeUtils {
 
     }
 
-    throw createCoercionException(val.getClass(), Instant.class);
+    throw createCoercionException(val.getClass(), Instant.class, val);
   }
 
   public static URL coerceToURL(Object val) throws SQLException {
@@ -723,11 +729,11 @@ class SQLTypeUtils {
         return new URL((String) val);
       }
       catch (MalformedURLException e) {
-        throw createCoercionException(val.getClass(), URL.class, e);
+        throw createCoercionException(val.getClass(), URL.class, val, e);
       }
     }
 
-    throw createCoercionException(val.getClass(), URL.class);
+    throw createCoercionException(val.getClass(), URL.class, val);
   }
 
   public static Blob coerceToBlob(Object val, PGConnectionImpl connection) throws SQLException {
@@ -745,7 +751,7 @@ class SQLTypeUtils {
       return new PGBlob(connection, (int) (long) val);
     }
 
-    throw createCoercionException(val.getClass(), Blob.class);
+    throw createCoercionException(val.getClass(), Blob.class, val);
   }
 
   public static RowId coerceToRowId(Object val, Type sourceType) throws SQLException {
@@ -760,7 +766,7 @@ class SQLTypeUtils {
       return new PGRowId((Tid) val);
     }
 
-    throw createCoercionException(val.getClass(), RowId.class);
+    throw createCoercionException(val.getClass(), RowId.class, val);
   }
 
   public static Tid coerceToTid(Object val) throws SQLException {
@@ -776,7 +782,7 @@ class SQLTypeUtils {
       return rowId.tid;
     }
 
-    throw createCoercionException(val.getClass(), Tid.class);
+    throw createCoercionException(val.getClass(), Tid.class, val);
   }
 
   public static InputStream coerceToByteStream(Object val, Type sourceType, Context context) throws SQLException {
@@ -812,7 +818,7 @@ class SQLTypeUtils {
         sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
-        throw createCoercionException(val.getClass(), byte[].class);
+        throw createCoercionException(val.getClass(), byte[].class, val);
       }
 
       // Skip written length
@@ -827,7 +833,7 @@ class SQLTypeUtils {
       };
     }
 
-    throw createCoercionException(val.getClass(), byte[].class);
+    throw createCoercionException(val.getClass(), byte[].class, val);
   }
 
   public static byte[] coerceToBytes(Object val, Type sourceType, Context context) throws SQLException {
@@ -858,7 +864,7 @@ class SQLTypeUtils {
           return (byte[]) sourceType.getTextCodec().decoder.decode(sourceType, sourceType.getLength(), null, val, context);
         }
         catch (IOException e) {
-          throw createCoercionException(val.getClass(), byte[].class);
+          throw createCoercionException(val.getClass(), byte[].class, val);
         }
       }
       else {
@@ -878,7 +884,7 @@ class SQLTypeUtils {
         sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
-        throw createCoercionException(val.getClass(), byte[].class);
+        throw createCoercionException(val.getClass(), byte[].class, val);
       }
 
       // Skip written length
@@ -889,7 +895,7 @@ class SQLTypeUtils {
       return array;
     }
 
-    throw createCoercionException(val.getClass(), byte[].class);
+    throw createCoercionException(val.getClass(), byte[].class, val);
   }
 
   public static Clob coerceToClob(Object val, PGConnectionImpl connection) throws SQLException {
@@ -907,7 +913,7 @@ class SQLTypeUtils {
       return new PGClob(connection, (int) (long) val);
     }
 
-    throw createCoercionException(val.getClass(), Clob.class);
+    throw createCoercionException(val.getClass(), Clob.class, val);
   }
 
   public static Object coerceToArray(Object val, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
@@ -927,7 +933,7 @@ class SQLTypeUtils {
       return coerceToArray(format, val, 0, Array.getLength(val), type, targetType, typeMap, connection);
     }
 
-    throw createCoercionException(val.getClass(), targetType);
+    throw createCoercionException(val.getClass(), targetType, val);
   }
 
   public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
@@ -1006,7 +1012,7 @@ class SQLTypeUtils {
       return dst;
     }
 
-    throw createCoercionException(val.getClass(), targetType);
+    throw createCoercionException(val.getClass(), targetType, val);
   }
 
   public static Struct coerceToStruct(Object val, Type sourceType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
@@ -1040,7 +1046,7 @@ class SQLTypeUtils {
       return new PGStruct(connection, compType, (Object[]) val);
     }
 
-    throw createCoercionException(val.getClass(), Struct.class);
+    throw createCoercionException(val.getClass(), Struct.class, val);
   }
 
   public static Record coerceToRecord(Format format, Object val, Type sourceType, Map<String, Class<?>> typeMap, TimeZone zone, PGConnectionImpl connection) throws SQLException {
@@ -1073,13 +1079,11 @@ class SQLTypeUtils {
         attributeVals = out.getAttributeValues();
       }
       else {
-
-        throw createCoercionException(val.getClass(), Record.class);
+        throw createCoercionException(val.getClass(), Record.class, val);
       }
 
       if (compType.getAttributes().size() != attributeVals.length) {
-
-        throw createCoercionException(val.getClass(), Record.class);
+        throw createCoercionException(val.getClass(), Record.class, val);
       }
 
       for (int c = 0; c < attributeVals.length; ++c) {
@@ -1093,7 +1097,7 @@ class SQLTypeUtils {
       return new Record(compType, attributeVals);
     }
 
-    throw createCoercionException(val.getClass(), Struct.class);
+    throw createCoercionException(val.getClass(), Struct.class, val);
   }
 
   public static Object coerceToCustomType(Object val, Type sourceType, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
@@ -1119,8 +1123,7 @@ class SQLTypeUtils {
         attributeVals = record.getValues();
       }
       else {
-
-        throw createCoercionException(val.getClass(), targetType);
+        throw createCoercionException(val.getClass(), targetType, val);
       }
 
       Object dst;
@@ -1128,7 +1131,7 @@ class SQLTypeUtils {
         dst = targetType.newInstance();
       }
       catch (InstantiationException | IllegalAccessException e) {
-        throw createCoercionException(val.getClass(), targetType, e);
+        throw createCoercionException(val.getClass(), targetType, val, e);
       }
 
       PGSQLInputImpl in = new PGSQLInputImpl(connection, compType, typeMap, attributeVals);
@@ -1138,7 +1141,7 @@ class SQLTypeUtils {
       return dst;
     }
 
-    throw createCoercionException(val.getClass(), targetType);
+    throw createCoercionException(val.getClass(), targetType, val);
   }
 
   public static UUID coerceToUUID(Object val, Context context) throws SQLException {
@@ -1153,7 +1156,7 @@ class SQLTypeUtils {
       return UUID.fromString((String)val);
     }
 
-    throw createCoercionException(val.getClass(), UUID.class);
+    throw createCoercionException(val.getClass(), UUID.class, val);
   }
 
   public static SQLXML coerceToXML(Object val, PGConnectionImpl connection) throws SQLException {
@@ -1173,15 +1176,21 @@ class SQLTypeUtils {
       return new PGSQLXML(connection, (byte[]) val);
     }
 
-    throw createCoercionException(val.getClass(), SQLXML.class);
+    throw createCoercionException(val.getClass(), SQLXML.class, val);
   }
 
   public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType) {
     return new SQLException("Coercion from '" + srcType.getName() + "' to '" + dstType.getName() + "' is not supported");
   }
 
-  public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Exception cause) {
-    return new SQLException("Coercion from '" + srcType.getName() + "' to '" + dstType.getName() + "' failed", cause);
+  public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val) {
+    return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
+                            dstType.getName() + "' is not supported (" + val + ")");
+  }
+
+  public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val, Exception cause) {
+    return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
+                            dstType.getName() + "' failed (" + val + ")", cause);
   }
 
   public static SQLException createCoercionParseException(String val, int parseErrorPos, Class<?> dstType) {
@@ -1205,7 +1214,7 @@ class SQLTypeUtils {
       return buffer.toString();
     }
     catch (IOException e) {
-      throw createCoercionException(val.getClass(), String.class);
+      throw createCoercionException(val.getClass(), String.class, val);
     }
   }
 }
