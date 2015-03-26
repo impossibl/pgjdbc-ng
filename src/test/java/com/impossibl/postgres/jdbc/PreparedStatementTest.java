@@ -61,6 +61,7 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -121,6 +122,24 @@ public class PreparedStatementTest {
 
     bais = new ByteArrayInputStream(buf);
     doSetBinaryStream(bais, 10);
+  }
+
+  @Ignore
+  public void testGetBinaryStream() throws SQLException {
+    byte[] buf = new byte[10];
+    for (int i = 0; i < buf.length; i++) {
+      buf[i] = (byte) i;
+    }
+
+    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+    doSetBinaryStream(bais, 10);
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
+    assertTrue(rs.next());
+    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -786,6 +805,69 @@ public class PreparedStatementTest {
     assertEquals("some text", rs.getString(1));
     rs.close();
     pstmt.close();
+  }
+
+  @Ignore
+  public void testSetObjectBinary() throws SQLException {
+    byte[] buf = new byte[10];
+    for (int i = 0; i < buf.length; i++) {
+      buf[i] = (byte) i;
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    pstmt.setObject(1, buf, Types.BINARY);
+    pstmt.setString(2, null);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
+    assertTrue(rs.next());
+    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    rs.close();
+    stmt.close();
+  }
+
+  @Ignore
+  public void testSetObjectVarBinary() throws SQLException {
+    byte[] buf = new byte[10];
+    for (int i = 0; i < buf.length; i++) {
+      buf[i] = (byte) i;
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    pstmt.setObject(1, buf, Types.VARBINARY);
+    pstmt.setString(2, null);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
+    assertTrue(rs.next());
+    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    rs.close();
+    stmt.close();
+  }
+
+  @Ignore
+  public void testSetObjectLongVarBinary() throws SQLException {
+    byte[] buf = new byte[10];
+    for (int i = 0; i < buf.length; i++) {
+      buf[i] = (byte) i;
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    pstmt.setObject(1, buf, Types.LONGVARBINARY);
+    pstmt.setString(2, null);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
+    assertTrue(rs.next());
+    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    rs.close();
+    stmt.close();
   }
 
   @Test
