@@ -70,6 +70,8 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
+import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
+import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
@@ -113,7 +115,6 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 
@@ -183,6 +184,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
+    this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
     this.activeStatements = new ArrayList<>();
 
     final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
@@ -423,8 +425,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
 
     //Enable network timeout
-    long networkTimeoutMS = SECONDS.toMillis(networkTimeout);
-    cmd.setNetworkTimeout(networkTimeoutMS);
+    cmd.setNetworkTimeout(networkTimeout);
 
     try {
 

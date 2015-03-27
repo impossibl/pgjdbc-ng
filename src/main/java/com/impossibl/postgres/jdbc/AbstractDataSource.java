@@ -62,6 +62,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private int preparedStatementCacheSize;
   private String applicationName;
   private String clientEncoding;
+  private int networkTimeout;
 
   /**
    * Constructor
@@ -78,6 +79,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
     this.applicationName = null;
     this.clientEncoding = null;
+    this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
   }
 
   /**
@@ -163,6 +165,9 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (clientEncoding != null)
       ref.add(new StringRefAddr("clientEncoding", clientEncoding));
 
+    if (networkTimeout != 0)
+      ref.add(new StringRefAddr("networkTimeout", Integer.toString(networkTimeout)));
+
     return ref;
   }
 
@@ -212,6 +217,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "clientEncoding");
     if (value != null)
       clientEncoding = value;
+
+    value = getReferenceValue(reference, "networkTimeout");
+    if (value != null)
+       networkTimeout = Integer.valueOf(value);
   }
 
   /**
@@ -395,6 +404,22 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Set the network timeout in milliseconds
+   * @param networkTimeout The value
+   */
+  public void setNetworkTimeout(int networkTimeout) {
+    this.networkTimeout = networkTimeout;
+  }
+
+  /**
+   * Get the network timeout in milliseconds
+   * @return The value
+   */
+  public int getNetworkTimeout() {
+    return networkTimeout;
+  }
+
+  /**
    * Create a connection
    *
    * @param u
@@ -435,6 +460,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
       props.put(Settings.APPLICATION_NAME, applicationName);
     if (clientEncoding != null)
       props.put(Settings.CLIENT_ENCODING, clientEncoding);
+    props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }

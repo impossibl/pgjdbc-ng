@@ -84,4 +84,6 @@ public class Settings {
   public static final String SSL_ROOT_CERT_FILE = "ssl.root.cert.file";
   public static final String SSL_ROOT_CERT_FILE_DEFAULT = "root.crt";
 
+  public static final String NETWORK_TIMEOUT = "networkTimeout";
+  public static final int NETWORK_TIMEOUT_DEFAULT = 0;
 }

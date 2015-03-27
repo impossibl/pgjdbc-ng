@@ -338,7 +338,9 @@ public class ConnectionTest {
 
     con = TestUtil.openDB();
 
-    con.setNetworkTimeout(null, 1);
+    assertEquals(0, con.getNetworkTimeout());
+    con.setNetworkTimeout(null, 1000);
+    assertEquals(1000, con.getNetworkTimeout());
 
     try (Statement stmt = con.createStatement()) {
 
