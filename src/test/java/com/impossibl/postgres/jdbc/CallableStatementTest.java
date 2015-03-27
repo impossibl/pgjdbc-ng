@@ -49,6 +49,7 @@ import java.sql.Types;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -1160,6 +1161,52 @@ public class CallableStatementTest {
         Statement dstmt = con.createStatement();
         dstmt.execute("drop function double_proc()");
         dstmt.close();
+      }
+      catch (Exception ex) {
+        // Expected...
+      }
+    }
+  }
+
+  @Ignore
+  public void testGetRealAsFloat() throws Throwable {
+    try {
+      Statement stmt = con.createStatement();
+      stmt.execute("create temp table r_tab ( max_val float8, min_val float8, null_val float8 )");
+      stmt.execute("insert into r_tab values ( 1.0E37,1.0E-37, null )");
+      stmt.execute("create or replace function "
+          + "real_proc( OUT IMAX float8, OUT IMIN float8, OUT INUL float8)  as "
+          + "'begin "
+          + "select max_val into imax from r_tab;"
+          + "select min_val into imin from r_tab;"
+          + "select null_val into inul from r_tab;"
+          + " end;' "
+          + "language plpgsql;");
+      stmt.close();
+    }
+    catch (Exception ex) {
+      fail(ex.getMessage());
+      throw ex;
+    }
+    try {
+      CallableStatement cstmt = con.prepareCall("{ call real_proc(?,?,?) }");
+      cstmt.registerOutParameter(1, java.sql.Types.REAL);
+      cstmt.registerOutParameter(2, java.sql.Types.REAL);
+      cstmt.registerOutParameter(3, java.sql.Types.REAL);
+      cstmt.executeUpdate();
+      assertTrue(((Float)cstmt.getObject(1)) == 1.0E37f);
+      assertTrue(((Float)cstmt.getObject(2)) == 1.0E-37f);
+      assertTrue(((Float)cstmt.getObject(3)) == null);
+      cstmt.close();
+    }
+    catch (Exception ex) {
+      fail(ex.getMessage());
+    }
+    finally {
+      try {
+        Statement rstmt = con.createStatement();
+        rstmt.execute("drop function real_proc()");
+        rstmt.close();
       }
       catch (Exception ex) {
         // Expected...
