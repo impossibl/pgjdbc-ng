@@ -870,6 +870,74 @@ public class PreparedStatementTest {
     stmt.close();
   }
 
+  @Ignore
+  public void testClearParameters() throws SQLException {
+    byte[] buf = new byte[10];
+    for (int i = 0; i < buf.length; i++) {
+      buf[i] = (byte) i;
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    pstmt.setObject(1, buf, Types.BINARY);
+    pstmt.setString(2, null);
+    pstmt.clearParameters();
+    try {
+      pstmt.executeQuery();
+      fail("Failed");
+    }
+    catch (SQLException se) {
+      // Correct
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
+  @Ignore
+  public void testExecuteWithoutParameters() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    try {
+      pstmt.execute();
+      fail("Failed");
+    }
+    catch (SQLException se) {
+      // Correct
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
+  @Ignore
+  public void testExecuteQueryWithoutParameters() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    try {
+      pstmt.executeQuery();
+      fail("Failed");
+    }
+    catch (SQLException se) {
+      // Correct
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
+  @Ignore
+  public void testExecuteUpdateWithoutParameters() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+    try {
+      pstmt.executeUpdate();
+      fail("Failed");
+    }
+    catch (SQLException se) {
+      // Correct
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
   @Test
   public void testInet() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE inet_tab (ip1 inet, ip2 inet, ip3 inet)");
