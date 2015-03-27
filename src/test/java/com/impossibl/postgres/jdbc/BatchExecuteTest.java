@@ -45,6 +45,7 @@ import java.sql.Statement;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -362,6 +363,89 @@ public class BatchExecuteTest {
 
     }
 
+  }
+
+  @Ignore
+  public void testPreparedStatementMultipleBatchWithFailure() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
+    con.commit();
+    stmt.close();
+
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO multiplebatch VALUES (?)");
+
+    // Valid
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+
+    // Invalid
+    pstmt.setString(1, "Invalid");
+    pstmt.addBatch();
+
+    // Valid
+    pstmt.setInt(1, 2);
+    pstmt.addBatch();
+
+    int[] result = pstmt.executeBatch();
+
+    assertEquals(3, result.length);
+    assertEquals(1, result[0]);
+    assertEquals(Statement.EXECUTE_FAILED, result[1]);
+    assertEquals(1, result[2]);
+
+    pstmt.close();
+  }
+
+  @Ignore
+  public void testPreparedStatementSelectThrowsException() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
+    con.commit();
+    stmt.close();
+
+    PreparedStatement pstmt = con.prepareStatement("SELECT pk FROM multiplebatch WHERE pk = ?");
+
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+
+    int[] result = null;
+    try {
+      result = pstmt.executeBatch();
+      fail("Failure");
+    }
+    catch (BatchUpdateException bue) {
+      assertEquals(1, result.length);
+      assertEquals(Statement.EXECUTE_FAILED, result[0]);
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
+  @Ignore
+  public void testStatementInsertViolation() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
+    con.commit();
+    stmt.close();
+
+    stmt = con.createStatement();
+    stmt.addBatch("INSERT INTO multiplebatch VALUES (1)");
+    stmt.addBatch("INSERT INTO multiplebatch VALUES (1)");
+
+    int[] result = null;
+    try {
+      result = stmt.executeBatch();
+      fail("Failure");
+    }
+    catch (BatchUpdateException bue) {
+      assertEquals(2, result.length);
+      assertEquals(1, result[0]);
+      assertEquals(Statement.EXECUTE_FAILED, result[1]);
+    }
+    finally {
+      stmt.close();
+    }
   }
 
 }
