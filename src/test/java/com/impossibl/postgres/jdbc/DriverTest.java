@@ -158,4 +158,14 @@ public class DriverTest {
     Properties parameters = connSpec.getParameters();
     assertSame(100, Integer.parseInt(parameters.getProperty(Settings.PARSED_SQL_CACHE_SIZE)));
   }
+
+  /*
+   * Test that the networkTimeout property works.
+   */
+  @Test
+  public void testNetworkTimeout() throws Exception {
+    ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL("jdbc:pgsql://localhost/test?networkTimeout=10000");
+    Properties parameters = connSpec.getParameters();
+    assertEquals(10000, Integer.parseInt(parameters.getProperty(Settings.NETWORK_TIMEOUT)));
+  }
 }

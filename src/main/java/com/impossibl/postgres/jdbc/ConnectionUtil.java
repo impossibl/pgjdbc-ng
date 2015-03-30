@@ -38,8 +38,6 @@ import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
-import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
-import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -60,11 +58,8 @@ import static java.lang.Boolean.parseBoolean;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 class ConnectionUtil {
-  private static final String JDBC_USERNAME_PARAM = "user";
-  private static final String JDBC_PASSWORD_PARAM = "password";
-  private static final String JDBC_APPLICATION_NAME_PARAM = "application_name";
-  private static final String JDBC_CLIENT_ENCODING_PARAM = "client_encoding";
-  private static final String JDBC_NETWORK_TIMEOUT_PARAM = "network_timeout";
+  private static final String JDBC_APPLICATION_NAME_PARAM = "applicationName";
+  private static final String JDBC_CLIENT_ENCODING_PARAM = "clientEncoding";
   private static Logger log = Logger.getLogger(ConnectionUtil.class.getName());
 
   static class ConnectionSpecifier {
@@ -215,13 +210,14 @@ class ConnectionUtil {
     settings.put("database", connSpec.getDatabase());
 
     //Translate JDBC parameters to PostgreSQL parameters
-    settings.put(CREDENTIALS_USERNAME, settings.getProperty(JDBC_USERNAME_PARAM, ""));
-    settings.put(CREDENTIALS_PASSWORD, settings.getProperty(JDBC_PASSWORD_PARAM, ""));
-    if (settings.getProperty(JDBC_APPLICATION_NAME_PARAM) != null)
-       settings.put(APPLICATION_NAME, settings.getProperty(JDBC_APPLICATION_NAME_PARAM, ""));
-    if (settings.getProperty(JDBC_CLIENT_ENCODING_PARAM) != null)
-       settings.put(CLIENT_ENCODING, settings.getProperty(JDBC_CLIENT_ENCODING_PARAM, ""));
-    settings.put(NETWORK_TIMEOUT, settings.getProperty(JDBC_NETWORK_TIMEOUT_PARAM, Integer.toString(NETWORK_TIMEOUT_DEFAULT)));
+    if (settings.getProperty(CREDENTIALS_USERNAME) == null)
+      settings.put(CREDENTIALS_USERNAME, "");
+    if (settings.getProperty(CREDENTIALS_PASSWORD) == null)
+      settings.put(CREDENTIALS_PASSWORD, "");
+    if (settings.getProperty(APPLICATION_NAME) == null && settings.getProperty(JDBC_APPLICATION_NAME_PARAM) != null)
+      settings.put(APPLICATION_NAME, settings.getProperty(JDBC_APPLICATION_NAME_PARAM));
+    if (settings.getProperty(CLIENT_ENCODING) == null && settings.getProperty(JDBC_CLIENT_ENCODING_PARAM) != null)
+      settings.put(CLIENT_ENCODING, settings.getProperty(JDBC_CLIENT_ENCODING_PARAM));
 
     //Create & store URL
     settings.put(DATABASE_URL, "jdbc:pgsql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());

@@ -56,6 +56,7 @@ public class DataSourceTest {
     ds.setDatabase(TestUtil.getDatabase());
     ds.setUser(TestUtil.getUser());
     ds.setPassword(TestUtil.getPassword());
+    ds.setNetworkTimeout(10000);
 
     con = ds.getConnection();
   }
@@ -73,5 +74,13 @@ public class DataSourceTest {
     assertNotNull(con);
     assertTrue(con instanceof PGConnection);
     assertTrue(con.isValid(5));
+  }
+
+  /*
+   * Test setNetworkTimeout()
+   */
+  @Test
+  public void testSetNetworkTimeout() throws Exception {
+    assertEquals(10000, con.getNetworkTimeout());
   }
 }
