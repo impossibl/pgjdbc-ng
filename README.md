@@ -14,24 +14,80 @@ An example
 
 	jdbc:pgsql://localhost:5432/test
 
-## DataSource / XADataSource
+## Driver
 
-The DataSource class is
+The java.sql.Driver class is
+
+	com.impossibl.postgres.jdbc.PGDriver
+
+The driver will accept configuration parameters in the style of
+
+	jdbc:pgsql://localhost:5432/test?applicationName=MyApp&networkTimeout=10000
+
+## Data sources
+
+The javax.sql.DataSource class is
 
 	com.impossibl.postgres.jdbc.PGDataSource
+
+, the javax.sql.ConnectionPoolDataSource class is
+
+	com.impossibl.postgres.jdbc.PGConnectionPoolDataSource
 
 and the XADataSource class is
 
 	com.impossibl.postgres.jdbc.xa.PGXADataSource
 
-Both implementations supports the following properties
+## Configuration
 
-	Host:		localhost
-	Port:		5432
-	Database:	<empty>
-	User:		<empty>
-	Password:	<empty>
-	Housekeeper:	true
+The driver and data sources supports the following configuration
+properties (name, type and default value).
+
+	host      (String) localhost
+
+The 'host' parameter specifies the host name of the database server. Data sources only.
+
+	port         (int)     5432
+
+The 'port' parameter specifies the port number of the database server. Data sources only.
+
+	database     (String)
+
+The 'database' parameter specifies the name of the database on the database server. Data sources only.
+
+	user   (String)
+
+The 'user' parameter specifies the user name.
+
+	password     (String)
+
+The 'password' parameter specifies the password.
+
+	housekeeper      (boolean) true
+
+The 'housekeeper' parameter specifies if the JDBC driver should keep track connections, statements and result sets
+and automatically close them if they can't no longer be reached.
+
+	parsedSqlCacheSize   (int)   250
+
+The 'parsedSqlCacheSize' parameter specifies how big the cache size for parsed SQL statements should be.
+
+	preparedStatementCacheSize (int)     50
+
+The 'preparedStatementCacheSize' parameter specifies how big the cache size for PreparedStatement instaces should be.
+
+	applicationName          (String)  pgjdbc app
+
+The 'applicationName' parameter specifies the application name associated with the connection on the database server.
+
+	clientEncoding          (String)  UTF8
+
+The 'clientEncoding' parameter specifies the client encoding for the database server.
+
+	networkTimeout         (int)     0
+
+The 'networkTimeout' parameter specifies the default timeout in milliseconds for the connections.
+A value of 0 indicates that there isnt a timeout for database operations.
 
 ## License
 
