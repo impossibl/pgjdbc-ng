@@ -43,6 +43,7 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -289,6 +290,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
       return XA_OK;
     }
+    catch (SQLTimeoutException ste) {
+      throw new PGXAException("Error preparing transaction", ste, XAException.XAER_RMFAIL);
+    }
     catch (SQLException ex) {
       throw new PGXAException("Error preparing transaction", ex, XAException.XAER_RMERR);
     }
@@ -330,6 +334,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
 
         return l.toArray(new Xid[l.size()]);
+      }
+      catch (SQLTimeoutException ste) {
+        throw new PGXAException("Error during recover", ste, XAException.XAER_RMFAIL);
       }
       catch (SQLException ex) {
         throw new PGXAException("Error during recover", ex, XAException.XAER_RMERR);
@@ -373,6 +380,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           stmt.close();
         }
       }
+    }
+    catch (SQLTimeoutException ste) {
+      throw new PGXAException("Error rolling back prepared transaction", ste, XAException.XAER_RMFAIL);
     }
     catch (SQLException ex) {
       if ("42704".equals(ex.getSQLState())) {
@@ -425,6 +435,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       conn.commit();
       conn.setAutoCommit(localAutoCommitMode);
     }
+    catch (SQLTimeoutException ste) {
+      throw new PGXAException("Error during one-phase commit", ste, XAException.XAER_RMFAIL);
+    }
     catch (SQLException ex) {
       throw new PGXAException("Error during one-phase commit", ex, XAException.XAER_RMERR);
     }
@@ -462,7 +475,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         conn.setAutoCommit(localAutoCommitMode);
       }
     }
+    catch (SQLTimeoutException ste) {
+      throw new PGXAException("Error committing prepared transaction", ste, XAException.XAER_RMFAIL);
+    }
     catch (SQLException ex) {
+      if ("42704".equals(ex.getSQLState())) {
+        throw new PGXAException("Error commiting prepared transaction", ex, XAException.XAER_NOTA);
+      }
       throw new PGXAException("Error committing prepared transaction", ex, XAException.XAER_RMERR);
     }
   }
