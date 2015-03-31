@@ -95,6 +95,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   String sqlText;
   List<Type> parameterTypes;
   List<Object> parameterValues;
+  int parameterCount;
+  List<Boolean> parameterSet;
   List<List<Type>> batchParameterTypes;
   List<List<Object>> batchParameterValues;
   boolean wantsGeneratedKeys;
@@ -106,6 +108,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     this.sqlText = sqlText;
     this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));
     this.parameterValues = new ArrayList<>(asList(new Object[parameterCount]));
+    this.parameterCount = parameterCount;
+    this.parameterSet = new ArrayList<>(asList(new Boolean[parameterCount]));
     this.cursorName = cursorName;
   }
 
@@ -142,6 +146,10 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     }
 
     parameterValues.set(parameterIdx, val);
+
+    if (parameterCount > 0) {
+      parameterSet.set(parameterIdx, Boolean.TRUE);
+    }
   }
 
   @Override
@@ -151,6 +159,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     parameterTypes = null;
     parameterValues = null;
+    parameterSet = null;
+  }
+
+  void verifyParameterSet() throws SQLException {
+    if (parameterCount > 0) {
+      int count = 0;
+      for (Boolean b : parameterSet) {
+        if (b != null && Boolean.TRUE.equals(b))
+          count++;
+      }
+      if (count != parameterCount)
+        throw new SQLException("Incorrect parameter count, was " + count + ", expected: " + parameterCount);
+    }
   }
 
   void parseIfNeeded() throws SQLException {
@@ -233,7 +254,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     parseIfNeeded();
     closeResultSets();
-
+    verifyParameterSet();
     coerceParameters();
 
     boolean res = super.executeStatement(name, parameterTypes, parameterValues);
@@ -405,12 +426,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public void clearParameters() throws SQLException {
     checkClosed();
 
-    for (int c = 0; c < parameterValues.size(); ++c) {
-
+    for (int c = 0; c < parameterValues.size(); ++c)
       parameterValues.set(c, null);
 
-    }
-
+    for (int c = 0; c < parameterSet.size(); ++c)
+      parameterSet.set(c, Boolean.FALSE);
   }
 
   @Override

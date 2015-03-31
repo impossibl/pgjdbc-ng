@@ -127,6 +127,10 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
+  void verifyParameterSet() throws SQLException {
+  }
+
+  @Override
   void parseIfNeeded() throws SQLException {
 
     sqlText = fullSqlText;

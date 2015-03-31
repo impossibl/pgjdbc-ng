@@ -870,7 +870,7 @@ public class PreparedStatementTest {
     stmt.close();
   }
 
-  @Ignore
+  @Test
   public void testClearParameters() throws SQLException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -893,7 +893,7 @@ public class PreparedStatementTest {
     }
   }
 
-  @Ignore
+  @Test
   public void testExecuteWithoutParameters() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
     try {
@@ -908,7 +908,7 @@ public class PreparedStatementTest {
     }
   }
 
-  @Ignore
+  @Test
   public void testExecuteQueryWithoutParameters() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
     try {
@@ -923,7 +923,7 @@ public class PreparedStatementTest {
     }
   }
 
-  @Ignore
+  @Test
   public void testExecuteUpdateWithoutParameters() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
     try {
