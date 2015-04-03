@@ -89,10 +89,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     }
 
     @Override
-    public void noData() {
+    public synchronized void noData() {
       resultBatch.fields = Collections.emptyList();
       resultBatch.results = null;
       status = Status.Completed;
+      notifyAll();
     }
 
     @Override
@@ -125,10 +126,11 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     }
 
     @Override
-    public void emptyQuery() {
+    public synchronized void emptyQuery() {
       resultBatch.fields = Collections.emptyList();
       resultBatch.results = null;
       status = Status.Completed;
+      notifyAll();
     }
 
     @Override
@@ -144,9 +146,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
       resultBatch.rowsAffected = rowsAffected;
       resultBatch.insertedOid = oid;
 
-      if (maxRows > 0) {
-        notifyAll();
-      }
+      notifyAll();
     }
 
     @Override
