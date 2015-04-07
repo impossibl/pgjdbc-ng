@@ -360,7 +360,7 @@ public class ConnectionTest {
   }
 
   /**
-   * Autocommit with network timeout
+   * Autocommit with network timeout and terminated backend
    */
   @Test
   public void testAutoCommitNetworkTimeout() throws Exception {
@@ -369,39 +369,58 @@ public class ConnectionTest {
     con.setNetworkTimeout(null, 1000);
     con.setAutoCommit(false);
 
-    try (Statement stmt = con.createStatement()) {
-      try {
-        stmt.execute("SELECT pg_sleep(10);");
-        fail("Expected SQLTimeoutException");
-      }
-      catch (SQLTimeoutException e) {
-        // Ok
-      }
+    // Figure out the connection's PID so we can terminate it
+    final long backendPID;
+    try (PreparedStatement ps = con.prepareStatement("SELECT pg_backend_pid()");
+        ResultSet rs = ps.executeQuery()) {
+      rs.next();
+      backendPID = rs.getLong(1);
     }
-    try {
-      con.commit();
-      fail("Expected SQLException");
-    }
-    catch (SQLException e) {
-      // Ok
-    }
-    assertTrue(con.isClosed());
+    con.commit();
 
-    con = TestUtil.openDB();
-    con.setNetworkTimeout(null, 1000);
-    con.setAutoCommit(true);
+    // Get a new connection and kill the first one
+    Connection killer = TestUtil.openDB();
+    try (Statement stmt = killer.createStatement()) {
+      stmt.execute("SELECT pg_terminate_backend(" + backendPID + ")");
+    }
+    killer.close();
+    killer = null;
+    Thread.sleep(500);
 
-    try (Statement stmt = con.createStatement()) {
-      try {
-        stmt.execute("SELECT pg_sleep(10);");
-        fail("Expected SQLTimeoutException");
+    // Now try to use that first connection again.
+    // If things are broken, then attempting to use th connection will block
+    // forever.  So we have to do this in a background thread.
+    final SQLTimeoutException[] ex = new SQLTimeoutException[1];
+    Thread backgroundThread = new Thread(new Runnable() {
+      public void run() {
+        try (Statement stmt = con.createStatement()) {
+          stmt.execute("SELECT 1");
+        }
+        catch (SQLTimeoutException ste) {
+          ex[0] = ste;
+        }
+        catch (SQLException se) {
+          // Shouldn't happen
+          se.printStackTrace();
+        }
       }
-      catch (SQLTimeoutException e) {
-        // Ok
-      }
+    });
+    backgroundThread.start();
+
+    // Assuming the background thread starts right away, it should time out in
+    // about 1000ms.  So we wait 2000ms just to be sure.
+    Thread.sleep(2000);
+    if (backgroundThread.isAlive()) {
+      fail("Thread is still alive");
+    }
+    if (ex[0] == null) {
+      fail("Thread did not throw a SQLTimeoutException as expected");
     }
 
-    assertTrue(con.isClosed());
+    // Clean up
+    if (backgroundThread.isAlive()) {
+      backgroundThread.interrupt();
+    }
   }
 
   /**
