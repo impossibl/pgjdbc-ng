@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <Match>
+    <Class name="com.impossibl.postgres.jdbc.PGCallableStatementDelegator"/>
+    <Bug code="Eq"/>
+  </Match>
+  <Match>
+    <Class name="com.impossibl.postgres.jdbc.PGPreparedStatementDelegator"/>
+    <Bug code="Eq"/>
+  </Match>
+  <Match>
+    <Class name="com.impossibl.postgres.jdbc.xa.PGXAConnectionDelegator"/>
+    <Bug code="Eq"/>
+  </Match>
+</FindBugsFilter>
