@@ -360,6 +360,51 @@ public class ConnectionTest {
   }
 
   /**
+   * Autocommit with network timeout
+   */
+  @Test
+  public void testAutoCommitNetworkTimeout() throws Exception {
+
+    con = TestUtil.openDB();
+    con.setNetworkTimeout(null, 1000);
+    con.setAutoCommit(false);
+
+    try (Statement stmt = con.createStatement()) {
+      try {
+        stmt.execute("SELECT pg_sleep(10);");
+        fail("Expected SQLTimeoutException");
+      }
+      catch (SQLTimeoutException e) {
+        // Ok
+      }
+    }
+    try {
+      con.commit();
+      fail("Expected SQLException");
+    }
+    catch (SQLException e) {
+      // Ok
+    }
+    assertTrue(con.isClosed());
+
+    con = TestUtil.openDB();
+    con.setNetworkTimeout(null, 1000);
+    con.setAutoCommit(true);
+
+    try (Statement stmt = con.createStatement()) {
+      try {
+        stmt.execute("SELECT pg_sleep(10);");
+        fail("Expected SQLTimeoutException");
+      }
+      catch (SQLTimeoutException e) {
+        // Ok
+      }
+    }
+
+    assertTrue(con.isClosed());
+  }
+
+  /**
    * Abort connection
    */
   @Test
