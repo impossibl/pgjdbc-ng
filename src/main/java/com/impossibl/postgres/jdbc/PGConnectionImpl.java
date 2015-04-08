@@ -644,7 +644,21 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     if (isClosed())
       return false;
 
-    return executeForString("SELECT '1'::char", false).equals("1");
+    if (timeout < 0)
+       throw new SQLException("Timeout is less than 0");
+
+    boolean result = true;
+    int origNetworkTimeout = networkTimeout;
+    try {
+      networkTimeout = timeout * 1000;
+      result = executeForString("SELECT '1'::char", false).equals("1");
+    }
+    catch (SQLException se) {
+      result = false;
+    }
+    networkTimeout = origNetworkTimeout;
+
+    return result;
   }
 
   @Override
