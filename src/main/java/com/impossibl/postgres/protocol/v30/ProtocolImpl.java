@@ -220,7 +220,7 @@ public class ProtocolImpl implements Protocol {
 
   @Override
   public boolean isConnected() {
-    return connected.get();
+    return connected.get() && channel.isActive();
   }
 
   @Override
@@ -361,7 +361,7 @@ public class ProtocolImpl implements Protocol {
     if (!(cmd instanceof CommandImpl))
       throw new IllegalArgumentException();
 
-    if (!connected.get()) {
+    if (!connected.get() || !channel.isActive()) {
       throw new InterruptedIOException("channel closed");
     }
 
