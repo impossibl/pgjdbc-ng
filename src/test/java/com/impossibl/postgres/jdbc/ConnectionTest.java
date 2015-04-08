@@ -54,6 +54,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -360,47 +361,47 @@ public class ConnectionTest {
   }
 
   /**
-   * Autocommit with network timeout
+   * Kill connection
    */
   @Test
-  public void testAutoCommitNetworkTimeout() throws Exception {
-
+  public void testKillConnection() throws Exception {
     con = TestUtil.openDB();
     con.setNetworkTimeout(null, 1000);
     con.setAutoCommit(false);
 
-    try (Statement stmt = con.createStatement()) {
-      try {
-        stmt.execute("SELECT pg_sleep(10);");
-        fail("Expected SQLTimeoutException");
-      }
-      catch (SQLTimeoutException e) {
-        // Ok
-      }
+    long pid = -1;
+    try (PreparedStatement ps = con.prepareStatement("SELECT pg_backend_pid()")) {
+      ResultSet rs = ps.executeQuery();
+      rs.next();
+      pid = rs.getLong(1);
+      rs.close();
     }
+    con.commit();
+
+    // Get a new connection and kill the first one
+    Connection killer = TestUtil.openDB();
+    try (Statement stmt = killer.createStatement()) {
+      stmt.execute("SELECT pg_terminate_backend(" + pid + ")");
+    }
+    killer.close();
+
+    Statement stmt = con.createStatement();
     try {
-      con.commit();
+      stmt.execute("SELECT 1");
       fail("Expected SQLException");
     }
     catch (SQLException e) {
       // Ok
     }
-    assertTrue(con.isClosed());
-
-    con = TestUtil.openDB();
-    con.setNetworkTimeout(null, 1000);
-    con.setAutoCommit(true);
-
-    try (Statement stmt = con.createStatement()) {
+    finally {
       try {
-        stmt.execute("SELECT pg_sleep(10);");
-        fail("Expected SQLTimeoutException");
+        stmt.close();
       }
-      catch (SQLTimeoutException e) {
-        // Ok
+      catch (SQLException ignore) {
+        // Ignore
       }
     }
-
+    assertFalse(con.isValid(5));
     assertTrue(con.isClosed());
   }
 
