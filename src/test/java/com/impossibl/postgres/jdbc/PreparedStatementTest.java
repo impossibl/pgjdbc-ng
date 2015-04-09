@@ -1244,4 +1244,46 @@ public class PreparedStatementTest {
     pstmt.close();
   }
 
+  /**
+   * No cache
+   */
+  @Test
+  public void testNoCache() throws SQLException {
+    PGDataSource ds = new PGDataSource();
+    ds.setHost(TestUtil.getServer());
+    ds.setPort(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabase(TestUtil.getDatabase());
+    ds.setUser(TestUtil.getUser());
+    ds.setPassword(TestUtil.getPassword());
+    ds.setPreparedStatementCacheSize(0);
+
+    Connection c = null;
+    PreparedStatement pstmt = null;
+    try {
+      c = ds.getConnection();
+      pstmt = c.prepareStatement("SELECT ?::int");
+      for (int i = 0; i < 2; i++) {
+        pstmt.setObject(1, new Integer(i));
+        ResultSet rs = pstmt.executeQuery();
+        rs.close();
+      }
+    }
+    finally {
+      try {
+        if (pstmt != null)
+          pstmt.close();
+      }
+      catch (SQLException ignore) {
+        // Ignore
+      }
+      try {
+        if (c != null)
+          c.close();
+      }
+      catch (SQLException ignore) {
+        // Ignore
+      }
+    }
+  }
+
 }

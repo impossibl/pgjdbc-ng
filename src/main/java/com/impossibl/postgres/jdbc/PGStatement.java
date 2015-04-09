@@ -60,6 +60,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 abstract class PGStatement implements Statement {
 
   protected static final String CACHED_STATEMENT_PREFIX = "cached-";
+  protected static final String NO_CACHE_STATEMENT_PREFIX = "nocache-";
 
   /**
    * Cleans up server resources in the event of leaking statements

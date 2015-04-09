@@ -197,7 +197,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           @Override
           public CachedStatement call() throws Exception {
 
-            String name = CACHED_STATEMENT_PREFIX + Integer.toString(key.hashCode());
+            String name = connection.isCacheEnabled() ? CACHED_STATEMENT_PREFIX + Integer.toString(key.hashCode()) :
+              NO_CACHE_STATEMENT_PREFIX + Integer.toString(key.hashCode());
 
             PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText, Collections.<Type> emptyList());
 

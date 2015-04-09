@@ -1265,6 +1265,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     super.removeNotificationListener(listener);
   }
 
+  boolean isCacheEnabled() {
+    return preparedStatementCache != null;
+  }
+
   CachedStatement getCachedStatement(CachedStatementKey key, Callable<CachedStatement> loader) throws Exception {
 
     if (preparedStatementCache == null) {
