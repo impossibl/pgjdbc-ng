@@ -638,7 +638,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   @Override
-  public boolean isValid(int timeout) throws SQLException {
+  public synchronized boolean isValid(int timeout) throws SQLException {
 
     //Not valid if connection is closed
     if (isClosed())
