@@ -269,7 +269,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   void checkClosed() throws SQLException {
 
     if (isClosed())
-      throw new SQLException("connection closed");
+      throw new SQLException("connection closed", "08006");
   }
 
   /**
