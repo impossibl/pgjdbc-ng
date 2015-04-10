@@ -342,9 +342,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    */
   void handleStatementClosure(PGStatement statement) {
     //Remove given & abandoned statements
-    boolean found = false;
     Iterator<WeakReference<PGStatement>> statementRefIter = activeStatements.iterator();
-    while (!found && statementRefIter.hasNext()) {
+    while (statementRefIter.hasNext()) {
 
       WeakReference<PGStatement> statementRef = statementRefIter.next();
       PGStatement s = statementRef.get();
@@ -353,7 +352,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       }
       else if (s == statement) {
         statementRefIter.remove();
-        found = true;
+        break;
       }
     }
   }

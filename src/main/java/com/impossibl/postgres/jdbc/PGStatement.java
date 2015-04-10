@@ -249,9 +249,8 @@ abstract class PGStatement implements Statement {
   void handleResultSetClosure(PGResultSet resultSet) throws SQLException {
 
     //Remove given & abandoned result sets
-    boolean found = false;
     Iterator<WeakReference<PGResultSet>> resultSetRefIter = activeResultSets.iterator();
-    while (!found && resultSetRefIter.hasNext()) {
+    while (resultSetRefIter.hasNext()) {
 
       WeakReference<PGResultSet> resultSetRef = resultSetRefIter.next();
       PGResultSet rs = resultSetRef.get();
@@ -260,7 +259,7 @@ abstract class PGStatement implements Statement {
       }
       else if (rs == resultSet) {
         resultSetRefIter.remove();
-        found = true;
+        break;
       }
     }
 
