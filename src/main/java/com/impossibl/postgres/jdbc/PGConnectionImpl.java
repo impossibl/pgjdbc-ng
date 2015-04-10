@@ -323,7 +323,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @return New unique statement name
    */
   String getNextStatementName() {
-    return String.format("%016X", ++statementId);
+    return Long.toHexString(++statementId);
   }
 
   /**
@@ -332,7 +332,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @return New unique portal name
    */
   String getNextPortalName() {
-    return String.format("%016X", ++portalId);
+    return Long.toHexString(++portalId);
   }
 
   /**
@@ -341,18 +341,21 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    * @param statement
    */
   void handleStatementClosure(PGStatement statement) {
-
     //Remove given & abandoned statements
+    boolean found = false;
     Iterator<WeakReference<PGStatement>> statementRefIter = activeStatements.iterator();
-    while (statementRefIter.hasNext()) {
+    while (!found && statementRefIter.hasNext()) {
 
       WeakReference<PGStatement> statementRef = statementRefIter.next();
-
-      if (statementRef.get() == null || statementRef.get() == statement) {
+      PGStatement s = statementRef.get();
+      if (s == null) {
         statementRefIter.remove();
       }
+      else if (s == statement) {
+        statementRefIter.remove();
+        found = true;
+      }
     }
-
   }
 
   /**

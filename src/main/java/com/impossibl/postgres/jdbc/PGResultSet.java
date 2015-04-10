@@ -2044,9 +2044,15 @@ class CursorScroller extends Scroller {
 
   boolean fetch(String type, Object loc) throws SQLException {
 
-    String sql = String.format("FETCH %s %s FROM %s", type, loc, cursorName);
+    StringBuilder sb = new StringBuilder();
+    sb.append("FETCH ");
+    sb.append(type);
+    sb.append(" ");
+    sb.append(loc);
+    sb.append(" FROM ");
+    sb.append(cursorName);
 
-    result = connection.executeForFirstResult(sql, true);
+    result = connection.executeForFirstResult(sb.toString(), true);
 
     return result != null;
   }
@@ -2055,9 +2061,15 @@ class CursorScroller extends Scroller {
 
     result = null;
 
-    String sql = String.format("MOVE %s %s IN %s", type, loc, cursorName);
+    StringBuilder sb = new StringBuilder();
+    sb.append("MOVE ");
+    sb.append(type);
+    sb.append(" ");
+    sb.append(loc);
+    sb.append(" IN ");
+    sb.append(cursorName);
 
-    return (int) connection.executeForRowsAffected(sql, true);
+    return (int) connection.executeForRowsAffected(sb.toString(), true);
   }
 
   int getRealRowCount() throws SQLException {
