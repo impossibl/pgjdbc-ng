@@ -231,7 +231,7 @@ public class LeakTest {
   public void testNoHousekeeper() throws Exception {
 
     Properties settings = new Properties();
-    settings.setProperty("housekeeper.enabled", FALSE.toString());
+    settings.setProperty("housekeeper", FALSE.toString());
 
     try (Connection conn = TestUtil.openDB(settings)) {
       try (Statement stmt = conn.createStatement()) {

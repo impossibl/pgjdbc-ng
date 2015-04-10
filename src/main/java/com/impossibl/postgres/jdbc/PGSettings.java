@@ -30,8 +30,9 @@ package com.impossibl.postgres.jdbc;
 
 public class PGSettings {
 
-  public static final String HOUSEKEEPER_ENABLED = "housekeeper.enabled";
-  public static final String HOUSEKEEPER_ENABLED_DEFAULT_DRIVER = "true";
-  public static final String HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE = "true";
+  public static final String HOUSEKEEPER_ENABLED_LEGACY = "housekeeper.enabled";
+  public static final String HOUSEKEEPER = "housekeeper";
+  public static final String HOUSEKEEPER_DEFAULT_DRIVER = "true";
+  public static final String HOUSEKEEPER_DEFAULT_DATASOURCE = "true";
 
 }

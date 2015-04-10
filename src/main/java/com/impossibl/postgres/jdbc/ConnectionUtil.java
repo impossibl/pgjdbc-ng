@@ -31,8 +31,9 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.system.NoticeException;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
-import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED;
-import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DRIVER;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_DEFAULT_DRIVER;
+import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_LEGACY;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
@@ -152,8 +153,17 @@ class ConnectionUtil {
 
     // Select housekeeper for connection
     Housekeeper.Ref housekeeper = null;
-    if (allowHousekeeper && parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED, HOUSEKEEPER_ENABLED_DEFAULT_DRIVER))) {
-      housekeeper = ThreadedHousekeeper.acquire();
+    if (allowHousekeeper) {
+      boolean enableHousekeeper = true;
+      if (settings.getProperty(HOUSEKEEPER_ENABLED_LEGACY) != null &&
+          !parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED_LEGACY))) {
+        enableHousekeeper = false;
+      }
+      else if (!parseBoolean(settings.getProperty(HOUSEKEEPER, HOUSEKEEPER_DEFAULT_DRIVER))) {
+        enableHousekeeper = false;
+      }
+      if (enableHousekeeper)
+        housekeeper = ThreadedHousekeeper.acquire();
     }
 
     // Try to connect to each provided address in turn returning the first

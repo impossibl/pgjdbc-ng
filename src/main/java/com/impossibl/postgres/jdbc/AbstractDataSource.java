@@ -74,7 +74,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.database = null;
     this.user = null;
     this.password = null;
-    this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE);
+    this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_DEFAULT_DATASOURCE);
     this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
     this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
     this.applicationName = null;
@@ -150,7 +150,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (password != null)
       ref.add(new StringRefAddr("password", password));
 
-    if (housekeeper != parseBoolean(PGSettings.HOUSEKEEPER_ENABLED_DEFAULT_DATASOURCE))
+    if (housekeeper != parseBoolean(PGSettings.HOUSEKEEPER_DEFAULT_DATASOURCE))
       ref.add(new StringRefAddr("housekeeper", Boolean.toString(housekeeper)));
 
     if (parsedSqlCacheSize != Settings.PARSED_SQL_CACHE_SIZE_DEFAULT)
