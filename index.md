@@ -113,12 +113,6 @@ pgjdbc-ng is released under the 3 clause BSD license.
 * [ {{ post.title }} ]( {{ site.baseurl }}{{ post.url }} )  ( {{ post.date | date: "%b %d, %Y" }} )
 {% endfor %}
 
-## Snapshots
-
-{% for post in site.categories.snapshots %}
-* [ {{ post.title }}-SNAPSHOT ]( {{ site.baseurl }}{{ post.url }} ) ( {{ post.date | date: "%b %d, %Y" }} )
-{% endfor %}
-
 ## Requirements
 
 * Java 7
