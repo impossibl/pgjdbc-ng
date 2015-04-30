@@ -18,10 +18,7 @@ layout: default
 
 ## UDT Generator
 
-{% for post in site.categories.releases %}
-* [{{post.title}} JAR](releases/pgjdbc-ng-udt-{{ post.title }}-complete.jar)
-{% endfor %}
-
+* [0.0.2]({{site.baseurl}}/releases/pgjdbc-ng-udt-0.0.2-complete.jar)
 
 ## MAVEN
 
@@ -43,11 +40,11 @@ Available in Maven Central:
 	<dependency>
 		<groupId>com.impossibl.pgjdbc-ng</groupId>
 		<artifactId>pgjdbc-ng-udt</artifactId>
-		<version>{{ latestRelVer }}</version>
+		<version>0.0.2</version>
 		<classifier>complete</classifier>
 	</dependency>
 
-
+<!---
 ### Snapshots
 Available in OSS repository:
 
@@ -72,3 +69,4 @@ Available in OSS repository:
 		<classifier>complete</classifier>
 	</dependency>
 
+-->
