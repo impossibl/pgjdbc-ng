@@ -54,6 +54,7 @@ import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
@@ -246,4 +247,11 @@ public class PGSQLOutputImpl implements PGSQLOutput {
     throw NOT_SUPPORTED;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

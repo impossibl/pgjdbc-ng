@@ -73,6 +73,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -951,4 +952,27 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     throw NOT_ALLOWED_ON_PREP_STMT;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

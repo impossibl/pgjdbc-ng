@@ -291,4 +291,11 @@ public class PGSQLInputImpl implements PGSQLInput {
     throw NOT_SUPPORTED;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public <T> T readObject(Class<T> type) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

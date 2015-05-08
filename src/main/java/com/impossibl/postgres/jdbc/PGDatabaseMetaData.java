@@ -2711,4 +2711,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long getMaxLogicalLobSize() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean supportsRefCursors() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

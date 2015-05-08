@@ -74,6 +74,7 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -1034,4 +1035,67 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     setNClob(findParameter(parameterName), reader);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }
