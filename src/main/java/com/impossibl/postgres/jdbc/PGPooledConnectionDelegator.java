@@ -981,6 +981,20 @@ public class PGPooledConnectionDelegator implements PGConnection {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  public void setStrictMode(boolean v) {
+    delegator.setStrictMode(v);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isStrictMode() {
+    return delegator.isStrictMode();
+  }
+
   void reset() {
     if (delegator != null) {
       automatic = true;

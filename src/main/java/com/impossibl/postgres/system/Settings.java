@@ -86,4 +86,7 @@ public class Settings {
 
   public static final String NETWORK_TIMEOUT = "networkTimeout";
   public static final int NETWORK_TIMEOUT_DEFAULT = 0;
+
+  public static final String STRICT_MODE = "strictMode";
+  public static final boolean STRICT_MODE_DEFAULT = false;
 }

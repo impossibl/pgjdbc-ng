@@ -76,6 +76,8 @@ import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.STRICT_MODE;
+import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -167,6 +169,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
 
+  boolean strict;
   long statementId = 0L;
   long portalId = 0L;
   int savepointId;
@@ -184,6 +187,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   PGConnectionImpl(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
     super(address, settings, Collections.<String, Class<?>>emptyMap());
 
+    this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
     this.activeStatements = new ArrayList<>();
 
@@ -612,6 +616,20 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
 
     return resultBatch.rowsAffected;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public void setStrictMode(boolean v) {
+    strict = v;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isStrictMode() {
+    return strict;
   }
 
   /**

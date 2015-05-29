@@ -63,6 +63,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String applicationName;
   private String clientEncoding;
   private int networkTimeout;
+  private boolean strictMode;
 
   /**
    * Constructor
@@ -80,6 +81,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.applicationName = null;
     this.clientEncoding = null;
     this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
+    this.strictMode = Settings.STRICT_MODE_DEFAULT;
   }
 
   /**
@@ -168,6 +170,9 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (networkTimeout != 0)
       ref.add(new StringRefAddr("networkTimeout", Integer.toString(networkTimeout)));
 
+    if (strictMode != Settings.STRICT_MODE_DEFAULT)
+      ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
+
     return ref;
   }
 
@@ -221,6 +226,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "networkTimeout");
     if (value != null)
        networkTimeout = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "strictMode");
+    if (value != null)
+      strictMode = Boolean.valueOf(value);
   }
 
   /**
@@ -420,6 +429,22 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the strict mode
+   * @return The value
+   */
+  public boolean getStrictMode() {
+    return strictMode;
+  }
+
+  /**
+   * Set the strict mode
+   * @param v The value
+   */
+  public void setStrictMode(boolean v) {
+    strictMode = v;
+  }
+
+  /**
    * Create a connection
    *
    * @param u
@@ -461,6 +486,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (clientEncoding != null)
       props.put(Settings.CLIENT_ENCODING, clientEncoding);
     props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
+    props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }

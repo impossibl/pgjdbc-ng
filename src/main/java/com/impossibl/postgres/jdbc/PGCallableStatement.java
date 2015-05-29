@@ -586,6 +586,9 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     Class<?> targetType = mapGetType(type, map, connection);
 
+    if (connection.isStrictMode() && InputStream.class.equals(targetType))
+      targetType = byte[].class;
+
     return coerce(get(parameterIndex), type, targetType, map, connection);
   }
 

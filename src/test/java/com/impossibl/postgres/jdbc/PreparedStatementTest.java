@@ -61,7 +61,6 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -124,7 +123,7 @@ public class PreparedStatementTest {
     doSetBinaryStream(bais, 10);
   }
 
-  @Ignore
+  @Test
   public void testGetBinaryStream() throws SQLException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -134,12 +133,14 @@ public class PreparedStatementTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(buf);
     doSetBinaryStream(bais, 10);
 
+    ((PGConnectionImpl)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
     assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
     rs.close();
     stmt.close();
+    ((PGConnectionImpl)conn).setStrictMode(false);
   }
 
   @Test
@@ -807,7 +808,7 @@ public class PreparedStatementTest {
     pstmt.close();
   }
 
-  @Ignore
+  @Test
   public void testSetObjectBinary() throws SQLException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -820,15 +821,17 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
+    ((PGConnectionImpl)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
     assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
     rs.close();
     stmt.close();
+    ((PGConnectionImpl)conn).setStrictMode(false);
   }
 
-  @Ignore
+  @Test
   public void testSetObjectVarBinary() throws SQLException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -841,15 +844,17 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
+    ((PGConnectionImpl)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
     assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
     rs.close();
     stmt.close();
+    ((PGConnectionImpl)conn).setStrictMode(false);
   }
 
-  @Ignore
+  @Test
   public void testSetObjectLongVarBinary() throws SQLException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -862,12 +867,14 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
+    ((PGConnectionImpl)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
     assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
     rs.close();
     stmt.close();
+    ((PGConnectionImpl)conn).setStrictMode(false);
   }
 
   @Test
