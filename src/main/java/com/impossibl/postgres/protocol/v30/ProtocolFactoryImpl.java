@@ -61,6 +61,7 @@ import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
@@ -122,6 +123,10 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
           // Attach the actual handler
 
           SSLEngine sslEngine = SSLEngineFactory.create(sslMode, context);
+          SSLParameters sslParameters = context.getSetting("sslParameters", SSLParameters.class);
+          if (sslParameters != null) {
+              sslEngine.setSSLParameters(sslParameters);
+          }
 
           final SslHandler sslHandler = new SslHandler(sslEngine);
 
