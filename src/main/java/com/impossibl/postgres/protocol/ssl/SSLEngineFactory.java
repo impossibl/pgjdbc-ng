@@ -67,9 +67,9 @@ import javax.security.auth.callback.CallbackHandler;
 public class SSLEngineFactory {
 
 
-  private static final String TRUST_MANAGER_FACTORY_TYPE = "PKIX";
-  private static final String SSL_PROTOCOL = "TLS";
-  private static final String KEY_STORE_TYPE = "JKS";
+  private static final String TRUST_MANAGER_FACTORY_TYPE = TrustManagerFactory.getDefaultAlgorithm();
+  private static final String SSLCONTEXT_PROTOCOL = "TLS";
+  private static final String KEY_STORE_TYPE = KeyStore.getDefaultType();
   private static final String SSL_DIR_NAME = "postgresql";
   private static final String CERTIFICATE_FACTORY_TYPE = "X.509";
 
@@ -191,7 +191,7 @@ public class SSLEngineFactory {
 
     SSLContext sslContext;
     try {
-      sslContext = SSLContext.getInstance(SSL_PROTOCOL);
+      sslContext = SSLContext.getInstance(SSLCONTEXT_PROTOCOL);
     }
     catch (NoSuchAlgorithmException e) {
       throw new IOException("ssl context not available", e);
