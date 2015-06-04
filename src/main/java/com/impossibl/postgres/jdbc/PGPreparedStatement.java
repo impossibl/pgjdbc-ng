@@ -73,6 +73,7 @@ import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -226,6 +227,10 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   }
 
+  boolean allowBatchSelects() {
+    return false;
+  }
+
   private void coerceParameters() throws SQLException {
 
     for (int c = 0, sz = parameterTypes.size(); c < sz; ++c) {
@@ -335,47 +340,67 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       List<Type> lastParameterTypes = null;
       List<ResultField> lastResultFields = null;
 
-      for (int c = 0, sz = batchParameterValues.size(); c < sz; ++c) {
+      int c = 0;
+      int sz = batchParameterValues.size();
 
-        List<Type> parameterTypes = mergeTypes(batchParameterTypes.get(c), lastParameterTypes);
+      try {
+        while (c < sz) {
 
-        if (lastParameterTypes == null || !lastParameterTypes.equals(parameterTypes)) {
+          List<Type> parameterTypes = mergeTypes(batchParameterTypes.get(c), lastParameterTypes);
 
-          PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
+          if (lastParameterTypes == null || !lastParameterTypes.equals(parameterTypes)) {
 
-          connection.execute(prep, true);
+            PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
 
-          parameterTypes = prep.getDescribedParameterTypes();
-          lastParameterTypes = parameterTypes;
-          lastResultFields = prep.getDescribedResultFields();
+            connection.execute(prep, true);
+
+            parameterTypes = prep.getDescribedParameterTypes();
+            lastParameterTypes = parameterTypes;
+            lastResultFields = prep.getDescribedResultFields();
+          }
+
+          List<Object> parameterValues = batchParameterValues.get(c);
+
+          command.setParameterTypes(parameterTypes);
+          command.setParameterValues(parameterValues);
+
+          SQLWarning warnings = connection.execute(command, true);
+
+          warningChain = chainWarnings(warningChain, warnings);
+
+          List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+          if (resultBatches.size() != 1) {
+            throw new BatchUpdateException(counts);
+          }
+
+          QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+          if (!allowBatchSelects() && resultBatch.command.equals("SELECT")) {
+            throw new SQLException("SELECT in executeBatch");
+          }
+          if (resultBatch.rowsAffected == null) {
+            counts[c] = 0;
+          }
+          else {
+            counts[c] = (int) (long) resultBatch.rowsAffected;
+          }
+
+          if (wantsGeneratedKeys) {
+            generatedKeys.add((Object[]) resultBatch.results.get(0));
+          }
+
+          c++;
+        }
+      }
+      catch (SQLException se) {
+        int[] updateCounts = new int[c + 1];
+
+        for (int i = 0; i < updateCounts.length - 1; i++) {
+          updateCounts[i] = counts[i];
         }
 
-        List<Object> parameterValues = batchParameterValues.get(c);
+        updateCounts[c] = Statement.EXECUTE_FAILED;
 
-        command.setParameterTypes(parameterTypes);
-        command.setParameterValues(parameterValues);
-
-        SQLWarning warnings = connection.execute(command, true);
-
-        warningChain = chainWarnings(warningChain, warnings);
-
-        List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-        if (resultBatches.size() != 1) {
-          throw new BatchUpdateException(counts);
-        }
-
-        QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-        if (resultBatch.rowsAffected == null) {
-          counts[c] = 0;
-        }
-        else {
-          counts[c] = (int) (long) resultBatch.rowsAffected;
-        }
-
-        if (wantsGeneratedKeys) {
-          generatedKeys.add((Object[]) resultBatch.results.get(0));
-        }
-
+        throw new BatchUpdateException(updateCounts, se);
       }
 
       generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys);

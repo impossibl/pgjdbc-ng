@@ -221,6 +221,7 @@ class PGSimpleStatement extends PGStatement {
 
   @Override
   public void addBatch(String sql) throws SQLException {
+    checkClosed();
 
     SQLText sqlText = connection.parseSQL(sql);
 
@@ -240,7 +241,10 @@ class PGSimpleStatement extends PGStatement {
 
   @Override
   public int[] executeBatch() throws SQLException {
+    checkClosed();
 
+    int[] counts = new int[0];
+    int c = 0;
     try {
 
       warningChain = null;
@@ -251,14 +255,14 @@ class PGSimpleStatement extends PGStatement {
 
       execute(batchCommands);
 
-      int[] counts = new int[resultBatches.size()];
+      counts = new int[resultBatches.size()];
 
-      for (int c = 0; c < resultBatches.size(); ++c) {
+      for (c = 0; c < resultBatches.size(); ++c) {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(c);
 
         if (resultBatch.command.equals("SELECT")) {
-          throw new BatchUpdateException(Arrays.copyOf(counts, c));
+          throw new BatchUpdateException("SELECT in executeBatch", Arrays.copyOf(counts, c));
         }
 
         if (resultBatch.rowsAffected != null) {
@@ -270,6 +274,12 @@ class PGSimpleStatement extends PGStatement {
       }
 
       return counts;
+    }
+    catch (BatchUpdateException bue) {
+      throw bue;
+    }
+    catch (SQLException se) {
+      throw new BatchUpdateException(Arrays.copyOf(counts, c), se);
     }
     finally {
 

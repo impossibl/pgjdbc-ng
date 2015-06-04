@@ -312,6 +312,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
+  boolean allowBatchSelects() {
+    return true;
+  }
+
+  @Override
   public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
     checkClosed();
 
