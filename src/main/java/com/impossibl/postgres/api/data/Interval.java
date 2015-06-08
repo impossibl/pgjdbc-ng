@@ -37,7 +37,6 @@ import java.util.StringTokenizer;
 import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.lang.Math.round;
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -59,7 +58,6 @@ public class Interval {
     dfs.setDecimalSeparator('.');
     secondsFormat.setDecimalFormatSymbols(dfs);
   }
-
 
   public Interval(int months, int days, long timeMicros) {
     super();
@@ -337,13 +335,13 @@ public class Interval {
     StringBuilder buffer = new StringBuilder();
 
     buffer.
-      append("@ ").
-      append(getYears()).append(" years ").
-      append(getMonths()).append(" months ").
-      append(getDays()).append(" days ").
-      append(getHours()).append(" hours ").
-      append(getMinutes()).append(" minutes ").
-      append(format("%f", getSeconds())).append(" seconds");
+        append("@ ").
+        append(getYears()).append(" years ").
+        append(getMonths()).append(" months ").
+        append(getDays()).append(" days ").
+        append(getHours()).append(" hours ").
+        append(getMinutes()).append(" minutes ").
+        append(secondsFormat.format(getSeconds())).append(" seconds");
 
     return buffer.toString();
   }

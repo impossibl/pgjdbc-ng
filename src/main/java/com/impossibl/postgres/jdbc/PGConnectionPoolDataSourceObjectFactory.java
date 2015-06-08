@@ -50,7 +50,8 @@ public class PGConnectionPoolDataSourceObjectFactory implements ObjectFactory {
   /**
    * {@inheritDoc}
    */
-  public Object getObjectInstance(Object o, Name n, Context ctx, Hashtable env) throws Exception {
+  @Override
+  public Object getObjectInstance(Object o, Name n, Context ctx, @SuppressWarnings("rawtypes") Hashtable env) throws Exception {
     Reference ref = (Reference)o;
     String className = ref.getClassName();
     if (className.equals("com.impossibl.postgres.jdbc.PGConnectionPoolDataSource")) {

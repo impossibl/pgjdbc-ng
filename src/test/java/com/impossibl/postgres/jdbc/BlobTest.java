@@ -184,17 +184,23 @@ public class BlobTest {
   public void testGetBytesOffsetBlob() throws Exception {
     assertTrue(uploadFileBlob("pom.xml") > 0);
 
+    String eol = String.format("%n");
+
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    byte[] data = lob.getBytes(2, 4);
-    assertEquals(data.length, 4);
+    int blobLength = 3 + eol.length();
+    byte[] data = lob.getBytes(2, blobLength);
+    assertEquals(data.length, blobLength);
     assertEquals(data[0], '!');
     assertEquals(data[1], '-');
     assertEquals(data[2], '-');
-    assertEquals(data[3], '\n');
+
+    for (int i = 0; i < eol.length(); i++) {
+      assertEquals(data[3 + i], eol.charAt(i));
+    }
 
     stmt.close();
     rs.close();
@@ -204,17 +210,23 @@ public class BlobTest {
   public void testGetBytesOffsetClob() throws Exception {
     assertTrue(uploadFileClob("pom.xml") > 0);
 
+    String eol = String.format("%n");
+
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());
 
     Clob lob = rs.getClob(1);
-    String data = lob.getSubString(2, 4);
-    assertEquals(data.length(), 4);
+    int blobLength = 3 + eol.length();
+    String data = lob.getSubString(2, blobLength);
+    assertEquals(data.length(), blobLength);
     assertEquals(data.charAt(0), '!');
     assertEquals(data.charAt(1), '-');
     assertEquals(data.charAt(2), '-');
-    assertEquals(data.charAt(3), '\n');
+
+    for (int i = 0; i < eol.length(); i++) {
+      assertEquals(data.charAt(3 + i), eol.charAt(i));
+    }
 
     stmt.close();
     rs.close();

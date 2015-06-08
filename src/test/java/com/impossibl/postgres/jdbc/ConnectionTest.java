@@ -378,14 +378,17 @@ public class ConnectionTest {
     }
     con.commit();
 
+    Statement stmt = con.createStatement();
+
     // Get a new connection and kill the first one
     Connection killer = TestUtil.openDB();
-    try (Statement stmt = killer.createStatement()) {
-      stmt.execute("SELECT pg_terminate_backend(" + pid + ")");
+    try (Statement kstmt = killer.createStatement()) {
+      kstmt.execute("SELECT pg_terminate_backend(" + pid + ")");
     }
     killer.close();
 
-    Statement stmt = con.createStatement();
+    Thread.sleep(200);
+
     try {
       stmt.execute("SELECT 1");
       fail("Expected SQLException");

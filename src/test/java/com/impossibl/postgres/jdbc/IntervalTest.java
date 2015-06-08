@@ -144,7 +144,7 @@ public class IntervalTest {
     Type type = pgConnectionImpl.getRegistry().loadType("Interval");
     String coercedStringValue = SQLTypeUtils.coerceToString(interval, type, pgConnectionImpl);
 
-    assertEquals("@ 1 years 3 months 0 days 0 hours 0 minutes 0.000000 seconds", coercedStringValue);
+    assertEquals("@ 1 years 3 months 0 days 0 hours 0 minutes 0.00 seconds", coercedStringValue);
   }
 
   @Test(expected = SQLException.class)
