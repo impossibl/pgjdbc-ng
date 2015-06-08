@@ -49,7 +49,6 @@ import java.sql.Types;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -1168,8 +1167,9 @@ public class CallableStatementTest {
     }
   }
 
-  @Ignore
+  @Test
   public void testGetRealAsFloat() throws Throwable {
+    ((PGConnectionImpl)con).setStrictMode(true);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table r_tab ( max_val float8, min_val float8, null_val float8 )");
@@ -1211,6 +1211,7 @@ public class CallableStatementTest {
       catch (Exception ex) {
         // Expected...
       }
+      ((PGConnectionImpl)con).setStrictMode(false);
     }
   }
 
