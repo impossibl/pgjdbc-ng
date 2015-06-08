@@ -1235,7 +1235,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     resultFields[15] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
     resultFields[16] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
     resultFields[17] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[18] = new ResultField("SCOPE_CATLOG",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[18] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[19] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[20] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[21] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, Format.Binary);
@@ -2349,7 +2349,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     resultFields[14] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
     resultFields[15] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
     resultFields[16] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[17] = new ResultField("SCOPE_CATLOG",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[17] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[18] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[19] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
     resultFields[20] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, Format.Binary);
