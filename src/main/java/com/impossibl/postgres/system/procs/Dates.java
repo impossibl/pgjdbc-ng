@@ -204,6 +204,7 @@ public class Dates extends SimpleProcProvider {
     }
 
     @Override
+    protected
     Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       Map<String, Object> pieces = new HashMap<>();
@@ -228,6 +229,7 @@ public class Dates extends SimpleProcProvider {
     }
 
     @Override
+    protected
     void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       String strVal = context.getDateFormatter().getPrinter().format((Instant) val);

@@ -37,7 +37,7 @@ import io.netty.buffer.ByteBuf;
 
 public abstract class TextEncoder implements Type.Codec.Encoder {
 
-  abstract void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException;
+  protected abstract void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException;
 
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
