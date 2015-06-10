@@ -409,8 +409,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       return parsedSql.copy();
     }
     catch (ParseException e) {
-
-      throw new SQLException("Error parsing SQL at position " + e.getErrorOffset() + " (" + sqlText + ")");
+      throw new SQLException("Error parsing SQL at position " + e.getErrorOffset() +
+                             " (" + sqlText + "): " + e.getMessage());
     }
   }
 
