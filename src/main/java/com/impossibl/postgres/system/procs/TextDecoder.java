@@ -37,7 +37,7 @@ import io.netty.buffer.ByteBuf;
 
 public abstract class TextDecoder implements Type.Codec.Decoder {
 
-  abstract Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException;
+  protected abstract Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException;
 
   @Override
   public Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException {
