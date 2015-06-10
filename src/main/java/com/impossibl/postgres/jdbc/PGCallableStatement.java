@@ -76,8 +76,10 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -102,6 +104,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   List<ParameterMode> allParameterModes;
   List<String> outParameterNames;
   List<Type> outParameterTypes;
+  Map<Integer, Integer> outParameterSQLTypes;
   List<Object> outParameterValues;
   Map<String, Class<?>> typeMap;
   Boolean nullFlag;
@@ -119,6 +122,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     allParameterModes = new ArrayList<>(nCopies(parameterCount, (ParameterMode) null));
     outParameterNames = new ArrayList<>();
     outParameterTypes = new ArrayList<>();
+    outParameterSQLTypes = new HashMap<>();
     outParameterValues = new ArrayList<>();
 
     if (hasAssign) {
@@ -335,6 +339,8 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     outParameterNames.addAll(nCopies(needed, (String) null));
     outParameterTypes.addAll(nCopies(needed, (Type) null));
     outParameterValues.addAll(nCopies(needed, (Object) null));
+
+    outParameterSQLTypes.put(Integer.valueOf(parameterIndex), Integer.valueOf(sqlType));
   }
 
   @Override
@@ -585,6 +591,17 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     Type type = getOutType(parameterIndex);
 
     Class<?> targetType = mapGetType(type, map, connection);
+
+    if (connection.isStrictMode()) {
+      if (InputStream.class.equals(targetType)) {
+        targetType = byte[].class;
+      }
+      else if (Double.class.equals(targetType)) {
+        Integer sqlType = outParameterSQLTypes.get(Integer.valueOf(parameterIndex));
+        if (sqlType != null && Types.REAL == sqlType.intValue())
+          targetType = Float.class;
+      }
+    }
 
     return coerce(get(parameterIndex), type, targetType, map, connection);
   }

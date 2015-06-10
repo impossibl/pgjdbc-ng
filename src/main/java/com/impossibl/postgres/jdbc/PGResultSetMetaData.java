@@ -207,6 +207,11 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
   @Override
   public String getColumnName(int column) throws SQLException {
+    if (connection.isStrictMode()) {
+      String val = get(column).name;
+      if (val != null)
+        return val;
+    }
 
     CompositeType.Attribute attr = getRelAttr(column);
     if (attr == null)

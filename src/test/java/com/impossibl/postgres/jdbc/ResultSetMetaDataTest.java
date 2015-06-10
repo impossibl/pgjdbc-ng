@@ -46,7 +46,6 @@ import java.sql.Types;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -249,12 +248,35 @@ public class ResultSetMetaDataTest {
     assertEquals("rsmd1", rsmd.getColumnTypeName(1));
   }
 
-  @Ignore
-  public void testAlias() throws Exception {
+  @Test
+  public void testAliasInsensitive() throws Exception {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a AS PK FROM rsmd1");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertEquals(1, rsmd.getColumnCount());
+    assertEquals("a", rsmd.getColumnName(1));
+    assertEquals("pk", rsmd.getColumnLabel(1));
+  }
+
+  @Test
+  public void testAliasSensitive() throws Exception {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT a AS \"PK\" FROM rsmd1");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(1, rsmd.getColumnCount());
+    assertEquals("a", rsmd.getColumnName(1));
+    assertEquals("PK", rsmd.getColumnLabel(1));
+  }
+
+  @Test
+  public void testAliasStrictMode() throws Exception {
+    ((PGConnectionImpl)conn).setStrictMode(true);
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT a AS \"PK\" FROM rsmd1");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(1, rsmd.getColumnCount());
     assertEquals("PK", rsmd.getColumnName(1));
+    assertEquals("PK", rsmd.getColumnLabel(1));
+    ((PGConnectionImpl)conn).setStrictMode(false);
   }
 }

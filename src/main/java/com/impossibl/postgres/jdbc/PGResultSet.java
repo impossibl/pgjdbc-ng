@@ -874,6 +874,9 @@ class PGResultSet implements ResultSet {
 
     Class<?> targetType = mapGetType(type, map, statement.connection);
 
+    if (statement.connection.isStrictMode() && InputStream.class.equals(targetType))
+      targetType = byte[].class;
+
     return coerce(get(columnIndex), type, targetType, map, statement.connection);
   }
 

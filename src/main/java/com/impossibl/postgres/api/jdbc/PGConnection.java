@@ -91,4 +91,15 @@ public interface PGConnection extends Connection {
    */
   void removeNotificationListener(PGNotificationListener listener);
 
+  /**
+   * Set strict mode
+   * @param v The value
+   */
+  void setStrictMode(boolean v);
+
+  /**
+   * Is strict mode
+   * @return The value
+   */
+  boolean isStrictMode();
 }

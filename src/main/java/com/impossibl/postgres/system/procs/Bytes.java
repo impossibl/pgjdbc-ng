@@ -120,6 +120,9 @@ public class Bytes extends SimpleProcProvider {
       }
       else {
 
+        if (val instanceof byte[])
+          val = new ByteArrayInputStream((byte[])val);
+
         InputStream in = (InputStream) val;
 
         int totalLength;
@@ -165,6 +168,9 @@ public class Bytes extends SimpleProcProvider {
       int length = 4;
 
       if (val != null) {
+
+        if (val instanceof byte[])
+          val = new ByteArrayInputStream((byte[])val);
 
         InputStream in = (InputStream) val;
 
@@ -278,6 +284,9 @@ public class Bytes extends SimpleProcProvider {
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      if (val instanceof byte[])
+        val = new ByteArrayInputStream((byte[])val);
 
       InputStream in = (InputStream) val;
 
