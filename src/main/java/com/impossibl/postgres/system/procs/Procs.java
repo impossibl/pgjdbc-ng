@@ -36,71 +36,86 @@ import com.impossibl.postgres.types.Type.Codec;
 
 import java.util.ServiceLoader;
 
-
 public class Procs {
 
   /*
    * Master ProcProvider List (Loaded as service through META-INF/services/*.ProcProvider)
    */
   /*
-  private static final ProcProvider[] PROVIDERS = {
-    new ACLItems(),
-    new Arrays(),
-    new BitMods(),
-    new Bits(),
-    new Bools(),
-    new Boxes(),
-    new Bytes(),
-    new Cidrs(),
-    new Circles(),
-    new Dates(),
-    new Domains(),
-    new Float4s(),
-    new Float8s(),
-    new HStores(),
-    new Inets(),
-    new Int2s(),
-    new Int4s(),
-    new Int8s(),
-    new Intervals(),
-    new Lines(),
-    new LSegs(),
-    new MacAddrs(),
-    new Moneys(),
-    new Names(),
-    new NumericMods(),
-    new Numerics(),
-    new Oids(),
-    new Paths(),
-    new Points(),
-    new Polygons(),
-    new Ranges(),
-    new Records(),
-    new Strings(),
-    new Tids(),
-    new TimeMods(),
-    new TimestampMods(),
-    new TimestampsWithoutTZ(),
-    new TimestampsWithTZ(),
-    new TimesWithoutTZ(),
-    new TimesWithTZ(),
-    new UUIDs(),
-    new XMLs(),
-  };
-  */
+   * private static final ProcProvider[] PROVIDERS = {
+   * new ACLItems(),
+   * new Arrays(),
+   * new BitMods(),
+   * new Bits(),
+   * new Bools(),
+   * new Boxes(),
+   * new Bytes(),
+   * new Cidrs(),
+   * new Circles(),
+   * new Dates(),
+   * new Domains(),
+   * new Float4s(),
+   * new Float8s(),
+   * new HStores(),
+   * new Inets(),
+   * new Int2s(),
+   * new Int4s(),
+   * new Int8s(),
+   * new Intervals(),
+   * new Lines(),
+   * new LSegs(),
+   * new MacAddrs(),
+   * new Moneys(),
+   * new Names(),
+   * new NumericMods(),
+   * new Numerics(),
+   * new Oids(),
+   * new Paths(),
+   * new Points(),
+   * new Polygons(),
+   * new Ranges(),
+   * new Records(),
+   * new Strings(),
+   * new Tids(),
+   * new TimeMods(),
+   * new TimestampMods(),
+   * new TimestampsWithoutTZ(),
+   * new TimestampsWithTZ(),
+   * new TimesWithoutTZ(),
+   * new TimesWithTZ(),
+   * new UUIDs(),
+   * new XMLs(),
+   * };
+   */
 
   private static final Type.Codec.Decoder[] DEFAULT_DECODERS = {new Unknowns.TxtDecoder(), new Unknowns.BinDecoder()};
   private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = {new Unknowns.TxtEncoder(), new Unknowns.BinEncoder()};
   private static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
 
   private ServiceLoader<ProcProvider> providers;
+  private ServiceLoader<OptionalProcProvider> optionalProvider;
 
   public Procs(ClassLoader classLoader) {
+    providers = loadProvider(ProcProvider.class, classLoader);
+    optionalProvider = loadOptional("org.postgis.Geometry", OptionalProcProvider.class, classLoader);
+  }
+
+  private ServiceLoader<OptionalProcProvider> loadOptional(String requiredClassPresent, Class<OptionalProcProvider> serviceImpl, ClassLoader classLoader) {
     try {
-      providers = ServiceLoader.load(ProcProvider.class, classLoader);
+      Class.forName(requiredClassPresent);
+      return loadProvider(serviceImpl, classLoader);
+    }
+    catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
+
+  private static <T> ServiceLoader<T> loadProvider(Class<T> serviceImpl, ClassLoader classLoader) {
+    try {
+      return ServiceLoader.load(serviceImpl, classLoader);
     }
     catch (Exception e) {
-      providers = ServiceLoader.load(ProcProvider.class, Procs.class.getClassLoader());
+      return ServiceLoader.load(serviceImpl, Procs.class.getClassLoader());
     }
   }
 
@@ -116,10 +131,9 @@ public class Procs {
     return DEFAULT_MOD_PARSER;
   }
 
-
   public Codec loadNamedTextCodec(String baseName, Context context) {
     Codec codec = new Codec();
-    codec.encoder = loadEncoderProc(baseName + "in",  context, DEFAULT_ENCODERS[Format.Text.ordinal()]);
+    codec.encoder = loadEncoderProc(baseName + "in", context, DEFAULT_ENCODERS[Format.Text.ordinal()]);
     codec.decoder = loadDecoderProc(baseName + "out", context, DEFAULT_DECODERS[Format.Text.ordinal()]);
     return codec;
   }
@@ -140,6 +154,13 @@ public class Procs {
         if ((h = pp.findEncoder(name, context)) != null)
           return h;
       }
+
+      if (optionalProvider != null) {
+        for (ProcProvider pp : optionalProvider) {
+          if ((h = pp.findEncoder(name, context)) != null)
+            return h;
+        }
+      }
     }
 
     return defaultEncoder;
@@ -152,6 +173,13 @@ public class Procs {
       for (ProcProvider pp : providers) {
         if ((h = pp.findDecoder(name, context)) != null)
           return h;
+      }
+
+      if (optionalProvider != null) {
+        for (ProcProvider pp : optionalProvider) {
+          if ((h = pp.findDecoder(name, context)) != null)
+            return h;
+        }
       }
     }
 
@@ -166,6 +194,13 @@ public class Procs {
       for (ProcProvider pp : providers) {
         if ((p = pp.findModifierParser(name, context)) != null)
           return p;
+      }
+
+      if (optionalProvider != null) {
+        for (ProcProvider pp : optionalProvider) {
+          if ((p = pp.findModifierParser(name, context)) != null)
+            return p;
+        }
       }
     }
 

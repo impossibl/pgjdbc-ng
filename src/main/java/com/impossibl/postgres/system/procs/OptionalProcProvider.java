@@ -28,30 +28,8 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
-
-import java.io.IOException;
-
-import io.netty.buffer.ByteBuf;
-
-public abstract class TextDecoder implements Type.Codec.Decoder {
-
-  protected abstract Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException;
-
-  @Override
-  public Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException {
-
-    if (buffer instanceof ByteBuf)  {
-
-      CharSequence textBuffer = (CharSequence) Strings.BINARY_DECODER.decode(type, typeLength, typeModifier, buffer, context);
-      if (textBuffer == null)
-        return null;
-
-      return decode(type, typeLength, typeModifier, textBuffer, context);
-    }
-
-    return decode(type, typeLength, typeModifier, (CharSequence) buffer, context);
-  }
-
+/**
+ * Marker interface for dynamically loaded postgis data types, to be used by {@link ServiceLoader}.
+ */
+public interface OptionalProcProvider extends ProcProvider {
 }
