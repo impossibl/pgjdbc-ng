@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -56,8 +58,14 @@ public class PostgisCodecTest extends CodecTest {
     this.geomtype = geomtype;
   }
 
+  @Before
+  public void ignoreIfPostgisNotAvailable() throws SQLException {
+    Assume.assumeTrue(TestUtil.isExtensionInstalled(conn, "postgis"));
+  }
+
   @Parameters(name = "test-{0}-{1}")
   public static Collection<Object[]> data() throws Exception {
+
     Object[][] scalarTypesData = new Object[][] {
       {"geometry", "point", new Point("POINT(1.0 2.0 20)")},
       {"geometry", "linestring", new LineString("LINESTRING  (10 10 20,20 20 20, 50 50 50, 34 34 34)")},
@@ -73,6 +81,7 @@ public class PostgisCodecTest extends CodecTest {
     data.addAll(PostgisCodecTest.expandData(scalarTypesData));
     return data;
   }
+
 
   protected static List<Object[]> expandData(Object[][] scalarTypesData) {
     List<Object[]> data = new ArrayList<>();
@@ -120,6 +129,4 @@ public class PostgisCodecTest extends CodecTest {
 
     return data;
   }
-
-
 }

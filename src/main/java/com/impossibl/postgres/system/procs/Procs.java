@@ -38,56 +38,6 @@ import java.util.ServiceLoader;
 
 public class Procs {
 
-  /*
-   * Master ProcProvider List (Loaded as service through META-INF/services/*.ProcProvider)
-   */
-  /*
-   * private static final ProcProvider[] PROVIDERS = {
-   * new ACLItems(),
-   * new Arrays(),
-   * new BitMods(),
-   * new Bits(),
-   * new Bools(),
-   * new Boxes(),
-   * new Bytes(),
-   * new Cidrs(),
-   * new Circles(),
-   * new Dates(),
-   * new Domains(),
-   * new Float4s(),
-   * new Float8s(),
-   * new HStores(),
-   * new Inets(),
-   * new Int2s(),
-   * new Int4s(),
-   * new Int8s(),
-   * new Intervals(),
-   * new Lines(),
-   * new LSegs(),
-   * new MacAddrs(),
-   * new Moneys(),
-   * new Names(),
-   * new NumericMods(),
-   * new Numerics(),
-   * new Oids(),
-   * new Paths(),
-   * new Points(),
-   * new Polygons(),
-   * new Ranges(),
-   * new Records(),
-   * new Strings(),
-   * new Tids(),
-   * new TimeMods(),
-   * new TimestampMods(),
-   * new TimestampsWithoutTZ(),
-   * new TimestampsWithTZ(),
-   * new TimesWithoutTZ(),
-   * new TimesWithTZ(),
-   * new UUIDs(),
-   * new XMLs(),
-   * };
-   */
-
   private static final Type.Codec.Decoder[] DEFAULT_DECODERS = {new Unknowns.TxtDecoder(), new Unknowns.BinDecoder()};
   private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = {new Unknowns.TxtEncoder(), new Unknowns.BinEncoder()};
   private static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();

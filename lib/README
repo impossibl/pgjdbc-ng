@@ -1,2 +1,0 @@
-Unfortunately as of postgis-jdbc 2.1.7, it's not yet available on any central maven repo.
-Supplied here to allow compilation

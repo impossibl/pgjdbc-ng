@@ -1,7 +1,37 @@
-/*
- * Taken from Postgres JDBC Driver 9.4 (BSD license terms)
- * 
- * License : https://jdbc.postgresql.org/about/license.html
+/**
+ * Copyright (c) 2013, impossibl.com
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of impossibl.com nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2009-2014, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
  */
 package org.postgresql.util;
 
@@ -20,8 +50,7 @@ import java.util.List;
  * @see org.postgresql.geometric.PGpoint
  * @see org.postgresql.geometric.PGpolygon
  */
-public class PGtokenizer
-{
+public class PGtokenizer {
   // Our tokens
   protected List<String> tokens;
 
@@ -36,8 +65,7 @@ public class PGtokenizer
    * 
    * @param delim single character to split the tokens
    */
-  public PGtokenizer(String string, char delim)
-  {
+  public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
   }
 
@@ -48,8 +76,7 @@ public class PGtokenizer
    * 
    * @param delim single character to split the tokens
    */
-  public int tokenize(String string, char delim)
-  {
+  public int tokenize(String string, char delim) {
     tokens = new ArrayList<>();
 
     // nest holds how many levels we are in the current token.
@@ -63,8 +90,7 @@ public class PGtokenizer
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
 
-    for (p = 0, s = 0; p < string.length(); p++)
-    {
+    for (p = 0, s = 0; p < string.length(); p++) {
       char c = string.charAt(p);
 
       // increase nesting if an open character is found
@@ -88,8 +114,7 @@ public class PGtokenizer
       else
         skipChar = false;
 
-      if (nest == 0 && c == delim)
-      {
+      if (nest == 0 && c == delim) {
         tokens.add(string.substring(s, p));
         s = p + 1; // +1 to skip the delimiter
       }
@@ -107,8 +132,7 @@ public class PGtokenizer
   /*
    * @return the number of tokens available
    */
-  public int getSize()
-  {
+  public int getSize() {
     return tokens.size();
   }
 
@@ -117,8 +141,7 @@ public class PGtokenizer
    * 
    * @return The token value
    */
-  public String getToken(int n)
-  {
+  public String getToken(int n) {
     return tokens.get(n);
   }
 
@@ -134,8 +157,7 @@ public class PGtokenizer
    * 
    * @return A new instance of PGtokenizer based on the token
    */
-  public PGtokenizer tokenizeToken(int n, char delim)
-  {
+  public PGtokenizer tokenizeToken(int n, char delim) {
     return new PGtokenizer(getToken(n), delim);
   }
 
@@ -150,9 +172,7 @@ public class PGtokenizer
    * 
    * @return String without the lead/trailing strings
    */
-  public static String remove
-      (String s, String l, String t)
-  {
+  public static String remove (String s, String l, String t) {
     if (s.startsWith(l))
       s = s.substring(l.length());
     if (s.endsWith(t))
@@ -167,13 +187,9 @@ public class PGtokenizer
    * 
    * @param t Trailing string to remove
    */
-  public void remove
-      (String l, String t)
-  {
-    for (int i = 0; i < tokens.size(); i++)
-    {
-      tokens.set(i, remove
-          ((String) tokens.get(i), l, t));
+  public void remove (String l, String t) {
+    for (int i = 0; i < tokens.size(); i++) {
+      tokens.set(i, remove (tokens.get(i), l, t));
     }
   }
 
@@ -184,8 +200,7 @@ public class PGtokenizer
    * 
    * @return String without the ( or )
    */
-  public static String removePara(String s)
-  {
+  public static String removePara(String s) {
     return remove(s, "(", ")");
   }
 
@@ -194,8 +209,7 @@ public class PGtokenizer
    * 
    * @return String without the ( or )
    */
-  public void removePara()
-  {
+  public void removePara() {
     remove("(", ")");
   }
 
@@ -206,8 +220,7 @@ public class PGtokenizer
    * 
    * @return String without the [ or ]
    */
-  public static String removeBox(String s)
-  {
+  public static String removeBox(String s) {
     return remove(s, "[", "]");
   }
 
@@ -216,8 +229,7 @@ public class PGtokenizer
    * 
    * @return String without the [ or ]
    */
-  public void removeBox()
-  {
+  public void removeBox() {
     remove("[", "]");
   }
 
@@ -228,8 +240,7 @@ public class PGtokenizer
    * 
    * @return String without the &lt; or &gt;
    */
-  public static String removeAngle(String s)
-  {
+  public static String removeAngle(String s) {
     return remove(s, "<", ">");
   }
 
@@ -238,8 +249,7 @@ public class PGtokenizer
    * 
    * @return String without the &lt; or &gt;
    */
-  public void removeAngle()
-  {
+  public void removeAngle() {
     remove("<", ">");
   }
 }

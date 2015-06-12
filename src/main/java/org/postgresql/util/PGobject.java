@@ -1,7 +1,37 @@
-/*
- * Taken from Postgres JDBC Driver 9.4 (BSD license terms)
- * 
- * License : https://jdbc.postgresql.org/about/license.html
+/**
+ * Copyright (c) 2013, impossibl.com
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of impossibl.com nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2009-2014, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
  */
 package org.postgresql.util;
 
@@ -12,8 +42,7 @@ import java.sql.SQLException;
  * PGobject is a class used to describe unknown types
  * An unknown type is any type that is unknown by JDBC Standards
  */
-public class PGobject implements Serializable, Cloneable
-{
+public class PGobject implements Serializable, Cloneable {
   protected String type;
   protected String value;
 
@@ -21,8 +50,7 @@ public class PGobject implements Serializable, Cloneable
    * This is called by org.postgresql.Connection.getObject() to create the
    * object.
    */
-  public PGobject()
-  {
+  public PGobject() {
   }
 
   /**
@@ -34,8 +62,7 @@ public class PGobject implements Serializable, Cloneable
    * @param type
    *          a string describing the type of the object
    */
-  public final void setType(String type)
-  {
+  public final void setType(String type) {
     this.type = type;
   }
 
@@ -47,8 +74,7 @@ public class PGobject implements Serializable, Cloneable
    * @exception SQLException
    *              thrown if value is invalid for this type
    */
-  public void setValue(String value) throws SQLException
-  {
+  public void setValue(String value) throws SQLException {
     this.value = value;
   }
 
@@ -57,8 +83,7 @@ public class PGobject implements Serializable, Cloneable
    * 
    * @return the type name of this object
    */
-  public final String getType()
-  {
+  public final String getType() {
     return type;
   }
 
@@ -68,8 +93,7 @@ public class PGobject implements Serializable, Cloneable
    * 
    * @return the value of this object
    */
-  public String getValue()
-  {
+  public String getValue() {
     return value;
   }
 
@@ -81,10 +105,8 @@ public class PGobject implements Serializable, Cloneable
    * @return true if the two boxes are identical
    */
   @Override
-  public boolean equals(Object obj)
-  {
-    if (obj instanceof PGobject)
-    {
+  public boolean equals(Object obj) {
+    if (obj instanceof PGobject) {
       final Object otherValue = ((PGobject) obj).getValue();
 
       if (otherValue == null) {
@@ -99,8 +121,7 @@ public class PGobject implements Serializable, Cloneable
    * This must be overidden to allow the object to be cloned
    */
   @Override
-  public Object clone() throws CloneNotSupportedException
-  {
+  public Object clone() throws CloneNotSupportedException {
     return super.clone();
   }
 
@@ -110,8 +131,7 @@ public class PGobject implements Serializable, Cloneable
    * @return the value of this object, in the syntax expected by org.postgresql
    */
   @Override
-  public String toString()
-  {
+  public String toString() {
     return getValue();
   }
 
