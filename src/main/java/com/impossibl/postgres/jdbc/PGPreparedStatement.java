@@ -257,6 +257,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public boolean execute() throws SQLException {
+    checkClosed();
 
     parseIfNeeded();
     closeResultSets();
