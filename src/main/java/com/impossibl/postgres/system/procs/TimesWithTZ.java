@@ -145,7 +145,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     }
 
     @Override
-    Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       Map<String, Object> pieces = new HashMap<>();
 
@@ -169,7 +169,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     }
 
     @Override
-    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       String strVal = context.getTimeFormatter().getPrinter().format((Instant) val);
 

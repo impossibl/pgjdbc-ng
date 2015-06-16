@@ -85,9 +85,9 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class CodecTest {
 
-  PGConnectionImpl conn;
-  String typeName;
-  Object value;
+  protected PGConnectionImpl conn;
+  protected String typeName;
+  protected Object value;
 
   public CodecTest(String typeName, Object value) {
     this.typeName = typeName;
@@ -340,7 +340,7 @@ public class CodecTest {
     assertArrayEquals(ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
   }
 
-  interface Maker {
+  public interface Maker {
     Object make(PGConnectionImpl conn) throws SQLException;
   }
 
@@ -447,6 +447,10 @@ public class CodecTest {
       {"tid", new PGRowId(new Tid(0, (short) 1))},
     };
 
+    return expandDataTypesToStructsAndArrays(scalarTypesData);
+  }
+
+  public static Collection<Object[]> expandDataTypesToStructsAndArrays(Object[][] scalarTypesData) {
     List<Object[]> data = new ArrayList<>();
 
     //Combine entries with generated ones for array and composite testing
@@ -514,7 +518,7 @@ public class CodecTest {
     return data;
   }
 
-  static Map<String, String> typeCasts;
+  protected static Map<String, String> typeCasts;
   static {
     typeCasts = new HashMap<>();
     typeCasts.put("bit", "bit(7)");
