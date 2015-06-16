@@ -58,7 +58,7 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
       int length = buffer.readInt();
       if (length == -1) {
@@ -89,7 +89,7 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
 
       if (val == null) {
 
@@ -126,7 +126,7 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    Tid decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Tid decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
       String[] items = buffer.subSequence(1, buffer.length() - 1).toString().split(",");
 
@@ -151,7 +151,7 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       Tid tid = (Tid) val;
 
