@@ -81,6 +81,7 @@ public class StatementTest {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
+    TestUtil.dropTextSearchConfiguration(con, "public.english_nostop");
     con.close();
   }
 
@@ -558,5 +559,11 @@ public class StatementTest {
 
     ResultSet rsOther = stmt.getResultSet();
     assertNotNull(rsOther);
+  }
+
+  @Test
+  public void testFourPartCommand() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEXT SEARCH CONFIGURATION public.english_nostop ( COPY = pg_catalog.english );");
   }
 }

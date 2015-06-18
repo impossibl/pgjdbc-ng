@@ -283,6 +283,28 @@ public class TestUtil {
   }
 
   /*
+   * Helper - drops a text search configuration
+   */
+  public static void dropTextSearchConfiguration(Connection con, String configuration) throws SQLException {
+    Statement stmt = con.createStatement();
+    try {
+      String sql = "DROP TEXT SEARCH CONFIGURATION " + configuration + " CASCADE ";
+      stmt.executeUpdate(sql);
+    }
+    catch (SQLException ex) {
+      // Since every create table issues a drop table
+      // it's easy to get a table doesn't exist error.
+      // we want to ignore these, but if we're in a
+      // transaction then we've got trouble
+      if (!con.getAutoCommit())
+        throw ex;
+    }
+    finally {
+      stmt.close();
+    }
+  }
+
+  /*
    * Helper - generates INSERT SQL - very simple
    */
   public static String insertSQL(String table, String values) {
