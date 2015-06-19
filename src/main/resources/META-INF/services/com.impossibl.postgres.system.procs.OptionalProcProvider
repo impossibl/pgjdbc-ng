@@ -1,0 +1,4 @@
+#Postgis datatypes, requires postgis-jdbc library on classpath to be used (not available by default)
+com.impossibl.postgres.system.procs.PostgisGeometrys
+com.impossibl.postgres.system.procs.PostgisBox2ds
+com.impossibl.postgres.system.procs.PostgisBox3ds

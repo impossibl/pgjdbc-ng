@@ -340,7 +340,7 @@ public class CodecTest {
     assertArrayEquals(ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
   }
 
-  interface Maker {
+  public interface Maker {
     Object make(PGConnectionImpl conn) throws SQLException;
   }
 
