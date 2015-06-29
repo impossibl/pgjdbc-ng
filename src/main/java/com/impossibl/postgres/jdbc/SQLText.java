@@ -366,14 +366,19 @@ public class SQLText {
 
   private static int consumeSinglelineComment(final String sql, final int start, final CompositeNode parent) {
     int ndx = start + 2;
-    do {
-      char c = sql.charAt(ndx);
-      if (c == '\r' || c == '\n') {
-        ndx = (lookAhead(sql, ndx) == '\n') ? ndx + 2 : ndx + 1;
-        break;
-      }
 
-    } while (++ndx < sql.length());
+    if (ndx < sql.length()) {
+      do {
+        char c = sql.charAt(ndx);
+        if (c == '\r' || c == '\n') {
+          ndx = (lookAhead(sql, ndx) == '\n') ? ndx + 2 : ndx + 1;
+          break;
+        }
+      } while (++ndx < sql.length());
+    }
+    else {
+      ndx = sql.length();
+    }
 
     CommentPiece commentPiece = new CommentPiece(sql.substring(start, ndx), start);
     parent.add(commentPiece);

@@ -92,7 +92,11 @@ public class SQLTextTests {
     new String[] {
       "select {fn abs(-10)} as absval, {fn user()}, {fn concat(x,y)} as val from {oj tblA left outer join tblB on x=y}",
       "select abs(-10) as absval, user, (x||y) as val from tblA left OUTER JOIN tblB ON x=y",
-    }
+    },
+    new String[] {
+      "--\n--",
+      "--\n--",
+    },
   };
 
   /**
