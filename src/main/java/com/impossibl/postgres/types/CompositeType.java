@@ -84,7 +84,7 @@ public class CompositeType extends Type {
   public Attribute getAttribute(int number) {
 
     //First try the obvious
-    if (number > 0 && attributes.get(number - 1).number == number) {
+    if (number > 0 && number <= attributes.size() && attributes.get(number - 1).number == number) {
       return attributes.get(number - 1);
     }
 
