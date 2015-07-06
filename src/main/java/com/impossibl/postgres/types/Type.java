@@ -304,7 +304,7 @@ public abstract class Type {
     if (isParameterFormatSupported(Format.Text))
       return Format.Text;
 
-    throw new IllegalStateException("type has no supported parameter format");
+    throw new IllegalStateException("type has no supported parameter format: " + toString());
   }
 
   public boolean isResultFormatSupported(Format format) {
@@ -367,7 +367,7 @@ public abstract class Type {
         return 8;
     }
 
-    throw new IllegalStateException("invalid alignment character");
+    throw new IllegalStateException("invalid alignment character: " + align);
   }
 
   @Override
