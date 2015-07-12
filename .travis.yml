@@ -4,6 +4,9 @@ before_script:
   - psql -U postgres -c "create user pgjdbc with password 'test';"
   - psql -c 'create database test owner pgjdbc;' -U postgres
 
+install:
+  -
+
 matrix:
   include:
     - jdk: openjdk7
