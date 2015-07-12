@@ -45,7 +45,10 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by romastar on 07.07.15.
@@ -253,6 +256,7 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
+  @Ignore
   public void testStructsWithoutDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
@@ -267,9 +271,12 @@ public class MultiSchemasStructsTest {
     FirstSchemaUser[] firstUsers = getFirstUsers();
     SecondSchemaUser[] secondUsers = getSecondUsers();
 
+    assertNotNull("Invalid casting to FirstSchemaUser", firstUsers);
+    assertNotNull("Invalid casting to SecondSchemaUser", secondUsers);
   }
 
   @Test
+  @Ignore
   public void testStructsWithDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
@@ -287,6 +294,9 @@ public class MultiSchemasStructsTest {
     FirstSchemaUser[] firstUsers = getFirstUsers();
     SecondSchemaUser[] secondUsers = getSecondUsers();
 
+    assertNotNull("Invalid casting to PublicSchemaUser", publicUsers);
+    assertNotNull("Invalid casting to FirstSchemaUser", firstUsers);
+    assertNotNull("Invalid casting to SecondSchemaUser", secondUsers);
   }
 
   public void putFirstUser() throws SQLException {
@@ -330,34 +340,41 @@ public class MultiSchemasStructsTest {
   }
 
   public FirstSchemaUser[] getFirstUsers() throws SQLException {
-    FirstSchemaUser[] users = null;
     CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
 
     statement.registerOutParameter(1, Types.ARRAY);
     statement.execute();
 
     Array array = statement.getArray(1);
-    users = (FirstSchemaUser[]) array.getArray();
+    Object users = array.getArray();
     statement.close();
 
-    return users;
+    if (users instanceof FirstSchemaUser[]) {
+      return (FirstSchemaUser[])users;
+    }
+
+    return null;
   }
 
   public SecondSchemaUser[] getSecondUsers() throws SQLException {
-    SecondSchemaUser[] users = null;
+
     CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_get_users(?) ");
 
     statement.registerOutParameter(1, Types.ARRAY);
     statement.execute();
 
     Array array = statement.getArray(1);
-    users = (SecondSchemaUser[]) array.getArray(); // Working with type without namespace
+    Object users = array.getArray();
     statement.close();
-    return users;
+
+    if (users instanceof SecondSchemaUser[]) {
+      return (SecondSchemaUser[])users;
+    }
+
+    return null;
   }
 
   public PublicSchemaUser[] getPublicUsers() throws SQLException {
-    PublicSchemaUser[] users = null;
     CallableStatement statement = conn.prepareCall("select fn_get_users(?) ");
 
     statement.registerOutParameter(1, Types.ARRAY);
@@ -365,9 +382,13 @@ public class MultiSchemasStructsTest {
     statement.execute();
 
     Array array = statement.getArray(1);
-    users = (PublicSchemaUser[]) array.getArray(); // Working with type without namespace
+    Object users = array.getArray();
     statement.close();
 
-    return users;
+    if (users instanceof PublicSchemaUser[]) {
+      return (PublicSchemaUser[])users;
+    }
+
+    return null;
   }
 }
