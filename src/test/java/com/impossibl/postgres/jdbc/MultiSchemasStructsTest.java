@@ -256,7 +256,6 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
-  @Ignore
   public void testStructsWithoutDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
@@ -276,7 +275,6 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
-  @Ignore
   public void testStructsWithDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
