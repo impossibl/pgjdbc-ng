@@ -1,16 +1,11 @@
 language: java
+jdk: oraclejdk7
 
 before_script:
   - psql -U postgres -c "create user pgjdbc with password 'test';"
   - psql -c 'create database test owner pgjdbc;' -U postgres
 
-install:
-  -
+addons:
+    postgresql: "9.4"
 
-matrix:
-  include:
-    - jdk: openjdk7
-    env: 
-      - DESC="skip tests" CMD="mvn clean verify -DskipTests=true"
-      addons:
-        postgresql: "9.4"
+script: mvn clean verify -DskipTests=true
