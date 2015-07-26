@@ -45,6 +45,7 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -255,6 +256,7 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
+  @Ignore
   public void testStructsWithoutDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
@@ -274,6 +276,7 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
+  @Ignore
   public void testStructsWithDefault() throws SQLException {
 
     Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
