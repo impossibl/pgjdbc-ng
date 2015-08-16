@@ -145,6 +145,25 @@ public class TestUtil {
   }
 
   /*
+   * Helper - creates a schema for use by a test
+   */
+  public static void createSchema(Connection con, String schema) throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop schema
+      dropSchema(con, schema);
+
+      // Now create the schema
+      String sql = "CREATE SCHEMA " + schema;
+
+      st.executeUpdate(sql);
+    }
+    finally {
+      st.close();
+    }
+  }
+
+  /*
    * Helper - creates a test table for use by a test
    */
   public static void createTable(Connection con, String table, String columns) throws SQLException {
@@ -232,6 +251,24 @@ public class TestUtil {
     catch (SQLException sqle) {
       if (!con.getAutoCommit())
         throw sqle;
+    }
+    finally {
+      stmt.close();
+    }
+  }
+
+  /*
+   * Helper - drops a schema
+   */
+  public static void dropSchema(Connection con, String schema) throws SQLException {
+    Statement stmt = con.createStatement();
+    try {
+      String sql = "DROP SCHEMA " + schema + " CASCADE ";
+      stmt.executeUpdate(sql);
+    }
+    catch (SQLException ex) {
+      if (!con.getAutoCommit())
+        throw ex;
     }
     finally {
       stmt.close();
