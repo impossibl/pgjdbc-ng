@@ -196,15 +196,15 @@ public class TimezoneTest {
         assertEquals(43200000L, ts.getTime()); // 1970-01-01 15:00:00 +0300 -> 1970-01-02 01:00:00 +1300 (CHECK ME)
 
         // date: 2005-01-01
-        ts = rs.getTimestamp(5);
+        ts = rs.getTimestamp("d");
         assertEquals(1104534000000L, ts.getTime()); // 2005-01-01 00:00:00 +0100
-        ts = rs.getTimestamp(5, cUTC);
+        ts = rs.getTimestamp("d", cUTC);
         assertEquals(1104537600000L, ts.getTime()); // 2005-01-01 00:00:00 +0000
-        ts = rs.getTimestamp(5, cGMT03);
+        ts = rs.getTimestamp("d", cGMT03);
         assertEquals(1104526800000L, ts.getTime()); // 2005-01-01 00:00:00 +0300
-        ts = rs.getTimestamp(5, cGMT05);
+        ts = rs.getTimestamp("d", cGMT05);
         assertEquals(1104555600000L, ts.getTime()); // 2005-01-01 00:00:00 -0500
-        ts = rs.getTimestamp(5, cGMT13);
+        ts = rs.getTimestamp("d", cGMT13);
         assertEquals(1104490800000L, ts.getTime()); // 2005-01-01 00:00:00 +1300
 
         assertTrue(!rs.next());
@@ -249,15 +249,15 @@ public class TimezoneTest {
         assertEquals(1104490800000L, d.getTime());
 
         // date: 2005-01-01
-        d = rs.getDate(3);          // 2005-01-01 00:00:00 +0100
+        d = rs.getDate("d");          // 2005-01-01 00:00:00 +0100
         assertEquals(1104534000000L, d.getTime());
-        d = rs.getDate(3, cUTC);    // 2005-01-01 00:00:00 +0000
+        d = rs.getDate("d", cUTC);    // 2005-01-01 00:00:00 +0000
         assertEquals(1104537600000L, d.getTime());
-        d = rs.getDate(3, cGMT03);  // 2005-01-01 00:00:00 +0300
+        d = rs.getDate("d", cGMT03);  // 2005-01-01 00:00:00 +0300
         assertEquals(1104526800000L, d.getTime());
-        d = rs.getDate(3, cGMT05);  // 2005-01-01 00:00:00 -0500
+        d = rs.getDate("d", cGMT05);  // 2005-01-01 00:00:00 -0500
         assertEquals(1104555600000L, d.getTime());
-        d = rs.getDate(3, cGMT13);  // 2005-01-01 00:00:00 +1300
+        d = rs.getDate("d", cGMT13);  // 2005-01-01 00:00:00 +1300
         assertEquals(1104490800000L, d.getTime());
 
         assertTrue(!rs.next());
@@ -307,15 +307,15 @@ public class TimezoneTest {
         assertEquals(7200000L, t.getTime());  // 1970-01-01 15:00:00 +1300
 
         // time: 15:00:00
-        t = rs.getTime(3);
+        t = rs.getTime("t");
         assertEquals(50400000L, t.getTime()); // 1970-01-01 15:00:00 +0100
-        t = rs.getTime(3, cUTC);
+        t = rs.getTime("t", cUTC);
         assertEquals(54000000L, t.getTime()); // 1970-01-01 15:00:00 +0000
-        t = rs.getTime(3, cGMT03);
+        t = rs.getTime("t", cGMT03);
         assertEquals(43200000L, t.getTime()); // 1970-01-01 15:00:00 +0300
-        t = rs.getTime(3, cGMT05);
+        t = rs.getTime("t", cGMT05);
         assertEquals(72000000L, t.getTime()); // 1970-01-01 15:00:00 -0500
-        t = rs.getTime(3, cGMT13);
+        t = rs.getTime("t", cGMT13);
         assertEquals(7200000L, t.getTime());  // 1970-01-01 15:00:00 +1300
 
         // timetz: 15:00:00+03

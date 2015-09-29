@@ -1061,17 +1061,17 @@ class PGResultSet implements ResultSet {
 
   @Override
   public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-    return getDate(findColumn(columnLabel));
+    return getDate(findColumn(columnLabel), cal);
   }
 
   @Override
   public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-    return getTime(findColumn(columnLabel));
+    return getTime(findColumn(columnLabel), cal);
   }
 
   @Override
   public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-    return getTimestamp(findColumn(columnLabel));
+    return getTimestamp(findColumn(columnLabel), cal);
   }
 
   @Override
