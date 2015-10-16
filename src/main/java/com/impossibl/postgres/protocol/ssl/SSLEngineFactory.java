@@ -114,7 +114,7 @@ public class SSLEngineFactory {
       ((ContextCallbackHandler) sslPasswordCallback).init(context);
     }
 
-    KeyManager keyManager = new OnDemadKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileIsDefault);
+    KeyManager keyManager = new OnDemandKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileIsDefault);
 
     /*
      * Initialize Trust Managers

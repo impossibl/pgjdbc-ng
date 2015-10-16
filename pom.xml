@@ -146,7 +146,7 @@
 	  <excludes>
 	    <exclude>**/PerformanceTest.java</exclude>
 	    <exclude>**/GiantBlobTest.java</exclude>
-	    <exclude>**/SSLTest.java</exclude>
+	    <exclude>**/SSL*.java</exclude>
 	    <exclude>**/ServerDisconnectTest.java</exclude>
 	  </excludes>
 	</configuration>

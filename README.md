@@ -96,6 +96,32 @@ certain frameworks, and test suites. See
 [http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode](http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode "pgjdbc-ng strictMode")
 for additional details.
 
+	SSL                 (boolean)  false
+
+Enable SSL for data sources.
+
+	ssl.mode          (String)
+
+The 'ssl.mode' parameter specifies which SSL mode that should be used to connect to the database server.
+Valid values include 'prefer', 'require', 'verify-ca' and 'verify-full'. Data source property is 'SSLMode'.
+
+	ssl.password          (String)
+
+The 'ssl.password' parameter specifies the SSL password. Data source property is 'SSLPassword'.
+
+	ssl.cert.file          (String)
+
+The 'ssl.cert.file' parameter specifies the SSL certificate file as a path. Data source property is 'SSLCertificateFile'.
+
+	ssl.key.file          (String)
+
+The 'ssl.key.file' parameter specifies the SSL key file as a path. Data source property is 'SSLKeyFile'.
+
+	ssl.root.cert.file          (String)
+
+The 'ssl.root.cert.file' parameter specifies the SSL root certificate file as a path. Data source property is 'SSLRootCertificateFile'.
+
+
 ## License
 
 pgjdbc-ng is released under the 3 clause BSD license.

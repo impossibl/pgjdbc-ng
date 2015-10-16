@@ -71,7 +71,7 @@ import javax.security.auth.x500.X500Principal;
  * A Key manager that only loads the keys, if necessary.
  *
  */
-public class OnDemadKeyManager extends X509ExtendedKeyManager {
+public class OnDemandKeyManager extends X509ExtendedKeyManager {
 
   private X509Certificate[] certificates = null;
   private PrivateKey key = null;
@@ -90,7 +90,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
    * @param cbh
    * @param defaultfile
    */
-  public OnDemadKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
+  public OnDemandKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
     this.certfile = certfile;
     this.keyfileName = keyfile;
     this.cbh = cbh;

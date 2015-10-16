@@ -65,6 +65,13 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private int networkTimeout;
   private boolean strictMode;
 
+  private boolean ssl;
+  private String sslMode;
+  private String sslPassword;
+  private String sslCertificateFile;
+  private String sslKeyFile;
+  private String sslRootCertificateFile;
+
   /**
    * Constructor
    */
@@ -82,6 +89,13 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.clientEncoding = null;
     this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
     this.strictMode = Settings.STRICT_MODE_DEFAULT;
+
+    this.ssl = false;
+    this.sslMode = null;
+    this.sslPassword = null;
+    this.sslCertificateFile = null;
+    this.sslKeyFile = null;
+    this.sslRootCertificateFile = null;
   }
 
   /**
@@ -173,6 +187,25 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (strictMode != Settings.STRICT_MODE_DEFAULT)
       ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
 
+    if (ssl) {
+      ref.add(new StringRefAddr("ssl", "true"));
+
+      if (sslMode != null)
+        ref.add(new StringRefAddr("sslMode", sslMode));
+
+      if (sslPassword != null)
+        ref.add(new StringRefAddr("sslPassword", sslPassword));
+
+      if (sslCertificateFile != null)
+        ref.add(new StringRefAddr("sslCertificateFile", sslCertificateFile));
+
+      if (sslKeyFile != null)
+        ref.add(new StringRefAddr("sslKeyFile", sslKeyFile));
+
+      if (sslRootCertificateFile != null)
+        ref.add(new StringRefAddr("sslRootCertificateFile", sslRootCertificateFile));
+    }
+
     return ref;
   }
 
@@ -230,6 +263,32 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "strictMode");
     if (value != null)
       strictMode = Boolean.valueOf(value);
+
+    value = getReferenceValue(reference, "ssl");
+    if (value != null)
+      ssl = true;
+
+    if (ssl) {
+      value = getReferenceValue(reference, "sslMode");
+      if (value != null)
+        sslMode = value;
+
+      value = getReferenceValue(reference, "sslPassword");
+      if (value != null)
+        sslPassword = value;
+
+      value = getReferenceValue(reference, "sslCertificateFile");
+      if (value != null)
+        sslCertificateFile = value;
+
+      value = getReferenceValue(reference, "sslKeyFile");
+      if (value != null)
+        sslKeyFile = value;
+
+      value = getReferenceValue(reference, "sslRootCertificateFile");
+      if (value != null)
+        sslRootCertificateFile = value;
+    }
   }
 
   /**
@@ -445,6 +504,102 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Is SSL enabled
+   * @return The value
+   */
+  public boolean getSSL() {
+    return ssl;
+  }
+
+  /**
+   * Enable/disable SSL
+   * @param v The value
+   */
+  public void setSSL(boolean v) {
+    ssl = v;
+  }
+
+  /**
+   * Get the SSL mode
+   * @return The value
+   */
+  public String getSSLMode() {
+    return sslMode;
+  }
+
+  /**
+   * Set the SSL mode
+   * @param v The value
+   */
+  public void setSSLMode(String v) {
+    sslMode = v;
+  }
+
+  /**
+   * Get the SSL password
+   * @return The value
+   */
+  public String getSSLPassword() {
+    return sslPassword;
+  }
+
+  /**
+   * Set the SSL password
+   * @param v The value
+   */
+  public void setSSLPassword(String v) {
+    sslPassword = v;
+  }
+
+  /**
+   * Get the SSL certificate file
+   * @return The value
+   */
+  public String getSSLCertificateFile() {
+    return sslCertificateFile;
+  }
+
+  /**
+   * Set the SSL certificate file
+   * @param v The value
+   */
+  public void setSSLCertificateFile(String v) {
+    sslCertificateFile = v;
+  }
+
+  /**
+   * Get the SSL key file
+   * @return The value
+   */
+  public String getSSLKeyFile() {
+    return sslKeyFile;
+  }
+
+  /**
+   * Set the SSL key file
+   * @param v The value
+   */
+  public void setSSLKeyFile(String v) {
+    sslKeyFile = v;
+  }
+
+  /**
+   * Get the SSL root certificate file
+   * @return The value
+   */
+  public String getSSLRootCertificateFile() {
+    return sslRootCertificateFile;
+  }
+
+  /**
+   * Set the SSL root certificate file
+   * @param v The value
+   */
+  public void setSSLRootCertificateFile(String v) {
+    sslRootCertificateFile = v;
+  }
+
+  /**
    * Create a connection
    *
    * @param u
@@ -487,6 +642,25 @@ public abstract class AbstractDataSource implements CommonDataSource {
       props.put(Settings.CLIENT_ENCODING, clientEncoding);
     props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
     props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
+
+    if (ssl) {
+      if (sslMode != null)
+        props.put(Settings.SSL_MODE, sslMode);
+      else
+        props.put(Settings.SSL_MODE, "Require");
+
+      if (sslPassword != null)
+        props.put(Settings.SSL_PASSWORD, sslPassword);
+
+      if (sslCertificateFile != null)
+        props.put(Settings.SSL_CERT_FILE, sslCertificateFile);
+
+      if (sslKeyFile != null)
+        props.put(Settings.SSL_KEY_FILE, sslKeyFile);
+
+      if (sslRootCertificateFile != null)
+        props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
+    }
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }
