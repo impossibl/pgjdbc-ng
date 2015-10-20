@@ -101,7 +101,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
    * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any
    * exception is stored in this.error and can be raised by this method
    *
-   * @throws PSQLException
+   * @throws SQLException
    */
   public void throwKeyManagerException() throws SQLException {
     if (error != null)

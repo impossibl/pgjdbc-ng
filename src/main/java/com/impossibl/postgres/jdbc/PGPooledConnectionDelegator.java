@@ -61,7 +61,6 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * Constructor
    * @param owner The owner
-   * @param isXA Is XA
    * @param delegator The delegator
    */
   public PGPooledConnectionDelegator(PGPooledConnection owner, PGConnection delegator) {

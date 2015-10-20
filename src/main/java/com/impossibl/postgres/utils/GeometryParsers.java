@@ -70,7 +70,7 @@ public enum GeometryParsers {
   /**
    * Parses a circle.
    * <pre>
-   * < ( x , y ) , r >
+   * &lt; ( x , y ) , r &gt;
    * ( ( x , y ) , r )
    * ( x , y ) , r
    * x , y   , r
@@ -207,7 +207,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The line to parse.
-   * @return An array of size 3 ([A,B,C] --> Ax+By+C=0.)
+   * @return An array of size 3 ([A,B,C] --&gt; Ax+By+C=0.)
    */
   public double[] parseLine(CharSequence s) {
     int pos = consummeSpace(s, 0, true);
