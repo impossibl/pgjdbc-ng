@@ -1159,6 +1159,9 @@ public class ProtocolImpl implements Protocol {
         }
         break;
 
+      case "LOCK":
+        break;
+
       default:
 
         if (parts.length != 1)
