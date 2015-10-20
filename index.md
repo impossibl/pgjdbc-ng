@@ -103,6 +103,11 @@ The 'clientEncoding' parameter specifies the client encoding for the database se
 The 'networkTimeout' parameter specifies the default timeout in milliseconds for the connections.
 A value of 0 indicates that there isnt a timeout for database operations.
 
+	strictMode          (boolean)  false
+
+The 'strictMode' parameter specifies if the JDBC driver should follow behavior assumed by certain frameworks, and test suites.
+See http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode for additional details.
+
 ## License
 
 pgjdbc-ng is released under the 3 clause BSD license.
