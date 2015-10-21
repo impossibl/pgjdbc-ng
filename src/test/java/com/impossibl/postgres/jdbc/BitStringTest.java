@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013, impossibl.com
+ * Copyright 2015, impossibl.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
  */
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ * Copyright 2004-2011, PostgreSQL Global Development Group
  *
  *
  *-------------------------------------------------------------------------
@@ -41,8 +41,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.BitSet;
-import java.util.UUID;
 
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
