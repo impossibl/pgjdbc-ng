@@ -2296,7 +2296,7 @@ class CursorScroller extends Scroller {
 
     StringBuilder sb = new StringBuilder("INSERT INTO ");
 
-    sb.append(relType.getName());
+    sb.append('"').append(relType.getName()).append('"');
 
     sb.append(" VALUES (");
 
@@ -2329,7 +2329,7 @@ class CursorScroller extends Scroller {
 
     StringBuilder sb = new StringBuilder("UPDATE ");
 
-    sb.append(relType.getName());
+    sb.append('"').append(relType.getName()).append('"');
 
     sb.append(" SET ");
 
@@ -2359,7 +2359,7 @@ class CursorScroller extends Scroller {
     Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
 
     StringBuilder sb = new StringBuilder();
-    sb.append("DELETE FROM ").append(relType.getName()).append(" WHERE CURRENT OF ").append(cursorName);
+    sb.append("DELETE FROM ").append('"').append(relType.getName()).append('"').append(" WHERE CURRENT OF ").append(cursorName);
 
     long rows = connection.executeForRowsAffected(sb.toString(), true);
     if (rows != 0) {
