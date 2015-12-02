@@ -138,6 +138,11 @@ public class Bytes extends SimpleProcProvider {
           totalLength = in.available();
 
         }
+        else if (in instanceof ByteBufInputStream) {
+
+          totalLength = in.available();
+
+        }
         else {
 
           // We must fallback to reading entire buffer to make sure we
@@ -183,6 +188,11 @@ public class Bytes extends SimpleProcProvider {
         else if (in instanceof ByteArrayInputStream) {
 
           length += in.available();
+
+        }
+        else if (in instanceof ByteBufInputStream) {
+
+          length = in.available();
 
         }
         else {
