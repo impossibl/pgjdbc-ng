@@ -118,4 +118,20 @@ public class VersionTest {
     assertFalse(v921.isEqual(v930));
     assertFalse(v930.isEqual(v921));
   }
+
+  @Test
+  public void testMinimumVersion() {
+    Version v8422 = Version.parse("8.4.22");
+    Version v843 = Version.parse("8.4.3");
+    Version v921 = Version.parse("9.2.1");
+    Version v930 = Version.parse("9.3");
+
+    assertTrue(v8422.isMinimum(v843));
+    assertFalse(v843.isMinimum(v8422));
+
+    assertTrue(v921.isMinimum(v8422));
+    assertFalse(v921.isMinimum(v930));
+
+    assertTrue(v921.isMinimum(v921));
+  }
 }
