@@ -35,6 +35,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.utils.guava.ByteStreams.toByteArray;
+
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,6 +45,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Locale;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.junit.After;
 import org.junit.Before;
@@ -77,6 +83,9 @@ public class ResultSetTest {
 
     TestUtil.createTable(con, "teststring", "a text");
     stmt.executeUpdate("INSERT INTO teststring VALUES ('12345')");
+
+    TestUtil.createTable(con, "testbytes", "a bytea");
+    stmt.executeUpdate("INSERT INTO testbytes VALUES (convert_to('12345', 'UTF8'))");
 
     TestUtil.createTable(con, "testint", "a int");
     stmt.executeUpdate("INSERT INTO testint VALUES (12345)");
@@ -435,6 +444,36 @@ public class ResultSetTest {
       }
     }
     rs.close();
+  }
+
+  @Test
+  public void testgetBytes() throws SQLException {
+    ResultSet rs = con.createStatement().executeQuery("select * from testbytes");
+
+    assertTrue(rs.next());
+    assertArrayEquals("12345".getBytes(UTF_8), rs.getBytes(1));
+    // Ensure we can call it multiple times with correct result
+    assertArrayEquals("12345".getBytes(UTF_8), rs.getBytes(1));
+  }
+
+  @Test
+  public void testgetBinaryStream() throws SQLException, IOException {
+    ResultSet rs = con.createStatement().executeQuery("select * from testbytes");
+
+    assertTrue(rs.next());
+    assertArrayEquals("12345".getBytes(UTF_8), toByteArray(rs.getBinaryStream(1)));
+    // Ensure we can call it multiple times with correct result
+    assertArrayEquals("12345".getBytes(UTF_8), toByteArray(rs.getBinaryStream(1)));
+  }
+
+  @Test
+  public void testgetAsciiStream() throws SQLException, IOException {
+    ResultSet rs = con.createStatement().executeQuery("select * from teststring");
+
+    assertTrue(rs.next());
+    assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(rs.getAsciiStream(1)));
+    // Ensure we can call it multiple times with correct result
+    assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(rs.getAsciiStream(1)));
   }
 
   @Test

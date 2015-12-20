@@ -796,7 +796,16 @@ class SQLTypeUtils {
       return null;
     }
     else if (val instanceof InputStream) {
-      return (InputStream) val;
+      InputStream is = (InputStream) val;
+      try {
+        // Ensure stream is at beginning (in cases
+        // where it is used multiple times)
+        is.reset();
+      }
+      catch (IOException e) {
+        throw new SQLException(e);
+      }
+      return is;
     }
     else if (val instanceof byte[]) {
       return new ByteArrayInputStream((byte[]) val);
