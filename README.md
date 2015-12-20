@@ -1,4 +1,4 @@
-# pgjdbc-ng
+# pgjdbc-ng   [![Build Status](https://travis-ci.org/impossibl/pgjdbc-ng.png)](https://travis-ci.org/impossibl/pgjdbc-ng)
 
 A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres
 
