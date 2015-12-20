@@ -300,6 +300,10 @@ public class CallableStatementTest {
 
   @Test
   public void testRaiseNotice() throws SQLException {
+    // Ensure RAISE works in all environments
+    try (Statement statement = con.createStatement()) {
+      statement.execute("SET SESSION client_min_messages = 'NOTICE'");
+    }
     CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
     call.registerOutParameter(1, Types.INTEGER);
     call.execute();
