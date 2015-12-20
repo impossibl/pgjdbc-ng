@@ -1,0 +1,16 @@
+sudo: required
+language: java
+jdk:
+  - oraclejdk7
+  - oraclejdk8
+env:
+  - PGVERSION=9.1
+  - PGVERSION=9.2
+  - PGVERSION=9.3
+  - PGVERSION=9.4
+install: ./.travis/travis-install-dependencies
+script: mvn -e test
+after_failure: ./.travis/print_surefire_reports
+cache:
+  directories:
+    - '$HOME/.m2/repository'
