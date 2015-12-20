@@ -800,7 +800,7 @@ public class DatabaseMetaDataTest {
 
     //TODO fix this for 9.1
     if (dbmd.getDatabaseMajorVersion() != 9 || dbmd.getDatabaseMinorVersion() != 1) {
-      rs = dbmd.getTables(null, null, "a\\", new String[] { "TABLE" });
+      rs = dbmd.getTables(null, null, "a\\", new String[] {"TABLE"});
       assertTrue(!rs.next());
       rs.close();
     }
