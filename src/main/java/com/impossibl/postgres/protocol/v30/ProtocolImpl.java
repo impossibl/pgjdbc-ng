@@ -1129,9 +1129,6 @@ public class ProtocolImpl implements Protocol {
 
         break;
 
-      case "TRUNCATE":
-        break;
-
       case "PREPARE":
         if (parts.length == 2) {
           // Nothing to parse but accepted
@@ -1159,13 +1156,11 @@ public class ProtocolImpl implements Protocol {
         }
         break;
 
-      case "LOCK":
-        break;
-
       default:
 
-        if (parts.length != 1)
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        if (parts.length > 1) {
+          logger.warning("Ignoring unknown complex command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        }
 
         rowsAffected = 0L;
     }
