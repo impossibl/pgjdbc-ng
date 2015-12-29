@@ -57,6 +57,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
@@ -81,6 +82,7 @@ public class PreparedStatementTest {
     TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
     TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
     TestUtil.createTable(conn, "intervaltable", "i interval");
+    TestUtil.createTable(conn, "inttable", "a int");
   }
 
   @After
@@ -1249,6 +1251,68 @@ public class PreparedStatementTest {
       rs.close();
     }
     pstmt.close();
+  }
+
+  @Test
+  public void testChangeType() throws SQLException {
+    Connection c = conn;
+    List<String> statements = Arrays.asList(
+        "insert into inttable(a) values(1)",
+        "select * from inttable",
+        "alter table inttable add b int",
+        "select * from inttable",
+        "alter table inttable add c int",
+        "select * from inttable",
+        "alter table inttable add d int",
+        "select * from inttable",
+        "alter table inttable add e int",
+        "select * from inttable",
+        "alter table inttable add f int",
+        "select * from inttable"
+    );
+
+    for (String statement : statements) {
+      PreparedStatement s = null;
+      try {
+        s = c.prepareStatement(statement);
+        if (!statement.startsWith("select")) {
+          s.execute();
+          continue;
+        }
+        ResultSet rs = s.executeQuery();
+        assertInttTableSanity(rs);
+        rs.close();
+      } finally {
+        if (s != null) {
+          s.close();
+        }
+      }
+    }
+  }
+
+  private void assertInttTableSanity(ResultSet rs) throws SQLException {
+    assertEquals("inttable should have one row", true, rs.next());
+    assertEquals("inttable.a should be 1", 1, rs.getInt(1));
+    assertEquals("inttable should have exactly one row", false, rs.next());
+  }
+
+  @Test
+  public void testDeallocateAll() throws SQLException {
+    Statement s = conn.createStatement();
+    s.execute("insert into inttable(a) values(1)");
+
+    PreparedStatement ps = conn.prepareStatement("select * from inttable");
+
+    for (int i = 0; i < 10; i++) {
+      ps.execute();
+    }
+
+    s.execute("DEALLOCATE ALL");
+    s.close();
+
+    ResultSet rs = ps.executeQuery();
+    assertInttTableSanity(rs);
+    rs.close();
   }
 
   /**
