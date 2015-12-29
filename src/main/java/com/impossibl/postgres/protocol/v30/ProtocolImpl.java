@@ -1156,6 +1156,11 @@ public class ProtocolImpl implements Protocol {
         }
         break;
 
+      case "DEALLOCATE":
+      case "TRUNCATE":
+        // These are "complex" (e.g. greater than one word) but known good
+        break;
+
       default:
 
         if (parts.length > 1) {
