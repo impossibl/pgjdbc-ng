@@ -33,9 +33,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Runtime.getRuntime;
+import static java.lang.System.getProperty;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -43,6 +46,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.ThreadDeathWatcher;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GlobalEventExecutor;
+
+
 
 public class ProtocolShared {
 
@@ -97,6 +103,17 @@ public class ProtocolShared {
   }
 
   private void init() {
+
+    ByteBufAllocator allocator = null;
+    switch (getProperty("com.impossibl.netty.bytebuf.allocator", "pooled")) {
+      case "pooled":
+        allocator = PooledByteBufAllocator.DEFAULT;
+        break;
+      case "unpooled":
+        allocator = UnpooledByteBufAllocator.DEFAULT;
+        break;
+    }
+
     int workerCount = getRuntime().availableProcessors();
     NioEventLoopGroup group = new NioEventLoopGroup(workerCount, new NamedThreadFactory("PG-JDBC EventLoop"));
 
@@ -106,7 +123,7 @@ public class ProtocolShared {
       protected void initChannel(SocketChannel ch) throws Exception {
         ch.pipeline().addLast(new MessageDecoder(), new MessageHandler());
       }
-    }).option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+    }).option(ChannelOption.ALLOCATOR, allocator);
   }
 
   public Future<?> shutdown() {
@@ -116,10 +133,35 @@ public class ProtocolShared {
 
   public void waitForShutdown() {
 
-    shutdown().awaitUninterruptibly();
+    shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
+
+    Thread deathThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e) {
+          // Ignore
+        }
+      }
+    });
+
+    Thread globalThread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          GlobalEventExecutor.INSTANCE.awaitInactivity(5, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e) {
+          // Ignore
+        }
+      }
+    };
 
     try {
-      ThreadDeathWatcher.awaitInactivity(30, TimeUnit.SECONDS);
+      globalThread.join(TimeUnit.SECONDS.toMillis(5));
+      deathThread.join(TimeUnit.SECONDS.toMillis(5));
     }
     catch (InterruptedException e) {
       // Ignore
