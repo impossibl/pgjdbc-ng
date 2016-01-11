@@ -97,6 +97,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * else than issuing a XAResource.commit or rollback.
    */
   private Xid currentXid;
+  private String xidStr;
   private int state;
 
   static final int STATE_IDLE = 0;
@@ -194,17 +195,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     else if (state == STATE_ENDED)
       throw new PGXAException("Transaction interleaving not implemented", XAException.XAER_RMERR);
 
-    try {
-      localAutoCommitMode = conn.getAutoCommit();
-      conn.setAutoCommit(false);
-    }
-    catch (SQLException ex) {
-      throw new PGXAException("Error disabling autocommit", ex, XAException.XAER_RMERR);
+    if (flags == TMNOFLAGS) {
+      try {
+        localAutoCommitMode = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+      }
+      catch (SQLException ex) {
+        throw new PGXAException("Error disabling autocommit", ex, XAException.XAER_RMERR);
+      }
     }
 
     // Preconditions are met, Associate connection with the transaction
     state = STATE_ACTIVE;
     currentXid = xid;
+    xidStr = null;
   }
 
   /**
@@ -263,6 +267,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       debug("preparing transaction xid = " + xid);
 
     // Check preconditions
+    if (currentXid == null)
+      throw new PGXAException("Not associated with an xid", XAException.XAER_RMERR);
+
     if (!currentXid.equals(xid)) {
       throw new PGXAException("Not implemented: Prepare must be issued using the same connection that started the transaction",
                               XAException.XAER_RMERR);
@@ -273,15 +280,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     state = STATE_IDLE;
     currentXid = null;
 
-    if (!conn.getServerVersion().isMinimum(8, 1))
-      throw new PGXAException("Server versions prior to 8.1 do not support two-phase commit.", XAException.XAER_RMERR);
-
     try {
-      String s = RecoveredXid.xidToString(xid);
+      xidStr = RecoveredXid.xidToString(xid);
 
       Statement stmt = conn.createStatement();
       try {
-        stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
+        stmt.executeUpdate("PREPARE TRANSACTION '" + xidStr + "'");
       }
       finally {
         stmt.close();
@@ -359,17 +363,21 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     if (logger.isLoggable(Level.FINE))
       debug("rolling back xid = " + xid);
 
+    if (xid == null)
+      throw new PGXAException("xid must not be null", XAException.XAER_INVAL);
+
     // We don't explicitly check precondition 1.
 
     try {
       if (currentXid != null && xid.equals(currentXid)) {
         state = STATE_IDLE;
         currentXid = null;
+        xidStr = null;
         conn.rollback();
         conn.setAutoCommit(localAutoCommitMode);
       }
       else {
-        String s = RecoveredXid.xidToString(xid);
+        String s = xidStr != null ? xidStr : RecoveredXid.xidToString(xid);
 
         conn.setAutoCommit(true);
         Statement stmt = conn.createStatement();
@@ -377,6 +385,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
         }
         finally {
+          xidStr = null;
           stmt.close();
         }
       }
@@ -431,6 +440,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       // Preconditions are met. Commit
       state = STATE_IDLE;
       currentXid = null;
+      xidStr = null;
 
       conn.commit();
       conn.setAutoCommit(localAutoCommitMode);
@@ -462,7 +472,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         throw new PGXAException("Not implemented: 2nd phase commit must be issued using an idle connection",
                                 XAException.XAER_RMERR);
 
-      String s = RecoveredXid.xidToString(xid);
+      String s = xidStr != null ? xidStr : RecoveredXid.xidToString(xid);
 
       localAutoCommitMode = conn.getAutoCommit();
       conn.setAutoCommit(true);
@@ -471,6 +481,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
       }
       finally {
+        xidStr = null;
         stmt.close();
         conn.setAutoCommit(localAutoCommitMode);
       }
