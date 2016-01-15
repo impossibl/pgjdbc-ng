@@ -1158,6 +1158,9 @@ public class ProtocolImpl implements Protocol {
 
       case "DEALLOCATE":
       case "TRUNCATE":
+      case "LOCK":
+      case "GRANT":
+      case "REVOKE":
         // These are "complex" (e.g. greater than one word) but known good
         break;
 
