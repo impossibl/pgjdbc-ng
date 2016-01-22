@@ -28,12 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
-import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
-import static com.impossibl.postgres.system.Settings.BLOB_TYPE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.CLOB_TYPE;
-import static com.impossibl.postgres.system.Settings.CLOB_TYPE_DEFAULT;
-import static java.math.RoundingMode.HALF_EVEN;
+import static com.impossibl.postgres.jdbc.ArrayUtils.*;
+import static com.impossibl.postgres.system.Settings.*;
+import static java.math.RoundingMode.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -54,6 +51,11 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -231,11 +233,24 @@ class SQLTypeUtils {
     else if (targetType == Timestamp.class) {
       return coerceToTimestamp(val, zone, connection);
     }
+    else if (targetType == OffsetDateTime.class) {
+      return coerceToJavaTime(val, targetType, zone, connection);
+    }
+    else if (targetType == ZonedDateTime.class) {
+      return coerceToJavaTime(val, targetType, zone, connection);
+    }
+    else if (targetType == java.time.Instant.class) {
+      return coerceToJavaTime(val, targetType, zone, connection);
+    }
+    // TODO: Rest of java.time.*
     else if (targetType == Instant.class) {
       return coerceToInstant(val, sourceType, zone, connection);
     }
     else if (targetType == Interval.class) {
       return coerceToInterval(val);
+    }
+    else if (targetType == Class.class) {
+      return coerceToClass(val);
     }
     else if (targetType == URL.class) {
       return coerceToURL(val);
@@ -286,6 +301,24 @@ class SQLTypeUtils {
     }
 
     throw createCoercionException(val.getClass(), targetType, val);
+  }
+
+  private static Class<?> coerceToClass(final Object val) throws SQLException {
+    if (val == null) {
+      return null;
+    }
+
+    if (val instanceof String) {
+      final String className = (String) val;
+      try {
+        return Class.forName(className);
+      } catch (final Exception e) {
+        throw createCoercionException(val.getClass(), Class.class, val, e);
+      }
+    }
+
+    throw createCoercionException(val.getClass(), Class.class, val);
+
   }
 
   public static byte coerceToByte(Object val) throws SQLException {
@@ -418,6 +451,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof PGBlob) {
       return ((PGBlob) val).lo.oid;
+    }
+    else if (val instanceof Instant) {
+      return ((Instant) val).toTimestamp().getTime();
     }
 
     throw createCoercionException(val.getClass(), long.class, val);
@@ -568,6 +604,9 @@ class SQLTypeUtils {
     else if (val instanceof PGSQLXML) {
       return ((PGSQLXML) val).getString();
     }
+    else if (val instanceof Class) {
+      return ((Class) val).getTypeName();
+    }
     else if (type.isResultFormatSupported(Format.Text)) {
       return coerceToStringFromType(val, type, context);
     }
@@ -646,6 +685,65 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Timestamp.class, val);
   }
 
+  public static Object coerceToJavaTime(Object val, final Class<?> targetType,
+      final TimeZone zone, final Context context) throws SQLException {
+
+    if (val == null) {
+      return null;
+    }
+
+    if (val instanceof Instant) {
+      final Instant i = (Instant) val;
+
+      // just make it a timestamp and let the next block handle it
+      final Timestamp ts = i.toTimestamp();
+      val=ts;
+    }
+
+    if (val instanceof Timestamp) {
+      final Timestamp ts = (Timestamp) val;
+
+      if (targetType.isAssignableFrom(java.time.Instant.class)) {
+        return ts.toInstant();
+      }
+
+      final LocalDateTime localDateTime = ts.toLocalDateTime();
+      if (targetType.isAssignableFrom(LocalDateTime.class)) {
+        return localDateTime;
+      }
+
+      if (targetType.isAssignableFrom(ZonedDateTime.class)) {
+        final ZoneId zoneId = zone.toZoneId();
+        return localDateTime.atZone(zoneId);
+      }
+
+      if (targetType.isAssignableFrom(OffsetDateTime.class)) {
+        final int offsetMillis = zone.getRawOffset();
+        final ZoneOffset offset = ZoneOffset.ofTotalSeconds(offsetMillis / 1000);
+        return localDateTime.atOffset(offset);
+      }
+    }
+
+    if (val instanceof String) {
+      final String s = (String) val;
+      final java.time.Instant instant = java.time.Instant.parse(s);
+
+      if (targetType.isAssignableFrom(java.time.Instant.class)) {
+        return instant;
+      }
+
+      if (targetType.isAssignableFrom(ZonedDateTime.class)) {
+        return ZonedDateTime.parse(s);
+      }
+
+      if (targetType.isAssignableFrom(OffsetDateTime.class)) {
+        return OffsetDateTime.parse(s);
+      }
+    }
+
+    throw createCoercionException(val.getClass(), targetType, val);
+  }
+
   public static Interval coerceToInterval(Object val) throws SQLException {
 
     if (val == null) {
@@ -661,13 +759,17 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Interval.class, val);
   }
 
-  public static Instant coerceToInstant(Object val, Type sourceType, TimeZone zone, Context context) throws SQLException {
+  public static Instant coerceToInstant(final Object val, final Type sourceType, final TimeZone zone, final Context context) throws SQLException {
 
     if (val == null) {
       return null;
     }
     else if (val instanceof Instant) {
       return ((Instant) val).disambiguate(zone);
+    }
+    else if (val instanceof java.time.Instant) {
+      final java.time.Instant jti = (java.time.Instant) val;
+      return Instants.fromTimestamp(Timestamp.from(jti), zone);
     }
     else if (val instanceof Date) {
       return Instants.fromDate((Date) val, zone);
@@ -935,36 +1037,36 @@ class SQLTypeUtils {
     return coerceToArray(type.getPreferredFormat(), val, type, targetType, typeMap, connection);
   }
 
-	public static Object coerceToArray(final Format format, final Object val, final Type type, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
+  public static Object coerceToArray(final Format format, final Object val, final Type type, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
 
-		if (val == null) {
-			return null;
-		}
+    if (val == null) {
+      return null;
+    }
 
-		if (val instanceof PGArray) {
-			return coerceToArray(format, ((PGArray) val).getValue(), type, targetType, typeMap, connection);
-		}
+    if (val instanceof PGArray) {
+      return coerceToArray(format, ((PGArray) val).getValue(), type, targetType, typeMap, connection);
+    }
 
-		if (val.getClass().isArray()) {
-			return coerceToArray(format, val, 0, Array.getLength(val), type, targetType, typeMap, connection);
-		}
+    if (val.getClass().isArray()) {
+      return coerceToArray(format, val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+    }
 
-		if (val instanceof SQLData) {
-			final SQLData sqlData = (SQLData) val;
-			return coerceFromSQLDataToArray(format, sqlData, type, targetType, typeMap, connection);
-		}
+    if (val instanceof SQLData) {
+      final SQLData sqlData = (SQLData) val;
+      return coerceFromSQLDataToArray(format, sqlData, type, targetType, typeMap, connection);
+    }
 
-		throw createCoercionException(val.getClass(), targetType, val);
-	}
+    throw createCoercionException(val.getClass(), targetType, val);
+  }
 
-	private static Object coerceFromSQLDataToArray(final Format format, final SQLData sqlData, final Type type, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
-		final Vector<?> attributes = new Vector<Object>();
-		final SQLOutput stream = new SQLOutputImpl(attributes, typeMap);
-		sqlData.writeSQL(stream);
+  private static Object coerceFromSQLDataToArray(final Format format, final SQLData sqlData, final Type type, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
+    final Vector<?> attributes = new Vector<Object>();
+    final SQLOutput stream = new SQLOutputImpl(attributes, typeMap);
+    sqlData.writeSQL(stream);
 
-		final Object[] val = attributes.toArray();
-		return coerceToArray(format, val, type, targetType, typeMap, connection);
-	}
+    final Object[] val = attributes.toArray();
+    return coerceToArray(format, val, type, targetType, typeMap, connection);
+  }
 
   public static Object coerceToArray(Object val, int index, int count, Type type, Class<?> targetType, Map<String, Class<?>> typeMap, PGConnectionImpl connection) throws SQLException {
 
@@ -1130,93 +1232,93 @@ class SQLTypeUtils {
     throw createCoercionException(val.getClass(), Struct.class, val);
   }
 
-	public static Object coerceToCustomType(final Object val, final Type sourceType, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
+  public static Object coerceToCustomType(final Object val, final Type sourceType, final Class<?> targetType, final Map<String, Class<?>> typeMap, final PGConnectionImpl connection) throws SQLException {
 
-		if (val == null) {
-			return null;
-		}
+    if (val == null) {
+      return null;
+    }
 
-		if (sourceType instanceof CompositeType) {
+    if (sourceType instanceof CompositeType) {
 
-			final CompositeType compType = (CompositeType) sourceType;
+      final CompositeType compType = (CompositeType) sourceType;
 
-			Object[] attributeVals;
+      Object[] attributeVals;
 
-			if (val instanceof Struct) {
+      if (val instanceof Struct) {
 
-				final Struct struct = (Struct) val;
-				attributeVals = struct.getAttributes();
-			} else if (val instanceof Record) {
+        final Struct struct = (Struct) val;
+        attributeVals = struct.getAttributes();
+      } else if (val instanceof Record) {
 
-				final Record record = (Record) val;
-				attributeVals = record.getValues();
-			} else {
-				throw createCoercionException(val.getClass(), targetType, val);
-			}
+        final Record record = (Record) val;
+        attributeVals = record.getValues();
+      } else {
+        throw createCoercionException(val.getClass(), targetType, val);
+      }
 
-			Object dst;
-			try {
-				dst = targetType.newInstance();
-			} catch (InstantiationException | IllegalAccessException e) {
-				throw createCoercionException(val.getClass(), targetType, val, e);
-			}
+      Object dst;
+      try {
+        dst = targetType.newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw createCoercionException(val.getClass(), targetType, val, e);
+      }
 
-			final PGSQLInputImpl in = new PGSQLInputImpl(connection, compType, typeMap, attributeVals);
+      final PGSQLInputImpl in = new PGSQLInputImpl(connection, compType, typeMap, attributeVals);
 
-			((SQLData) dst).readSQL(in, compType.getName());
+      ((SQLData) dst).readSQL(in, compType.getName());
 
-			return dst;
-		}
+      return dst;
+    }
 
-		if (SQLData.class.isAssignableFrom(targetType)) {
+    if (SQLData.class.isAssignableFrom(targetType)) {
 
-			SQLData sqlData;
-			try {
-				sqlData = (SQLData) targetType.newInstance();
-			} catch (InstantiationException | IllegalAccessException e) {
-				throw createCoercionException(val.getClass(), targetType, val, e);
-			}
+      SQLData sqlData;
+      try {
+        sqlData = (SQLData) targetType.newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw createCoercionException(val.getClass(), targetType, val, e);
+      }
 
-			// ugh, java
-			final Object[] attributes = convertToObjectArray(val);
+      // ugh, java
+      final Object[] attributes = convertToObjectArray(val);
 
-			final SQLInput inStream = new SQLInputImpl(attributes, typeMap);
-			sqlData.readSQL(inStream, sourceType.getName());
+      final SQLInput inStream = new SQLInputImpl(attributes, typeMap);
+      sqlData.readSQL(inStream, sourceType.getName());
 
-			return sqlData;
-		}
+      return sqlData;
+    }
 
-		throw createCoercionException(val.getClass(), targetType, val);
-	}
+    throw createCoercionException(val.getClass(), targetType, val);
+  }
 
-	// Adapted from
-	// http://stackoverflow.com/questions/16427319/cast-object-to-array
-	private static Object[] convertToObjectArray(final Object maybeArray) {
+  // Adapted from
+  // http://stackoverflow.com/questions/16427319/cast-object-to-array
+  private static Object[] convertToObjectArray(final Object maybeArray) {
 
-		// if it's an array
-		if (maybeArray.getClass().isArray()) {
+    // if it's an array
+    if (maybeArray.getClass().isArray()) {
 
-			// check to see if it's primitive
-			final Class<?> ofArray = maybeArray.getClass().getComponentType();
-			if (ofArray.isPrimitive()) {
+      // check to see if it's primitive
+      final Class<?> ofArray = maybeArray.getClass().getComponentType();
+      if (ofArray.isPrimitive()) {
 
-				// if so, loop through, box, and re-addd
-				final ArrayList<Object> ar = new ArrayList<>();
-				final int length = Array.getLength(maybeArray);
-				for (int i = 0; i < length; i++) {
-					ar.add(Array.get(maybeArray, i));
-				}
-				return ar.toArray();
-			}
+        // if so, loop through, box, and re-addd
+        final ArrayList<Object> ar = new ArrayList<>();
+        final int length = Array.getLength(maybeArray);
+        for (int i = 0; i < length; i++) {
+          ar.add(Array.get(maybeArray, i));
+        }
+        return ar.toArray();
+      }
 
-			// if no, just cast
-			return (Object[]) maybeArray;
-		}
+      // if no, just cast
+      return (Object[]) maybeArray;
+    }
 
-		// just one object, make it an array of size 1
-		return new Object[] { maybeArray };
+    // just one object, make it an array of size 1
+    return new Object[] { maybeArray };
 
-	}
+  }
 
   public static UUID coerceToUUID(Object val, Context context) throws SQLException {
 
