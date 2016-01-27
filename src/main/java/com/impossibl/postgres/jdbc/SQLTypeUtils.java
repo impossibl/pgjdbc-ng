@@ -113,60 +113,60 @@ class SQLTypeUtils {
     else {
 
       switch (sourceType.getPrimitiveType()) {
-        case Oid:
-          if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
-            targetType = Blob.class;
-          }
-          if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
-            targetType = Clob.class;
-          }
-          break;
+      case Oid:
+        if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
+          targetType = Blob.class;
+        }
+        if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
+          targetType = Clob.class;
+        }
+        break;
 
-        case Tid:
-          targetType = RowId.class;
-          break;
+      case Tid:
+        targetType = RowId.class;
+        break;
 
-        case XML:
-          targetType = SQLXML.class;
-          break;
+      case XML:
+        targetType = SQLXML.class;
+        break;
 
-        case Time:
-        case TimeTZ:
-          targetType = Time.class;
-          break;
+      case Time:
+      case TimeTZ:
+        targetType = Time.class;
+        break;
 
-        case Date:
-          targetType = Date.class;
-          break;
+      case Date:
+        targetType = Date.class;
+        break;
 
-        case Timestamp:
-        case TimestampTZ:
-          targetType = Timestamp.class;
-          break;
+      case Timestamp:
+      case TimestampTZ:
+        targetType = Timestamp.class;
+        break;
 
-        case Record:
-          targetType = Struct.class;
-          break;
+      case Record:
+        targetType = Struct.class;
+        break;
 
-        case Point:
-        case Box:
-        case Line:
-        case LineSegment:
-        case Circle:
-          targetType = double[].class;
-          break;
-        case Path:
-          targetType = Path.class;
-          break;
-        case Polygon:
-          targetType = double[][].class;
-          break;
-        case Array:
-          ArrayType arrayType = (ArrayType) sourceType;
-          targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
-          break;
-        default:
-          break;
+      case Point:
+      case Box:
+      case Line:
+      case LineSegment:
+      case Circle:
+        targetType = double[].class;
+        break;
+      case Path:
+        targetType = Path.class;
+        break;
+      case Polygon:
+        targetType = double[][].class;
+        break;
+      case Array:
+        ArrayType arrayType = (ArrayType) sourceType;
+        targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
+        break;
+      default:
+        break;
       }
 
     }
@@ -552,13 +552,13 @@ class SQLTypeUtils {
       }
 
       switch (str) {
-        case "on":
-        case "true":
-        case "t":
-          return true;
+      case "on":
+      case "true":
+      case "t":
+        return true;
 
-        default:
-          return false;
+      default:
+        return false;
       }
 
     }
@@ -606,6 +606,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof Class) {
       return ((Class) val).getTypeName();
+    }
+    else if (val instanceof Enum) {
+      return ((Enum) val).name();
     }
     else if (type.isResultFormatSupported(Format.Text)) {
       return coerceToStringFromType(val, type, context);
@@ -786,36 +789,36 @@ class SQLTypeUtils {
 
       switch (sourceType.getPrimitiveType()) {
 
-        case Date: {
-          Map<String, Object> pieces = new HashMap<>();
-          int offset = context.getDateFormatter().getParser().parse(str, 0, pieces);
-          if (offset < 0) {
-            throw createCoercionParseException(str, ~offset, Date.class);
-          }
-          return Instants.dateFromPieces(pieces, zone);
+      case Date: {
+        Map<String, Object> pieces = new HashMap<>();
+        int offset = context.getDateFormatter().getParser().parse(str, 0, pieces);
+        if (offset < 0) {
+          throw createCoercionParseException(str, ~offset, Date.class);
         }
+        return Instants.dateFromPieces(pieces, zone);
+      }
 
-        case Time:
-        case TimeTZ: {
-          Map<String, Object> pieces = new HashMap<>();
-          int offset = context.getTimeFormatter().getParser().parse(val.toString(), 0, pieces);
-          if (offset < 0) {
-            throw createCoercionParseException(str, ~offset, Time.class);
-          }
-          return Instants.timeFromPieces(pieces, zone);
+      case Time:
+      case TimeTZ: {
+        Map<String, Object> pieces = new HashMap<>();
+        int offset = context.getTimeFormatter().getParser().parse(val.toString(), 0, pieces);
+        if (offset < 0) {
+          throw createCoercionParseException(str, ~offset, Time.class);
         }
+        return Instants.timeFromPieces(pieces, zone);
+      }
 
-        case Timestamp:
-        case TimestampTZ: {
-          Map<String, Object> pieces = new HashMap<>();
-          int offset = context.getTimestampFormatter().getParser().parse(val.toString(), 0, pieces);
-          if (offset < 0) {
-            throw createCoercionParseException(str, ~offset, Timestamp.class);
-          }
-          return Instants.timestampFromPieces(pieces, zone);
+      case Timestamp:
+      case TimestampTZ: {
+        Map<String, Object> pieces = new HashMap<>();
+        int offset = context.getTimestampFormatter().getParser().parse(val.toString(), 0, pieces);
+        if (offset < 0) {
+          throw createCoercionParseException(str, ~offset, Timestamp.class);
         }
+        return Instants.timestampFromPieces(pieces, zone);
+      }
 
-        default:
+      default:
       }
 
     }
@@ -1361,12 +1364,12 @@ class SQLTypeUtils {
 
   public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val) {
     return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
-                            dstType.getName() + "' is not supported (" + val + ")");
+        dstType.getName() + "' is not supported (" + val + ")");
   }
 
   public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val, Exception cause) {
     return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
-                            dstType.getName() + "' failed (" + val + ")", cause);
+        dstType.getName() + "' failed (" + val + ")", cause);
   }
 
   public static SQLException createCoercionParseException(String val, int parseErrorPos, Class<?> dstType) {
