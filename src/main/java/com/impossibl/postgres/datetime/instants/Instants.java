@@ -28,8 +28,7 @@
  */
 package com.impossibl.postgres.datetime.instants;
 
-import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.datetime.instants.Instant.Type;
+import static java.util.concurrent.TimeUnit.*;
 
 import java.sql.Date;
 import java.sql.Time;
@@ -38,12 +37,8 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.impossibl.postgres.datetime.DateTimeFormat;
+import com.impossibl.postgres.datetime.instants.Instant.Type;
 
 public class Instants {
 
@@ -211,6 +206,10 @@ public class Instants {
   }
 
   public static Instant fromTimestamp(Timestamp ts, TimeZone zone) {
+
+    if (ts == null) {
+      return null;
+    }
 
     long millis = ts.getTime();
     int extra = (ts.getNanos() % 1000000) / 1000;
