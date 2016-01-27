@@ -252,6 +252,9 @@ class SQLTypeUtils {
     else if (targetType == Class.class) {
       return coerceToClass(val);
     }
+    else if (Enum.class.isAssignableFrom(targetType)) {
+      return coerceToEnum(val, targetType);
+    }
     else if (targetType == URL.class) {
       return coerceToURL(val);
     }
@@ -301,6 +304,25 @@ class SQLTypeUtils {
     }
 
     throw createCoercionException(val.getClass(), targetType, val);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Enum<?> coerceToEnum(Object val, Class<?> targetType) throws SQLException {
+    if (val == null) {
+      return null;
+    }
+
+    if (val instanceof String) {
+      final String name = (String) val;
+      try {
+        // TODO: Could get expensive -- Cache these?
+        return Enum.valueOf((Class<Enum>) targetType, name);
+      } catch (final Exception e) {
+        throw createCoercionException(val.getClass(), Class.class, val, e);
+      }
+    }
+
+    throw createCoercionException(val.getClass(), Class.class, val);
   }
 
   private static Class<?> coerceToClass(final Object val) throws SQLException {
