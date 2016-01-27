@@ -58,6 +58,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -1074,6 +1075,11 @@ class SQLTypeUtils {
 
     if (val.getClass().isArray()) {
       return coerceToArray(format, val, 0, Array.getLength(val), type, targetType, typeMap, connection);
+    }
+
+    if (val instanceof Collection) {
+      Object[] array = ((Collection) val).toArray();
+      return coerceToArray(format, array, 0, array.length, type, targetType, typeMap, connection);
     }
 
     if (val instanceof SQLData) {
