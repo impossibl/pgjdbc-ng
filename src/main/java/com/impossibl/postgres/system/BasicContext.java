@@ -52,7 +52,6 @@ import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -113,7 +112,7 @@ public class BasicContext implements Context {
   protected Version serverVersion;
   protected KeyData keyData;
   protected Protocol protocol;
-  protected Map<NotificationKey, WeakReference<NotificationListener>> notificationListeners;
+  protected Map<NotificationKey, NotificationListener> notificationListeners;
   protected Map<String, PreparedQuery> utilQueries;
 
 
@@ -652,20 +651,17 @@ public class BasicContext implements Context {
 
     NotificationKey key = new NotificationKey(name, channelNameFilterPattern);
 
-    synchronized (notificationListeners) {
-      notificationListeners.put(key, new WeakReference<NotificationListener>(listener));
-    }
-
+    notificationListeners.put(key, listener);
   }
 
   public synchronized void removeNotificationListener(NotificationListener listener) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
-      NotificationListener iterListener = entry.getValue().get();
+      NotificationListener iterListener = entry.getValue();
       if (iterListener == null || iterListener.equals(listener)) {
 
         iter.remove();
@@ -676,13 +672,13 @@ public class BasicContext implements Context {
 
   public synchronized void removeNotificationListener(String listenerName) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
       String iterListenerName = entry.getKey().name;
-      NotificationListener iterListener = entry.getValue().get();
+      NotificationListener iterListener = entry.getValue();
       if (iterListenerName.equals(listenerName) || iterListener == null) {
 
         iter.remove();
@@ -694,17 +690,13 @@ public class BasicContext implements Context {
   @Override
   public synchronized void reportNotification(int processId, String channelName, String payload) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
-      NotificationListener listener = entry.getValue().get();
-      if (listener == null) {
-
-        iter.remove();
-      }
-      else if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
+      NotificationListener listener = entry.getValue();
+      if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
 
         listener.notification(processId, channelName, payload);
       }
