@@ -419,16 +419,15 @@ public class BasicContext implements Context {
     return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
   }
 
+  @SuppressWarnings("unchecked")
   public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, rowType, params);
 
-    @SuppressWarnings("unchecked")
-    List<T> res = (List<T>) resultBatch.results;
-
-    return res;
+    return (List<T>) resultBatch.results;
   }
 
+  @SuppressWarnings("unchecked")
   public List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch;
@@ -464,10 +463,7 @@ public class BasicContext implements Context {
       return Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
-    List<Object> results = (List<Object>) resultBatch.results;
-
-    return results;
+    return (List<Object>) resultBatch.results;
   }
 
   public void query(String queryTxt) throws IOException, NoticeException {
