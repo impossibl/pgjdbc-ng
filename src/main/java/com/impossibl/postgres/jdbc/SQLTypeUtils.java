@@ -85,10 +85,7 @@ class SQLTypeUtils {
   }
 
   public static Class<?> mapSetType(Format format, Type sourceType) {
-
-    Class<?> targetType = sourceType.getJavaType(format, null);
-
-    return targetType;
+    return sourceType.getJavaType(format, null);
   }
 
   public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap, Context context) {

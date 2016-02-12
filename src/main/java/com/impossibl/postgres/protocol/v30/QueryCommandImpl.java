@@ -120,7 +120,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
       notifyAll();
     }
 
-  };
+  }
 
 
 

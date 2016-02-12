@@ -171,7 +171,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
       notifyAll();
     }
 
-  };
+  }
 
 
   private String statementName;

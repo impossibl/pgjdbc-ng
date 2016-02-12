@@ -217,7 +217,7 @@ class SQLTextEscapeFunctions {
    * @return a Method object or null if not found
    */
   public static Method getEscapeMethod(String functionName) {
-    return (Method) functionMap.get(functionName.toLowerCase(Locale.US));
+    return functionMap.get(functionName.toLowerCase(Locale.US));
   }
 
   public static Node invokeEscape(Method method, String name, List<Node> args) throws SQLException {
