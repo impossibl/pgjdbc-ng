@@ -35,6 +35,7 @@ import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
@@ -148,6 +149,7 @@ abstract class PGStatement implements Statement {
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
     this.generatedKeysResultSet = null;
+    this.fetchSize = connection.getDefaultFetchSize() != Settings.DEFAULT_FETCH_SIZE_DEFAULT ? Integer.valueOf(connection.getDefaultFetchSize()) : null;
 
     this.housekeeper = connection.housekeeper;
 

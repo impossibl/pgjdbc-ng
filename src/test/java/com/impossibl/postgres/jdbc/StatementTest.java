@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -565,5 +567,20 @@ public class StatementTest {
   public void testFourPartCommand() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEXT SEARCH CONFIGURATION public.english_nostop ( COPY = pg_catalog.english );");
+  }
+
+  @Test
+  public void testDefaultFetchSize() throws SQLException {
+    int oldValue = ((PGConnection)con).getDefaultFetchSize();
+
+    ((PGConnection)con).setDefaultFetchSize(10);
+    assertEquals(10, ((PGConnection)con).getDefaultFetchSize());
+
+    Statement stmt = con.createStatement();
+    assertEquals(10, stmt.getFetchSize());
+
+    stmt.close();
+
+    ((PGConnection)con).setDefaultFetchSize(oldValue);
   }
 }

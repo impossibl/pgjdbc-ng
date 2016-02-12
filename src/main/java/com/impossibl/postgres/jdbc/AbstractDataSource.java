@@ -64,6 +64,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String clientEncoding;
   private int networkTimeout;
   private boolean strictMode;
+  private int defaultFetchSize;
 
   private boolean ssl;
   private String sslMode;
@@ -89,6 +90,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.clientEncoding = null;
     this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
     this.strictMode = Settings.STRICT_MODE_DEFAULT;
+    this.defaultFetchSize = Settings.DEFAULT_FETCH_SIZE_DEFAULT;
 
     this.ssl = false;
     this.sslMode = null;
@@ -187,6 +189,9 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (strictMode != Settings.STRICT_MODE_DEFAULT)
       ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
 
+    if (defaultFetchSize != Settings.DEFAULT_FETCH_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("defaultFetchSize", Integer.toString(defaultFetchSize)));
+
     if (ssl) {
       ref.add(new StringRefAddr("ssl", "true"));
 
@@ -263,6 +268,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "strictMode");
     if (value != null)
       strictMode = Boolean.valueOf(value);
+
+    value = getReferenceValue(reference, "defaultFetchSize");
+    if (value != null)
+      defaultFetchSize = Integer.valueOf(value);
 
     value = getReferenceValue(reference, "ssl");
     if (value != null)
@@ -504,6 +513,22 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the default fetch size
+   * @return The value
+   */
+  public int getDefaultFetchSize() {
+    return defaultFetchSize;
+  }
+
+  /**
+   * Set the default fetch size
+   * @param v The value
+   */
+  public void setDefaultFetchSize(int v) {
+    defaultFetchSize = v;
+  }
+
+  /**
    * Is SSL enabled
    * @return The value
    */
@@ -642,6 +667,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
       props.put(Settings.CLIENT_ENCODING, clientEncoding);
     props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
     props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
+    props.put(Settings.DEFAULT_FETCH_SIZE, Integer.toString(defaultFetchSize));
 
     if (ssl) {
       if (sslMode != null)

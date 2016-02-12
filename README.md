@@ -96,6 +96,10 @@ certain frameworks, and test suites. See
 [http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode](http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode "pgjdbc-ng strictMode")
 for additional details.
 
+	defaultFetchSize         (int)     0
+
+The 'defaultFetchSize' parameter specifies the default fetch size for statements.
+
 	SSL                 (boolean)  false
 
 Enable SSL for data sources.

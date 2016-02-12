@@ -70,6 +70,8 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
+import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE;
+import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
@@ -179,6 +181,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
   Map<CachedStatementKey, CachedStatement> preparedStatementCache;
+  int defaultFetchSize;
   final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
 
@@ -227,6 +230,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
         }
       }
     }
+
+    this.defaultFetchSize = getSetting(DEFAULT_FETCH_SIZE, DEFAULT_FETCH_SIZE_DEFAULT);
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
@@ -630,6 +635,20 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    */
   public boolean isStrictMode() {
     return strict;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public void setDefaultFetchSize(int v) {
+    defaultFetchSize = v;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public int getDefaultFetchSize() {
+    return defaultFetchSize;
   }
 
   /**

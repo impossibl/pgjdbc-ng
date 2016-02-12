@@ -994,6 +994,20 @@ public class PGPooledConnectionDelegator implements PGConnection {
     return delegator.isStrictMode();
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  public void setDefaultFetchSize(int v) {
+    delegator.setDefaultFetchSize(v);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public int getDefaultFetchSize() {
+    return delegator.getDefaultFetchSize();
+  }
+
   void reset() {
     if (delegator != null) {
       automatic = true;

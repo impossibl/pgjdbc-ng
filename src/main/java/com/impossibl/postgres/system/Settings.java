@@ -89,4 +89,7 @@ public class Settings {
 
   public static final String STRICT_MODE = "strictMode";
   public static final boolean STRICT_MODE_DEFAULT = false;
+
+  public static final String DEFAULT_FETCH_SIZE = "defaultFetchSize";
+  public static final int DEFAULT_FETCH_SIZE_DEFAULT = 0;
 }
