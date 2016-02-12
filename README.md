@@ -100,6 +100,14 @@ for additional details.
 
 The 'defaultFetchSize' parameter specifies the default fetch size for statements.
 
+	receiveBufferSize         (int)     -1
+
+The 'receiveBufferSize' parameter specifies the size of the receive buffer for the connection.
+
+	sendBufferSize         (int)     -1
+
+The 'sendBufferSize' parameter specifies the size of the send buffer for the connection.
+
 	SSL                 (boolean)  false
 
 Enable SSL for data sources.

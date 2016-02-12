@@ -65,6 +65,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private int networkTimeout;
   private boolean strictMode;
   private int defaultFetchSize;
+  private int receiveBufferSize;
+  private int sendBufferSize;
 
   private boolean ssl;
   private String sslMode;
@@ -91,6 +93,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
     this.strictMode = Settings.STRICT_MODE_DEFAULT;
     this.defaultFetchSize = Settings.DEFAULT_FETCH_SIZE_DEFAULT;
+    this.receiveBufferSize = Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
+    this.sendBufferSize = Settings.SEND_BUFFER_SIZE_DEFAULT;
 
     this.ssl = false;
     this.sslMode = null;
@@ -192,6 +196,12 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (defaultFetchSize != Settings.DEFAULT_FETCH_SIZE_DEFAULT)
       ref.add(new StringRefAddr("defaultFetchSize", Integer.toString(defaultFetchSize)));
 
+    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
+
+    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
+
     if (ssl) {
       ref.add(new StringRefAddr("ssl", "true"));
 
@@ -272,6 +282,14 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "defaultFetchSize");
     if (value != null)
       defaultFetchSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "receiveBufferSize");
+    if (value != null)
+      receiveBufferSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "sendBufferSize");
+    if (value != null)
+      sendBufferSize = Integer.valueOf(value);
 
     value = getReferenceValue(reference, "ssl");
     if (value != null)
@@ -529,6 +547,38 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the receive buffer size
+   * @return The value
+   */
+  public int getReceiveBufferSize() {
+    return receiveBufferSize;
+  }
+
+  /**
+   * Set the receive buffer size
+   * @param v The value
+   */
+  public void setReceiveBufferSize(int v) {
+    receiveBufferSize = v;
+  }
+
+  /**
+   * Get the send buffer size
+   * @return The value
+   */
+  public int getSendBufferSize() {
+    return sendBufferSize;
+  }
+
+  /**
+   * Set the send buffer size
+   * @param v The value
+   */
+  public void setSendBufferSize(int v) {
+    sendBufferSize = v;
+  }
+
+  /**
    * Is SSL enabled
    * @return The value
    */
@@ -668,6 +718,12 @@ public abstract class AbstractDataSource implements CommonDataSource {
     props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
     props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
     props.put(Settings.DEFAULT_FETCH_SIZE, Integer.toString(defaultFetchSize));
+
+    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
+      props.put(Settings.RECEIVE_BUFFER_SIZE, Integer.toString(receiveBufferSize));
+
+    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
+      props.put(Settings.SEND_BUFFER_SIZE, Integer.toString(sendBufferSize));
 
     if (ssl) {
       if (sslMode != null)

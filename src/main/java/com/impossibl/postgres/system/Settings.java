@@ -92,4 +92,10 @@ public class Settings {
 
   public static final String DEFAULT_FETCH_SIZE = "defaultFetchSize";
   public static final int DEFAULT_FETCH_SIZE_DEFAULT = 0;
+
+  public static final String RECEIVE_BUFFER_SIZE = "receiveBufferSize";
+  public static final int RECEIVE_BUFFER_SIZE_DEFAULT = -1;
+
+  public static final String SEND_BUFFER_SIZE = "sendBufferSize";
+  public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
 }

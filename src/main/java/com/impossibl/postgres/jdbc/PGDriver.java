@@ -133,7 +133,7 @@ public class PGDriver implements Driver {
       }
     }
 
-    ProtocolShared.acquire().get().waitForShutdown();
+    ProtocolShared.acquire(null).get().waitForShutdown();
   }
 
 }

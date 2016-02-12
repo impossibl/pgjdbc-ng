@@ -94,7 +94,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
     try {
 
-      ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
+      ProtocolShared.Ref sharedRef = ProtocolShared.acquire(context);
 
       Bootstrap clientBootstrap = sharedRef.get().getBootstrap();
 
