@@ -158,7 +158,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     super.parseIfNeeded();
   }
 
-  private Pattern getRegexForParameter(int paramIndex) {
+  private static Pattern getRegexForParameter(int paramIndex) {
 
     Pattern pattern = PARAM_REPLACE_REGEXES.get(paramIndex);
     if (pattern == null) {

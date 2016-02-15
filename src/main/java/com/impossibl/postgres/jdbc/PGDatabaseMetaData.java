@@ -1531,7 +1531,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return createResultSet(Arrays.asList(fields), results);
   }
 
-  private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
 
     if (aclItems == null) {
       // Null is shortcut for owner having full privileges

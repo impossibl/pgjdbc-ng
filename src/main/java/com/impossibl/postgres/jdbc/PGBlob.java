@@ -88,7 +88,7 @@ public class PGBlob implements Blob {
     }
   }
 
-  private void checkPosition(long pos) throws SQLException {
+  private static void checkPosition(long pos) throws SQLException {
     if (pos < 1) {
       throw ILLEGAL_ARGUMENT;
     }
