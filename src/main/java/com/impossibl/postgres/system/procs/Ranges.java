@@ -177,7 +177,7 @@ public class Ranges extends SimpleProcProvider {
       return Range.create(lower, lowerInc, upper, upperInc);
     }
 
-    private int findBound(CharSequence buffer, int start) {
+    private static int findBound(CharSequence buffer, int start) {
 
       boolean string = false;
 
@@ -274,7 +274,7 @@ public class Ranges extends SimpleProcProvider {
 
     }
 
-    private boolean needsQuotes(String elemStr) {
+    private static boolean needsQuotes(String elemStr) {
 
       if (elemStr.isEmpty())
         return true;

@@ -368,7 +368,7 @@ public class Records extends SimpleProcProvider {
 
     }
 
-    private boolean needsQuotes(String elemStr, char delim) {
+    private static boolean needsQuotes(String elemStr, char delim) {
 
       if (elemStr.isEmpty())
         return true;

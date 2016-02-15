@@ -297,7 +297,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param key The key
    * @return The value
    */
-  private String getReferenceValue(Reference reference, String key) {
+  private static String getReferenceValue(Reference reference, String key) {
     RefAddr refAddr = reference.get(key);
 
     if (refAddr == null)

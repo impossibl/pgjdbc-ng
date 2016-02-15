@@ -234,7 +234,7 @@ public enum GeometryParsers {
   /**
    * Returns A,B and C as in Ax+By+C=0 given 2 points
    */
-  private double[] lineConstructPts(double[] pt1, double[] pt2) {
+  private static double[] lineConstructPts(double[] pt1, double[] pt2) {
     double[] lineabc = new double[3];
     if (pt1[0] == pt2[0]) { /* vertical */
       /* use "x = C" */
@@ -327,7 +327,7 @@ public enum GeometryParsers {
     return new Path(pr.p, !pr.isOpen);
   }
 
-  private int pairCount(CharSequence s, char delim) {
+  private static int pairCount(CharSequence s, char delim) {
     int ndelim = 0;
     int max = s.length() - 1;
     int pos = 0;
@@ -445,7 +445,7 @@ public enum GeometryParsers {
     }
   }
 
-  private int findLastDelim(CharSequence s, int pos, char delim) {
+  private static int findLastDelim(CharSequence s, int pos, char delim) {
     int found = -1;
     int max = s.length() - 1;
     while (pos < max) {
@@ -551,7 +551,7 @@ public enum GeometryParsers {
     return pos;
   }
 
-  private int parseExponent(CharSequence s, int pos) {
+  private static int parseExponent(CharSequence s, int pos) {
     int max = s.length() - 1;
     if (pos >= max) {
       return pos;
@@ -621,7 +621,7 @@ public enum GeometryParsers {
     return pos;
   }
 
-  private int consummeSpace(CharSequence s, int pos, boolean checkEOS) {
+  private static int consummeSpace(CharSequence s, int pos, boolean checkEOS) {
     int max = s.length() - 1;
     while (pos <= max && Character.isSpaceChar(s.charAt(pos))) {
       ++pos;

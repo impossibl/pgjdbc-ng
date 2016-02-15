@@ -104,7 +104,7 @@ public class PGClob implements Clob {
     }
   }
 
-  private void checkPosition(long pos) throws SQLException {
+  private static void checkPosition(long pos) throws SQLException {
     if (pos < 1) {
       throw ILLEGAL_ARGUMENT;
     }
