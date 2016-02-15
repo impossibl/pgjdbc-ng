@@ -214,7 +214,7 @@ public class SQLText {
         }
       }
 
-      if (parents.peek() instanceof StatementNode == false && parents.peek() instanceof MultiStatementNode == false) {
+      if (!(parents.peek() instanceof StatementNode) && !(parents.peek() instanceof MultiStatementNode)) {
         throw new IllegalArgumentException("error parsing SQL");
       }
 
