@@ -393,7 +393,6 @@ public class PGStatementDelegator implements Statement {
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     try {
-      //checkClosed();
       return delegator.isWrapperFor(iface);
     }
     catch (SQLException se) {
@@ -408,7 +407,6 @@ public class PGStatementDelegator implements Statement {
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     try {
-      //checkClosed();
       return delegator.unwrap(iface);
     }
     catch (SQLException se) {

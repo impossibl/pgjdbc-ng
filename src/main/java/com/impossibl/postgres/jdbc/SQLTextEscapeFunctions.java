@@ -593,13 +593,6 @@ class SQLTextEscapeFunctions {
       return ident("hour");
     else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
       return ident("minute");
-    // See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
-    /*
-     * else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType)) return "month"; else
-     * if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType)) return "quarter"; else
-     * if (SQL_TSI_WEEK.equalsIgnoreCase(shortType)) return "week"; else if
-     * (SQL_TSI_YEAR.equalsIgnoreCase(shortType)) return "year";
-     */
     else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
       throw new SQLException(GT.tr("Interval {0} not yet implemented", "SQL_TSI_FRAC_SECOND"), PSQLState.SYNTAX_ERROR);
     else
