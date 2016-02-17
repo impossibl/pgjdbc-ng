@@ -64,8 +64,8 @@ public class PGPooledConnection implements PooledConnection {
    * connection.
    */
   public PGPooledConnection(PGConnectionImpl con, boolean autoCommit, boolean isXA) {
-    this.connectionListeners = new ArrayList<ConnectionEventListener>();
-    this.statementListeners = new ArrayList<StatementEventListener>();
+    this.connectionListeners = new ArrayList<>();
+    this.statementListeners = new ArrayList<>();
     this.con = con;
     this.last = null;
     this.autoCommit = autoCommit;

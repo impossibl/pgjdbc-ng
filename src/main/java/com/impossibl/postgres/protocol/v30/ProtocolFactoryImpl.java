@@ -203,7 +203,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
   private static void startup(ProtocolImpl protocol, BasicContext context) throws IOException, NoticeException {
 
-    Map<String, Object> params = new HashMap<String, Object>();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(APPLICATION_NAME, context.getSetting(APPLICATION_NAME, "pgjdbc app"));
     params.put(CLIENT_ENCODING, context.getSetting(CLIENT_ENCODING, "UTF8"));

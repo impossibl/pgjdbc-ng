@@ -119,11 +119,11 @@ public class Range<T> {
     flags |= upperInc ? Flags.RANGE_UB_INC : 0;
     flags |= upperInc && lower == null ? Flags.RANGE_UB_INF : 0;
     flags |= lower == null && upper == null && !lowerInc && !upperInc ? Flags.RANGE_EMPTY : 0;
-    return new Range<U>(new Flags((byte) flags), new Object[] {lower, upper});
+    return new Range<>(new Flags((byte) flags), new Object[] {lower, upper});
   }
 
   public static Range<?> createEmpty() {
-    return new Range<Object>(new Flags((byte) (Flags.RANGE_EMPTY | Flags.RANGE_LB_NULL | Flags.RANGE_UB_NULL)), new Object[] {});
+    return new Range<>(new Flags((byte) (Flags.RANGE_EMPTY | Flags.RANGE_LB_NULL | Flags.RANGE_UB_NULL)), new Object[] {});
   }
 
   public Range(Flags flags, Object[] values) {

@@ -81,7 +81,7 @@ public class Ranges extends SimpleProcProvider {
           values[1] = baseType.getBinaryCodec().decoder.decode(baseType, null, null, buffer, context);
         }
 
-        instance = new Range<Object>(flags, values);
+        instance = new Range<>(flags, values);
       }
 
       return instance;

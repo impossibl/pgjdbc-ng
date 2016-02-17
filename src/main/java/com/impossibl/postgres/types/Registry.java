@@ -93,7 +93,7 @@ public class Registry {
     kindMap.put('r', RangeType.class);
 
     // Required initial types for bootstrapping
-    oidMap = new TreeMap<Integer, Type>();
+    oidMap = new TreeMap<>();
     oidMap.put(16, new BaseType(16, "bool",     (short) 1,  (byte) 0, Category.Boolean, ',', 0, "bool", procs));
     oidMap.put(17, new BaseType(17, "bytea",    (short) 1,  (byte) 0, Category.User,    ',', 0, "bytea", procs));
     oidMap.put(18, new BaseType(18, "char",     (short) 1,  (byte) 0, Category.String,  ',', 0, "char", procs));
@@ -349,7 +349,7 @@ public class Registry {
 
         Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.relationId);
         if (relRows == null) {
-          relRows = new HashSet<PgAttribute.Row>();
+          relRows = new HashSet<>();
           pgAttrData.put(pgAttrRow.relationId, relRows);
         }
 

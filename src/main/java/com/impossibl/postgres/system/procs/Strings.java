@@ -187,7 +187,7 @@ public class Strings extends SimpleProcProvider {
     @Override
     public Map<String, Object> parse(long mod) {
 
-      Map<String, Object> mods = new HashMap<String, Object>();
+      Map<String, Object> mods = new HashMap<>();
 
       if (mod > 4) {
         mods.put(LENGTH, (int)(mod - 4));
