@@ -413,7 +413,7 @@ class SQLTypeMetaData {
     }
     //Calculate prec
 
-    int prec = 0;
+    int prec;
     PrimitiveType ptype = type.getPrimitiveType();
     if (ptype == null) {
       prec = lenMod;
@@ -604,7 +604,7 @@ class SQLTypeMetaData {
       lenMod = typeLength;
     }
 
-    int size = 0;
+    int size;
 
     switch (type.getCategory()) {
       case Numeric:

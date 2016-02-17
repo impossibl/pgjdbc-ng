@@ -229,7 +229,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param reference The reference
    */
   public void init(Reference reference) {
-    String value = null;
+    String value;
 
     value = getReferenceValue(reference, "host");
     if (value != null)

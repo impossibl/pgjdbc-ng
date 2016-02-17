@@ -98,7 +98,7 @@ public class Interval {
 
     try {
 
-      String valueToken = null;
+      String valueToken;
 
       value = value.replace('+', ' ').replace('@', ' ');
 
@@ -136,8 +136,6 @@ public class Interval {
             minutes = -minutes;
             seconds = -seconds;
           }
-
-          valueToken = null;
 
           break;
         }

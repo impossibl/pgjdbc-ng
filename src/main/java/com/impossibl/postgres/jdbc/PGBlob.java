@@ -51,7 +51,7 @@ public class PGBlob implements Blob {
     }
 
     boolean hasNext() throws SQLException {
-      boolean result = false;
+      boolean result;
       if (idx < buffer.length) {
         result = true;
       }

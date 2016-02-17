@@ -1275,7 +1275,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[15] = columnData.typeLength;
       row[16] = columnData.relationAttrNum;
 
-      String nullable = null;
+      String nullable;
       switch ((int)row[10]) {
         case columnNoNulls:
           nullable = "NO";
@@ -2386,7 +2386,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[14] = attrData.typeLength;
       row[15] = attrData.relationAttrNum;
 
-      String nullable = null;
+      String nullable;
       switch ((int)row[9]) {
         case attributeNoNulls:
           nullable = "NO";
@@ -2662,7 +2662,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[9] = columnData.description;
       row[10] = columnData.typeLength;
 
-      String nullable = null;
+      String nullable;
       int isNullable = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
       switch (isNullable) {
         case columnNoNulls:
