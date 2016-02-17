@@ -414,9 +414,6 @@ public class Base64 {
   private static int decode4to3(byte[] source, int srcOffset, byte[] destination, int destOffset) {
     // Example: Dk==
     if (source[srcOffset + 2] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      //int outBuff =   ( ( DECODABET[ source[ srcOffset    ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1] ] << 24 ) >>> 12 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
         | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12);
 
@@ -425,10 +422,6 @@ public class Base64 {
     }
     // Example: DkL=
     else if (source[ srcOffset + 3 ] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      //int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-      //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
         | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
         | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6);
@@ -440,11 +433,6 @@ public class Base64 {
     // Example: DkLE
     else {
       try {
-        // Two ways to do the same thing. Don't know which way I like best.
-        //int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-        //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-        //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 )
-        //              | ( ( DECODABET[ source[ srcOffset + 3 ] ] << 24 ) >>> 24 );
         int outBuff =   ((DECODABET[source[srcOffset]] & 0xFF) << 18)
           | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
           | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6)

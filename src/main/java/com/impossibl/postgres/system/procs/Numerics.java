@@ -43,8 +43,6 @@ public class Numerics extends SimpleProcProvider {
 
   private static final short NUMERIC_POS =    (short) 0x0000;
   private static final short NUMERIC_NEG =    (short) 0x4000;
-  //private static final short NUMERIC_SHORT =  (short) 0x8000;
-  //private static final short NUMERIC_NAN =    (short) 0xC000;
   private static final short DEC_DIGITS = 4;
 
   public Numerics() {
