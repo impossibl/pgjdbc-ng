@@ -133,7 +133,7 @@ public class PGArray implements Array {
       new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
     };
 
-    List<Object[]> results = new ArrayList<Object[]>(value.length);
+    List<Object[]> results = new ArrayList<>(value.length);
     for (long c = index, end = index + count; c < end; ++c) {
       results.add(new Object[]{c, value[(int) c - 1]});
     }

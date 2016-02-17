@@ -169,7 +169,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   private boolean logLeaks = true;
   private ReferenceQueue<Object> cleanupQueue = new ReferenceQueue<>();
-  private Set<HousekeeperReference<?>> cleanupReferences = new HashSet<HousekeeperReference<?>>();
+  private Set<HousekeeperReference<?>> cleanupReferences = new HashSet<>();
   private AtomicBoolean cleanupThreadEnabled = new AtomicBoolean(true);
   private Thread cleanupThread = new Thread() {
 
@@ -234,7 +234,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   @Override
   public synchronized <T> Object add(T referent, CleanupRunnable cleanup) {
-    HousekeeperReference<T> ref = new HousekeeperReference<T>(cleanup, referent, cleanupQueue);
+    HousekeeperReference<T> ref = new HousekeeperReference<>(cleanup, referent, cleanupQueue);
     cleanupReferences.add(ref);
     return cleanup;
   }
