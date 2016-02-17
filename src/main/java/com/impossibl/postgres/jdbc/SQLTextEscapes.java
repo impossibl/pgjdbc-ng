@@ -84,7 +84,7 @@ public class SQLTextEscapes {
 
     PieceNode type = getNodeNotOf(escape, 0, WhitespacePiece.class, PieceNode.class);
 
-    Node result = null;
+    Node result;
 
     switch (type.toString().toLowerCase()) {
       case "fn":

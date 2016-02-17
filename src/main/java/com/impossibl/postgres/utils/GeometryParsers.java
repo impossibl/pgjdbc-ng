@@ -317,7 +317,6 @@ public enum GeometryParsers {
       if (s.charAt(pr.pos) != ')') {
         throw new IllegalArgumentException("near " + pr.pos + " in  " + s);
       }
-      ++pos;
     }
     pr.pos = consummeSpace(s, pr.pos, false);
     if (pr.pos < max) {
@@ -582,7 +581,7 @@ public enum GeometryParsers {
 
   private int parseNumber(CharSequence s, int pos) {
     int max = s.length() - 1;
-    boolean dot = false;
+    boolean dot;
     switch (s.charAt(pos)) {
       case '.':
       case '-':

@@ -293,7 +293,7 @@ public class Numerics extends SimpleProcProvider {
     /*
      * Digits before decimal
      */
-    int d = 0;
+    int d;
 
     if (weight < 0) {
       d = weight + 1;
