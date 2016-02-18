@@ -78,7 +78,7 @@ public class Arrays extends SimpleProcProvider {
 
       if (length != -1) {
 
-        ArrayType atype = ((ArrayType)type);
+        ArrayType atype = (ArrayType)type;
 
         //
         //Header
@@ -187,7 +187,7 @@ public class Arrays extends SimpleProcProvider {
 
         int writeStart = buffer.writerIndex();
 
-        ArrayType atype = ((ArrayType)type);
+        ArrayType atype = (ArrayType)type;
         Type elementType = atype.getElementType();
 
         //
@@ -345,7 +345,7 @@ public class Arrays extends SimpleProcProvider {
 
       if (length != 0) {
 
-        ArrayType atype = ((ArrayType)type);
+        ArrayType atype = (ArrayType)type;
 
         instance = readArray(buffer, atype.getDelimeter(), type.unwrap(), context);
       }

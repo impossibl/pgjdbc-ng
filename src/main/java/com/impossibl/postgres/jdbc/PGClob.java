@@ -69,7 +69,7 @@ public class PGClob implements Clob {
       else {
         buffer = lo.read(MAX_BUFFER_SIZE);
         idx = 0;
-        result = (buffer.length > 0);
+        result = buffer.length > 0;
       }
       return result;
     }

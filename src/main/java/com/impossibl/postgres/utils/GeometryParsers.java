@@ -599,7 +599,7 @@ public enum GeometryParsers {
       case '9':
         // looks like a number
         // eat a number
-        dot = (s.charAt(pos) == '.');
+        dot = s.charAt(pos) == '.';
         ++pos;
         while (pos <= max) {
           char c = s.charAt(pos);

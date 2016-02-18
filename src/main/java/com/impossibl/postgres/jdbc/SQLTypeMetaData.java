@@ -212,7 +212,7 @@ class SQLTypeMetaData {
   }
 
   public static int getSQLTypeIndex(int sqlType) {
-    return (((sqlType % 255) + 255) % 255);
+    return (sqlType % 255 + 255) % 255;
   }
 
   private static PrimitiveType[][] sqlToPrimitiveMatrix;

@@ -304,7 +304,7 @@ public class Numerics extends SimpleProcProvider {
       for (d = 0; d <= weight; d++) {
 
         short dig = d < digits.length ? digits[d] : 0;
-        boolean putIt = (d > 0);
+        boolean putIt = d > 0;
 
         for (int b = 1000; b > 1; b /= 10) {
 
