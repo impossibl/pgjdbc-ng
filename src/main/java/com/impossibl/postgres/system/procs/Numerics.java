@@ -308,7 +308,7 @@ public class Numerics extends SimpleProcProvider {
 
           short d1 = (short) (dig / b);
           dig -= d1 * b;
-          putIt |= (d1 > 0);
+          putIt |= d1 > 0;
           if (putIt)
             sb.append((char) (d1 + '0'));
         }

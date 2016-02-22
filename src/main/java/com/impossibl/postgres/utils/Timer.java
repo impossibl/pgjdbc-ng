@@ -38,7 +38,7 @@ public class Timer {
   }
 
   public long getLap() {
-    long lap = (System.currentTimeMillis() - lapStart);
+    long lap = System.currentTimeMillis() - lapStart;
     lapStart = System.currentTimeMillis();
     return lap;
   }
@@ -48,7 +48,7 @@ public class Timer {
   }
 
   public long getTotal() {
-    return (System.currentTimeMillis() - start);
+    return System.currentTimeMillis() - start;
   }
 
   public float getTotalSeconds() {

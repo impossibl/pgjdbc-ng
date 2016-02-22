@@ -182,7 +182,7 @@ public class ISOTimeFormat implements DateTimeFormat {
         microsString = Integer.toString(micros);
 
         // Add leading zeros
-        microsString = zeros.substring(0, (6 - microsString.length())) + microsString;
+        microsString = zeros.substring(0, 6 - microsString.length()) + microsString;
 
         // Truncate trailing zeros
         char[] microsChar = new char[microsString.length()];
@@ -212,7 +212,7 @@ public class ISOTimeFormat implements DateTimeFormat {
         timestampBuf.append(zoneOff);
       }
 
-      return (timestampBuf.toString());
+      return timestampBuf.toString();
     }
 
   }

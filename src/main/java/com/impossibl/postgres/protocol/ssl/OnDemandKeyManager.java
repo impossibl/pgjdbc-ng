@@ -138,7 +138,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
               found = true;
             }
           }
-          return (found ? "user" : null);
+          return found ? "user" : null;
         }
       }
     }
@@ -190,7 +190,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
   @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     String alias = chooseClientAlias(new String[] {keyType}, issuers, (Socket) null);
-    return (alias == null ? new String[] {} : new String[] {alias});
+    return alias == null ? new String[] {} : new String[] {alias};
   }
 
   @Override
