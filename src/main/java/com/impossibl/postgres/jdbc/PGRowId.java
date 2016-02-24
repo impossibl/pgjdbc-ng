@@ -53,8 +53,8 @@ public class PGRowId implements RowId {
   @Override
   public byte[] getBytes() {
     ByteBuf buf = Unpooled.buffer(8);
-    buf.writeInt(tid.block);
-    buf.writeShort(tid.offset);
+    buf.writeInt(tid.getBlock());
+    buf.writeShort(tid.getOffset());
     return buf.array();
   }
 

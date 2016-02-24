@@ -36,11 +36,27 @@ package com.impossibl.postgres.api.data;
  */
 public class Tid {
 
-  public int block;
-  public short offset;
+  private int block;
+  private short offset;
 
   public Tid(int block, short offset) {
     this.block = block;
+    this.offset = offset;
+  }
+
+  public int getBlock() {
+    return block;
+  }
+
+  public void setBlock(int block) {
+    this.block = block;
+  }
+
+  public short getOffset() {
+    return offset;
+  }
+
+  public void setOffset(short offset) {
     this.offset = offset;
   }
 

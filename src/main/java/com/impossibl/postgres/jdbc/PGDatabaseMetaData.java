@@ -1545,14 +1545,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         continue;
       }
 
-      for (int i = 0; i < aclItem.privileges.length(); i++) {
+      for (int i = 0; i < aclItem.getPrivileges().length(); i++) {
 
-        char c = aclItem.privileges.charAt(i);
+        char c = aclItem.getPrivileges().charAt(i);
         if (c != '*') {
 
           String sqlpriv;
           String grantable;
-          if (i < aclItem.privileges.length() - 1 && aclItem.privileges.charAt(i + 1) == '*') {
+          if (i < aclItem.getPrivileges().length() - 1 && aclItem.getPrivileges().charAt(i + 1) == '*') {
             grantable = "YES";
           }
           else {
@@ -1606,13 +1606,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             privileges.put(sqlpriv, usersWithPermission);
           }
 
-          List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.user);
+          List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.getUser());
           if (permissionByGrantor == null) {
             permissionByGrantor = new ArrayList<>();
-            usersWithPermission.put(aclItem.user, permissionByGrantor);
+            usersWithPermission.put(aclItem.getUser(), permissionByGrantor);
           }
 
-          permissionByGrantor.add(new String[] {aclItem.grantor, grantable});
+          permissionByGrantor.add(new String[] {aclItem.getGrantor(), grantable});
 
         }
 
