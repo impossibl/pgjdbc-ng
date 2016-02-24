@@ -100,8 +100,8 @@ public class Tids extends SimpleProcProvider {
         Tid tid = (Tid) val;
 
         buffer.writeInt(6);
-        buffer.writeInt(tid.block);
-        buffer.writeShort(tid.offset);
+        buffer.writeInt(tid.getBlock());
+        buffer.writeShort(tid.getOffset());
       }
 
     }
@@ -155,7 +155,7 @@ public class Tids extends SimpleProcProvider {
 
       Tid tid = (Tid) val;
 
-      buffer.append('(').append(tid.block).append(',').append(tid.offset).append(')');
+      buffer.append('(').append(tid.getBlock()).append(',').append(tid.getOffset()).append(')');
     }
 
   }

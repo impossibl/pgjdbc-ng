@@ -37,9 +37,9 @@ import java.util.regex.Pattern;
 
 public class ACLItem {
 
-  public String user;
-  public String privileges;
-  public String grantor;
+  private String user;
+  private String privileges;
+  private String grantor;
 
   public ACLItem(String user, String privileges, String grantor) {
     super();
@@ -49,6 +49,30 @@ public class ACLItem {
   }
 
   private ACLItem() {
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public void setUser(String user) {
+    this.user = user;
+  }
+
+  public String getPrivileges() {
+    return privileges;
+  }
+
+  public void setPrivileges(String privileges) {
+    this.privileges = privileges;
+  }
+
+  public String getGrantor() {
+    return grantor;
+  }
+
+  public void setGrantor(String grantor) {
+    this.grantor = grantor;
   }
 
   @Override
