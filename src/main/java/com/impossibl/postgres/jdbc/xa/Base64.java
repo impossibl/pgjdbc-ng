@@ -346,7 +346,7 @@ public class Base64 {
    */
   public static String encodeBytes(byte[] source, int off, int len, int options) {
     // Isolate options
-    int dontBreakLines = (options & DONT_BREAK_LINES);
+    int dontBreakLines = options & DONT_BREAK_LINES;
 
     // Else, don't compress. Better not to use streams at all then.
     {
@@ -445,10 +445,10 @@ public class Base64 {
         return 3;
       }
       catch (Exception e) {
-        System.out.println("" + source[srcOffset] + ": " + (DECODABET[source[srcOffset]]));
-        System.out.println("" + source[srcOffset + 1] +  ": " + (DECODABET[source[srcOffset + 1]]));
-        System.out.println("" + source[srcOffset + 2] +  ": " + (DECODABET[source[srcOffset + 2]]));
-        System.out.println("" + source[srcOffset + 3] +  ": " + (DECODABET[source[srcOffset + 3]]));
+        System.out.println(Byte.toString(source[srcOffset]) + ": " + Byte.toString(DECODABET[source[srcOffset]]));
+        System.out.println(Byte.toString(source[srcOffset + 1]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 1]]));
+        System.out.println(Byte.toString(source[srcOffset + 2]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 2]]));
+        System.out.println(Byte.toString(source[srcOffset + 3]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 3]]));
         return -1;
       }
     }
