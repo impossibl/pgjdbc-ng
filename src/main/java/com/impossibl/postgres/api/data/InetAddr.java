@@ -41,6 +41,9 @@ import java.util.BitSet;
 
 public class InetAddr {
 
+  private static final String TOO_MANY_WORDS = "too many words";
+  private static final String INVALID_ADDRESS = "invalid address";
+
   public enum Family {
 
     IPv4(4, 4), IPv6(6, 16);
@@ -140,7 +143,7 @@ public class InetAddr {
   private static Object[] parse4(String ipv4Addr, boolean allowShortNotation) throws IllegalArgumentException {
 
     if ((ipv4Addr == null) || (ipv4Addr.isEmpty())) {
-      throw new IllegalArgumentException("invalid address");
+      throw new IllegalArgumentException(INVALID_ADDRESS);
     }
 
     byte[] dst = new byte[IPv4.getByteSize()];
@@ -201,7 +204,7 @@ public class InetAddr {
 
       }
       else {
-        throw new IllegalArgumentException("invalid address");
+        throw new IllegalArgumentException(INVALID_ADDRESS);
       }
     }
 
@@ -237,7 +240,7 @@ public class InetAddr {
 
     int pc = ipv6Addr.indexOf('%');
     if (pc == srcbLength - 1) {
-      throw new IllegalArgumentException("invalid address");
+      throw new IllegalArgumentException(INVALID_ADDRESS);
     }
 
     if (pc != -1) {
@@ -279,17 +282,17 @@ public class InetAddr {
 
         if (!sawXDigit) {
           if (colonp != -1) {
-            throw new IllegalArgumentException("invalid address");
+            throw new IllegalArgumentException(INVALID_ADDRESS);
           }
           colonp = j;
           continue;
         }
         else if (i == srcbLength) {
-          throw new IllegalArgumentException("invalid address");
+          throw new IllegalArgumentException(INVALID_ADDRESS);
         }
 
         if (j + 2 > IPv6.getByteSize()) {
-          throw new IllegalArgumentException("too many words");
+          throw new IllegalArgumentException(TOO_MANY_WORDS);
         }
 
         dst[j++] = (byte) ((val >> 8) & 0xff);
@@ -343,13 +346,13 @@ public class InetAddr {
         break;
       }
 
-      throw new IllegalArgumentException("invalid address");
+      throw new IllegalArgumentException(INVALID_ADDRESS);
     }
 
     if (sawXDigit) {
 
       if (j + 2 > IPv6.getByteSize()) {
-        throw new IllegalArgumentException("too many words");
+        throw new IllegalArgumentException(TOO_MANY_WORDS);
       }
 
       dst[j++] = (byte) ((val >> 8) & 0xff);
@@ -360,7 +363,7 @@ public class InetAddr {
 
       int n = j - colonp;
       if (j == IPv6.getByteSize()) {
-        throw new IllegalArgumentException("too many words");
+        throw new IllegalArgumentException(TOO_MANY_WORDS);
       }
 
       for (i = 1; i <= n; i++) {

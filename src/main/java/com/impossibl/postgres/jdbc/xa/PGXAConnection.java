@@ -69,6 +69,12 @@ import javax.transaction.xa.Xid;
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
   /**
+   * String constants
+   */
+  private static final String ERROR_ROLLING_BACK_PREPARED_TRANSACTION = "Error rolling back prepared transaction";
+  private static final String TRANSACTION_INTERLEAVING_NOT_IMPLEMENTED = "Transaction interleaving not implemented";
+  private static final String XID_MUST_NOT_BE_NULL = "xid must not be null";
+  /**
    * Underlying physical database connection. It's used for issuing PREPARE TRANSACTION/
    * COMMIT PREPARED/ROLLBACK PREPARED commands.
    */
@@ -173,7 +179,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       throw new PGXAException("Invalid flags", XAException.XAER_INVAL);
 
     if (xid == null)
-      throw new PGXAException("xid must not be null", XAException.XAER_INVAL);
+      throw new PGXAException(XID_MUST_NOT_BE_NULL, XAException.XAER_INVAL);
 
     if (state == STATE_ACTIVE)
       throw new PGXAException("Connection is busy with another transaction", XAException.XAER_PROTO);
@@ -187,13 +193,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // It's ok to join an ended transaction. WebLogic does that.
     if (flags == TMJOIN) {
       if (state != STATE_ENDED)
-        throw new PGXAException("Transaction interleaving not implemented", XAException.XAER_RMERR);
+        throw new PGXAException(TRANSACTION_INTERLEAVING_NOT_IMPLEMENTED, XAException.XAER_RMERR);
 
       if (!xid.equals(currentXid))
-        throw new PGXAException("Transaction interleaving not implemented", XAException.XAER_RMERR);
+        throw new PGXAException(TRANSACTION_INTERLEAVING_NOT_IMPLEMENTED, XAException.XAER_RMERR);
     }
     else if (state == STATE_ENDED)
-      throw new PGXAException("Transaction interleaving not implemented", XAException.XAER_RMERR);
+      throw new PGXAException(TRANSACTION_INTERLEAVING_NOT_IMPLEMENTED, XAException.XAER_RMERR);
 
     if (flags == TMNOFLAGS) {
       try {
@@ -234,7 +240,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       throw new PGXAException("Invalid flags", XAException.XAER_INVAL);
 
     if (xid == null)
-      throw new PGXAException("xid must not be null", XAException.XAER_INVAL);
+      throw new PGXAException(XID_MUST_NOT_BE_NULL, XAException.XAER_INVAL);
 
     if (state != STATE_ACTIVE || !currentXid.equals(xid))
       throw new PGXAException("tried to call end without corresponding start call", XAException.XAER_PROTO);
@@ -364,7 +370,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       debug("rolling back xid = " + xid);
 
     if (xid == null)
-      throw new PGXAException("xid must not be null", XAException.XAER_INVAL);
+      throw new PGXAException(XID_MUST_NOT_BE_NULL, XAException.XAER_INVAL);
 
     // We don't explicitly check precondition 1.
 
@@ -391,13 +397,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       }
     }
     catch (SQLTimeoutException ste) {
-      throw new PGXAException("Error rolling back prepared transaction", ste, XAException.XAER_RMFAIL);
+      throw new PGXAException(ERROR_ROLLING_BACK_PREPARED_TRANSACTION, ste, XAException.XAER_RMFAIL);
     }
     catch (SQLException ex) {
       if ("42704".equals(ex.getSQLState())) {
-        throw new PGXAException("Error rolling back prepared transaction", ex, XAException.XAER_NOTA);
+        throw new PGXAException(ERROR_ROLLING_BACK_PREPARED_TRANSACTION, ex, XAException.XAER_NOTA);
       }
-      throw new PGXAException("Error rolling back prepared transaction", ex, XAException.XAER_RMERR);
+      throw new PGXAException(ERROR_ROLLING_BACK_PREPARED_TRANSACTION, ex, XAException.XAER_RMERR);
     }
   }
 
@@ -407,7 +413,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       debug("committing xid = " + xid + (onePhase ? " (one phase) " : " (two phase)"));
 
     if (xid == null)
-      throw new PGXAException("xid must not be null", XAException.XAER_INVAL);
+      throw new PGXAException(XID_MUST_NOT_BE_NULL, XAException.XAER_INVAL);
 
     if (onePhase)
       commitOnePhase(xid);

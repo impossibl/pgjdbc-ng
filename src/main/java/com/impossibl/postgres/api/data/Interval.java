@@ -100,9 +100,9 @@ public class Interval {
 
       String valueToken;
 
-      value = value.replace('+', ' ').replace('@', ' ');
+      final String changedValue = value.replace('+', ' ').replace('@', ' ');
 
-      StringTokenizer st = new StringTokenizer(value);
+      StringTokenizer st = new StringTokenizer(changedValue);
       while (st.hasMoreTokens()) {
 
         String token = st.nextToken();
