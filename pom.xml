@@ -28,17 +28,17 @@
   POSSIBILITY OF SUCH DAMAGE.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.impossibl.pgjdbc-ng</groupId>
-
   <artifactId>pgjdbc-ng</artifactId>
+  <version>0.7.0-SNAPSHOT</version>
 
-  <version>0.7-SNAPSHOT</version>
-
-  <packaging>jar</packaging>
+  <!-- to generate OSGi bundle (just a JAR) -->
+  <packaging>bundle</packaging>
 
   <parent>
     <groupId>org.sonatype.oss</groupId>
@@ -50,8 +50,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Checkstyle configuration -->
     <linkXRef>false</linkXRef>
-    <project.osgi.exports>com.impossibl.postgres.jdbc,com.impossibl.postgres.jdbc.xa,com.impossibl.postgres.api.data,com.impossibl.postgres.api.jdbc</project.osgi.exports>
-    <project.osgi.imports>io.netty.buffer,io.netty.channel,io.netty.channel.nio,io.netty.channel.socket,io.netty.channel.socket.nio,io.netty.bootstrap,io.netty.util,io.netty.util.concurrent,io.netty.handler.codec,io.netty.handler.ssl</project.osgi.imports>
   </properties>
 
   <prerequisites>
@@ -75,141 +73,120 @@
   <build>
     <plugins>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-compiler-plugin</artifactId>
-	<version>3.2</version>
-	<configuration>
-	  <source>1.7</source>
-	  <target>1.7</target>
-	</configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.2</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
       </plugin>
       <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-source-plugin</artifactId>
-    <version>2.4</version>
-    <executions>
-      <execution>
-        <id>attach-sources</id>
-        <goals>
-          <goal>jar</goal>
-          <goal>test-jar</goal>
-        </goals>
-      </execution>
-    </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.4</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
-    <groupId>org.codehaus.mojo</groupId>
-	<artifactId>build-helper-maven-plugin</artifactId>
-	<version>1.9.1</version>
-	<executions>
-	  <execution>
-	    <id>parse-version</id>
-	    <goals>
-	      <goal>parse-version</goal>
-	    </goals>
-	  </execution>
-	</executions>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.9.1</version>
+        <executions>
+          <execution>
+            <id>parse-version</id>
+            <goals>
+              <goal>parse-version</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-shade-plugin</artifactId>
-	<version>2.3</version>
-	<executions>
-	  <execution>
-	    <phase>package</phase>
-	    <goals>
-	      <goal>shade</goal>
-	    </goals>
-	    <configuration>
-	      <minimizeJar>true</minimizeJar>
-	      <shadedArtifactAttached>true</shadedArtifactAttached>
-	      <shadedClassifierName>complete</shadedClassifierName>
-	      <transformers>
-		<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-		  <manifestEntries>
-		    <Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
-		    <Bundle-Version>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</Bundle-Version>
-		    <Export-Package>${project.osgi.exports}</Export-Package>
-		    <Import-Package>${project.osgi.imports}</Import-Package>
-		  </manifestEntries>
-		</transformer>
-	      </transformers>
-	    </configuration>
-	  </execution>
-	</executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <minimizeJar>true</minimizeJar>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>complete</shadedClassifierName>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-surefire-plugin</artifactId>
-	<version>2.18.1</version>
-	<configuration>
-	  <excludes>
-	    <exclude>**/PerformanceTest.java</exclude>
-	    <exclude>**/GiantBlobTest.java</exclude>
-	    <exclude>**/SSL*.java</exclude>
-	    <exclude>**/ServerDisconnectTest.java</exclude>
-	  </excludes>
-	</configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.18.1</version>
+        <configuration>
+          <excludes>
+            <exclude>**/PerformanceTest.java</exclude>
+            <exclude>**/GiantBlobTest.java</exclude>
+            <exclude>**/SSL*.java</exclude>
+            <exclude>**/ServerDisconnectTest.java</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-checkstyle-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
+      <!-- to generate the OSGi bundle -->
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-jar-plugin</artifactId>
-	<version>2.5</version>
-	<executions>
-	  <execution>
-	    <goals>
-	      <goal>jar</goal>
-	    </goals>
-	    <configuration>
-	      <archive>
-		<manifestEntries>
-		  <Bundle-SymbolicName>com.impossibl.postgres</Bundle-SymbolicName>
-		  <Bundle-Version>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</Bundle-Version>
-		  <Export-Package>${project.osgi.exports}</Export-Package>
-		  <Import-Package>${project.osgi.imports}</Import-Package>
-		</manifestEntries>
-	      </archive>
-	      <forceCreation>true</forceCreation>
-	    </configuration>
-	  </execution>
-	  <execution>
-	    <id>test-manifest.mf</id>
-	    <goals>
-	      <goal>test-jar</goal>
-	    </goals>
-	  </execution>
-	</executions>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>3.0.1</version>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+            <!-- do not import ourself -->
+            <Import-Package>
+              !com.impossibl.postgres*,
+              io.netty.*;version="[4.0,4.1)",
+              *
+            </Import-Package>
+          </instructions>
+        </configuration>
       </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
-	<!-- Checkstyle -->
-	<plugin>
-	  <groupId>org.apache.maven.plugins</groupId>
-	  <artifactId>maven-checkstyle-plugin</artifactId>
-	  <version>2.14</version>
-	  <configuration>
-	    <configLocation>src/support/checkstyle.xml</configLocation>
-	    <sourceDirectory>.</sourceDirectory>
-	    <consoleOutput>true</consoleOutput>
-	    <failsOnError>true</failsOnError>
-	    <useFile />
-	    <excludes>src/main/java/com/impossibl/postgres/utils/guava/**</excludes>
-	  </configuration>
-	  <executions>
-	    <execution>
-	      <id>check-style</id>
-	      <phase>compile</phase>
-	      <goals>
-		<goal>checkstyle</goal>
-	      </goals>
-	    </execution>
-	  </executions>
-	</plugin>
+        <!-- Checkstyle -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.14</version>
+          <configuration>
+            <configLocation>src/support/checkstyle.xml</configLocation>
+            <sourceDirectory>.</sourceDirectory>
+            <consoleOutput>true</consoleOutput>
+            <failsOnError>true</failsOnError>
+            <useFile/>
+            <excludes>src/main/java/com/impossibl/postgres/utils/guava/**</excludes>
+          </configuration>
+          <executions>
+            <execution>
+              <id>check-style</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>checkstyle</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -219,7 +196,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-	<version>3.0.1</version>
+        <version>3.0.1</version>
         <configuration>
           <effort>Max</effort>
           <threshold>Low</threshold>
@@ -230,10 +207,11 @@
       </plugin>
     </plugins>
   </reporting>
-  
+
   <name>PGJDBC-NG</name>
   <url>http://impossibl.github.io/pgjdbc-ng/</url>
-  <description>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres. </description>
+  <description>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres.
+  </description>
   <inceptionYear>2013</inceptionYear>
   <organization>
     <name>impossibl.com</name>
