@@ -45,17 +45,26 @@ import com.impossibl.postgres.jdbc.SQLTextTree.WhitespacePiece;
 
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SQLText {
 
+  private static final Set<Character> ESCAPE_STRING_SPECIFIERS = new HashSet<>(Arrays.asList('E', 'e'));
+
   private MultiStatementNode root;
 
   public SQLText(String sqlText) throws ParseException {
-    root = parse(sqlText);
+    this(sqlText, true);
+  }
+
+  public SQLText(String sqlText, boolean standardConformingStrings) throws ParseException {
+    root = parse(sqlText, standardConformingStrings);
   }
 
   public SQLText(MultiStatementNode copyRoot) {
@@ -97,7 +106,7 @@ public class SQLText {
     return root.toString();
   }
 
-  public static MultiStatementNode parse(final String sql) throws ParseException {
+  public static MultiStatementNode parse(final String sql, boolean standardConformingStrings) throws ParseException {
 
     Deque<CompositeNode> parents = new LinkedList<>();
 
@@ -113,7 +122,7 @@ public class SQLText {
         char c = sql.charAt(ndx);
         switch (c) {
           case '\'':
-            ndx = consumeStringLiteral(sql, ndx + 1, parents.peek());
+            ndx = consumeStringLiteral(sql, ndx + 1, parents.peek(), standardConformingStrings);
             continue;
           case '"':
             ndx = consumeQuotedIdentifier(sql, ndx, parents.peek());
@@ -312,12 +321,15 @@ public class SQLText {
     return ndx;
   }
 
-  private static int consumeStringLiteral(final String sql, final int start, final CompositeNode parent) throws ParseException {
+  private static int consumeStringLiteral(final String sql, final int start, final CompositeNode parent, final boolean standardConformingStrings) throws ParseException {
+    final char charBeforeLiteral = sql.charAt(start - 2);
+    final boolean standard = standardConformingStrings && !ESCAPE_STRING_SPECIFIERS.contains(charBeforeLiteral);
+
     int ndx = start;
     do {
       char c = sql.charAt(ndx);
       if (c == '\'') {
-        if (sql.charAt(ndx - 1) == '\\') {  // look-behind
+        if (!standard && sql.charAt(ndx - 1) == '\\') {  // look-behind
           // skip escaped
         }
         else {

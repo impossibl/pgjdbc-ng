@@ -304,13 +304,13 @@ public class PreparedStatementTest {
   @Test
   public void testSingleQuotes() throws SQLException {
     String[] testStrings = new String[] {"bare ? question mark", "quoted \\' single quote", "doubled '' single quote", "octal \\060 constant", "escaped \\? question mark",
-      "double \\\\ backslash", "double \" quote", };
+      "double \\\\ backslash", "double \" quote", "backslash \\\\\\' single quote"};
 
     String[] testStringsStdConf = new String[] {"bare ? question mark", "quoted '' single quote", "doubled '' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", };
+      "double \\ backslash", "double \" quote", "backslash \\'' single quote"};
 
     String[] expected = new String[] {"bare ? question mark", "quoted ' single quote", "doubled ' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", };
+      "double \\ backslash", "double \" quote", "backslash \\' single quote"};
 
     boolean oldStdStrings = TestUtil.getStandardConformingStrings(conn);
     Statement stmt = conn.createStatement();
