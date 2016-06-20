@@ -1000,7 +1000,7 @@ class SQLTypeUtils {
         dst = Array.newInstance(targetType.getComponentType(), count);
 
         for (int i = 0; i < count; ++i) {
-          Array.set(dst, i, Array.get(val, i));
+          Array.set(dst, i, Array.get(val, i + index));
         }
       }
       else {
