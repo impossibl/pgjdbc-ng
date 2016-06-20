@@ -17,6 +17,7 @@ com.impossibl.postgres.system.procs.Int2s
 com.impossibl.postgres.system.procs.Int4s
 com.impossibl.postgres.system.procs.Int8s
 com.impossibl.postgres.system.procs.Intervals
+com.impossibl.postgres.system.procs.Jsons
 com.impossibl.postgres.system.procs.Lines
 com.impossibl.postgres.system.procs.LSegs
 com.impossibl.postgres.system.procs.MacAddrs

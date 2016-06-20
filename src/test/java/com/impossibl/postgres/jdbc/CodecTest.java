@@ -348,6 +348,8 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
+      {"json", "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}"},
+      {"jsonb", "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}"},
       {"aclitem", new ACLItem(TestUtil.getUser(), "rw", TestUtil.getUser())},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},

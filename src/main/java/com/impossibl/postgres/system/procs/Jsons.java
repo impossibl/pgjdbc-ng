@@ -29,32 +29,26 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.types.Modifiers.LENGTH;
+import static com.impossibl.postgres.system.procs.Strings.TEXT_DECODER;
+import static com.impossibl.postgres.system.procs.Strings.TEXT_ENCODER;
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import static java.lang.Math.min;
 
 import io.netty.buffer.ByteBuf;
 
-public class Strings extends SimpleProcProvider {
 
-  public static final BinDecoder BINARY_DECODER = new BinDecoder();
-  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
-  public static final TxtDecoder TEXT_DECODER = new TxtDecoder();
-  public static final TxtEncoder TEXT_ENCODER = new TxtEncoder();
 
-  public Strings() {
-    super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(), "text", "varchar",
-            "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
+
+
+public class Jsons extends SimpleProcProvider {
+
+  public Jsons() {
+    super(TEXT_ENCODER, TEXT_DECODER, new BinEncoder(), new BinDecoder(), "jsonb_");
   }
 
   public static class BinDecoder extends BinaryDecoder {
@@ -76,6 +70,17 @@ public class Strings extends SimpleProcProvider {
       if (length == -1) {
         return null;
       }
+
+      if (length < 5) {
+        throw new IOException("Invalid length for jsonb");
+      }
+
+      int version = buffer.readByte();
+      if (version != 1) {
+        throw new IOException("Invalid version for jsonb");
+      }
+
+      length -= 1;
 
       byte[] bytes;
 
@@ -122,7 +127,9 @@ public class Strings extends SimpleProcProvider {
 
         byte[] bytes = toBytes(val, context);
 
-        buffer.writeInt(bytes.length);
+        buffer.writeInt(bytes.length + 1);
+
+        buffer.writeByte(1);
 
         buffer.writeBytes(bytes);
       }
@@ -131,71 +138,7 @@ public class Strings extends SimpleProcProvider {
 
     @Override
     public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 4 + toBytes(val, context).length;
-    }
-
-  }
-
-  public static class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return String;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return String.class;
-    }
-
-    @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return buffer.toString();
-    }
-
-  }
-
-  public static class TxtEncoder extends TextEncoder {
-
-    @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return String;
-    }
-
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      if (val instanceof String) {
-        buffer.append((String)val);
-      }
-      else if (val.getClass() == byte[].class) {
-        buffer.append(new String((byte[]) val, context.getCharset()));
-      }
-      else {
-        throw new IOException(val.getClass() + " cannot be encoded as a String");
-      }
-    }
-
-  }
-
-  static class ModParser implements Modifiers.Parser {
-
-    @Override
-    public Map<String, Object> parse(long mod) {
-
-      Map<String, Object> mods = new HashMap<>();
-
-      if (mod > 4) {
-        mods.put(LENGTH, (int)(mod - 4));
-      }
-
-      return mods;
+      return val == null ? 4 : 5 + toBytes(val, context).length;
     }
 
   }

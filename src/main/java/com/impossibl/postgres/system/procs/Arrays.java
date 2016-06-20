@@ -33,7 +33,6 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.Type.Codec;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -44,6 +43,7 @@ import java.util.List;
 import static java.lang.reflect.Array.newInstance;
 
 import io.netty.buffer.ByteBuf;
+
 
 /*
  * Array codec
@@ -347,40 +347,60 @@ public class Arrays extends SimpleProcProvider {
 
         ArrayType atype = (ArrayType)type;
 
-        instance = readArray(buffer, atype.getDelimeter(), type.unwrap(), context);
+        List<Object> elements = new ArrayList<>();
+
+        int start = 0;
+        while (buffer.charAt(start) != '{') {
+          start++;
+        }
+
+        buffer = buffer.subSequence(start, buffer.length());
+
+        readArray(buffer, 0, atype.getDelimeter(), type.unwrap(), context, elements);
+
+        instance = elements.toArray();
       }
 
       return instance;
     }
 
-    Object readArray(CharSequence data, char delim, Type type, Context context) throws IOException {
+    int readArray(CharSequence data, int start, char delim, Type type, Context context, List<Object> elements) throws IOException {
 
-      if (data.length() < 2 || (data.charAt(0) != '{' && data.charAt(data.length() - 1) != '}')) {
-        return type.getCodec(Format.Text).decoder.decode(type, null, null, data, context);
+      if (data.equals("{}")) {
+        return start + 1;
       }
 
-      data = data.subSequence(1, data.length() - 1);
-
-      List<Object> elements = new ArrayList<>();
       StringBuilder elementTxt = new StringBuilder();
 
       boolean string = false;
-      int opened = 0;
       int c;
-      for (c = 0; c < data.length(); ++c) {
+      int len = data.length();
 
+    scan:
+      for (c = start + 1; c < len; ++c) {
         char ch = data.charAt(c);
         switch (ch) {
           case '{':
-            if (!string)
-              opened++;
-            else
+            if (!string) {
+              List<Object> subElements = new ArrayList<>();
+              c = readArray(data, c, delim, type, context, subElements);
+              elements.add(subElements.toArray());
+
+              if (c < data.length() - 1) {
+                if (data.charAt(c + 1) == ',') ++c;
+                else if (data.charAt(c + 1) == '}') break scan;
+              }
+            }
+            else {
               elementTxt.append(ch);
+            }
             break;
 
           case '}':
-            if (!string)
-              opened--;
+            if (!string) {
+              elements.add(decode(elementTxt.toString(), type, context));
+              break scan;
+            }
             else
               elementTxt.append(ch);
             break;
@@ -396,22 +416,19 @@ public class Arrays extends SimpleProcProvider {
             break;
 
           case '\\':
-            if (string) {
-              ++c;
-              if (c < data.length())
-                elementTxt.append(data.charAt(c));
-            }
+            ++c;
+            if (c < data.length())
+              elementTxt.append(data.charAt(c));
             break;
 
           default:
 
-            if (ch == delim && opened == 0 && !string) {
+            if (ch == delim && !string) {
 
-              Object element = readArray(elementTxt.toString(), delim, type, context);
-
-              elements.add(element);
-
-              elementTxt = new StringBuilder();
+              if (elementTxt.length() > 0) {
+                elements.add(decode(elementTxt.toString(), type, context));
+                elementTxt = new StringBuilder();
+              }
             }
             else {
 
@@ -422,10 +439,14 @@ public class Arrays extends SimpleProcProvider {
 
       }
 
-      Object finalElement = readArray(elementTxt.toString(), delim, type, context);
-      elements.add(finalElement);
+      return c;
+    }
 
-      return elements.toArray();
+    Object decode(String elementTxt, Type type, Context context) throws IOException {
+      if (elementTxt.equals("NULL")) {
+        return null;
+      }
+      return type.getCodec(Format.Text).decoder.decode(type, null, null, elementTxt, context);
     }
 
   }
@@ -445,6 +466,11 @@ public class Arrays extends SimpleProcProvider {
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
+      if (val == null) {
+        buffer.append("");
+        return;
+      }
+
       ArrayType arrayType = (ArrayType) type;
 
       Type elementType = arrayType.getElementType();
@@ -455,7 +481,7 @@ public class Arrays extends SimpleProcProvider {
 
     void writeArray(StringBuilder out, char delim, Type type, Object val, Context context) throws IOException {
 
-      Codec.Encoder encoder = type.getCodec(Format.Text).encoder;
+      TextEncoder encoder = (TextEncoder) type.getCodec(Format.Text).encoder;
 
       out.append('{');
 
@@ -465,17 +491,26 @@ public class Arrays extends SimpleProcProvider {
         Object elemVal = Array.get(val, c);
         StringBuilder elemOut = new StringBuilder();
 
-        encoder.encode(type, elemOut, elemVal, context);
-
-        String elemStr = elemOut.toString();
-
-        if (needsQuotes(elemStr, delim)) {
-          elemStr = elemStr.replace("\\", "\\\\");
-          elemStr = elemStr.replace("\"", "\\\"");
-          out.append('\"').append(elemStr).append('\"');
+        if (elemVal == null) {
+          out.append("NULL");
+        }
+        else if (elemVal.getClass().isArray() && elemVal.getClass() != byte[].class) {
+          writeArray(out, delim, type, elemVal, context);
         }
         else {
-          out.append(elemStr);
+          encoder.encode(type, elemOut, elemVal, context);
+
+          String elemStr = elemOut.toString();
+
+          if (needsQuotes(elemStr, delim)) {
+            elemStr = elemStr.replace("\\", "\\\\");
+            elemStr = elemStr.replace("\"", "\\\"");
+            out.append('\"').append(elemStr).append('\"');
+          }
+          else {
+            out.append(elemStr);
+          }
+
         }
 
         if (c < len - 1)
