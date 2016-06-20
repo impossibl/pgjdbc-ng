@@ -1212,8 +1212,7 @@ class SQLTypeUtils {
     return new SQLException("Coercion from 'String' to '" + dstType.getName() + "' failed. Parser error near '" + errorText + "'");
   }
 
-  public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException
-  {
+  public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException {
     try {
       StringBuilder buffer = new StringBuilder();
       type.getCodec(Format.Text).encoder.encode(type, buffer, val, context);
