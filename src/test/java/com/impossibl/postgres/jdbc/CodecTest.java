@@ -349,7 +349,24 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
-      {"json", "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}"},
+      {"json", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) throws SQLException {
+
+          try (Statement stmt = conn.createStatement()) {
+            try {
+              stmt.execute("SELECT '{}'::json");
+            }
+            catch (Exception e) {
+              throw new SQLFeatureNotSupportedException("json not supported");
+            }
+          }
+
+          return "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}";
+        }
+
+      } },
       {"jsonb", new Maker() {
 
         @Override
@@ -360,7 +377,7 @@ public class CodecTest {
               stmt.execute("SELECT '{}'::jsonb");
             }
             catch (Exception e) {
-              throw new SQLFeatureNotSupportedException("jsonb not support");
+              throw new SQLFeatureNotSupportedException("jsonb not supported");
             }
           }
 
