@@ -71,7 +71,7 @@ public class Jsons extends SimpleProcProvider {
         return null;
       }
 
-      if (length < 5) {
+      if (length < 1) {
         throw new IOException("Invalid length for jsonb");
       }
 
