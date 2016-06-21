@@ -53,6 +53,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -349,7 +350,24 @@ public class CodecTest {
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
       {"json", "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}"},
-      {"jsonb", "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}"},
+      {"jsonb", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) throws SQLException {
+
+          try (Statement stmt = conn.createStatement()) {
+            try {
+              stmt.execute("SELECT '{}'::jsonb");
+            }
+            catch (Exception e) {
+              throw new SQLFeatureNotSupportedException("jsonb not support");
+            }
+          }
+
+          return "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}";
+        }
+
+      } },
       {"aclitem", new ACLItem(TestUtil.getUser(), "rw", TestUtil.getUser())},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},
