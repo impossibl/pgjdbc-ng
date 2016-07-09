@@ -41,6 +41,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
@@ -401,13 +402,15 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   SQLText parseSQL(String sqlText) throws SQLException {
 
     try {
+      final boolean standardConformingStrings = getSetting(Settings.STANDARD_CONFORMING_STRINGS, false);
+
       if (parsedSqlCache == null) {
-        return new SQLText(sqlText);
+        return new SQLText(sqlText, standardConformingStrings);
       }
 
       SQLText parsedSql = parsedSqlCache.get(sqlText);
       if (parsedSql == null) {
-        parsedSql = new SQLText(sqlText);
+        parsedSql = new SQLText(sqlText, standardConformingStrings);
         parsedSqlCache.put(sqlText, parsedSql);
       }
 
