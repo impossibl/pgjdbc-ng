@@ -643,6 +643,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     shutdown();
 
+    notificationListeners.clear();
+
     if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
       housekeeper.release();
