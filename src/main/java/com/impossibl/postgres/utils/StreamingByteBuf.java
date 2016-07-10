@@ -40,7 +40,6 @@ import java.nio.channels.ScatteringByteChannel;
 import io.netty.buffer.AbstractReferenceCountedByteBuf;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.DuplicatedByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 
@@ -353,7 +352,7 @@ public class StreamingByteBuf extends AbstractReferenceCountedByteBuf {
 
   @Override
   public ByteBuf duplicate() {
-    return new DuplicatedByteBuf(this);
+    return super.duplicate();
   }
 
   @Override
