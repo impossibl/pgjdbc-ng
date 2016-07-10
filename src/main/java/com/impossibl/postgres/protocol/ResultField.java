@@ -39,7 +39,7 @@ public class ResultField {
 
   public String name;
   public int relationId;
-  public short relationAttributeNumber;
+  public int relationAttributeNumber;
   public TypeRef typeRef;
   public short typeLength;
   public int typeModifier;

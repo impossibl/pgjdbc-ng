@@ -98,7 +98,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
 
-      int itemCount = buffer.readShort();
+      int itemCount = buffer.readUnsignedShort();
 
       Object rowInstance = createInstance(rowType, itemCount);
 

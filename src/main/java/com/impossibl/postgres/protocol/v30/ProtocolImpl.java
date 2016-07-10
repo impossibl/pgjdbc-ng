@@ -951,7 +951,7 @@ public class ProtocolImpl implements Protocol {
 
     Context context = getContext();
 
-    short paramCount = buffer.readShort();
+    int paramCount = buffer.readUnsignedShort();
 
     TypeRef[] paramTypes = new TypeRef[paramCount];
 
@@ -972,7 +972,7 @@ public class ProtocolImpl implements Protocol {
 
     Registry registry = context.getRegistry();
 
-    short fieldCount = buffer.readShort();
+    int fieldCount = buffer.readUnsignedShort();
 
     ResultField[] fields = new ResultField[fieldCount];
 
@@ -981,11 +981,11 @@ public class ProtocolImpl implements Protocol {
       ResultField field = new ResultField();
       field.name = readCString(buffer, context.getCharset());
       field.relationId = buffer.readInt();
-      field.relationAttributeNumber = buffer.readShort();
+      field.relationAttributeNumber = buffer.readUnsignedShort();
       field.typeRef = TypeRef.from(buffer.readInt(), registry);
       field.typeLength = buffer.readShort();
       field.typeModifier = buffer.readInt();
-      field.format = ResultField.Format.values()[buffer.readShort()];
+      field.format = ResultField.Format.values()[buffer.readUnsignedShort()];
 
       fields[c] = field;
     }
