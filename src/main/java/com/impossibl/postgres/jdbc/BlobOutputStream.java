@@ -90,6 +90,8 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void close() throws IOException {
+    if (lo == null) return;
+
     flush();
     try {
       lo.close();
