@@ -193,6 +193,24 @@ public class TestUtil {
     }
   }
 
+  /*
+   * Helper - creates a role for use by a test
+   */
+  public static void createRole(Connection con, String role, String attrs) throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      dropRole(con, role);
+
+      // Now create the table
+      String sql = "CREATE ROLE " + role + " " + attrs;
+
+      st.execute(sql);
+    }
+    finally {
+      st.close();
+    }
+  }
+
   /**
    * Helper creates a temporary table
    *
@@ -276,6 +294,20 @@ public class TestUtil {
       // transaction then we've got trouble
       if (!con.getAutoCommit())
         throw ex;
+    }
+    finally {
+      stmt.close();
+    }
+  }
+
+  /*
+   * Helper - drops a role
+   */
+  public static void dropRole(Connection con, String role) throws SQLException {
+    Statement stmt = con.createStatement();
+    try {
+      String sql = "DROP ROLE IF EXISTS " + role;
+      stmt.executeUpdate(sql);
     }
     finally {
       stmt.close();
