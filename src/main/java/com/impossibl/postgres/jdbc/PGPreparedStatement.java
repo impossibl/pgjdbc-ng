@@ -553,7 +553,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromDate(x, zone), Types.DATE);
+    set(parameterIndex, x != null ? Instants.fromDate(x, zone) : null, Types.DATE);
   }
 
   @Override
@@ -562,7 +562,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromTime(x, zone), Types.TIME);
+    set(parameterIndex, x != null ? Instants.fromTime(x, zone) : null, Types.TIME);
   }
 
   @Override
@@ -571,7 +571,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromTimestamp(x, zone), Types.TIMESTAMP);
+    set(parameterIndex, x != null ? Instants.fromTimestamp(x, zone) : null, Types.TIMESTAMP);
   }
 
   @Override

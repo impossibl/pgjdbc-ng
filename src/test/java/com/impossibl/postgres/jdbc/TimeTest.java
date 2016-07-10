@@ -225,6 +225,17 @@ public class TimeTest {
     ps.close();
   }
 
+  @Test
+  public void testSetNull() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"))) {
+        ps.setTime(1, null);
+        ps.execute();
+      }
+    }
+
+  }
+
   /*
    * Helper for the TimeTests. It tests what should be in the db
    */
