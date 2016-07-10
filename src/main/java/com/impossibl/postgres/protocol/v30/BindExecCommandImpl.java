@@ -97,31 +97,28 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-      try {
-        int itemCount = buffer.readShort();
 
-        Object rowInstance = createInstance(rowType, itemCount);
+      int itemCount = buffer.readShort();
 
-        for (int c = 0; c < itemCount; ++c) {
+      Object rowInstance = createInstance(rowType, itemCount);
 
-          ResultField field = resultBatch.fields.get(c);
+      for (int c = 0; c < itemCount; ++c) {
 
-          Type fieldType = field.typeRef.get();
+        ResultField field = resultBatch.fields.get(c);
 
-          Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
+        Type fieldType = field.typeRef.get();
 
-          Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
+        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
 
-          resultSetters.get(c).set(rowInstance, fieldVal);
-        }
+        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
 
-        @SuppressWarnings("unchecked")
-        List<Object> res = (List<Object>) resultBatch.results;
-        res.add(rowInstance);
+        resultSetters.get(c).set(rowInstance, fieldVal);
       }
-      finally {
-        buffer.release();
-      }
+
+      @SuppressWarnings("unchecked")
+      List<Object> res = (List<Object>) resultBatch.results;
+      res.add(rowInstance);
+
     }
 
     @Override
