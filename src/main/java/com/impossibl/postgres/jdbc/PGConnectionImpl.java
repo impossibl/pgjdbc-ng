@@ -1191,7 +1191,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       throw new SQLException("Invalid type for struct");
     }
 
-    return new PGStruct(this, (CompositeType)type, attributes);
+    CompositeType compositeType = (CompositeType) type;
+    return new PGStruct(this, type.getName(), compositeType.getAttributesTypes(), attributes);
   }
 
   @Override

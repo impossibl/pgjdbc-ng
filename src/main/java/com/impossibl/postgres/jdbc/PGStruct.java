@@ -28,8 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
+import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
 import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
@@ -37,29 +36,31 @@ import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class PGStruct implements Struct {
 
   PGConnectionImpl connection;
-  CompositeType type;
-  Object[] values;
+  String typeName;
+  Type[] attributeTypes;
+  Object[] attributeValues;
 
-  public PGStruct(PGConnectionImpl connection, CompositeType type, Object[] values) {
+  public PGStruct(PGConnectionImpl connection, String typeName, Type[] attributeTypes, Object[] values) {
     super();
     this.connection = connection;
-    this.type = type;
-    this.values = values;
+    this.typeName = typeName;
+    this.attributeTypes = attributeTypes;
+    this.attributeValues = values;
   }
 
-  public CompositeType getType() {
-    return type;
+  public Type[] getAttributeTypes() {
+    return attributeTypes;
   }
 
   @Override
   public String getSQLTypeName() throws SQLException {
-    return type.getName();
+    return typeName;
   }
 
   @Override
@@ -71,49 +72,34 @@ public class PGStruct implements Struct {
   @Override
   public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
 
-    Object[] newValues = new Object[values.length];
+    Object[] newValues = new Object[attributeValues.length];
 
-    List<Attribute> attrs = type.getAttributes();
+    for (int c = 0; c < attributeTypes.length; c++) {
 
-    for (int c = 0; c < attrs.size(); c++) {
+      Type attrType = attributeTypes[c];
 
-      Attribute attr = attrs.get(c);
+      Class<?> targetType = mapGetType(attrType, map, connection);
 
-      Class<?> targetType = mapGetType(attr.type, map, connection);
-
-      newValues[c] = coerce(values[c], attr.type, targetType, map, connection);
+      newValues[c] = coerce(attributeValues[c], attrType, targetType, map, connection);
     }
 
     return newValues;
   }
 
   @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    result = prime * result + Arrays.hashCode(values);
-    return result;
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PGStruct pgStruct = (PGStruct) o;
+    return Objects.equals(connection, pgStruct.connection) &&
+        Objects.equals(typeName, pgStruct.typeName) &&
+        Arrays.equals(attributeTypes, pgStruct.attributeTypes) &&
+        Arrays.equals(attributeValues, pgStruct.attributeValues);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    PGStruct other = (PGStruct) obj;
-    if (type == null) {
-      if (other.type != null)
-        return false;
-    }
-    else if (!type.equals(other.type))
-      return false;
-    if (!Arrays.equals(values, other.values))
-      return false;
-    return true;
+  public int hashCode() {
+    return Objects.hash(connection, typeName, attributeTypes, attributeValues);
   }
 
 }

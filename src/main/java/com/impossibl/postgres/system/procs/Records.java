@@ -34,6 +34,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.PsuedoType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 
@@ -67,7 +68,18 @@ public class Records extends SimpleProcProvider {
     @Override
     public Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
 
-      CompositeType compType = (CompositeType) type;
+      CompositeType compType;
+      if (type instanceof CompositeType) {
+        compType = (CompositeType) type;
+      }
+      else if (type instanceof PsuedoType && type.getName().equals("record")) {
+        compType = null;
+      }
+      else {
+        throw new IOException("Unsupported type for Record decode");
+      }
+
+      List<Type> attributeTypes = new ArrayList<>();
 
       Record record = null;
 
@@ -83,13 +95,18 @@ public class Records extends SimpleProcProvider {
 
         for (int c = 0; c < itemCount; ++c) {
 
-          Attribute attribute = compType.getAttribute(c + 1);
 
           Type attributeType = context.getRegistry().loadType(buffer.readInt());
+          attributeTypes.add(attributeType);
 
-          if (attributeType.getId() != attribute.type.getId()) {
+          if (compType != null) {
 
-            context.refreshType(attributeType.getId());
+            Attribute attribute = compType.getAttribute(c + 1);
+            if (attributeType.getId() != attribute.type.getId()) {
+
+              context.refreshType(attributeType.getId());
+            }
+
           }
 
           Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, null, null, buffer, context);
@@ -101,7 +118,7 @@ public class Records extends SimpleProcProvider {
           throw new IllegalStateException();
         }
 
-        record = new Record(compType, attributeVals);
+        record = new Record(type.getName(), attributeTypes.toArray(new Type[attributeTypes.size()]), attributeVals);
       }
 
       return record;
@@ -132,7 +149,7 @@ public class Records extends SimpleProcProvider {
 
         Record record = (Record) val;
 
-        Object[] attributeVals = record.getValues();
+        Object[] attributeVals = record.getAttributeValues();
 
         CompositeType compType = (CompositeType) type;
 
@@ -166,7 +183,7 @@ public class Records extends SimpleProcProvider {
 
         Record record = (Record) val;
 
-        Object[] attributeVals = record.getValues();
+        Object[] attributeVals = record.getAttributeValues();
 
         CompositeType compType = (CompositeType) type;
 
@@ -218,7 +235,7 @@ public class Records extends SimpleProcProvider {
         instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
       }
 
-      return new Record((CompositeType)type, instance);
+      return new Record(type.getName(), ((CompositeType)type).getAttributesTypes(), instance);
     }
 
     Object readValue(CharSequence data, Type type, Context context) throws IOException {
@@ -337,7 +354,7 @@ public class Records extends SimpleProcProvider {
 
       out.append('(');
 
-      Object[] vals = val.getValues();
+      Object[] vals = val.getAttributeValues();
 
       for (int c = 0; c < vals.length; ++c) {
 
