@@ -1021,6 +1021,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     }, true);
 
+    if (parameterCount[0] > 0xffff) {
+      throw new PGSQLSimpleException("Too many parameters specified: Max of 65535 allowed");
+    }
+
     PGPreparedStatement statement =
         new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0], cursorName);
 

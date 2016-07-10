@@ -66,7 +66,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
 
-      int fieldCount = buffer.readShort();
+      int fieldCount = buffer.readUnsignedShort();
 
       Object[] rowInstance = new Object[fieldCount];
 
