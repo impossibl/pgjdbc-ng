@@ -48,6 +48,7 @@ public class BlobInputStream extends InputStream {
 
   @Override
   public int read() throws IOException {
+    checkClosed();
 
     if (pos >= buf.length) {
       readNextRegion();
@@ -58,6 +59,8 @@ public class BlobInputStream extends InputStream {
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
+    checkClosed();
+
     if (b == null) {
       throw new NullPointerException();
     }
@@ -96,6 +99,12 @@ public class BlobInputStream extends InputStream {
     }
     catch (SQLException e) {
       throw new IOException(e);
+    }
+  }
+
+  private void checkClosed() throws IOException {
+    if (lo == null) {
+      throw new IOException("Stream is closed");
     }
   }
 
