@@ -307,10 +307,10 @@ public class CodecTest {
     else if (expected instanceof Record) {
 
       Record expectedStruct = (Record) expected;
-      Object[] expectedAttrs = expectedStruct.getValues();
+      Object[] expectedAttrs = expectedStruct.getAttributeValues();
 
       Record actualStruct = (Record) actual;
-      Object[] actualAttrs = actualStruct.getValues();
+      Object[] actualAttrs = actualStruct.getAttributeValues();
 
       assertEquals("Record Length", expectedAttrs.length, actualAttrs.length);
       for (int c = 0; c < expectedAttrs.length; ++c) {

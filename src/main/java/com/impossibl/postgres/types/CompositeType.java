@@ -107,6 +107,14 @@ public class CompositeType extends Type {
     this.attributes = attributes;
   }
 
+  public Type[] getAttributesTypes() {
+    Type[] attributeTypes = new Type[attributes.size()];
+    for (int c = 0; c < attributes.size(); ++c) {
+      attributeTypes[c] = attributes.get(c).type;
+    }
+    return attributeTypes;
+  }
+
   @Override
   public boolean isParameterFormatSupported(Format format) {
 

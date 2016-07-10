@@ -1033,7 +1033,7 @@ class SQLTypeUtils {
     }
     else if (val instanceof Record) {
 
-      return new PGStruct(connection, ((Record) val).getType(), ((Record) val).getValues());
+      return new PGStruct(connection, ((Record) val).getTypeName(), ((Record) val).getAttributeTypes(), ((Record) val).getAttributeValues());
     }
     else if (SQLData.class.isInstance(val) && sourceType instanceof CompositeType) {
 
@@ -1043,13 +1043,13 @@ class SQLTypeUtils {
 
       ((SQLData) val).writeSQL(out);
 
-      return new PGStruct(connection, compType, out.getAttributeValues());
+      return new PGStruct(connection, compType.getName(), compType.getAttributesTypes(), out.getAttributeValues());
     }
     else if (val instanceof Object[] && sourceType instanceof CompositeType) {
 
       CompositeType compType = (CompositeType) sourceType;
 
-      return new PGStruct(connection, compType, (Object[]) val);
+      return new PGStruct(connection, compType.getName(), compType.getAttributesTypes(), (Object[]) val);
     }
 
     throw createCoercionException(val.getClass(), Struct.class, val);
@@ -1100,7 +1100,7 @@ class SQLTypeUtils {
         attributeVals[c] = coerce(format, attributeVals[c], attrType, attrTargetType, typeMap, zone, connection);
       }
 
-      return new Record(compType, attributeVals);
+      return new Record(compType.getName(), compType.getAttributesTypes(), attributeVals);
     }
 
     throw createCoercionException(val.getClass(), Struct.class, val);
@@ -1126,7 +1126,7 @@ class SQLTypeUtils {
       else if (val instanceof Record) {
 
         Record record = (Record) val;
-        attributeVals = record.getValues();
+        attributeVals = record.getAttributeValues();
       }
       else {
         throw createCoercionException(val.getClass(), targetType, val);
