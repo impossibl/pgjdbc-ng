@@ -38,17 +38,12 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.StreamingByteBuf;
-import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD;
-import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT;
 import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,7 +61,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     Context context;
 
-    public BindExecCommandListener(Context context) {
+    BindExecCommandListener(Context context) {
       this.context = context;
     }
 
@@ -302,20 +297,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     if (status != Status.Suspended) {
 
-      if (shouldStreamBind(parsingContext, parameterValues)) {
-
-        StreamingByteBuf bindMsg = new StreamingByteBuf(protocol.channel, STREAM_MESSAGE_SIZE);
-
-        protocol.writeBind(bindMsg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
-
-        bindMsg.flush();
-
-      }
-      else {
-
-        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
-
-      }
+      protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
 
     }
 
@@ -342,24 +324,6 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     waitFor(listener);
 
-  }
-
-  static boolean shouldStreamBind(Context context, List<Object> parameterValues) {
-
-    int streamThreshold = context.getSetting(PARAMETER_STREAM_THRESHOLD, PARAMETER_STREAM_THRESHOLD_DEFAULT);
-    int streamTotal = 0;
-
-    for (Object parameterValue : parameterValues) {
-
-      if (parameterValue instanceof ByteStreams.LimitedInputStream) {
-        streamTotal += ((ByteStreams.LimitedInputStream) parameterValue).limit();
-      }
-      else if (parameterValue instanceof InputStream) {
-        return false;
-      }
-    }
-
-    return streamTotal > streamThreshold;
   }
 
   static List<Format> getResultFieldFormats(List<ResultField> resultFields) {

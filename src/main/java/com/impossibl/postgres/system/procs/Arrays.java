@@ -279,49 +279,6 @@ public class Arrays extends SimpleProcProvider {
       return false;
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      int length = 4;
-
-      if (val != null) {
-
-        ArrayType arrayType = (ArrayType) type;
-        Type elementType = arrayType.unwrapAll();
-
-        int dimensionCount = getDimensions(val.getClass(), arrayType.unwrapAll());
-
-        length += 12 + (dimensionCount * 8);
-
-        length += subLength(elementType, dimensionCount, val, context);
-
-      }
-
-      return length;
-    }
-
-    private int subLength(Type type, int dimensionCount, Object val, Context context) throws IOException {
-
-      int length = 0;
-
-      if (dimensionCount > 1) {
-
-        for (int d = 0, len = Array.getLength(val); d < len; ++d) {
-          length += subLength(type, dimensionCount - 1, Array.get(val, d), context);
-        }
-
-      }
-      else {
-
-        for (int c = 0, len = Array.getLength(val); c < len; ++c) {
-          length += type.getBinaryCodec().encoder.length(type, Array.get(val, c), context);
-        }
-
-      }
-
-      return length;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

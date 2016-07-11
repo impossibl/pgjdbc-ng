@@ -106,11 +106,6 @@ public class Names extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 4 + toBytes(val, context).length;
-    }
-
   }
 
   public static class TxtDecoder extends TextDecoder {

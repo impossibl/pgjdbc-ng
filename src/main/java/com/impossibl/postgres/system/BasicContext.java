@@ -54,11 +54,14 @@ import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -108,6 +111,8 @@ public class BasicContext implements Context {
   protected DateTimeFormat dateFormatter;
   protected DateTimeFormat timeFormatter;
   protected DateTimeFormat timestampFormatter;
+  protected DecimalFormat decimalFormatter;
+  protected DecimalFormat currencyFormatter;
   protected Properties settings;
   protected Version serverVersion;
   protected KeyData keyData;
@@ -188,7 +193,7 @@ public class BasicContext implements Context {
   public boolean isSettingEnabled(String name) {
     Object val = getSetting(name);
     if (val instanceof String)
-      return ((String)val).equalsIgnoreCase("on");
+      return ((String) val).equalsIgnoreCase("on");
     if (val instanceof Boolean)
       return (Boolean) val;
     return false;
@@ -243,6 +248,27 @@ public class BasicContext implements Context {
     loadTypes();
 
     prepareRefreshTypeQueries();
+
+    loadLocale();
+  }
+
+  private void loadLocale() throws IOException, NoticeException {
+
+    for (Object row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
+      Object[] cols = (Object[]) row;
+      String[] localeIds = cols[1].toString().split("_|\\.");
+      switch (cols[0].toString()) {
+        case "lc_numeric":
+          Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+          decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
+          decimalFormatter.setParseBigDecimal(true);
+          currencyFormatter = (DecimalFormat) NumberFormat.getCurrencyInstance(numLocale);
+          currencyFormatter.setParseBigDecimal(true);
+          break;
+        case "lc_time":
+          Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+      }
+    }
   }
 
   private void loadTypes() throws IOException, NoticeException {
@@ -407,7 +433,7 @@ public class BasicContext implements Context {
       return util;
     }
 
-    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type> emptyList());
+    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 
     protocol.execute(prepare);
 
@@ -471,7 +497,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
+      preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
 
     QueryCommand query = protocol.createQuery(queryTxt);
@@ -492,7 +518,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
+      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
     else {
 
@@ -548,7 +574,7 @@ public class BasicContext implements Context {
   }
 
   private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
-      List<ResultField> resultFields) throws IOException, NoticeException {
+                                                 List<ResultField> resultFields) throws IOException, NoticeException {
 
     BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
 

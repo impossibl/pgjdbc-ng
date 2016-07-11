@@ -489,7 +489,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeBind(ByteBuf msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats, boolean computeLength) throws IOException {
+  public void writeBind(ByteBuf msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
 
     Context context = getContext();
 
@@ -499,29 +499,11 @@ public class ProtocolImpl implements Protocol {
     byte[] portalNameBytes = nullToEmpty(portalName).getBytes(context.getCharset());
     byte[] stmtNameBytes = nullToEmpty(stmtName).getBytes(context.getCharset());
 
-    if (computeLength) {
+    beginMessage(msg, BIND_MSG_ID);
 
-      // Compute length of message
-      int length = 4;
-      length += portalNameBytes.length + 1;
-      length += stmtNameBytes.length + 1;
-      length += lengthOfParams(parameterTypes, parameterValues, context);
-      length += resultFieldFormats.isEmpty() ? 4 : 2 + (2 * resultFieldFormats.size());
+    writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
 
-      // Write actual message
-      beginMessage(msg, BIND_MSG_ID, length);
-      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
-
-    }
-    else {
-
-      beginMessage(msg, BIND_MSG_ID);
-
-      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
-
-      endMessage(msg);
-
-    }
+    endMessage(msg);
 
   }
 
@@ -695,38 +677,6 @@ public class ProtocolImpl implements Protocol {
 
       }
     }
-  }
-
-  protected int lengthOfParams(List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
-
-    int length = 0;
-
-    // Select format for parameters
-    if (paramTypes == null) {
-      length += 4;
-    }
-    else {
-      length += 2 + (paramTypes.size() * 2);
-    }
-
-    // Values for each parameter
-    if (paramTypes == null) {
-      length += 2;
-    }
-    else {
-      length += 2;
-      for (int c = 0; c < paramTypes.size(); ++c) {
-
-        Type paramType = paramTypes.get(c);
-        Object paramValue = paramValues.get(c);
-
-        Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
-        length += codec.encoder.length(paramType, paramValue, context);
-
-      }
-    }
-
-    return length;
   }
 
   protected void writeMessage(ByteBuf msg, byte msgId) throws IOException {
