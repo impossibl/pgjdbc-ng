@@ -70,4 +70,6 @@ public interface Context {
 
   void reportNotification(int processId, String channelName, String payload);
 
+  Context unwrap();
+
 }

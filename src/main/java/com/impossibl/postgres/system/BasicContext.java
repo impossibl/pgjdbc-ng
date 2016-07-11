@@ -727,4 +727,9 @@ public class BasicContext implements Context {
 
   }
 
+  @Override
+  public Context unwrap() {
+    return this;
+  }
+
 }
