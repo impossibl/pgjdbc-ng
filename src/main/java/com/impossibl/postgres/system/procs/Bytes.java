@@ -39,7 +39,9 @@ import static com.impossibl.postgres.types.PrimitiveType.Binary;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
 import java.util.Arrays;
+import java.util.IllegalFormatException;
 
 import static java.lang.Math.min;
 
@@ -121,7 +123,7 @@ public class Bytes extends SimpleProcProvider {
       else {
 
         if (val instanceof byte[])
-          val = new ByteArrayInputStream((byte[])val);
+          val = new ByteArrayInputStream((byte[]) val);
 
         InputStream in = (InputStream) val;
 
@@ -190,7 +192,7 @@ public class Bytes extends SimpleProcProvider {
         data = decodeHex(buffer.subSequence(2, buffer.length()));
       }
       else {
-        data = decodeEscape(buffer);
+        data = decodeEscape(buffer.subSequence(2, buffer.length()));
       }
 
       return new ByteArrayInputStream(data);
@@ -257,7 +259,7 @@ public class Bytes extends SimpleProcProvider {
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       if (val instanceof byte[])
-        val = new ByteArrayInputStream((byte[])val);
+        val = new ByteArrayInputStream((byte[]) val);
 
       InputStream in = (InputStream) val;
 
