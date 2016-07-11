@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static java.lang.Character.isWhitespace;
+
 import io.netty.buffer.ByteBuf;
 
 public class Records extends SimpleProcProvider {
@@ -197,101 +199,123 @@ public class Records extends SimpleProcProvider {
 
       if (length != 0) {
 
-        instance = readComposite(buffer, type.getDelimeter(), (CompositeType) type, context);
+        List<Object> fields = new ArrayList<>();
+        readComposite(buffer, 0, type.getDelimeter(), (CompositeType) type, context, fields);
+        instance = fields.toArray();
       }
 
-      return new Record(type.getName(), ((CompositeType)type).getAttributesTypes(), instance);
+      return new Record(type.getName(), ((CompositeType) type).getAttributesTypes(), instance);
     }
 
-    Object readValue(CharSequence data, Type type, Context context) throws IOException {
+    int readComposite(CharSequence data, int start, char delim, CompositeType type, Context context, List<Object> fields) throws IOException {
 
-      if (type instanceof CompositeType) {
-
-
-        return readComposite(data, type.getDelimeter(), (CompositeType) type, context);
-      }
-      else {
-
-        return type.getCodec(Format.Text).decoder.decode(type, null, null, data, context);
+      if (data.equals("()")) {
+        return start + 1;
       }
 
-    }
+      StringBuilder elementTxt = null;
 
-    Object[] readComposite(CharSequence data, char delim, CompositeType type, Context context) throws IOException {
-
-      if (data.length() < 2 || (data.charAt(0) != '(' && data.charAt(data.length() - 1) != ')')) {
-        return null;
-      }
-
-      data = data.subSequence(1, data.length() - 1);
-
-      List<Object> elements = new ArrayList<>();
-      StringBuilder elementTxt = new StringBuilder();
-      int elementIdx = 1;
-
-      boolean string = false;
-      int opened = 0;
       int c;
-      for (c = 0; c < data.length(); ++c) {
+      int len = data.length();
+
+      scan:
+      for (c = start + 1; c < len; ++c) {
 
         char ch = data.charAt(c);
         switch (ch) {
+
           case '(':
-            if (!string)
-              opened++;
-            else
-              elementTxt.append(ch);
+            List<Object> subElements = new ArrayList<>();
+            c = readComposite(data, c, delim, type, context, subElements);
+            fields.add(subElements.toArray());
             break;
 
           case ')':
-            if (!string)
-              opened--;
-            else
-              elementTxt.append(ch);
-            break;
+            if (elementTxt != null) {
+              fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).type, context));
+            }
+            break scan;
 
           case '"':
-            if (string && c < data.length() - 1 && data.charAt(c + 1) == '"') {
-              elementTxt.append('"');
-              c++;
-            }
-            else {
-              string = !string;
-            }
-            break;
-
-          case '\\':
-            if (string) {
-              ++c;
-              if (c < data.length())
-                elementTxt.append(data.charAt(c));
-            }
+            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
+            c = readString(data, c, elementTxt);
             break;
 
           default:
 
-            if (ch == delim && opened == 0 && !string) {
-
-              Object element = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
-
-              elements.add(element);
-
-              elementTxt = new StringBuilder();
-              elementIdx++;
-            }
-            else {
-
-              elementTxt.append(ch);
+            // Eat whitespace
+            if (isWhitespace(ch)) {
+              c = skipWhitespace(data, c);
+              break;
             }
 
+            if (ch == delim) {
+              if (elementTxt != null) {
+                fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).type, context));
+              }
+              elementTxt = null;
+              break;
+            }
+
+            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
+            elementTxt.append(ch);
         }
 
       }
 
-      Object finalElement = readValue(elementTxt.toString(), type.getAttribute(elementIdx).type, context);
-      elements.add(finalElement);
+      return c;
+    }
 
-      return elements.toArray();
+    int skipWhitespace(CharSequence data, int start) {
+
+      int len = data.length();
+      int c = start;
+      while (c < len && isWhitespace(data.charAt(c))) {
+        ++c;
+      }
+      return c;
+    }
+
+    int readString(CharSequence data, int start, StringBuilder string) {
+
+      int len = data.length();
+      int c;
+
+      scan:
+      for (c = start + 1; c < len; ++c) {
+
+        char ch = data.charAt(c);
+        switch (ch) {
+          case '"':
+            if (c < data.length() - 1 && data.charAt(c + 1) == '"') {
+              ++c;
+              string.append('"');
+              break;
+            }
+            else {
+              break scan;
+            }
+
+          case '\\':
+            ++c;
+            if (c < data.length()) {
+              ch = data.charAt(c);
+            }
+
+          default:
+            string.append(ch);
+        }
+
+      }
+
+      return c;
+    }
+
+    Object decode(String elementTxt, Type type, Context context) throws IOException {
+      if (elementTxt.equals("NULL")) {
+        return null;
+      }
+      return type.getCodec(Format.Text).decoder.decode(type, null, null, elementTxt, context);
     }
 
   }

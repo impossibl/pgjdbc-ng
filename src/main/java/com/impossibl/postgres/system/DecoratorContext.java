@@ -125,4 +125,9 @@ public class DecoratorContext implements Context {
     base.reportNotification(processId, channelName, payload);
   }
 
+  @Override
+  public Context unwrap() {
+    return base.unwrap();
+  }
+
 }

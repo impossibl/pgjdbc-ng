@@ -38,7 +38,7 @@ import java.util.TimeZone;
 
 public interface Context {
 
-  public class KeyData {
+  class KeyData {
     public int processId;
     public int secretKey;
   }

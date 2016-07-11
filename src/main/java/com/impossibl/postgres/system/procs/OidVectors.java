@@ -29,54 +29,82 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.Joiner;
 
 import java.io.IOException;
 
-import io.netty.buffer.ByteBuf;
 
-public abstract class TextEncoder implements Type.Codec.Encoder {
+public class OidVectors extends SimpleProcProvider {
 
-  protected abstract void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException;
+  public OidVectors() {
+    super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "oidvector");
+  }
 
-  @Override
-  public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
+  static class TxtDecoder extends TextDecoder {
 
-    if (buffer instanceof ByteBuf) {
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Array;
+    }
 
-      ByteBuf channelBuffer = (ByteBuf) buffer;
+    @Override
+    public Class<?> getOutputType() {
+      return Integer[].class;
+    }
 
-      if (value == null) {
+    @Override
+    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
-        channelBuffer.writeInt(-1);
+      int length = buffer.length();
 
+      Object instance = null;
+
+      if (length != 0) {
+        String[] items = buffer.toString().split(" ");
+        Integer[] oids = new Integer[items.length];
+        for (int c = 0; c < items.length; ++c) {
+          oids[c] = Integer.parseUnsignedInt(items[c]);
+        }
+        instance = oids;
       }
-      else {
 
-        StringBuilder tmp = new StringBuilder();
+      return instance;
+    }
 
-        encode(type, tmp, value, context);
+  }
 
-        byte[] bytes = tmp.toString().getBytes(context.getCharset());
+  static class TxtEncoder extends TextEncoder {
 
-        channelBuffer.writeInt(bytes.length);
-        channelBuffer.writeBytes(bytes);
+    @Override
+    public Class<?> getInputType() {
+      return Integer[].class;
+    }
 
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Array;
+    }
+
+    @Override
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      if (val == null) {
+        buffer.append("");
+        return;
       }
+
+      Integer[] oids = (Integer[]) val;
+      String[] items = new String[oids.length];
+      for (int c = 0; c < oids.length; ++c) {
+        items[c] = Integer.toUnsignedString(oids[c]);
+      }
+
+      Joiner.on(' ').appendTo(buffer, items);
 
     }
-    else {
 
-      StringBuilder builder = (StringBuilder) buffer;
-
-      if (value == null) {
-        builder.append("NULL");
-      }
-      else {
-        encode(type, builder, value, context);
-      }
-    }
-    
   }
 
 }
