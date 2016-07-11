@@ -34,6 +34,7 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
 import java.util.TimeZone;
 
 public interface Context {
@@ -52,6 +53,8 @@ public interface Context {
 
   KeyData getKeyData();
 
+  DecimalFormat getDecimalFormatter();
+  DecimalFormat getCurrencyFormatter();
   DateTimeFormat getDateFormatter();
   DateTimeFormat getTimeFormatter();
   DateTimeFormat getTimestampFormatter();

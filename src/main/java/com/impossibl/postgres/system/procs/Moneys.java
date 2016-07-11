@@ -38,6 +38,8 @@ import static com.impossibl.postgres.types.PrimitiveType.Money;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.FieldPosition;
+import java.text.ParseException;
 
 import static java.math.RoundingMode.HALF_UP;
 
@@ -131,7 +133,12 @@ public class Moneys extends SimpleProcProvider {
     @Override
     public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
-      return new BigDecimal(buffer.toString());
+      try {
+        return (BigDecimal) context.getCurrencyFormatter().parse(buffer.toString());
+      }
+      catch (ParseException e) {
+        throw new IOException(e);
+      }
     }
 
   }
@@ -151,7 +158,7 @@ public class Moneys extends SimpleProcProvider {
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
-      buffer.append(val.toString());
+      buffer.append(context.getCurrencyFormatter().format(val));
     }
 
   }

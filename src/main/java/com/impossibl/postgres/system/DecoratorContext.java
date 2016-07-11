@@ -34,6 +34,8 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.TimeZone;
 
 public class DecoratorContext implements Context {
@@ -78,6 +80,16 @@ public class DecoratorContext implements Context {
   @Override
   public DateTimeFormat getTimestampFormatter() {
     return base.getTimestampFormatter();
+  }
+
+  @Override
+  public DecimalFormat getDecimalFormatter() {
+    return base.getDecimalFormatter();
+  }
+
+  @Override
+  public DecimalFormat getCurrencyFormatter() {
+    return base.getCurrencyFormatter();
   }
 
   @Override
