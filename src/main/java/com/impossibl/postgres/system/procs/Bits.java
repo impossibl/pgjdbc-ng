@@ -134,20 +134,6 @@ public class Bits extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      if (val == null)
-        return 4;
-
-      BitSet bs = (BitSet) val;
-
-      int bitCount = bs.length();
-      int byteCount = (bitCount + 7) / 8;
-
-      return 8 + byteCount;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

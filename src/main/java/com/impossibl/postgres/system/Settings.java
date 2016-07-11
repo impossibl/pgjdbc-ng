@@ -64,9 +64,6 @@ public class Settings {
   public static final String CLOB_TYPE = "clob.type";
   public static final String CLOB_TYPE_DEFAULT = "clobid";
 
-  public static final String PARAMETER_STREAM_THRESHOLD = "parameter.stream.threshold";
-  public static final int PARAMETER_STREAM_THRESHOLD_DEFAULT = 500 * 1024;
-
   public static final String SSL_MODE = "ssl.mode";
   public static final SSLMode SSL_MODE_DEFAULT = SSLMode.Disable;
 

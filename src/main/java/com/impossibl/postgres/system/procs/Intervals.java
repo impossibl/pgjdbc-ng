@@ -110,11 +110,6 @@ public class Intervals extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 20;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

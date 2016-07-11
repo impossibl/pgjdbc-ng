@@ -76,9 +76,9 @@
     <module name="EmptyStatement"/>
     <module name="EqualsHashCode"/>
     <module name="IllegalInstantiation"/>
-    <module name="RedundantThrows">
+    <!--module name="RedundantThrows">
       <property name="allowUnchecked" value="true"/>
-    </module>
+    </module-->
 
     <!-- Miscellaneous other checks. -->
     <module name="UpperEll"/>

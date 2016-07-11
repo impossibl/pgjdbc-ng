@@ -174,41 +174,6 @@ public class Records extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      int length = 4;
-
-      if (val != null) {
-
-        Record record = (Record) val;
-
-        Object[] attributeVals = record.getAttributeValues();
-
-        CompositeType compType = (CompositeType) type;
-
-        Collection<Attribute> attributes = compType.getAttributes();
-
-        length += 4;
-
-        for (Attribute attribute : attributes) {
-
-          Type attributeType = attribute.type;
-
-          length += 4;
-
-          int idx = attribute.number > 0 ? attribute.number - 1 : attributes.size() + attribute.number;
-
-          Object attributeVal = attributeVals[idx];
-
-          length += attributeType.getBinaryCodec().encoder.length(attributeType, attributeVal, context);
-        }
-
-      }
-
-      return length;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

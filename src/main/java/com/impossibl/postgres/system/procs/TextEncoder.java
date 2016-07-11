@@ -70,11 +70,4 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
 
   }
 
-  @Override
-  public int length(Type type, Object val, Context context) throws IOException {
-    StringBuilder computer = new StringBuilder();
-    encode(type, computer, val, context);
-    return computer.length() + 4;
-  }
-
 }

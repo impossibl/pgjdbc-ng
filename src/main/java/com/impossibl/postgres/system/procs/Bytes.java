@@ -167,45 +167,6 @@ public class Bytes extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      int length = 4;
-
-      if (val != null) {
-
-        if (val instanceof byte[])
-          val = new ByteArrayInputStream((byte[])val);
-
-        InputStream in = (InputStream) val;
-
-        // Do we know, for sure, how long the stream is?
-        if (in instanceof ByteStreams.LimitedInputStream) {
-
-          length += (int) ((ByteStreams.LimitedInputStream) in).limit();
-
-        }
-        else if (in instanceof ByteArrayInputStream) {
-
-          length += in.available();
-
-        }
-        else if (in instanceof ByteBufInputStream) {
-
-          length = in.available();
-
-        }
-        else {
-
-          throw new IOException("unable to compute length of InputStream type: " + val.getClass().getName());
-
-        }
-
-      }
-
-      return length;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

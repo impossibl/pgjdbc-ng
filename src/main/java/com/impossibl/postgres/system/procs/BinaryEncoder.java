@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.NullByteBuf;
 
 import java.io.IOException;
 
@@ -43,13 +42,6 @@ public abstract class BinaryEncoder implements Type.Codec.Encoder {
   @Override
   public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
     encode(type, (ByteBuf)buffer, value, context);
-  }
-
-  @Override
-  public int length(Type type, Object val, Context context) throws IOException {
-    NullByteBuf computer = new NullByteBuf();
-    encode(type, computer, val, context);
-    return computer.readableBytes();
   }
 
 }

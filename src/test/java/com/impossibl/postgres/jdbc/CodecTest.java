@@ -39,7 +39,6 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
-import com.impossibl.postgres.utils.NullByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import java.io.ByteArrayInputStream;
@@ -70,7 +69,6 @@ import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -156,31 +154,6 @@ public class CodecTest {
     }
 
     test(value, inOut(type, Format.Text, value));
-  }
-
-  @Test
-  public void testBinaryEncoderLength() throws IOException, SQLException {
-
-    try {
-      makeValue();
-    }
-    catch (SQLFeatureNotSupportedException e) {
-      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (binlen)");
-      return;
-    }
-
-    Type type = conn.getRegistry().loadType(typeName);
-    if (type == null) {
-      System.out.println("Skipping " + typeName + " unknown (binlen)");
-      return;
-    }
-
-    if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
-      return;
-    }
-
-    compareLengths(coerceValue(type, Format.Binary, value), type, type.getBinaryCodec());
-
   }
 
   @Test
@@ -321,18 +294,6 @@ public class CodecTest {
       assertEquals(expected, actual);
     }
 
-  }
-
-  private void compareLengths(Object val, Type type, Codec codec) throws IOException {
-
-    // Compute length with encoder
-    int length = codec.encoder.length(type, val, conn);
-
-    // Compute length using null channel buffer
-    NullByteBuf lengthComputer = new NullByteBuf();
-    codec.encoder.encode(type, lengthComputer, val, conn);
-
-    assertEquals(typeName + " computes length incorrectly", lengthComputer.readableBytes(), length);
   }
 
   private void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {

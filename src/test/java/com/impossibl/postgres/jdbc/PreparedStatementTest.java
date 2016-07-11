@@ -39,7 +39,6 @@ import com.impossibl.postgres.api.data.CidrAddr;
 import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
-import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.ByteArrayInputStream;
@@ -89,17 +88,6 @@ public class PreparedStatementTest {
     TestUtil.dropTable(conn, "texttable");
     TestUtil.dropTable(conn, "intervaltable");
     TestUtil.closeDB(conn);
-  }
-
-  @Test
-  public void testLargeBinaryStream() throws SQLException {
-
-    byte[] data = new byte[Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT * 2];
-
-    ByteArrayInputStream bais = new ByteArrayInputStream(data);
-
-    doSetBinaryStream(bais, data.length);
-
   }
 
   @Test
