@@ -76,7 +76,7 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
         encode(type, builder, value, context);
       }
     }
-    
+
   }
 
 }

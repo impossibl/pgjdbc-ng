@@ -65,7 +65,7 @@ public class OidVectors extends SimpleProcProvider {
         String[] items = buffer.toString().split(" ");
         Integer[] oids = new Integer[items.length];
         for (int c = 0; c < items.length; ++c) {
-          oids[c] = Integer.parseUnsignedInt(items[c]);
+          oids[c] = (int)(Long.parseLong(items[c]) & 0xffffffffL);
         }
         instance = oids;
       }
@@ -98,7 +98,7 @@ public class OidVectors extends SimpleProcProvider {
       Integer[] oids = (Integer[]) val;
       String[] items = new String[oids.length];
       for (int c = 0; c < oids.length; ++c) {
-        items[c] = Integer.toUnsignedString(oids[c]);
+        items[c] = Long.toString(oids[c] & 0xffffffffL);
       }
 
       Joiner.on(' ').appendTo(buffer, items);

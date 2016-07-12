@@ -39,9 +39,7 @@ import static com.impossibl.postgres.types.PrimitiveType.Binary;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.ParseException;
 import java.util.Arrays;
-import java.util.IllegalFormatException;
 
 import static java.lang.Math.min;
 

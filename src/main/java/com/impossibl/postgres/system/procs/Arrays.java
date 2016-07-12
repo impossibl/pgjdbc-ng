@@ -327,7 +327,7 @@ public class Arrays extends SimpleProcProvider {
       int c;
       int len = data.length();
 
-      scan:
+    scan:
       for (c = start + 1; c < len; ++c) {
 
         char ch = data.charAt(c);
@@ -390,7 +390,7 @@ public class Arrays extends SimpleProcProvider {
       int len = data.length();
       int c;
 
-      scan:
+    scan:
       for (c = start + 1; c < len; ++c) {
 
         char ch = data.charAt(c);

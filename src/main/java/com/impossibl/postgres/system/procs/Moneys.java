@@ -38,7 +38,6 @@ import static com.impossibl.postgres.types.PrimitiveType.Money;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.FieldPosition;
 import java.text.ParseException;
 
 import static java.math.RoundingMode.HALF_UP;

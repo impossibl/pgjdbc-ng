@@ -35,7 +35,6 @@ import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.TimeZone;
 
 public class DecoratorContext implements Context {
