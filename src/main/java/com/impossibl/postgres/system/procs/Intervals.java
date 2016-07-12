@@ -36,8 +36,6 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Interval;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 
 import io.netty.buffer.ByteBuf;
 
@@ -134,14 +132,6 @@ public class Intervals extends SimpleProcProvider {
 
   static class TxtEncoder extends TextEncoder {
 
-    private static final DecimalFormat secondsFormat;
-    static {
-      secondsFormat = new DecimalFormat("0.00####");
-      DecimalFormatSymbols dfs = secondsFormat.getDecimalFormatSymbols();
-      dfs.setDecimalSeparator('.');
-      secondsFormat.setDecimalFormatSymbols(dfs);
-    }
-
     @Override
     public Class<?> getInputType() {
       return Interval.class;
@@ -154,18 +144,7 @@ public class Intervals extends SimpleProcProvider {
 
     @Override
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      Interval ival = (Interval) val;
-
-      buffer.
-        append("@ ").
-        append(ival.getYears()).append(" years ").
-        append(ival.getMonths()).append(" months ").
-        append(ival.getDays()).append(" days ").
-        append(ival.getHours()).append(" hours ").
-        append(ival.getMinutes()).append(" minutes ").
-        append(secondsFormat.format(ival.getSeconds())).append(" seconds");
-
+      buffer.append(val.toString());
     }
 
   }

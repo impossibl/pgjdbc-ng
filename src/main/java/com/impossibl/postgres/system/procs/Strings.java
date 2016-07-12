@@ -146,7 +146,14 @@ public class Strings extends SimpleProcProvider {
     @Override
     public String decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
-      return buffer.toString();
+      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      if (maxLength != null) {
+        return buffer.subSequence(0, min(buffer.length(), maxLength)).toString();
+      }
+      else {
+        return buffer.toString();
+      }
+
     }
 
   }

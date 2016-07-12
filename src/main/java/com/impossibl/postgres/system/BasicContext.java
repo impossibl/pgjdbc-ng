@@ -243,6 +243,16 @@ public class BasicContext implements Context {
     return timestampFormatter;
   }
 
+  @Override
+  public DecimalFormat getDecimalFormatter() {
+    return decimalFormatter;
+  }
+
+  @Override
+  public DecimalFormat getCurrencyFormatter() {
+    return currencyFormatter;
+  }
+
   protected void init() throws IOException, NoticeException {
 
     loadTypes();
@@ -725,6 +735,11 @@ public class BasicContext implements Context {
 
     }
 
+  }
+
+  @Override
+  public Context unwrap() {
+    return this;
   }
 
 }

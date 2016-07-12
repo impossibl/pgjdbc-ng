@@ -34,11 +34,12 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
 import java.util.TimeZone;
 
 public interface Context {
 
-  public class KeyData {
+  class KeyData {
     public int processId;
     public int secretKey;
   }
@@ -52,6 +53,8 @@ public interface Context {
 
   KeyData getKeyData();
 
+  DecimalFormat getDecimalFormatter();
+  DecimalFormat getCurrencyFormatter();
   DateTimeFormat getDateFormatter();
   DateTimeFormat getTimeFormatter();
   DateTimeFormat getTimestampFormatter();
@@ -69,5 +72,7 @@ public interface Context {
   Protocol getProtocol();
 
   void reportNotification(int processId, String channelName, String payload);
+
+  Context unwrap();
 
 }

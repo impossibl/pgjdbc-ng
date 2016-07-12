@@ -29,52 +29,80 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.Joiner;
 
 import java.io.IOException;
 
-import io.netty.buffer.ByteBuf;
 
-public abstract class TextEncoder implements Type.Codec.Encoder {
+public class Int2Vectors extends SimpleProcProvider {
 
-  protected abstract void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException;
+  public Int2Vectors() {
+    super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "int2vector");
+  }
 
-  @Override
-  public void encode(Type type, Object buffer, Object value, Context context) throws IOException {
+  static class TxtDecoder extends TextDecoder {
 
-    if (buffer instanceof ByteBuf) {
-
-      ByteBuf channelBuffer = (ByteBuf) buffer;
-
-      if (value == null) {
-
-        channelBuffer.writeInt(-1);
-
-      }
-      else {
-
-        StringBuilder tmp = new StringBuilder();
-
-        encode(type, tmp, value, context);
-
-        byte[] bytes = tmp.toString().getBytes(context.getCharset());
-
-        channelBuffer.writeInt(bytes.length);
-        channelBuffer.writeBytes(bytes);
-
-      }
-
+    @Override
+    public PrimitiveType getInputPrimitiveType() {
+      return PrimitiveType.Array;
     }
-    else {
 
-      StringBuilder builder = (StringBuilder) buffer;
+    @Override
+    public Class<?> getOutputType() {
+      return Short[].class;
+    }
 
-      if (value == null) {
-        builder.append("NULL");
+    @Override
+    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+
+      int length = buffer.length();
+
+      Object instance = null;
+
+      if (length != 0) {
+        String[] items = buffer.toString().split(" ");
+        Short[] shorts = new Short[items.length];
+        for (int c = 0; c < items.length; ++c) {
+          shorts[c] = Short.parseShort(items[c]);
+        }
+        instance = shorts;
       }
-      else {
-        encode(type, builder, value, context);
+
+      return instance;
+    }
+
+  }
+
+  static class TxtEncoder extends TextEncoder {
+
+    @Override
+    public Class<?> getInputType() {
+      return Short[].class;
+    }
+
+    @Override
+    public PrimitiveType getOutputPrimitiveType() {
+      return PrimitiveType.Array;
+    }
+
+    @Override
+    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+
+      if (val == null) {
+        buffer.append("");
+        return;
       }
+
+      Short[] shorts = (Short[]) val;
+      String[] items = new String[shorts.length];
+      for (int c = 0; c < shorts.length; ++c) {
+        items[c] = Short.toString(shorts[c]);
+      }
+
+      Joiner.on(' ').appendTo(buffer, items);
+
     }
 
   }

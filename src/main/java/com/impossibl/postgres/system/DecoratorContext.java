@@ -34,6 +34,7 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
 import java.util.TimeZone;
 
 public class DecoratorContext implements Context {
@@ -81,6 +82,16 @@ public class DecoratorContext implements Context {
   }
 
   @Override
+  public DecimalFormat getDecimalFormatter() {
+    return base.getDecimalFormatter();
+  }
+
+  @Override
+  public DecimalFormat getCurrencyFormatter() {
+    return base.getCurrencyFormatter();
+  }
+
+  @Override
   public Class<?> lookupInstanceType(Type type) {
     return base.lookupInstanceType(type);
   }
@@ -123,6 +134,11 @@ public class DecoratorContext implements Context {
   @Override
   public void reportNotification(int processId, String channelName, String payload) {
     base.reportNotification(processId, channelName, payload);
+  }
+
+  @Override
+  public Context unwrap() {
+    return base.unwrap();
   }
 
 }

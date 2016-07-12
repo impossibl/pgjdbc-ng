@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.lang.Character.isWhitespace;
 import static java.lang.reflect.Array.newInstance;
 
 import io.netty.buffer.ByteBuf;
@@ -52,7 +53,7 @@ import io.netty.buffer.ByteBuf;
 public class Arrays extends SimpleProcProvider {
 
   public Arrays() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "array_", "anyarray_", "oidvector", "intvector");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "array_", "anyarray_");
   }
 
   static class BinDecoder extends BinaryDecoder {
@@ -78,14 +79,15 @@ public class Arrays extends SimpleProcProvider {
 
       if (length != -1) {
 
-        ArrayType atype = (ArrayType)type;
+        ArrayType atype = (ArrayType) type;
 
         //
         //Header
         //
 
         int dimensionCount = buffer.readInt();
-        /* boolean hasNulls = */ buffer.readInt() /* == 1 ? true : false */;
+        /* boolean hasNulls = */
+        buffer.readInt() /* == 1 ? true : false */;
         Type elementType = context.getRegistry().loadType(buffer.readInt());
 
         //Each Dimension
@@ -136,7 +138,7 @@ public class Arrays extends SimpleProcProvider {
 
     Object readSubArray(ByteBuf buffer, Type type, int[] dims, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>>emptyMap());
       Object inst = newInstance(elementClass, dims);
 
       int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
@@ -152,7 +154,7 @@ public class Arrays extends SimpleProcProvider {
 
     Object readElements(ByteBuf buffer, Type type, int len, Context context) throws IOException {
 
-      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>> emptyMap());
+      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>>emptyMap());
       Object inst = newInstance(elementClass, len);
 
       for (int c = 0; c < len; ++c) {
@@ -187,7 +189,7 @@ public class Arrays extends SimpleProcProvider {
 
         int writeStart = buffer.writerIndex();
 
-        ArrayType atype = (ArrayType)type;
+        ArrayType atype = (ArrayType) type;
         Type elementType = atype.getElementType();
 
         //
@@ -302,16 +304,9 @@ public class Arrays extends SimpleProcProvider {
 
       if (length != 0) {
 
-        ArrayType atype = (ArrayType)type;
+        ArrayType atype = (ArrayType) type;
 
         List<Object> elements = new ArrayList<>();
-
-        int start = 0;
-        while (buffer.charAt(start) != '{') {
-          start++;
-        }
-
-        buffer = buffer.subSequence(start, buffer.length());
 
         readArray(buffer, 0, atype.getDelimeter(), type.unwrap(), context, elements);
 
@@ -327,71 +322,97 @@ public class Arrays extends SimpleProcProvider {
         return start + 1;
       }
 
-      StringBuilder elementTxt = new StringBuilder();
+      StringBuilder elementTxt = null;
 
-      boolean string = false;
       int c;
       int len = data.length();
 
     scan:
       for (c = start + 1; c < len; ++c) {
+
         char ch = data.charAt(c);
         switch (ch) {
-          case '{':
-            if (!string) {
-              List<Object> subElements = new ArrayList<>();
-              c = readArray(data, c, delim, type, context, subElements);
-              elements.add(subElements.toArray());
 
-              if (c < data.length() - 1) {
-                if (data.charAt(c + 1) == ',') ++c;
-                else if (data.charAt(c + 1) == '}') break scan;
-              }
-            }
-            else {
-              elementTxt.append(ch);
-            }
+          case '{':
+            List<Object> subElements = new ArrayList<>();
+            c = readArray(data, c, delim, type, context, subElements);
+            elements.add(subElements.toArray());
             break;
 
           case '}':
-            if (!string) {
+            if (elementTxt != null) {
               elements.add(decode(elementTxt.toString(), type, context));
-              break scan;
             }
-            else
-              elementTxt.append(ch);
-            break;
+            break scan;
 
           case '"':
-            if (string && c < data.length() - 1 && data.charAt(c + 1) == '"') {
-              elementTxt.append('"');
-              c++;
-            }
-            else {
-              string = !string;
-            }
-            break;
-
-          case '\\':
-            ++c;
-            if (c < data.length())
-              elementTxt.append(data.charAt(c));
+            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
+            c = readString(data, c, elementTxt);
             break;
 
           default:
 
-            if (ch == delim && !string) {
+            // Eat whitespace
+            if (isWhitespace(ch)) {
+              c = skipWhitespace(data, c);
+              break;
+            }
 
-              if (elementTxt.length() > 0) {
+            if (ch == delim) {
+              if (elementTxt != null) {
                 elements.add(decode(elementTxt.toString(), type, context));
-                elementTxt = new StringBuilder();
               }
+              elementTxt = null;
+              break;
+            }
+
+            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
+            elementTxt.append(ch);
+        }
+
+      }
+
+      return c;
+    }
+
+    int skipWhitespace(CharSequence data, int start) {
+
+      int len = data.length();
+      int c = start;
+      while (c < len && isWhitespace(data.charAt(c))) {
+        ++c;
+      }
+      return c;
+    }
+
+    int readString(CharSequence data, int start, StringBuilder string) {
+
+      int len = data.length();
+      int c;
+
+    scan:
+      for (c = start + 1; c < len; ++c) {
+
+        char ch = data.charAt(c);
+        switch (ch) {
+          case '"':
+            if (c < data.length() - 1 && data.charAt(c + 1) == '"') {
+              ++c;
+              string.append('"');
+              break;
             }
             else {
-
-              elementTxt.append(ch);
+              break scan;
             }
 
+          case '\\':
+            ++c;
+            if (c < data.length()) {
+              ch = data.charAt(c);
+            }
+
+          default:
+            string.append(ch);
         }
 
       }
