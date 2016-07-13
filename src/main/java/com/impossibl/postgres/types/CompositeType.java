@@ -140,9 +140,12 @@ public class CompositeType extends Type {
   @Override
   public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
 
-    Class<?> type = (customizations != null) ? customizations.get(getName()) : null;
+    Class<?> type = (customizations != null) ? customizations.get(getNamespace() + "." + getName()) : null;
     if (type == null) {
-      type = super.getJavaType(format, customizations);
+      type = (customizations != null) ? customizations.get(getName()) : null;
+      if (type == null) {
+        type = super.getJavaType(format, customizations);
+      }
     }
 
     return type;
