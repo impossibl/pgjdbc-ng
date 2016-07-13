@@ -87,7 +87,6 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     public void noData() {
       resultBatch.fields = Collections.emptyList();
       resultBatch.results = null;
-      status = Status.Completed;
     }
 
     @Override
