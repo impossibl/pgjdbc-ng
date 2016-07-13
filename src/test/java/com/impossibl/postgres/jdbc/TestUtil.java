@@ -199,11 +199,34 @@ public class TestUtil {
   public static void createType(Connection con, String type, String attrs) throws SQLException {
     Statement st = con.createStatement();
     try {
-      // Drop the table
+      // Drop the type
       dropType(con, type);
 
-      // Now create the table
+      // Now create the type
       String sql = "CREATE TYPE " + type + " AS (" + attrs + ") ";
+
+      st.executeUpdate(sql);
+    }
+    finally {
+      st.close();
+    }
+  }
+
+  /*
+   * Helper - creates an enum type for use by a test
+   */
+  public static void createEnum(Connection con, String type, String... values) throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      // Drop the enum
+      dropType(con, type);
+
+      for (int c = 0; c < values.length; ++c) {
+        values[c] = "'" + values[c] + "'";
+      }
+
+      // Now create the enum
+      String sql = "CREATE TYPE " + type + " AS ENUM (" + Joiner.on(", ").join(values) + ") ";
 
       st.executeUpdate(sql);
     }
