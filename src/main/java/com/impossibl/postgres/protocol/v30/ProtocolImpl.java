@@ -62,6 +62,7 @@ import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -304,8 +305,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   @Override
-  public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
-    return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields, rowType);
+  public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields) {
+    return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields);
   }
 
   @Override
@@ -924,7 +925,7 @@ public class ProtocolImpl implements Protocol {
 
     int fieldCount = buffer.readUnsignedShort();
 
-    ResultField[] fields = new ResultField[fieldCount];
+    List<ResultField> fields = new ArrayList<>(fieldCount);
 
     for (int c = 0; c < fieldCount; ++c) {
 
@@ -937,12 +938,12 @@ public class ProtocolImpl implements Protocol {
       field.typeModifier = buffer.readInt();
       field.format = ResultField.Format.values()[buffer.readUnsignedShort()];
 
-      fields[c] = field;
+      fields.add(field);
     }
 
     logger.finest("ROW-DESC: " + fieldCount);
 
-    listener.rowDescription(asList(fields));
+    listener.rowDescription(fields);
   }
 
   private void receiveRowData(ByteBuf buffer) throws IOException {

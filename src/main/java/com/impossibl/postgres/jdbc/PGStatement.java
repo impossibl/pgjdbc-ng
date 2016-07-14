@@ -32,6 +32,7 @@ import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
@@ -200,6 +201,15 @@ abstract class PGStatement implements Statement {
 
   }
 
+  void releaseResultBatches() {
+    if (resultBatches != null) {
+      for (QueryCommand.ResultBatch resultBatch : resultBatches) {
+        resultBatch.release();
+      }
+      resultBatches = null;
+    }
+  }
+
   /**
    * Closes the given list of result-sets
    *
@@ -291,6 +301,7 @@ abstract class PGStatement implements Statement {
   void internalClose() throws SQLException {
 
     closeResultSets();
+    releaseResultBatches();
 
     if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
       dispose(connection, Statement, name);
@@ -302,7 +313,6 @@ abstract class PGStatement implements Statement {
     connection = null;
     command = null;
     resultFields = null;
-    resultBatches = null;
     generatedKeysResultSet = null;
   }
 
@@ -328,6 +338,7 @@ abstract class PGStatement implements Statement {
   public boolean executeSimple(String sql) throws SQLException {
 
     closeResultSets();
+    releaseResultBatches();
 
     command = connection.getProtocol().createQuery(sql);
 
@@ -355,6 +366,7 @@ abstract class PGStatement implements Statement {
   public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
 
     closeResultSets();
+    releaseResultBatches();
 
     String portalName = null;
 
@@ -362,7 +374,7 @@ abstract class PGStatement implements Statement {
       portalName = connection.getNextPortalName();
     }
 
-    BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
+    BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields);
 
     //Set query timeout
     long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
@@ -382,11 +394,11 @@ abstract class PGStatement implements Statement {
     return hasResults();
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results) throws SQLException {
     return createResultSet(resultFields, results, connection.getTypeMap());
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
+  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results, Map<String, Class<?>> typeMap) throws SQLException {
 
     PGResultSet resultSet = new PGResultSet(this, resultFields, results);
     activeResultSets.add(new WeakReference<>(resultSet));
@@ -567,18 +579,35 @@ abstract class PGStatement implements Statement {
       return null;
     }
 
-    QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-
     PGResultSet rs;
 
     if (cursorName != null) {
+
+      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+      //Shouldn't be any actual rows, but release it to any buffers
+      resultBatch.release();
+
       rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.fields);
     }
     else if (command.getStatus() == QueryCommand.Status.Completed) {
+
+      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+      // This batch can be re-used so let "close" or "getMoreResults" release it
+
       rs = new PGResultSet(this, resultBatch.fields, resultBatch.results);
     }
     else {
+      QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
+
+      // The batch cannot be re-used, but the result set will clean it up when it's
+      // done using it
+
       rs = new PGResultSet(this, command, resultBatch.fields, resultBatch.results);
+
+      // Command cannot be re-used when portal'd batching is in progress
+      command = null;
     }
 
     activeResultSets.add(new WeakReference<>(rs));
@@ -609,7 +638,8 @@ abstract class PGStatement implements Statement {
       return false;
     }
 
-    resultBatches.remove(0);
+    QueryCommand.ResultBatch finishedBatch = resultBatches.remove(0);
+    finishedBatch.release();
 
     return hasResults();
   }
@@ -619,7 +649,7 @@ abstract class PGStatement implements Statement {
     checkClosed();
 
     if (generatedKeysResultSet == null) {
-      return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
+      return createResultSet(Collections.<ResultField>emptyList(), Collections.<DataRow>emptyList());
     }
 
     return generatedKeysResultSet;

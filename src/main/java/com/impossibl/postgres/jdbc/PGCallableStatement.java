@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -179,24 +180,38 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
       if (!resultBatches.isEmpty()) {
 
         QueryCommand.ResultBatch returnValuesBatch = resultBatches.remove(0);
+        try {
 
-        if (returnValuesBatch.fields.size() != outParameterTypes.size()) {
-          throw new SQLException("incorrect number of out parameters");
-        }
-
-        if (!returnValuesBatch.results.isEmpty()) {
-
-          Object[] returnValues = (Object[]) returnValuesBatch.results.get(0);
-
-          for (int c = 0; c < outParameterValues.size(); ++c) {
-
-            ResultField field = returnValuesBatch.fields.get(c);
-
-            outParameterNames.set(c, field.name);
-            outParameterTypes.set(c, field.typeRef.get());
-            outParameterValues.set(c, returnValues[c]);
+          if (returnValuesBatch.fields.size() != outParameterTypes.size()) {
+            throw new SQLException("incorrect number of out parameters");
           }
 
+          if (!returnValuesBatch.results.isEmpty()) {
+
+            DataRow returnValues = returnValuesBatch.results.get(0);
+
+            for (int c = 0; c < outParameterValues.size(); ++c) {
+
+              ResultField field = returnValuesBatch.fields.get(c);
+
+              Object value;
+              try {
+                value = returnValues.getColumn(c);
+              }
+              catch (IOException e) {
+                throw new PGSQLSimpleException("Error decoding column", e);
+              }
+
+              outParameterNames.set(c, field.name);
+              outParameterTypes.set(c, field.typeRef.get());
+              outParameterValues.set(c, value);
+            }
+
+          }
+
+        }
+        finally {
+          returnValuesBatch.release();
         }
 
       }

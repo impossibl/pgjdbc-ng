@@ -30,6 +30,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -334,9 +335,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       int[] counts = new int[batchParameterValues.size()];
       Arrays.fill(counts, SUCCESS_NO_INFO);
 
-      List<Object[]> generatedKeys = new ArrayList<>();
+      List<DataRow> generatedKeys = new ArrayList<>();
 
-      BindExecCommand command = connection.getProtocol().createBindExec(null, null, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+      BindExecCommand command = connection.getProtocol().createBindExec(null, null, parameterTypes, Collections.emptyList(), resultFields);
 
       List<Type> lastParameterTypes = null;
       List<ResultField> lastResultFields = null;
@@ -386,7 +387,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           }
 
           if (wantsGeneratedKeys) {
-            generatedKeys.add((Object[]) resultBatch.results.get(0));
+            generatedKeys.add(resultBatch.results.get(0));
           }
 
           c++;

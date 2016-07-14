@@ -28,9 +28,9 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import com.impossibl.postgres.mapper.Mapper;
-import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.BufferedDataRow;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
@@ -41,27 +41,26 @@ import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 import io.netty.buffer.ByteBuf;
 
-public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
+
+class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
   private static final int DEFAULT_MESSAGE_SIZE = 8192;
-  private static final int STREAM_MESSAGE_SIZE = 32 * 1024;
 
-  class BindExecCommandListener extends BaseProtocolListener {
+  private class Listener extends BaseProtocolListener {
 
     Context context;
 
-    BindExecCommandListener(Context context) {
+    Listener(Context context) {
       this.context = context;
     }
 
@@ -79,8 +78,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
       resultFields = newResultFields;
       resultFieldFormats = getResultFieldFormats(newResultFields);
       resultBatch.fields = newResultFields;
-      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
-      resultSetters = Mapper.buildMapping(rowType, newResultFields);
+      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<DataRow>() : null;
     }
 
     @Override
@@ -91,28 +89,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-
-      int itemCount = buffer.readUnsignedShort();
-
-      Object rowInstance = createInstance(rowType, itemCount);
-
-      for (int c = 0; c < itemCount; ++c) {
-
-        ResultField field = resultBatch.fields.get(c);
-
-        Type fieldType = field.typeRef.get();
-
-        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
-
-        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
-
-        resultSetters.get(c).set(rowInstance, fieldVal);
-      }
-
-      @SuppressWarnings("unchecked")
-      List<Object> res = (List<Object>) resultBatch.results;
-      res.add(rowInstance);
-
+      resultBatch.results.add(BufferedDataRow.parse(buffer, resultFields, parsingContext));
     }
 
     @Override
@@ -170,59 +147,45 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
   private List<Type> parameterTypes;
   private List<Object> parameterValues;
   private List<ResultField> resultFields;
-  private Class<?> rowType;
-  private List<PropertySetter> resultSetters;
   private int maxRows;
   private int maxFieldLength;
   private Status status;
-  private SettingsContext parsingContext;
   private ResultBatch resultBatch;
   private List<Format> resultFieldFormats;
+  private SettingsContext parsingContext;
   private long queryTimeout;
 
 
-  public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+  BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues,
+                      List<ResultField> resultFields) {
 
     this.statementName = statementName;
     this.portalName = portalName;
     this.parameterTypes = parameterTypes;
     this.parameterValues = parameterValues;
     this.resultFields = resultFields;
-    this.rowType = rowType;
     this.maxRows = 0;
     this.maxFieldLength = Integer.MAX_VALUE;
 
     if (resultFields != null) {
-      this.resultSetters = Mapper.buildMapping(rowType, resultFields);
       this.resultFieldFormats = getResultFieldFormats(resultFields);
     }
     else {
-      this.resultSetters = Collections.emptyList();
       this.resultFieldFormats = Collections.emptyList();
     }
 
   }
 
-  public void reset() {
+  private void reset() {
     status = null;
     resultBatch = new ResultBatch();
     resultBatch.fields = resultFields;
-    resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
-  }
-
-  @Override
-  public long getQueryTimeout() {
-    return queryTimeout;
+    resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<DataRow>() : null;
   }
 
   @Override
   public void setQueryTimeout(long queryTimeout) {
     this.queryTimeout = queryTimeout;
-  }
-
-  @Override
-  public String getStatementName() {
-    return statementName;
   }
 
   @Override
@@ -246,28 +209,13 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
   }
 
   @Override
-  public List<Object> getParameterValues() {
-    return parameterValues;
-  }
-
-  @Override
   public void setParameterValues(List<Object> parameterValues) {
     this.parameterValues = parameterValues;
   }
 
   @Override
-  public int getMaxRows() {
-    return maxRows;
-  }
-
-  @Override
   public void setMaxRows(int maxRows) {
     this.maxRows = maxRows;
-  }
-
-  @Override
-  public int getMaxFieldLength() {
-    return maxFieldLength;
   }
 
   @Override
@@ -277,7 +225,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
   @Override
   public List<ResultBatch> getResultBatches() {
-    return asList(resultBatch);
+    return singletonList(resultBatch);
   }
 
   @Override
@@ -288,7 +236,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     parsingContext = new SettingsContext(protocol.getContext());
     parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
-    BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
+    Listener listener = new Listener(parsingContext);
 
     protocol.setListener(listener);
 
@@ -325,7 +273,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
   }
 
-  static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
+  private static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
 
     List<Format> resultFieldFormats = new ArrayList<>();
 
