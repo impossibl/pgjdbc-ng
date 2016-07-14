@@ -398,11 +398,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         }
       }
       catch (SQLException se) {
-        int[] updateCounts = new int[c + 1];
 
-        for (int i = 0; i < updateCounts.length - 1; i++) {
-          updateCounts[i] = counts[i];
-        }
+        int[] updateCounts = new int[c + 1];
+        System.arraycopy(counts, 0, updateCounts, 0, updateCounts.length - 1);
 
         updateCounts[c] = Statement.EXECUTE_FAILED;
 
