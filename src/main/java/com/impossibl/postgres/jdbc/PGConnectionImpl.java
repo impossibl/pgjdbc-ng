@@ -315,15 +315,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   void checkTransaction() throws SQLException {
 
     if (!autoCommit && protocol.getTransactionStatus() == Idle) {
-      try {
-        query(getBeginText());
-      }
-      catch (IOException e) {
-        throw new SQLException(e);
-      }
-      catch (NoticeException e) {
-        throw makeSQLException(e.getNotice());
-      }
+      execute(getBeginText(), false);
     }
 
   }
@@ -468,6 +460,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (IOException e) {
 
+      if (!protocol.isConnected()) {
+        close();
+      }
+
       throw new SQLException(e);
     }
 
@@ -494,25 +490,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
@@ -540,25 +542,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
@@ -576,25 +584,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
