@@ -34,13 +34,11 @@ import java.util.List;
 
 public interface BindExecCommand extends QueryCommand {
 
-  String getStatementName();
   String getPortalName();
 
   List<Type> getParameterTypes();
   void setParameterTypes(List<Type> parameterTypes);
 
-  List<Object> getParameterValues();
   void setParameterValues(List<Object> values);
 
 }

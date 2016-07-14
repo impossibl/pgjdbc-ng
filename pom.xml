@@ -131,6 +131,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.18.1</version>
         <configuration>
+          <argLine>-Dio.netty.leakDetection.level=advanced</argLine>
           <excludes>
             <exclude>**/PerformanceTest.java</exclude>
             <exclude>**/GiantBlobTest.java</exclude>

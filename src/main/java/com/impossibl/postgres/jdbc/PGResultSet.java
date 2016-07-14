@@ -29,6 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
+import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.ParsedDataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -174,7 +176,7 @@ class PGResultSet implements ResultSet {
 
 
 
-  PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<?> results) throws SQLException {
+  PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
     this(statement, command);
     this.scroller = new CommandScroller(this, command, resultFields, results);
 
@@ -184,7 +186,7 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<?> results) throws SQLException {
+  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
     this(statement, null);
     this.scroller = new ListScroller(resultFields, results);
 
@@ -287,8 +289,14 @@ class PGResultSet implements ResultSet {
    *          Column index to retrieve
    * @return Column value as Object
    */
-  Object get(int columnIndex) {
-    Object val = scroller.getRowData()[columnIndex - 1];
+  Object get(int columnIndex) throws PGSQLSimpleException {
+    Object val = null;
+    try {
+      val = scroller.getRowData().getColumn(columnIndex - 1);
+    }
+    catch (IOException e) {
+      throw new PGSQLSimpleException("Error decoding column", e);
+    }
     nullFlag = val == null;
     return val;
   }
@@ -298,11 +306,23 @@ class PGResultSet implements ResultSet {
     checkColumnIndex(columnIdx);
 
     if (updatedRowValues == null) {
-      Object[] rowData = scroller.getRowData();
-      if (rowData == null) {
+
+      DataRow dataRow = scroller.getRowData();
+      if (dataRow == null) {
         throw RS_NOT_UPDATABLE;
       }
-      updatedRowValues = rowData.clone();
+
+      Object[] rowData = new Object[scroller.getResultFields().size()];
+      for (int c = 0, len = rowData.length; c < len; ++c) {
+        try {
+          rowData[c] = dataRow.getColumn(c);
+        }
+        catch (IOException e) {
+          throw new SQLException("Error decoding column", e);
+        }
+      }
+
+      updatedRowValues = rowData;
     }
 
     Type colType = getType(columnIdx);
@@ -1691,6 +1711,9 @@ class PGResultSet implements ResultSet {
 
 }
 
+/**
+ * An implementation of different scrolling functionality required by JDBC resultsets.
+ */
 abstract class Scroller {
 
   abstract void close() throws SQLException;
@@ -1709,7 +1732,7 @@ abstract class Scroller {
 
   abstract int getRow() throws SQLException;
 
-  abstract Object[] getRowData();
+  abstract DataRow getRowData();
 
   abstract boolean isBeforeFirst() throws SQLException;
 
@@ -1745,16 +1768,19 @@ abstract class Scroller {
 
 }
 
+/**
+ * A forward-only scroller that scrolls through a single list of results
+ */
 class ListScroller extends Scroller {
 
   int currentRowIndex = -1;
-  List<Object[]> results;
+  List<DataRow> results;
   List<ResultField> resultFields;
 
   @SuppressWarnings("unchecked")
-  public ListScroller(List<ResultField> resultFields, List<?> results) {
+  ListScroller(List<ResultField> resultFields, List<DataRow> results) {
     this.resultFields = resultFields;
-    this.results = (List<Object[]>) results;
+    this.results = results;
   }
 
   @Override
@@ -1801,7 +1827,7 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  Object[] getRowData() {
+  DataRow getRowData() {
     return results.get(currentRowIndex);
   }
 
@@ -1896,20 +1922,36 @@ class ListScroller extends Scroller {
 
 }
 
+/**
+ * Forward-only scroller that operates on finite batches from the server.
+ *
+ * Implemented using PostgreSQL portals; specifically the "PortalSuspended" funcitonality.
+ */
 class CommandScroller extends ListScroller {
 
   PGResultSet resultSet;
   int resultsIndexOffset;
   QueryCommand command;
 
-  CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<?> results) {
+  CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) {
     super(resultFields, results);
     this.resultSet = resultSet;
     this.command = command;
   }
 
+  void setResults(List<DataRow> results) {
+    if (this.results != null) {
+      for (DataRow dataRow : this.results) {
+        dataRow.release();
+      }
+    }
+    this.results = results;
+  }
+
   @Override
   void close() throws SQLException {
+    super.close();
+    setResults(null);
     resultSet.statement.dispose(command);
   }
 
@@ -1998,7 +2040,7 @@ class CommandScroller extends ListScroller {
         QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
         resultFields = resultBatch.fields;
-        results = (List<Object[]>) resultBatch.results;
+        setResults(resultBatch.results);
 
         resultsIndexOffset += currentRowIndex;
         currentRowIndex = -1;
@@ -2018,6 +2060,9 @@ class CommandScroller extends ListScroller {
 
 }
 
+/**
+ * A forward/backward scroller that uses SQL cursors. It only ever contains a single row at any one time.
+ */
 class CursorScroller extends Scroller {
 
   PGConnectionImpl connection;
@@ -2028,7 +2073,7 @@ class CursorScroller extends Scroller {
   int rowIndexValue;
   Integer rowCountCache;
   int rowIndexSign;
-  Object[] result;
+  DataRow result;
 
   CursorScroller(PGResultSet resultSet, String cursorName, int type, int holdability, List<ResultField> resultFields) {
     this.connection = resultSet.statement.connection;
@@ -2045,6 +2090,13 @@ class CursorScroller extends Scroller {
     rowIndexSign = sign ? 1 : -1;
   }
 
+  void setResult(DataRow result) {
+    if (this.result != null) {
+      this.result.release();
+    }
+    this.result = result;
+  }
+
   boolean fetch(String type, Object loc) throws SQLException {
 
     StringBuilder sb = new StringBuilder();
@@ -2055,14 +2107,14 @@ class CursorScroller extends Scroller {
     sb.append(" FROM ");
     sb.append(cursorName);
 
-    result = connection.executeForFirstResult(sb.toString(), true);
+    setResult(connection.executeForFirstResult(sb.toString(), true));
 
     return result != null;
   }
 
   int move(String type, Object loc) throws SQLException {
 
-    result = null;
+    setResult(null);
 
     StringBuilder sb = new StringBuilder();
     sb.append("MOVE ");
@@ -2086,6 +2138,8 @@ class CursorScroller extends Scroller {
 
   @Override
   void close() throws SQLException {
+
+    setResult(null);
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
 
@@ -2125,7 +2179,7 @@ class CursorScroller extends Scroller {
   }
 
   @Override
-  Object[] getRowData() {
+  DataRow getRowData() {
     return result;
   }
 
@@ -2347,7 +2401,7 @@ class CursorScroller extends Scroller {
 
     connection.executeForRowsAffected(sb.toString(), true, updatedRowValues);
 
-    result = updatedRowValues.clone();
+    setResult(new ParsedDataRow(updatedRowValues));
   }
 
   @Override

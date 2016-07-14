@@ -29,6 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.ParsedDataRow;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.CompositeType;
@@ -114,9 +116,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   private PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
 
+    List<DataRow> dataRows = new ArrayList<>();
+
+    for (Object[] row : results) {
+      dataRows.add(new ParsedDataRow(row));
+    }
+
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(resultFields, results);
+    return stmt.createResultSet(resultFields, dataRows);
   }
 
   private int getMaxNameLength() throws SQLException {

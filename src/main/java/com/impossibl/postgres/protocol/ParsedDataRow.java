@@ -28,40 +28,23 @@
  */
 package com.impossibl.postgres.protocol;
 
-import java.util.List;
+import java.io.IOException;
 
-public interface QueryCommand extends Command {
+public class ParsedDataRow implements DataRow {
 
-  enum Status {
-    Completed,
-    Suspended
+  private Object[] columns;
+
+  public ParsedDataRow(Object[] columns) {
+    this.columns = columns;
   }
 
-  class ResultBatch {
-    public String command;
-    public Long rowsAffected;
-    public Long insertedOid;
-    public List<ResultField> fields;
-    public List<DataRow> results;
-
-    public void release() {
-      if (results != null) {
-        for (DataRow dataRow : results) {
-          dataRow.release();
-        }
-      }
-    }
-
+  @Override
+  public Object getColumn(int columnIndex) throws IOException {
+    return columns[columnIndex];
   }
 
-  void setQueryTimeout(long timeout);
-
-  void setMaxRows(int maxRows);
-
-  void setMaxFieldLength(int maxFieldLength);
-
-  List<ResultBatch> getResultBatches();
-
-  Status getStatus();
+  @Override
+  public void release() {
+  }
 
 }

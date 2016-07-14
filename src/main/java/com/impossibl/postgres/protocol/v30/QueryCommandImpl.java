@@ -28,12 +28,16 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.BufferedDataRow;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.system.SettingsContext;
+
+import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,13 +45,13 @@ import java.util.List;
 
 import io.netty.buffer.ByteBuf;
 
-public class QueryCommandImpl extends CommandImpl implements QueryCommand {
+class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
-  class QueryListener extends BaseProtocolListener {
+  private class Listener extends BaseProtocolListener {
 
     Context context;
 
-    public QueryListener(Context context) {
+    Listener(Context context) {
       super();
       this.context = context;
     }
@@ -60,32 +64,12 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     @Override
     public void rowDescription(List<ResultField> resultFields) {
       resultBatch.fields = resultFields;
-      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
+      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<DataRow>() : null;
     }
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-
-      int fieldCount = buffer.readUnsignedShort();
-
-      Object[] rowInstance = new Object[fieldCount];
-
-      for (int c = 0; c < fieldCount; ++c) {
-
-        ResultField field = resultBatch.fields.get(c);
-
-        Type fieldType = field.typeRef.get();
-
-        Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
-
-        Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
-
-        rowInstance[c] = fieldVal;
-      }
-
-      @SuppressWarnings("unchecked")
-      List<Object> res = (List<Object>) resultBatch.results;
-      res.add(rowInstance);
+      resultBatch.results.add(BufferedDataRow.parse(buffer, resultBatch.fields, parsingContext));
     }
 
     @Override
@@ -123,21 +107,17 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
   }
 
 
+  private String command;
+  private List<ResultBatch> resultBatches;
+  private ResultBatch resultBatch;
+  private long queryTimeout;
+  private SettingsContext parsingContext;
+  private int maxFieldLength;
 
-  String command;
-  List<ResultBatch> resultBatches;
-  ResultBatch resultBatch;
-  long queryTimeout;
 
-
-
-  public QueryCommandImpl(String command) {
+  QueryCommandImpl(String command) {
     this.command = command;
-  }
-
-  @Override
-  public long getQueryTimeout() {
-    return queryTimeout;
+    this.maxFieldLength = Integer.MAX_VALUE;
   }
 
   @Override
@@ -156,7 +136,12 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
     resultBatch = new ResultBatch();
     resultBatches = new ArrayList<>();
 
-    QueryListener listener = new QueryListener(protocol.getContext());
+    // Setup context for parsing fields with customized parameters
+    //
+    parsingContext = new SettingsContext(protocol.getContext());
+    parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
+
+    Listener listener = new Listener(protocol.getContext());
 
     protocol.setListener(listener);
 
@@ -179,17 +164,7 @@ public class QueryCommandImpl extends CommandImpl implements QueryCommand {
   }
 
   @Override
-  public int getMaxFieldLength() {
-    return 0;
-  }
-
-  @Override
   public void setMaxFieldLength(int maxFieldLength) {
-  }
-
-  @Override
-  public int getMaxRows() {
-    return 0;
   }
 
   @Override

@@ -32,7 +32,10 @@ import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
+import com.impossibl.postgres.mapper.Mapper;
+import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -45,6 +48,7 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Converter;
+import com.impossibl.postgres.utils.Factory;
 import com.impossibl.postgres.utils.Timer;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
@@ -171,7 +175,6 @@ public class BasicContext implements Context {
     return converter.apply(settings.get(name));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public <T> T getSetting(String name, T defaultValue) {
     Object val = settings.get(name);
@@ -264,10 +267,11 @@ public class BasicContext implements Context {
 
   private void loadLocale() throws IOException, NoticeException {
 
-    for (Object row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
-      Object[] cols = (Object[]) row;
-      String[] localeIds = cols[1].toString().split("_|\\.");
-      switch (cols[0].toString()) {
+    for (DataRow row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
+
+      String[] localeIds = row.getColumn(1).toString().split("_|\\.");
+
+      switch (row.getColumn(0).toString()) {
         case "lc_numeric":
           Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
           decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
@@ -278,6 +282,8 @@ public class BasicContext implements Context {
         case "lc_time":
           Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
       }
+
+      row.release();
     }
   }
 
@@ -454,16 +460,39 @@ public class BasicContext implements Context {
     return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
   }
 
-  @SuppressWarnings("unchecked")
-  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  private <T> List<T> convertResults(Class<T> rowType, List<ResultField> columnFields, List<DataRow> dataRows) throws IOException {
 
-    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, rowType, params);
+    List<PropertySetter> columnSetters = Mapper.buildMapping(rowType, columnFields);
 
-    return (List<T>) resultBatch.results;
+    List<T> results = new ArrayList<>(dataRows.size());
+    for (int r = 0; r < dataRows.size(); ++r) {
+
+      DataRow dataRow = dataRows.get(r);
+      T row = Factory.createInstance(rowType, columnFields.size());
+
+      for (int c = 0; c < columnSetters.size(); ++c) {
+
+        Object columnValue = dataRow.getColumn(c);
+
+        columnSetters.get(c).set(row, columnValue);
+      }
+
+      dataRow.release();
+
+      results.add(row);
+    }
+
+    return results;
   }
 
-  @SuppressWarnings("unchecked")
-  public List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
+  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+
+    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, params);
+
+    return convertResults(rowType, resultBatch.fields, resultBatch.results);
+  }
+
+  public List<DataRow> queryResults(String queryTxt) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch;
 
@@ -471,7 +500,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
+      resultBatch = preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
     else {
 
@@ -498,7 +527,7 @@ public class BasicContext implements Context {
       return Collections.emptyList();
     }
 
-    return (List<Object>) resultBatch.results;
+    return resultBatch.results;
   }
 
   public void query(String queryTxt) throws IOException, NoticeException {
@@ -507,7 +536,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
+      preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
 
     QueryCommand query = protocol.createQuery(queryTxt);
@@ -520,73 +549,36 @@ public class BasicContext implements Context {
 
   }
 
-  public Object queryValue(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand.ResultBatch resultBatch;
-
-    if (queryTxt.charAt(0) == '@') {
-
-      PreparedQuery pq = prepareQuery(queryTxt);
-
-      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
-    }
-    else {
-
-      QueryCommand query = protocol.createQuery(queryTxt);
-
-      protocol.execute(query);
-
-      if (query.getError() != null) {
-        throw new NoticeException("Error preparing query", query.getError());
-      }
-
-      List<QueryCommand.ResultBatch> res = query.getResultBatches();
-      if (res.isEmpty()) {
-        return null;
-      }
-
-      resultBatch = res.get(0);
-    }
-
-    if (resultBatch.results == null || resultBatch.results.isEmpty()) {
-      return resultBatch.rowsAffected;
-    }
-
-    Object[] firstRow = (Object[]) resultBatch.results.get(0);
-    if (firstRow.length == 0)
-      return null;
-
-    return firstRow[0];
-  }
-
   public String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
 
-    List<Object> res = queryResults(queryTxt);
+    List<DataRow> res = queryResults(queryTxt);
     if (res.isEmpty()) {
       return "";
     }
 
-    Object[] firstRow = (Object[]) res.get(0);
-    if (firstRow.length == 0)
+    Object val = res.get(0).getColumn(0);
+
+    for (DataRow row : res) {
+      row.release();
+    }
+
+    if (val == null)
       return "";
 
-    if (firstRow[0] == null)
-      return "";
-
-    return firstRow[0].toString();
+    return val.toString();
   }
 
-  public QueryCommand.ResultBatch queryBatch(String queryTxt, Class<?> rowType, Object... params) throws IOException, NoticeException {
+  public QueryCommand.ResultBatch queryBatch(String queryTxt, Object... params) throws IOException, NoticeException {
 
     PreparedQuery pq = prepareQuery(queryTxt);
 
-    return preparedQuery(null, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+    return preparedQuery(null, pq.name, pq.parameterTypes, asList(params), pq.resultFields);
   }
 
-  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
+  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, List<Type> paramTypes, List<Object> paramValues,
                                                  List<ResultField> resultFields) throws IOException, NoticeException {
 
-    BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
+    BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields);
 
     protocol.execute(query);
 

@@ -28,40 +28,58 @@
  */
 package com.impossibl.postgres.protocol;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Type;
+
+import java.io.IOException;
 import java.util.List;
 
-public interface QueryCommand extends Command {
+import static java.lang.Math.max;
 
-  enum Status {
-    Completed,
-    Suspended
+import io.netty.buffer.ByteBuf;
+
+
+public class BufferedDataRow implements DataRow {
+
+  public ByteBuf buffer;
+  private List<ResultField> columns;
+  private int[] columnOffsets;
+  private Context parsingContext;
+
+  private BufferedDataRow(ByteBuf buffer, List<ResultField> columns, int[] columnOffsets, Context parsingContext) {
+    this.buffer = buffer.retain();
+    this.columns = columns;
+    this.columnOffsets = columnOffsets;
+    this.parsingContext = parsingContext;
   }
 
-  class ResultBatch {
-    public String command;
-    public Long rowsAffected;
-    public Long insertedOid;
-    public List<ResultField> fields;
-    public List<DataRow> results;
+  public static BufferedDataRow parse(ByteBuf buffer, List<ResultField> columns, Context parsingContext) {
 
-    public void release() {
-      if (results != null) {
-        for (DataRow dataRow : results) {
-          dataRow.release();
-        }
-      }
+    int columnsCount = buffer.readUnsignedShort();
+    int[] offsets = new int[columnsCount];
+
+    for (int c = 0; c < columnsCount; ++c) {
+      offsets[c] = buffer.readerIndex();
+      buffer.skipBytes(max(buffer.readInt(), 0));
     }
 
+    return new BufferedDataRow(buffer, columns, offsets, parsingContext);
   }
 
-  void setQueryTimeout(long timeout);
+  @Override
+  public Object getColumn(int columnIndex) throws IOException {
 
-  void setMaxRows(int maxRows);
+    ResultField field = columns.get(columnIndex);
+    Type type = field.typeRef.get();
+    int offset = columnOffsets[columnIndex];
+    ByteBuf fieldBuffer = buffer.slice(offset, max(buffer.getInt(offset), 0) + 4);
 
-  void setMaxFieldLength(int maxFieldLength);
+    return type.getCodec(field.format).decoder.decode(type, field.typeLength, field.typeModifier, fieldBuffer, parsingContext);
+  }
 
-  List<ResultBatch> getResultBatches();
-
-  Status getStatus();
+  @Override
+  public void release() {
+    buffer.release();
+  }
 
 }

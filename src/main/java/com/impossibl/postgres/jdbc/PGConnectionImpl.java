@@ -35,6 +35,7 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -570,7 +571,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     try {
 
-      return queryBatch(sql, Object[].class, params);
+      return queryBatch(sql, params);
 
     }
     catch (BlockingReadTimeoutException e) {
@@ -598,30 +599,44 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
   }
 
-  Object[] executeForFirstResult(String sql, boolean checkTxn, Object... params) throws SQLException {
+  DataRow executeForFirstResult(String sql, boolean checkTxn, Object... params) throws SQLException {
 
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
 
-    List<?> res = resultBatch.results;
+    List<DataRow> res = resultBatch.results;
     if (res == null || res.isEmpty())
       return null;
 
-    return (Object[]) res.get(0);
+    DataRow firstResult = res.remove(0);
+
+    resultBatch.release();
+
+    return firstResult;
   }
 
   <T> T executeForFirstResultValue(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
 
-    Object[] result = executeForFirstResult(sql, checkTxn, params);
-    if (result == null || result.length == 0)
+    DataRow result = executeForFirstResult(sql, checkTxn, params);
+    if (result == null)
       return null;
 
-    return returnType.cast(result[0]);
+    try {
+      return returnType.cast(result.getColumn(0));
+    }
+    catch (IOException e) {
+      throw new SQLException("Error decoding column", e);
+    }
+    finally {
+      result.release();
+    }
 
   }
 
   long executeForRowsAffected(String sql, boolean checkTxn, Object... params) throws SQLException {
 
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
+
+    resultBatch.release();
 
     return resultBatch.rowsAffected;
   }
