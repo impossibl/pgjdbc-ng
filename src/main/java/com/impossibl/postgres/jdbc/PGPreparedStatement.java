@@ -106,7 +106,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 
   PGPreparedStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
-    super(connection, type, concurrency, holdability, null, null);
+    super(connection, type, concurrency, holdability, name, null);
     this.sqlText = sqlText;
     this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));
     this.parameterValues = new ArrayList<>(asList(new Object[parameterCount]));
@@ -215,8 +215,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       catch (ExecutionException e) {
         throw (SQLException) e.getCause();
       }
+      catch (SQLException e) {
+        throw e;
+      }
       catch (Exception e) {
-        throw (SQLException) e;
+        throw new SQLException(e);
       }
 
       name = cachedStatement.name;
@@ -354,7 +357,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
             PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
 
-            connection.execute(prep, true);
+            SQLWarning warnings = connection.execute(prep, true);
+            warningChain = chainWarnings(warningChain, warnings);
 
             parameterTypes = prep.getDescribedParameterTypes();
             lastParameterTypes = parameterTypes;
@@ -394,11 +398,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         }
       }
       catch (SQLException se) {
-        int[] updateCounts = new int[c + 1];
 
-        for (int i = 0; i < updateCounts.length - 1; i++) {
-          updateCounts[i] = counts[i];
-        }
+        int[] updateCounts = new int[c + 1];
+        System.arraycopy(counts, 0, updateCounts, 0, updateCounts.length - 1);
 
         updateCounts[c] = Statement.EXECUTE_FAILED;
 
