@@ -357,7 +357,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
             PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
 
-            connection.execute(prep, true);
+            SQLWarning warnings = connection.execute(prep, true);
+            warningChain = chainWarnings(warningChain, warnings);
 
             parameterTypes = prep.getDescribedParameterTypes();
             lastParameterTypes = parameterTypes;
