@@ -315,15 +315,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   void checkTransaction() throws SQLException {
 
     if (!autoCommit && protocol.getTransactionStatus() == Idle) {
-      try {
-        query(getBeginText());
-      }
-      catch (IOException e) {
-        throw new SQLException(e);
-      }
-      catch (NoticeException e) {
-        throw makeSQLException(e.getNotice());
-      }
+      execute(getBeginText(), false);
     }
 
   }
