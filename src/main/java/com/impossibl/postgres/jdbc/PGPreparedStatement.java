@@ -215,8 +215,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       catch (ExecutionException e) {
         throw (SQLException) e.getCause();
       }
+      catch (SQLException e) {
+        throw e;
+      }
       catch (Exception e) {
-        throw (SQLException) e;
+        throw new SQLException(e);
       }
 
       name = cachedStatement.name;
