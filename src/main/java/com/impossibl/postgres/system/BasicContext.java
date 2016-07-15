@@ -269,7 +269,16 @@ public class BasicContext implements Context {
 
     for (DataRow row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
 
-      String[] localeIds = row.getColumn(1).toString().split("_|\\.");
+      String localeSpec = row.getColumn(1).toString();
+
+      switch (localeSpec.toUpperCase(Locale.US)) {
+        case "C":
+        case "POSIX":
+          localeSpec = "en_US";
+          break;
+      }
+
+      String[] localeIds = localeSpec.split("_|\\.");
 
       switch (row.getColumn(0).toString()) {
         case "lc_numeric":
