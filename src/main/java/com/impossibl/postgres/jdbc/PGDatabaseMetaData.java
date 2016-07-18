@@ -1938,13 +1938,22 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "  END AS TYPE, " +
         "  (i.keys).n AS ORDINAL_POSITION, " +
         "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, " +
+        (connection.isServerMinimumVersion(9, 6) ?
+        "  CASE am.amname " +
+        "    WHEN 'btree' THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
+        "      WHEN 1 THEN 'D' " +
+        "      ELSE 'A' " +
+        "    END " +
+        "    ELSE NULL " +
+        "  END AS ASC_OR_DESC, "
+        :
         "  CASE am.amcanorder " +
         "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
         "      WHEN 1 THEN 'D' " +
         "      ELSE 'A' " +
         "    END " +
         "    ELSE NULL " +
-        "  END AS ASC_OR_DESC, " +
+        "  END AS ASC_OR_DESC, ") +
         "  ci.reltuples AS CARDINALITY, " +
         "  ci.relpages AS PAGES, " +
         "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION " +
