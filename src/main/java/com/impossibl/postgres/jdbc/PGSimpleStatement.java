@@ -28,12 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ServerObjectType;
-import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
@@ -45,22 +42,25 @@ import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseRe
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Collections;
 
 import static java.util.Arrays.asList;
 
+
 class PGSimpleStatement extends PGStatement {
 
-  SQLText batchCommands;
+  private SQLText batchCommands;
 
-  public PGSimpleStatement(PGConnectionImpl connection, int type, int concurrency, int holdability) {
+  PGSimpleStatement(PGDirectConnection connection, int type, int concurrency, int holdability) {
     super(connection, type, concurrency, holdability, null, null);
   }
 
-  SQLWarning prepare(SQLText sqlText) throws SQLException {
+  private boolean setup(SQLText sqlText) {
+
+    if (sqlText.getStatementCount() > 1) {
+      return true;
+    }
 
     if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
 
@@ -75,41 +75,34 @@ class PGSimpleStatement extends PGStatement {
 
     }
 
-    PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText.toString(), Collections.<Type> emptyList());
-
-    SQLWarning warningChain = connection.execute(prep, true);
-
-    resultFields = prep.getDescribedResultFields();
-
-    return warningChain;
+    return name == null && !needsNamedPortal();
   }
 
   boolean execute(SQLText sqlText) throws SQLException {
 
     if (name != null) {
+
       dispose(connection, ServerObjectType.Statement, name);
+
+      name = null;
     }
 
     if (processEscapes) {
       SQLTextEscapes.processEscapes(sqlText, connection);
     }
 
-    if (sqlText.getStatementCount() > 1) {
+    if (setup(sqlText)) {
 
       return executeSimple(sqlText.toString());
 
     }
     else {
 
-      SQLWarning prepWarningChain = prepare(sqlText);
-
-      boolean res = executeStatement(name, Collections.<Type> emptyList(), Collections.<Object> emptyList());
+      boolean res = executeExtended(sqlText.toString());
 
       if (cursorName != null) {
         res = super.executeSimple("FETCH ABSOLUTE 0 FROM " + cursorName);
       }
-
-      warningChain = chainWarnings(prepWarningChain, warningChain);
 
       return res;
 
@@ -235,7 +228,7 @@ class PGSimpleStatement extends PGStatement {
   }
 
   @Override
-  public void clearBatch() throws SQLException {
+  public void clearBatch() {
 
     batchCommands = null;
   }

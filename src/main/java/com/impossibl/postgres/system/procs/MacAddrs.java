@@ -30,6 +30,7 @@ package com.impossibl.postgres.system.procs;
 
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
@@ -47,124 +48,151 @@ public class MacAddrs extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  private static byte[] convertInput(Object value) throws ConversionException {
+
+    if (value instanceof byte[]) {
+      return (byte[]) value;
+    }
+
+    if (value instanceof String) {
+      return parse((String) value);
+    }
+
+    throw new ConversionException(value.getClass(), PrimitiveType.MacAddr);
+  }
+
+  private static Object convertOutput(byte[] value, Class<?> targetClass) throws ConversionException {
+
+    if (targetClass == byte[].class) {
+      return value;
+    }
+
+    if (targetClass == String.class) {
+      StringBuilder bldr = new StringBuilder();
+      format(value, bldr);
+      return bldr.toString();
+    }
+
+    throw new ConversionException(PrimitiveType.MacAddr, targetClass);
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(6);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return byte[].class;
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 6) {
-        throw new IOException("invalid length");
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
       // The external representation is just the six bytes, MSB first.
       byte[] bytes = new byte[6];
       buffer.readBytes(bytes);
-      return bytes;
+
+      return convertOutput(bytes, targetClass);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return byte[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
-      }
-      else {
-        byte[] bytes = (byte[]) val;
-        if (bytes.length != 6) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(6);
-        buffer.writeBytes(bytes);
-      }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      byte[] bytes = convertInput(value);
+
+      buffer.writeBytes(bytes);
     }
   }
 
-  static class TxtDecoder extends TextDecoder {
-    /*
-     * '08:00:2b:01:02:03' '08-00-2b-01-02-03' '08002b:010203' '08002b-010203'
-     * '0800.2b01.0203' '08002b010203'
-     */
-    private static final Pattern macPattern = Pattern
-        .compile("([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})");
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return byte[].class;
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-      Matcher m = macPattern.matcher(buffer);
-      if (!m.matches()) {
-        throw new IOException("Invalid Mac address: " + buffer);
-      }
-      byte[] addr = new byte[6];
-      for (int i = 0; i < 6; i++) {
-        addr[i] = (byte) Integer.parseInt(m.group(i + 1), 16);
-      }
-      return addr;
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      byte[] value = parse(buffer.toString());
+
+      return convertOutput(value, targetClass);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
-    private static final char[] hexDigits = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    private static final char separator = ':';
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return byte[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      byte[] addr = (byte[]) val;
-      if (addr.length != 6) {
-        throw new IOException("invalid length");
-      }
-      for (byte b : addr) {
-        int bi = b & 0xff;
-        buffer.append(hexDigits[bi >> 4]);
-        buffer.append(hexDigits[bi & 0xf]).append(separator);
-      }
-      buffer.setLength(buffer.length() - 1);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      byte[] addr = convertInput(value);
+
+      format(addr, buffer);
     }
 
+  }
+
+  /*
+   * '08:00:2b:01:02:03' '08-00-2b-01-02-03' '08002b:010203' '08002b-010203'
+   * '0800.2b01.0203' '08002b010203'
+   */
+  private static final Pattern MAC_PATTERN = Pattern
+      .compile("([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})[-:.]?([0-9a-f-A-F]{2})[:-]?([0-9a-f-A-F]{2})");
+
+  private static byte[] parse(String value) throws ConversionException {
+
+    Matcher m = MAC_PATTERN.matcher(value);
+    if (!m.matches()) {
+      throw new ConversionException("Invalid Mac address: " + value);
+    }
+
+    byte[] addr = new byte[6];
+    for (int i = 0; i < 6; i++) {
+      addr[i] = (byte) Integer.parseInt(m.group(i + 1), 16);
+    }
+
+    return addr;
+  }
+
+  private static final char[] HEX_DIGITS = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+  private static final char SEPARATOR = ':';
+
+  private static void format(byte[] addr, StringBuilder buffer) {
+
+    for (byte b : addr) {
+      int bi = b & 0xff;
+      buffer.append(HEX_DIGITS[bi >> 4]);
+      buffer.append(HEX_DIGITS[bi & 0xf]).append(SEPARATOR);
+    }
+
+    buffer.setLength(buffer.length() - 1);
   }
 
 }

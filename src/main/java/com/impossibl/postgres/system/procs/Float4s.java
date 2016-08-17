@@ -33,6 +33,8 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -42,99 +44,94 @@ public class Float4s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float4");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends NumericBinaryDecoder<Float> {
+
+    BinDecoder() {
+      super(4);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Float;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Float> getDefaultClass() {
       return Float.class;
     }
 
     @Override
-    public Float decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 4) {
-        throw new IOException("invalid length");
-      }
-
+    protected Float decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readFloat();
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Float> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Float.class;
+    BinEncoder() {
+      super(4, Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Float;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Float> getDefaultClass() {
+      return Float.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(4);
-        buffer.writeFloat((Float) val);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Float value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeFloat(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Float> {
+
+    protected TxtDecoder() {
+      super(Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Float;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Float> getDefaultClass() {
       return Float.class;
     }
 
     @Override
-    public Float decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return Float.valueOf(buffer.toString());
+    protected Float decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return new BigDecimal(buffer.toString()).floatValue();
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Float> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Float.class;
+    TxtEncoder() {
+      super(Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Float;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Float> getDefaultClass() {
+      return Float.class;
+    }
 
-      buffer.append((float)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Float value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

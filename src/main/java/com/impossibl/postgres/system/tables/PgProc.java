@@ -28,7 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
+
+import java.io.IOException;
 
 
 /**
@@ -39,12 +43,17 @@ import com.impossibl.postgres.system.Version;
  */
 public class PgProc implements Table<PgProc.Row> {
 
-  public static class Row {
+  public static class Row implements Table.Row {
 
     private int oid;
     private String name;
 
     public Row() {
+    }
+
+    public void load(Context context, RowData rowData) throws IOException {
+      this.oid = rowData.getColumn(OID, context, Integer.class);
+      this.name = rowData.getColumn(NAME, context, String.class);
     }
 
     public int getOid() {
@@ -64,6 +73,9 @@ public class PgProc implements Table<PgProc.Row> {
     }
   }
 
+  static final int OID = 0;
+  static final int NAME = 1;
+
   public static final PgProc INSTANCE = new PgProc();
 
   private PgProc() {
@@ -75,8 +87,10 @@ public class PgProc implements Table<PgProc.Row> {
   }
 
   @Override
-  public Row createRow() {
-    return new Row();
+  public Row createRow(Context context, RowData rowData) throws IOException {
+    Row row = new Row();
+    row.load(context, rowData);
+    return row;
   }
 
   private static final Object[] SQL = {Version.get(9, 0, 0), " select " + "    \"oid\", proname as \"name\"" + " from" + "   pg_proc"};

@@ -35,6 +35,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import java.sql.Array;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -73,7 +74,7 @@ public class BatchExecuteTest {
 
     // Drop the test table if it already exists for some reason. It is
     // not an error if it doesn't exist.
-    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
+    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER, arr INTEGER[]");
 
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
@@ -377,8 +378,8 @@ public class BatchExecuteTest {
     pstmt.setInt(1, 1);
     pstmt.addBatch();
 
-    // Invalid
-    pstmt.setString(1, "Invalid");
+    // Invalid (due to primary key)
+    pstmt.setInt(1, 1);
     pstmt.addBatch();
 
     // Valid
@@ -444,6 +445,21 @@ public class BatchExecuteTest {
     }
     finally {
       stmt.close();
+    }
+  }
+
+  @Test
+  public void testWithArrays() throws SQLException {
+    try (PreparedStatement stmt = con.prepareStatement("INSERT INTO testbatch(arr) VALUES (?)")) {
+      Array array = con.createArrayOf("integer", new Integer[] {1, 2});
+      try {
+        stmt.setArray(1, array);
+        stmt.addBatch();
+        stmt.executeBatch();
+      }
+      finally {
+        array.free();
+      }
     }
   }
 

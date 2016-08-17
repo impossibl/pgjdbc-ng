@@ -88,7 +88,7 @@ public class PGClob implements Clob {
   LargeObject lo;
   List<LargeObject> streamLos;
 
-  PGClob(PGConnectionImpl connection, int oid) throws SQLException {
+  public PGClob(PGDirectConnection connection, int oid) throws SQLException {
 
     if (connection.getAutoCommit()) {
       throw new SQLException("Clobs require connection to be in manual-commit mode... setAutoCommit(false)");
@@ -96,6 +96,10 @@ public class PGClob implements Clob {
 
     lo = LargeObject.open(connection, oid);
     streamLos = new ArrayList<>();
+  }
+
+  public int getOid() {
+    return lo.oid;
   }
 
   private void checkClosed() throws SQLException {

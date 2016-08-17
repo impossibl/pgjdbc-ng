@@ -36,7 +36,7 @@
 package com.impossibl.postgres.jdbc.xa;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
-import com.impossibl.postgres.jdbc.PGConnectionImpl;
+import com.impossibl.postgres.jdbc.PGDirectConnection;
 import com.impossibl.postgres.jdbc.PGPooledConnection;
 import com.impossibl.postgres.protocol.TransactionStatus;
 
@@ -79,7 +79,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * COMMIT PREPARED/ROLLBACK PREPARED commands.
    */
   private static final Logger logger = Logger.getLogger(PGXAConnection.class.getName());
-  private final PGConnectionImpl conn;
+  private final PGDirectConnection conn;
 
   /*
    * PGXAConnection-object can be in one of three states:
@@ -122,7 +122,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     logger.log(Level.FINE, "XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
   }
 
-  public PGXAConnection(PGConnectionImpl conn) throws SQLException {
+  public PGXAConnection(PGDirectConnection conn) throws SQLException {
     super(conn, true, true);
     this.conn = conn;
     this.state = STATE_IDLE;

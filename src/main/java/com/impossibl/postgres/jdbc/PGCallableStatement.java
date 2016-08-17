@@ -28,36 +28,19 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
+import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
+import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,54 +61,53 @@ import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.math.RoundingMode.HALF_UP;
+import static java.util.Arrays.copyOf;
+import static java.util.Arrays.fill;
 import static java.util.Collections.nCopies;
-
 
 
 public class PGCallableStatement extends PGPreparedStatement implements CallableStatement {
 
 
-  enum ParameterMode {
+  private enum ParameterMode {
     In, Out, InOut, Assign
   }
 
 
-  String fullSqlText;
-  List<ParameterMode> allParameterModes;
-  List<String> outParameterNames;
-  List<Type> outParameterTypes;
-  Map<Integer, Integer> outParameterSQLTypes;
-  List<Object> outParameterValues;
-  Map<String, Class<?>> typeMap;
-  Boolean nullFlag;
+  private String fullSqlText;
+  private List<ParameterMode> allParameterModes;
+  private Map<Integer, Integer> outParameterSQLTypes;
+  private ResultField[] outParameterFields;
+  private RowData outParameterData;
+  private Map<String, Class<?>> typeMap;
+  private Boolean nullFlag;
 
   private static final Map<Integer, Pattern> PARAM_REPLACE_REGEXES = new ConcurrentHashMap<>();
   private static final Pattern CLEANUP_LEADING_COMMAS_REGEX = Pattern.compile("\\(\\s*,+");
   private static final Pattern CLEANUP_MIDDLE_COMMAS_REGEX = Pattern.compile(",\\s*,");
   private static final Pattern CLEANUP_TAILING_COMMAS_REGEX = Pattern.compile(",+\\s*\\)");
 
-  PGCallableStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
-    super(connection, type, concurrency, holdability, name, sqlText, 0, cursorName);
+  PGCallableStatement(PGDirectConnection connection, int type, int concurrency, int holdability, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
+    super(connection, type, concurrency, holdability, sqlText, 0, cursorName);
 
     typeMap = connection.getTypeMap();
     fullSqlText = sqlText;
-    allParameterModes = new ArrayList<>(nCopies(parameterCount, (ParameterMode) null));
-    outParameterNames = new ArrayList<>();
-    outParameterTypes = new ArrayList<>();
+    allParameterModes = new ArrayList<>(nCopies(parameterCount, null));
+    parameterTypes = EMPTY_TYPES;
+    parameterFormats = EMPTY_FORMATS;
+    parameterBuffers = EMPTY_BUFFERS;
     outParameterSQLTypes = new HashMap<>();
-    outParameterValues = new ArrayList<>();
+    outParameterFields = null;
+    outParameterData = null;
 
     if (hasAssign) {
       allParameterModes.add(0, ParameterMode.Assign);
@@ -133,7 +115,17 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
-  void verifyParameterSet() throws SQLException {
+  void internalClose() throws SQLException {
+    super.internalClose();
+
+    if (outParameterData != null) {
+      outParameterData.release();
+      outParameterData = null;
+    }
+  }
+
+  @Override
+  void verifyParameterSet() {
   }
 
   @Override
@@ -174,47 +166,34 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public boolean execute() throws SQLException {
 
+    resultBatches = releaseResultBatches(resultBatches);
+    if (outParameterData != null) {
+      outParameterData.release();
+      outParameterData = null;
+    }
+
     boolean res = super.execute();
 
-    if (!outParameterTypes.isEmpty()) {
+    if (!outParameterSQLTypes.isEmpty()) {
 
       if (!resultBatches.isEmpty()) {
 
         QueryCommand.ResultBatch returnValuesBatch = resultBatches.remove(0);
         try {
 
-          if (returnValuesBatch.getFields().size() != outParameterTypes.size()) {
+          if (returnValuesBatch.getFields().length != outParameterSQLTypes.size()) {
             throw new SQLException("incorrect number of out parameters");
           }
 
           if (returnValuesBatch.getResults() != null && !returnValuesBatch.getResults().isEmpty()) {
-
-            DataRow returnValues = returnValuesBatch.getResults().get(0);
-
-            for (int c = 0; c < outParameterValues.size(); ++c) {
-
-              ResultField field = returnValuesBatch.getFields().get(c);
-
-              Object value;
-              try {
-                value = returnValues.getColumn(c);
-              }
-              catch (IOException e) {
-                throw new PGSQLSimpleException("Error decoding column", e);
-              }
-
-              outParameterNames.set(c, field.getName());
-              outParameterTypes.set(c, field.getTypeRef().get());
-              outParameterValues.set(c, value);
-            }
-
+            outParameterFields = returnValuesBatch.getFields();
+            outParameterData = returnValuesBatch.getResults().get(0).retain();
           }
 
         }
         finally {
           returnValuesBatch.release();
         }
-
       }
       else {
 
@@ -226,7 +205,17 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     return res;
   }
 
-  int mapToInParameterIndex(int parameterIdx) {
+  @Override
+  public void clearParameters() throws SQLException {
+    super.clearParameters();
+
+    if (outParameterData != null) {
+      outParameterData.release();
+      outParameterData = null;
+    }
+  }
+
+  private int mapToInParameterIndex(int parameterIdx) {
 
     int inParameterIdx = parameterIdx;
 
@@ -240,7 +229,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     return inParameterIdx;
   }
 
-  int mapToOutParameterIndex(int parameterIdx) throws SQLException {
+  private int mapToOutParameterIndex(int parameterIdx) throws SQLException {
+
+    if (parameterIdx < 1 || parameterIdx > allParameterModes.size()) {
+      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
+    }
 
     if (allParameterModes.get(parameterIdx - 1) == ParameterMode.In) {
       throw new SQLException("parameter not available");
@@ -258,7 +251,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     return outParameterIdx;
   }
 
-  int mapFromOutParameterIndex(int outParameterIdx) {
+  private int mapFromOutParameterIndex(int outParameterIdx) {
 
     int parameterIdx = 0;
 
@@ -271,28 +264,36 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     return parameterIdx;
   }
 
-  Type getOutType(int parameterIdx) throws SQLException {
-
-    if (parameterIdx < 1 || parameterIdx > outParameterValues.size()) {
-      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
-    }
-
-    return outParameterTypes.get(parameterIdx - 1);
+  private <R> R getVal(int parameterIdx, Class<R> targetClass, Object targetContext) throws SQLException {
+    return targetClass.cast(getObj(parameterIdx, targetClass, targetContext));
   }
 
-  Object get(int parameterIdx) throws SQLException {
-
-    if (parameterIdx < 1 || parameterIdx > outParameterValues.size()) {
-      throw PARAMETER_INDEX_OUT_OF_BOUNDS;
-    }
+  private Object getObj(int parameterIdx, Class<?> targetClass, Object targetContext) throws SQLException {
 
     if (command == null) {
-      throw new SQLException("statement not executed");
+      throw new PGSQLSimpleException("statement not executed");
+    }
+
+    if (outParameterData == null) {
+      throw new PGSQLSimpleException("No parameter results");
     }
 
     parameterIdx--;
 
-    Object val = outParameterValues.get(parameterIdx);
+    if (targetClass == null) {
+      Type type = SQLTypeMetaData.getType(null, outParameterSQLTypes.get(parameterIdx), connection.getRegistry());
+      if (type != null) {
+        targetClass = type.getCodec(type.getResultFormat()).getDecoder().getDefaultClass();
+      }
+    }
+
+    Object val;
+    try {
+      val = outParameterData.getColumn(parameterIdx, connection, targetClass, targetContext);
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
 
     nullFlag = val == null;
 
@@ -301,6 +302,10 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   void set(int parameterIdx, Object val, int targetSQLType) throws SQLException {
+    set(parameterIdx, val, null, targetSQLType);
+  }
+
+  void set(int parameterIdx, Object source, Object sourceContext, int targetSQLType) throws SQLException {
 
     ParameterMode mode = allParameterModes.get(parameterIdx - 1);
     if (mode == ParameterMode.Out) {
@@ -312,20 +317,34 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     parameterIdx = mapToInParameterIndex(parameterIdx);
 
-    int needed = parameterIdx > parameterValues.size() ? parameterIdx - parameterValues.size() : 0;
+    int needed = parameterIdx > parameterBuffers.length ? parameterIdx - parameterBuffers.length : 0;
 
-    parameterTypes.addAll(nCopies(needed, (Type) null));
-    parameterValues.addAll(nCopies(needed, (Object) null));
+    parameterTypes = copyOf(parameterTypes, parameterTypes.length + needed);
+    parameterTypesParsed = copyOf(parameterTypes, parameterTypes.length + needed);
+    fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
+    parameterFormats = copyOf(parameterFormats, parameterFormats.length + needed);
+    parameterBuffers = copyOf(parameterBuffers, parameterBuffers.length + needed);
 
-    super.set(parameterIdx, val, targetSQLType);
+    parsed = true;
+
+    super.set(parameterIdx, source, sourceContext, targetSQLType);
 
   }
 
-  int findParameter(String parameterName) throws SQLException {
+  private int findParameter(String parameterName) throws SQLException {
+    if (outParameterFields == null) {
+      throw new PGSQLSimpleException("Unknown parameter name");
+    }
 
-    int idx = outParameterNames.indexOf(parameterName);
-    if (idx == -1) {
-      return -1;
+    int idx;
+    for (idx = 0; idx < outParameterFields.length; ++idx) {
+      if (outParameterFields[idx].getName().equalsIgnoreCase(parameterName)) {
+        break;
+      }
+    }
+
+    if (idx == outParameterFields.length) {
+      throw new PGSQLSimpleException("Unknown parameter name");
     }
 
     return mapFromOutParameterIndex(idx);
@@ -348,15 +367,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
       allParameterModes.set(parameterIndex - 1, ParameterMode.Out);
     }
 
-    int outParameterIdx = mapToOutParameterIndex(parameterIndex);
-
-    int needed = outParameterIdx > outParameterValues.size() ? outParameterIdx - outParameterValues.size() : 0;
-
-    outParameterNames.addAll(nCopies(needed, (String) null));
-    outParameterTypes.addAll(nCopies(needed, (Type) null));
-    outParameterValues.addAll(nCopies(needed, (Object) null));
-
-    outParameterSQLTypes.put(Integer.valueOf(parameterIndex), Integer.valueOf(sqlType));
+    outParameterSQLTypes.put(parameterIndex - 1, sqlType);
   }
 
   @Override
@@ -399,7 +410,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToString(get(parameterIndex), getOutType(parameterIndex), connection);
+    return getVal(parameterIndex, String.class, null);
   }
 
   @Override
@@ -407,7 +418,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToBoolean(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Boolean.class, null), true);
   }
 
   @Override
@@ -415,7 +426,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToByte(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Byte.class, null), (byte) 0);
   }
 
   @Override
@@ -423,7 +434,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToShort(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Short.class, null), (short) 0);
   }
 
   @Override
@@ -431,7 +442,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToInt(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Integer.class, null), 0);
   }
 
   @Override
@@ -439,7 +450,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToLong(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Long.class, null), (long) 0);
   }
 
   @Override
@@ -447,7 +458,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToFloat(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Float.class, null), (float) 0);
   }
 
   @Override
@@ -455,7 +466,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    return coerceToDouble(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, Double.class, null), (double) 0);
   }
 
   @Override
@@ -464,35 +475,21 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     checkClosed();
     parameterIndex = mapToOutParameterIndex(parameterIndex);
 
-    BigDecimal val = coerceToBigDecimal(parameterIndex);
-    if (val == null) {
-      return null;
-    }
-
-    return val.setScale(scale, HALF_UP);
+    return firstNonNull(getVal(parameterIndex, BigDecimal.class, scale), BigDecimal.ZERO);
   }
 
   @Override
   public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToBigDecimal(get(parameterIndex));
+    return firstNonNull(getVal(parameterIndex, BigDecimal.class, null), BigDecimal.ZERO);
   }
 
   @Override
   public byte[] getBytes(int parameterIndex) throws SQLException {
     checkClosed();
 
-    try (InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection)) {
-
-      if (data == null)
-        return null;
-
-      return ByteStreams.toByteArray(data);
-    }
-    catch (IOException e) {
-      throw new SQLException(e);
-    }
+    return getVal(parameterIndex, byte[].class, null);
   }
 
   @Override
@@ -517,51 +514,35 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
     checkClosed();
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToDate(get(parameterIndex), zone, connection);
+    return getVal(parameterIndex, Date.class, cal);
   }
 
   @Override
   public Time getTime(int parameterIndex, Calendar cal) throws SQLException {
     checkClosed();
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToTime(get(parameterIndex), zone, connection);
+    return getVal(parameterIndex, Time.class, cal);
   }
 
   @Override
   public Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SQLException {
     checkClosed();
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToTimestamp(get(parameterIndex), zone, connection);
+    return getVal(parameterIndex, Timestamp.class, cal);
   }
 
   @Override
   public Array getArray(int parameterIndex) throws SQLException {
     checkClosed();
 
-    Object value = get(parameterIndex);
-    if (value == null)
-      return null;
-
-    Type type = getOutType(parameterIndex);
-
-    if (!(type instanceof ArrayType)) {
-      throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
-    }
-
-    return new PGArray(connection, (ArrayType) type, (Object[]) value);
+    return getVal(parameterIndex, Array.class, null);
   }
 
   @Override
   public URL getURL(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToURL(get(parameterIndex));
+    return getVal(parameterIndex, URL.class, null);
   }
 
   @Override
@@ -578,21 +559,21 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public Blob getBlob(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToBlob(get(parameterIndex), connection);
+    return getVal(parameterIndex, Blob.class, null);
   }
 
   @Override
   public Clob getClob(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToClob(get(parameterIndex), connection);
+    return getVal(parameterIndex, Clob.class, null);
   }
 
   @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToXML(get(parameterIndex), connection);
+    return getVal(parameterIndex, SQLXML.class, null);
   }
 
   @Override
@@ -604,36 +585,21 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
     checkClosed();
 
-    Type type = getOutType(parameterIndex);
-
-    Class<?> targetType = mapGetType(type, map, connection);
-
-    if (connection.isStrictMode()) {
-      if (InputStream.class.equals(targetType)) {
-        targetType = byte[].class;
-      }
-      else if (Double.class.equals(targetType)) {
-        Integer sqlType = outParameterSQLTypes.get(Integer.valueOf(parameterIndex));
-        if (sqlType != null && Types.REAL == sqlType.intValue())
-          targetType = Float.class;
-      }
-    }
-
-    return coerce(get(parameterIndex), type, targetType, map, connection);
+    return getObj(parameterIndex, null, map);
   }
 
   @Override
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
     checkClosed();
 
-    return type.cast(coerce(get(parameterIndex), getOutType(parameterIndex), type, typeMap, connection));
+    return getVal(parameterIndex, type, null);
   }
 
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
     checkClosed();
 
-    return coerceToRowId(get(parameterIndex), getOutType(parameterIndex));
+    return getVal(parameterIndex, RowId.class, null);
   }
 
   @Override

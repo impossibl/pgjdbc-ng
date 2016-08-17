@@ -294,6 +294,7 @@ public class CallableStatementTest {
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     assertTrue(!rs.next());
+    arr.free();
     rs.close();
     call.close();
   }
@@ -1018,8 +1019,8 @@ public class CallableStatementTest {
       Statement stmt = con.createStatement();
       ResultSet rs = stmt.executeQuery("select * from decimal_tab");
       assertTrue(rs.next());
-      assertTrue(rs.getDouble(1) == doubleValues[0]);
-      assertTrue(rs.getDouble(2) == doubleValues[1]);
+      assertEquals(rs.getDouble(1), doubleValues[0], 0.0);
+      assertEquals(rs.getDouble(2), doubleValues[1], 0.0);
       rs.close();
       stmt.close();
     }
@@ -1194,8 +1195,8 @@ public class CallableStatementTest {
       cstmt.registerOutParameter(2, java.sql.Types.DOUBLE);
       cstmt.registerOutParameter(3, java.sql.Types.DOUBLE);
       cstmt.executeUpdate();
-      assertTrue(cstmt.getDouble(1) == 1.0E125);
-      assertTrue(cstmt.getDouble(2) == 1.0E-130);
+      assertEquals(1.0E125, cstmt.getDouble(1), 0.0);
+      assertEquals(1.0E-130, cstmt.getDouble(2), 0.0);
       cstmt.getDouble(3);
       assertTrue(cstmt.wasNull());
       cstmt.close();
@@ -1284,7 +1285,7 @@ public class CallableStatementTest {
 
   @Test
   public void testGetRealAsFloat() throws Throwable {
-    ((PGConnectionImpl)con).setStrictMode(true);
+    ((PGDirectConnection)con).setStrictMode(true);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table r_tab ( max_val float8, min_val float8, null_val float8 )");
@@ -1309,9 +1310,9 @@ public class CallableStatementTest {
       cstmt.registerOutParameter(2, java.sql.Types.REAL);
       cstmt.registerOutParameter(3, java.sql.Types.REAL);
       cstmt.executeUpdate();
-      assertTrue(((Float)cstmt.getObject(1)) == 1.0E37f);
-      assertTrue(((Float)cstmt.getObject(2)) == 1.0E-37f);
-      assertTrue(((Float)cstmt.getObject(3)) == null);
+      assertEquals(1.0E37f, ((Float) cstmt.getObject(1)), 0.0);
+      assertEquals(1.0E-37f, ((Float) cstmt.getObject(2)), 0.0);
+      assertNull(cstmt.getObject(3));
       cstmt.close();
     }
     catch (Exception ex) {
@@ -1336,7 +1337,7 @@ public class CallableStatementTest {
           }
         }
       }
-      ((PGConnectionImpl)con).setStrictMode(false);
+      ((PGDirectConnection)con).setStrictMode(false);
     }
   }
 
@@ -1366,8 +1367,8 @@ public class CallableStatementTest {
       cstmt.registerOutParameter(2, java.sql.Types.SMALLINT);
       cstmt.registerOutParameter(3, java.sql.Types.SMALLINT);
       cstmt.executeUpdate();
-      assertTrue(cstmt.getShort(1) == 32767);
-      assertTrue(cstmt.getShort(2) == -32768);
+      assertEquals(cstmt.getShort(1), 32767);
+      assertEquals(cstmt.getShort(2), -32768);
       cstmt.getShort(3);
       assertTrue(cstmt.wasNull());
       cstmt.close();

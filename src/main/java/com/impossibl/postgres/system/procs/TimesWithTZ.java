@@ -28,23 +28,30 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.datetime.TimeZones;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.Instants;
-import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.timeFromParsed;
 import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAccessor;
+import java.util.Calendar;
 import java.util.TimeZone;
 
 import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
@@ -53,120 +60,154 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
   public TimesWithTZ() {
     super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
-        new TxtEncoder(), new TxtDecoder(), new BinIntegerEncoder(), new BinIntegerDecoder(),
-        null, null, new TxtEncoder(), new TxtDecoder(),
+        new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(),
+        new TxtEncoder(), new TxtDecoder(), null, null,
         "timetz_");
   }
 
-  static class BinIntegerDecoder extends BinaryDecoder {
+  private static long convertInput(Object object) throws ConversionException {
+
+    if (object instanceof Time) {
+      return ((Time) object).getTime();
+    }
+
+    if (object instanceof Timestamp) {
+      return ((Timestamp) object).getTime();
+    }
+
+    if (object instanceof CharSequence) {
+      return Timestamp.valueOf(object.toString()).getTime();
+    }
+
+    throw new ConversionException(object.getClass(), PrimitiveType.TimeTZ);
+  }
+
+  private static Object convertOutput(Context context, long millis, Class<?> targetClass, TimeZone targetTimeZone) throws ConversionException {
+
+    if (targetClass == String.class) {
+      return context.getTimeFormatter().getPrinter().formatMillis(millis, targetTimeZone, true);
+    }
+
+    if (targetClass == Timestamp.class) {
+      return new Timestamp(millis);
+    }
+
+    Time time = new Time(millis);
+
+    if (targetClass == Time.class) {
+      return time;
+    }
+
+    if (targetClass == LocalTime.class) {
+      return time.toLocalTime();
+    }
+
+    if (targetClass == Instant.class) {
+      return time.toInstant();
+    }
+
+    throw new ConversionException(PrimitiveType.TimeTZ, targetClass);
+  }
+
+
+  private static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(12);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return TimeTZ;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public Class<?> getDefaultClass() {
+      return Time.class;
     }
 
     @Override
-    public Instant decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 12) {
-        throw new IOException("invalid length");
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       long micros = buffer.readLong();
       int tzOffsetSecs = buffer.readInt();
 
-      int tzOffsetMillis = (int)SECONDS.toMillis(-tzOffsetSecs);
-      TimeZone zone = TimeZones.getOffsetZone(tzOffsetMillis);
+      int tzOffsetMillis = (int)SECONDS.toMillis(tzOffsetSecs);
+      TimeZone timeZone = TimeZone.getTimeZone(ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(-tzOffsetMillis)));
 
-      return new PreciseInstant(Instant.Type.Time, micros, zone);
+      return convertOutput(context, MICROSECONDS.toMillis(micros) + tzOffsetMillis, targetClass, timeZone);
     }
 
   }
 
-  static class BinIntegerEncoder extends BinaryEncoder {
+  private static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
+    BinEncoder() {
+      super(12);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return TimeTZ;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
-      }
-      else {
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-        Instant inst = (Instant) val;
+      long millis = convertInput(value);
 
-        long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
+      long utcMillis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
 
-        int tzOffsetSecs = (int) -inst.getZoneOffsetSecs();
+      long micros = MILLISECONDS.toMicros(utcMillis) % DAYS.toMicros(1);
+      int tzOffsetSecs = (int) MILLISECONDS.toSeconds(millis - utcMillis);
 
-        buffer.writeInt(12);
-        buffer.writeLong(micros);
-        buffer.writeInt(tzOffsetSecs);
-      }
-
+      buffer.writeLong(micros);
+      buffer.writeInt(tzOffsetSecs);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Time;
+    public PrimitiveType getPrimitiveType() {
+      return TimeTZ;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public Class<?> getDefaultClass() {
+      return Time.class;
     }
 
     @Override
-    protected Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      Map<String, Object> pieces = new HashMap<>();
+      TemporalAccessor parsed = context.getTimeFormatter().getParser().parse(buffer);
 
-      context.getTimeFormatter().getParser().parse(buffer.toString(), 0, pieces);
+      long micros = timeFromParsed(parsed, null);
 
-      return Instants.timeFromPieces(pieces, context.getTimeZone());
+      return convertOutput(context, MICROSECONDS.toMillis(micros), targetClass, context.getTimeZone());
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Time;
+    public PrimitiveType getPrimitiveType() {
+      return TimeTZ;
     }
 
     @Override
-    public Class<?> getInputType() {
-      return Instant.class;
-    }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-    @Override
-    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      String strVal = context.getTimeFormatter().getPrinter().format((Instant) val);
+      long millis = convertInput(value);
+
+      String strVal = context.getTimeFormatter().getPrinter().formatMillis(millis % DAYS.toMillis(1), calendar.getTimeZone(), true);
 
       buffer.append(strVal);
     }

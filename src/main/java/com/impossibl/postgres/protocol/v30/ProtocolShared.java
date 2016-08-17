@@ -51,6 +51,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.util.ThreadDeathWatcher;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GlobalEventExecutor;
@@ -75,7 +76,7 @@ public class ProtocolShared {
     }
   }
 
-  static ProtocolShared instance;
+  private static ProtocolShared instance;
 
   public static synchronized Ref acquire(Context context) {
     if (instance == null) {
@@ -87,7 +88,7 @@ public class ProtocolShared {
   private Bootstrap bootstrap;
   private int count = 0;
 
-  public Bootstrap getBootstrap() {
+  Bootstrap getBootstrap() {
     return bootstrap;
   }
 
@@ -124,13 +125,20 @@ public class ProtocolShared {
     int workerCount = getRuntime().availableProcessors();
     NioEventLoopGroup group = new NioEventLoopGroup(workerCount, new NamedThreadFactory("PG-JDBC EventLoop"));
 
-    bootstrap = new Bootstrap();
-    bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
-      @Override
-      protected void initChannel(SocketChannel ch) throws Exception {
-        ch.pipeline().addLast(new MessageDecoder(), new MessageHandler());
-      }
-    }).option(ChannelOption.ALLOCATOR, allocator);
+    bootstrap = new Bootstrap()
+        .group(group)
+        .channel(NioSocketChannel.class)
+        .handler(new ChannelInitializer<SocketChannel>() {
+          @Override
+          protected void initChannel(SocketChannel ch) {
+            ch.pipeline().addLast(
+                new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 1, 4, -4, 0),
+                new ServerMessageHandler()
+            );
+          }
+        })
+        .option(ChannelOption.ALLOCATOR, allocator)
+        .option(ChannelOption.TCP_NODELAY, true);
 
     if (context != null) {
       if (context.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT)
@@ -141,38 +149,33 @@ public class ProtocolShared {
     }
   }
 
-  public Future<?> shutdown() {
+  private Future<?> shutdown() {
 
-    return bootstrap.group().shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
+    return bootstrap.config().group().shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
   }
 
+  @SuppressWarnings("deprecation")
   public void waitForShutdown() {
 
     shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
 
-    Thread deathThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException e) {
-          // Ignore
-        }
+    Thread deathThread = new Thread(() -> {
+      try {
+        ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+      }
+      catch (InterruptedException e) {
+        // Ignore
       }
     });
 
-    Thread globalThread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          GlobalEventExecutor.INSTANCE.awaitInactivity(5, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException e) {
-          // Ignore
-        }
+    Thread globalThread = new Thread(() -> {
+      try {
+        GlobalEventExecutor.INSTANCE.awaitInactivity(5, TimeUnit.SECONDS);
       }
-    };
+      catch (InterruptedException e) {
+        // Ignore
+      }
+    });
 
     try {
       globalThread.join(TimeUnit.SECONDS.toMillis(5));
@@ -192,7 +195,7 @@ class NamedThreadFactory implements ThreadFactory {
   private String baseName;
   private AtomicInteger idx = new AtomicInteger(1);
 
-  public NamedThreadFactory(String baseName) {
+  NamedThreadFactory(String baseName) {
     super();
     this.baseName = baseName;
   }

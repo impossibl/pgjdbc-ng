@@ -28,9 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.api.jdbc.PGSQLInput;
-import com.impossibl.postgres.api.jdbc.PGSQLOutput;
-
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -72,15 +69,13 @@ public class MultiSchemasStructsTest {
     }
 
     @Override
-    public void readSQL(SQLInput stream, String typeName) throws SQLException {
-      PGSQLInput in = (PGSQLInput) stream;
+    public void readSQL(SQLInput in, String typeName) throws SQLException {
       id = in.readDouble();
       name = in.readString();
     }
 
     @Override
-    public void writeSQL(SQLOutput stream) throws SQLException {
-      PGSQLOutput out = (PGSQLOutput) stream;
+    public void writeSQL(SQLOutput out) throws SQLException {
       out.writeDouble(id);
       out.writeString(name);
     }
@@ -99,16 +94,14 @@ public class MultiSchemasStructsTest {
     }
 
     @Override
-    public void readSQL(SQLInput stream, String typeName) throws SQLException {
-      PGSQLInput in = (PGSQLInput) stream;
+    public void readSQL(SQLInput in, String typeName) throws SQLException {
       id = in.readDouble();
       name = in.readString();
       email = in.readString();
     }
 
     @Override
-    public void writeSQL(SQLOutput stream) throws SQLException {
-      PGSQLOutput out = (PGSQLOutput) stream;
+    public void writeSQL(SQLOutput out) throws SQLException {
       out.writeDouble(id);
       out.writeString(name);
       out.writeString(email);
@@ -126,18 +119,17 @@ public class MultiSchemasStructsTest {
     }
 
     @Override
-    public void readSQL(SQLInput stream, String typeName) throws SQLException {
-      PGSQLInput in = (PGSQLInput) stream;
+    public void readSQL(SQLInput in, String typeName) throws SQLException {
       firstName = in.readString();
       lastName = in.readString();
     }
 
     @Override
-    public void writeSQL(SQLOutput stream) throws SQLException {
-      PGSQLOutput out = (PGSQLOutput) stream;
+    public void writeSQL(SQLOutput out) throws SQLException {
       out.writeString(firstName);
       out.writeString(lastName);
     }
+
   }
 
 

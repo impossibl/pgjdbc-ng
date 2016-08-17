@@ -1,13 +1,17 @@
-sudo: required
+dist: xenial
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk10
 env:
-  - PGVERSION=9.2
-  - PGVERSION=9.3
-  - PGVERSION=9.4
-  - PGVERSION=9.5
-install: ./.travis/travis-install-dependencies
+  - POSTGRESQL_VERSION=9.4
+  - POSTGRESQL_VERSION=9.5
+  - POSTGRESQL_VERSION=9.6
+  - POSTGRESQL_VERSION=10
+before_install:
+  - sudo service postgresql stop && sudo service postgresql start $POSTGRESQL_VERSION
+  - sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
+  - sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;'
+  - sudo -u postgres psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;'
 script: mvn -e test
 after_failure:
   - ./.travis/print_surefire_reports

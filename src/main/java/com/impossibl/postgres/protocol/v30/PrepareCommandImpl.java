@@ -28,20 +28,18 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
+import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import io.netty.buffer.ByteBuf;
 
@@ -49,9 +47,9 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
   private String statementName;
   private String query;
-  private List<Type> parseParameterTypes;
-  private List<TypeRef> describedParameterTypes;
-  private List<ResultField> describedResultFields;
+  private Type[] parseParameterTypes;
+  private TypeRef[] describedParameterTypes;
+  private ResultField[] describedResultFields;
   private ProtocolListener listener = new BaseProtocolListener() {
 
     @Override
@@ -64,23 +62,23 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
     }
 
     @Override
-    public void parametersDescription(List<TypeRef> parameterTypes) {
+    public void parametersDescription(TypeRef[] parameterTypes) {
       PrepareCommandImpl.this.describedParameterTypes = parameterTypes;
     }
 
     @Override
-    public void rowDescription(List<ResultField> resultFields) {
+    public void rowDescription(ResultField[] resultFields) {
 
       // Ensure we are working with binary fields
       for (ResultField field : resultFields)
-        field.setFormat(Format.Binary);
+        field.setFormat(FieldFormat.Binary);
 
       PrepareCommandImpl.this.describedResultFields = resultFields;
     }
 
     @Override
     public void noData() {
-      PrepareCommandImpl.this.describedResultFields = Collections.emptyList();
+      PrepareCommandImpl.this.describedResultFields = EMPTY_FIELDS;
     }
 
     @Override
@@ -107,7 +105,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
   };
 
-  public PrepareCommandImpl(String statementName, String query, List<Type> parseParameterTypes) {
+  PrepareCommandImpl(String statementName, String query, Type[] parseParameterTypes) {
     this.statementName = statementName;
     this.query = query;
     this.parseParameterTypes = parseParameterTypes;
@@ -123,21 +121,21 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
   }
 
   @Override
-  public List<Type> getParseParameterTypes() {
+  public Type[] getParseParameterTypes() {
     return parseParameterTypes;
   }
 
   @Override
-  public List<Type> getDescribedParameterTypes() {
-    List<Type> types = new ArrayList<>();
-    for (TypeRef typeRef : describedParameterTypes) {
-      types.add(typeRef.get());
+  public Type[] getDescribedParameterTypes() {
+    Type[] types = new Type[describedParameterTypes.length];
+    for (int typeIdx = 0; typeIdx < types.length; ++typeIdx) {
+      types[typeIdx] = describedParameterTypes[typeIdx].get();
     }
     return types;
   }
 
   @Override
-  public List<ResultField> getDescribedResultFields() {
+  public ResultField[] getDescribedResultFields() {
     return describedResultFields;
   }
 
@@ -146,7 +144,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
     protocol.setListener(listener);
 
-    ByteBuf msg = protocol.channel.alloc().buffer();
+    ByteBuf msg = protocol.getChannel().alloc().buffer();
 
     protocol.writeParse(msg, statementName, query, parseParameterTypes);
 
@@ -156,7 +154,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
     protocol.send(msg);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
   }
 

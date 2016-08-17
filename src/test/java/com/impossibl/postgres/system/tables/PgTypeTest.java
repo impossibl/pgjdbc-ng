@@ -68,11 +68,6 @@ public class PgTypeTest {
   }
 
   @Test
-  public void testRow() throws Exception {
-    assertEquals(new PgType.Row(), PgType.INSTANCE.createRow());
-  }
-
-  @Test
   public void testHashCode() throws Exception {
     PgType.Row pgAttrOne = createRow(12345);
     PgType.Row pgAttrOneAgain = createRow(12345);
@@ -111,7 +106,7 @@ public class PgTypeTest {
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
       "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\", " +
-      "   rngsubtype as \"rangeBaseTypeId\" " +
+      "   rngsubtype as \"rangeBaseTypeId\"" +
       " from" +
       "   pg_catalog.pg_type t" +
       " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) " +
@@ -122,6 +117,7 @@ public class PgTypeTest {
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
       "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
+      "   null as \"rangeBaseTypeId\"" +
       " from" +
       "   pg_catalog.pg_type t" +
       " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) ",

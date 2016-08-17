@@ -36,154 +36,227 @@ import static com.impossibl.postgres.types.PrimitiveType.Numeric;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.text.ParseException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.netty.buffer.ByteBuf;
 
 public class Numerics extends SimpleProcProvider {
 
-  private static final short NUMERIC_POS =    (short) 0x0000;
-  private static final short NUMERIC_NEG =    (short) 0x4000;
+  private static final short NUMERIC_POS = (short) 0x0000;
+  private static final short NUMERIC_NEG = (short) 0x4000;
   private static final short DEC_DIGITS = 4;
 
   public Numerics() {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "numeric_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  private static Number convertStringInput(String value) {
+    if (value.equalsIgnoreCase("NaN")) {
+      return Double.NaN;
+    }
+    if (value.equalsIgnoreCase("infinity") || value.equalsIgnoreCase("+infinity")) {
+      return Double.POSITIVE_INFINITY;
+    }
+    if (value.equalsIgnoreCase("-infinity")) {
+      return Double.POSITIVE_INFINITY;
+    }
+    return new BigDecimal(value);
+  }
+
+  private static BigDecimal convertBoolInput(Boolean value) {
+    return value ? BigDecimal.ONE : BigDecimal.ZERO;
+  }
+
+  private static Number convertInput(Number source) {
+
+    if (source instanceof BigDecimal) {
+      return source;
+    }
+
+    if (source instanceof BigInteger) {
+      return new BigDecimal(source.toString());
+    }
+
+    if (source instanceof Byte || source instanceof Short || source instanceof Integer || source instanceof Long) {
+      return BigDecimal.valueOf(source.longValue());
+    }
+
+    if (source instanceof AtomicInteger) {
+      return new BigDecimal(((AtomicInteger) source).get());
+    }
+
+    if (source instanceof AtomicLong) {
+      return new BigDecimal(((AtomicLong) source).get());
+    }
+
+    if (source instanceof Float) {
+      Float source1 = (Float) source;
+      if (source1.isNaN() || source1.isInfinite()) {
+        return source1.doubleValue();
+      }
+      return BigDecimal.valueOf(source1);
+    }
+
+    if (source instanceof Double) {
+      Double source1 = (Double) source;
+      if (source1.isNaN() || source1.isInfinite()) {
+        return source1;
+      }
+      return BigDecimal.valueOf(source1);
+    }
+
+    return null;
+  }
+
+  private static String convertStringOutput(Number value) {
+    return value.toString();
+  }
+
+  static class BinDecoder extends NumericBinaryDecoder<Number> {
+
+    BinDecoder() {
+      super(null, Numerics::convertStringOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Numeric;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return BigDecimal.class;
+    public Class<Number> getDefaultClass() {
+      return Number.class;
     }
 
     @Override
-    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Number decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      BigDecimal value;
+      int length = buffer.readableBytes();
+      int readStart = buffer.readerIndex();
 
-      int length = buffer.readInt();
-      if (length == -1) {
+      short digitCount = buffer.readShort();
+      short[] info = new short[3];
+      info[0] = buffer.readShort(); //weight
+      info[1] = buffer.readShort(); //sign
+      info[2] = buffer.readShort(); //displayScale
 
-        value = null;
+      if (info[0] == 0 && info[1] == -16384 && info[2] == 0) {
+        return Double.NaN;
       }
-      else if (length < 8) {
 
+      short[] digits = new short[digitCount];
+      for (int d = 0; d < digits.length; ++d)
+        digits[d] = buffer.readShort();
+
+      String num = decodeToString(info[0], info[1], info[2], digits);
+
+      if (length != buffer.readerIndex() - readStart) {
         throw new IOException("invalid length");
       }
-      else {
 
-        int readStart = buffer.readerIndex();
-
-        short digitCount = buffer.readShort();
-
-        short[] info = new short[3];
-        info[0] = buffer.readShort(); //weight
-        info[1] = buffer.readShort(); //sign
-        info[2] = buffer.readShort(); //displayScale
-
-        short[] digits = new short[digitCount];
-        for (int d = 0; d < digits.length; ++d)
-          digits[d] = buffer.readShort();
-
-        String num = decodeToString(info[0], info[1], info[2], digits);
-
-        if (length != buffer.readerIndex() - readStart) {
-          throw new IOException("invalid length");
-        }
-
-        value = new BigDecimal(num);
-      }
-
-      return value;
+      return new BigDecimal(num);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Number> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BigDecimal.class;
+    BinEncoder() {
+      super(null, Numerics::convertStringInput, Numerics::convertBoolInput, Numerics::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Numeric;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Number> getDefaultClass() {
+      return Number.class;
+    }
 
-      buffer.writeInt(-1);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Number value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val != null) {
+      if (Double.isNaN(value.doubleValue())) {
+        buffer.writeShort(0);
+        buffer.writeShort(0);
+        buffer.writeShort(-16384);
+        buffer.writeShort(0);
+        return;
+      }
 
-        int writeStart = buffer.writerIndex();
+      BigDecimal decimal = (BigDecimal) value;
+      if (sourceContext != null) {
+        int scale = ((Number)sourceContext).intValue();
+        decimal = decimal.setScale(scale, RoundingMode.HALF_UP);
+      }
 
-        String num = ((BigDecimal) val).toPlainString();
+      String num = decimal.toPlainString();
 
-        short[] info = new short[3];
-        short[] digits = encodeFromString(num, info);
+      short[] info = new short[3];
+      short[] digits = encodeFromString(num, info);
 
-        buffer.writeShort(digits.length);
+      buffer.writeShort(digits.length);
 
-        buffer.writeShort(info[0]); //weight
-        buffer.writeShort(info[1]); //sign
-        buffer.writeShort(info[2]); //displayScale
+      buffer.writeShort(info[0]); //weight
+      buffer.writeShort(info[1]); //sign
+      buffer.writeShort(info[2]); //displayScale
 
-        for (int d = 0; d < digits.length; ++d)
-          buffer.writeShort(digits[d]);
-
-        //Set length
-        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
-
+      for (short digit : digits) {
+        buffer.writeShort(digit);
       }
 
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Number> {
+
+    protected TxtDecoder() {
+      super(Numerics::convertStringOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Numeric;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return BigDecimal.class;
+    public Class<Number> getDefaultClass() {
+      return Number.class;
     }
 
     @Override
-    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return new BigDecimal(buffer.toString());
+    protected Number decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return context.getDecimalFormatter().parse(buffer.toString());
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Number> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BigDecimal.class;
+    TxtEncoder() {
+      super(Numerics::convertStringInput, Numerics::convertBoolInput, Numerics::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Numeric;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Number> getDefaultClass() {
+      return Number.class;
+    }
 
-      buffer.append(val.toString());
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Number value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(context.getDecimalFormatter().format(value));
     }
 
   }
@@ -191,10 +264,6 @@ public class Numerics extends SimpleProcProvider {
   /**
    * Encodes a string of the plain form xxxx.xxx into an NBASE packed sequence
    * of shorts.
-   *
-   * @param num
-   * @param info
-   * @return NBASE encoded version of num
    */
   private static short[] encodeFromString(String num, short[] info) {
 
@@ -273,12 +342,6 @@ public class Numerics extends SimpleProcProvider {
   /**
    * Decodes a sequence of digits NBASE packed in shorts into a string of the
    * plain form xxxx.xxx
-   *
-   * @param weight
-   * @param sign
-   * @param displayScale
-   * @param digits
-   * @return String representation of the decimal number
    */
   private static String decodeToString(short weight, short sign, short displayScale, short[] digits) {
 

@@ -34,6 +34,7 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -48,101 +49,88 @@ public class Points extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "point_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(16);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Point;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 16) {
-        throw new IOException("invalid length " + length);
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return new double[] {buffer.readDouble(), buffer.readDouble()};
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return double[].class;
+    BinEncoder() {
+      super(16);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Point;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      double[] point = (double[]) value;
+      if (point.length != 2) {
+        throw new IOException("invalid length");
       }
-      else {
-        double[] point = (double[]) val;
-        if (point.length != 2) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(16);
-        buffer.writeDouble(point[0]);
-        buffer.writeDouble(point[1]);
-      }
+
+      buffer.writeDouble(point[0]);
+      buffer.writeDouble(point[1]);
     }
+
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Point;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return GeometryParsers.INSTANCE.parsePoint(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return double[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Point;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        return;
-      }
-      double[] point = (double[]) val;
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      double[] point = (double[]) value;
       if (point.length != 2) {
         throw new IOException("invalid length");
       }
+
       buffer.append('(').append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append(')');
     }
 

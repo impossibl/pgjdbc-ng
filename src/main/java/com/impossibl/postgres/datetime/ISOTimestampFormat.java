@@ -28,23 +28,25 @@
  */
 package com.impossibl.postgres.datetime;
 
-import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
-
-import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
-
-import java.util.Calendar;
-import java.util.Map;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.chrono.IsoChronology;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.TemporalAccessor;
 import java.util.TimeZone;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ISOTimestampFormat implements DateTimeFormat {
 
-  Parser parser = new Parser();
-  Printer printer = new Printer();
+  private Parser parser = new Parser();
+  private Printer printer = new Printer();
 
   @Override
   public Parser getParser() {
@@ -59,168 +61,75 @@ public class ISOTimestampFormat implements DateTimeFormat {
 
   static class Parser implements DateTimeFormat.Parser {
 
-    ISODateFormat.Parser dateParser = new ISODateFormat.Parser();
-    ISOTimeFormat.Parser timeParser = new ISOTimeFormat.Parser();
+    private static final DateTimeFormatter PARSER =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(ISO_LOCAL_DATE)
+            .appendLiteral(' ')
+            .append(ISO_LOCAL_TIME)
+            .optionalStart()
+            .appendOffset("+HH:mm", "+00")
+            .optionalStart()
+            .appendLiteral(' ')
+            .appendPattern("GG")
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
 
     @Override
-    public int parse(String date, int offset, Map<String, Object> pieces) {
+    public TemporalAccessor parse(CharSequence text) {
 
-      try {
-
-        if (date.equals("infinity")) {
-          pieces.put(INFINITY_PIECE, FutureInfiniteInstant.INSTANCE);
-          offset = date.length();
-        }
-        else if (date.equals("-infinity")) {
-          pieces.put(INFINITY_PIECE, PastInfiniteInstant.INSTANCE);
-          offset = date.length();
-        }
-        else {
-
-          offset = dateParser.parse(date, offset, pieces);
-          checkOffset(date, offset, '\0');
-
-          if (offset < date.length()) {
-
-            char sep = date.charAt(offset);
-            if (sep != ' ' && sep != 'T') {
-              return ~offset;
-            }
-
-            offset = timeParser.parse(date, offset + 1, pieces);
-            if (offset < 0) {
-              return offset;
-            }
-
-          }
-
-        }
-
-      }
-      catch (IndexOutOfBoundsException | IllegalArgumentException e) {
-        // Ignore
-      }
-
-      return offset;
+      return PARSER.parse(text);
     }
 
   }
 
-
   static class Printer implements DateTimeFormat.Printer {
 
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+
+    private static final DateTimeFormatter PRINTER_WITH_TZ =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(ISO_LOCAL_DATE)
+            .appendLiteral(' ')
+            .append(ISO_LOCAL_TIME)
+            .optionalStart()
+            .appendOffset("+HH:mm", "+00")
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
+    private static final DateTimeFormatter PRINTER_WITHOUT_TZ =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(ISO_LOCAL_DATE)
+            .appendLiteral(' ')
+            .append(ISO_LOCAL_TIME)
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
     @Override
-    public String format(Instant instant) {
+    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
+      return formatMicros(MILLISECONDS.toMicros(millis), timeZone, displayTimeZone);
+    }
 
-      TimeZone zone = instant.getZone();
-      if (zone == null) {
-        zone = TimeZone.getTimeZone("UTC");
-      }
+    @Override
+    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
 
-      Calendar cal = Calendar.getInstance(zone);
-      cal.setTimeInMillis(MICROSECONDS.toMillis(instant.getMicrosUTC()));
+      timeZone = timeZone != null ? timeZone : UTC;
 
-      int year = cal.get(Calendar.YEAR);
-      int month = cal.get(Calendar.MONTH) + 1;
-      int day = cal.get(Calendar.DAY_OF_MONTH);
-
-      int hour = cal.get(Calendar.HOUR_OF_DAY);
-      int minute = cal.get(Calendar.MINUTE);
-      int second = cal.get(Calendar.SECOND);
-      int micros = (int) (instant.getMicrosLocal() - MILLISECONDS.toMicros(MICROSECONDS.toMillis(instant.getMicrosLocal())));
-
-      String yearString;
-      String monthString;
-      String dayString;
-      String hourString;
-      String minuteString;
-      String secondString;
-      String microsString;
-      String zeros = "000000000";
-      String yearZeros = "0000";
-
-      if (year < 1000) {
-        // Add leading zeros
-        yearString = "" + year;
-        yearString = yearZeros.substring(0, 4 - yearString.length()) + yearString;
-      }
-      else {
-        yearString = "" + year;
-      }
-      if (month < 10) {
-        monthString = "0" + month;
-      }
-      else {
-        monthString = Integer.toString(month);
-      }
-      if (day < 10) {
-        dayString = "0" + day;
-      }
-      else {
-        dayString = Integer.toString(day);
-      }
-      if (hour < 10) {
-        hourString = "0" + hour;
-      }
-      else {
-        hourString = Integer.toString(hour);
-      }
-      if (minute < 10) {
-        minuteString = "0" + minute;
-      }
-      else {
-        minuteString = Integer.toString(minute);
-      }
-      if (second < 10) {
-        secondString = "0" + second;
-      }
-      else {
-        secondString = Integer.toString(second);
-      }
-      if (micros == 0) {
-        microsString = "0";
-      }
-      else {
-        microsString = Integer.toString(micros);
-
-        // Add leading zeros
-        microsString = zeros.substring(0, 6 - microsString.length()) + microsString;
-
-        // Truncate trailing zeros
-        char[] microsChar = new char[microsString.length()];
-        microsString.getChars(0, microsString.length(), microsChar, 0);
-        int truncIndex = 5;
-        while (microsChar[truncIndex] == '0') {
-          truncIndex--;
-        }
-
-        microsString = new String(microsChar, 0, truncIndex + 1);
+      long seconds = MICROSECONDS.toSeconds(micros);
+      int nanoseconds = (int) MICROSECONDS.toNanos(micros - SECONDS.toMicros(seconds));
+      if (nanoseconds < 0) {
+        --seconds;
+        nanoseconds += SECONDS.toNanos(1);
       }
 
-      // do a string builder here instead.
-      StringBuilder timestampBuf = new StringBuilder(20 + microsString.length());
-      timestampBuf.append(yearString);
-      timestampBuf.append("-");
-      timestampBuf.append(monthString);
-      timestampBuf.append("-");
-      timestampBuf.append(dayString);
-      timestampBuf.append(" ");
-      timestampBuf.append(hourString);
-      timestampBuf.append(":");
-      timestampBuf.append(minuteString);
-      timestampBuf.append(":");
-      timestampBuf.append(secondString);
-      timestampBuf.append(".");
-      timestampBuf.append(microsString);
+      ZonedDateTime dateTime = Instant.ofEpochSecond(seconds, nanoseconds).atZone(timeZone.toZoneId());
 
-      if (instant.getZone() != null) {
-        long zoneOff = MILLISECONDS.toHours(instant.getZoneOffsetMillis());
-        if (zoneOff > 0)
-          timestampBuf.append("+");
-        timestampBuf.append(zoneOff);
-      }
-
-      return timestampBuf.toString();
+      return (displayTimeZone ? PRINTER_WITH_TZ : PRINTER_WITHOUT_TZ).format(dateTime);
     }
 
   }

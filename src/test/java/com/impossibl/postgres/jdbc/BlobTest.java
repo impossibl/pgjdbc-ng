@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.ByteStreams;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -53,6 +55,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.junit.After;
 import org.junit.Before;
@@ -79,6 +83,7 @@ public class BlobTest {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "blobtest", "ID INT PRIMARY KEY, DATA OID");
     TestUtil.createTable(conn, "testblob", "ID NAME, LO OID");
+    TestUtil.createTable(conn, "byteatest", "ID INT PRIMARY KEY, DATA BYTEA");
     conn.setAutoCommit(false);
   }
 
@@ -87,6 +92,7 @@ public class BlobTest {
     conn.setAutoCommit(true);
     TestUtil.dropTable(conn, "blobtest");
     TestUtil.dropTable(conn, "testblob");
+    TestUtil.dropTable(conn, "byteatest");
     TestUtil.closeDB(conn);
   }
 
@@ -117,7 +123,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSet() throws SQLException {
+  public void testSet() throws SQLException, IOException {
     Statement stmt = conn.createStatement();
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -129,31 +135,37 @@ public class BlobTest {
     pstmt.setString(1, "setObjectTypeBlob");
     pstmt.setObject(2, blob, Types.BLOB);
     assertEquals(1, pstmt.executeUpdate());
+    blob.free();
 
     blob = rs.getBlob(1);
     pstmt.setString(1, "setObjectBlob");
     pstmt.setObject(2, blob);
     assertEquals(1, pstmt.executeUpdate());
+    blob.free();
 
     blob = rs.getBlob(1);
     pstmt.setString(1, "setBlob");
     pstmt.setBlob(2, blob);
     assertEquals(1, pstmt.executeUpdate());
+    blob.free();
 
     Clob clob = rs.getClob(1);
     pstmt.setString(1, "setObjectTypeClob");
     pstmt.setObject(2, clob, Types.CLOB);
     assertEquals(1, pstmt.executeUpdate());
+    clob.free();
 
     clob = rs.getClob(1);
     pstmt.setString(1, "setObjectClob");
     pstmt.setObject(2, clob);
     assertEquals(1, pstmt.executeUpdate());
+    clob.free();
 
     clob = rs.getClob(1);
     pstmt.setString(1, "setClob");
     pstmt.setClob(2, clob);
     assertEquals(1, pstmt.executeUpdate());
+    clob.free();
 
     rs.close();
     stmt.close();
@@ -344,8 +356,8 @@ public class BlobTest {
 
     FileInputStream fis = new FileInputStream(file);
 
-    int oid = LargeObject.creat((PGConnectionImpl) conn, LargeObject.INV_WRITE);
-    LargeObject lo = LargeObject.open((PGConnectionImpl) conn, oid);
+    int oid = LargeObject.creat((PGDirectConnection) conn, LargeObject.INV_WRITE);
+    LargeObject lo = LargeObject.open((PGDirectConnection) conn, oid);
 
     OutputStream os = new BlobOutputStream(null, lo.dup());
     int s = fis.read();
@@ -371,8 +383,8 @@ public class BlobTest {
 
     FileReader fr = new FileReader(file);
 
-    int oid = LargeObject.creat((PGConnectionImpl) conn, LargeObject.INV_WRITE);
-    LargeObject lo = LargeObject.open((PGConnectionImpl) conn, oid);
+    int oid = LargeObject.creat((PGDirectConnection) conn, LargeObject.INV_WRITE);
+    LargeObject lo = LargeObject.open((PGDirectConnection) conn, oid);
 
     ClobWriter cw = new ClobWriter(null, lo.dup());
     int ch = fr.read();
@@ -1336,6 +1348,27 @@ public class BlobTest {
     finally {
       blob.free();
     }
+  }
+
+  @Test
+  public void testBinaryColumnAsBlob() throws Exception {
+    try (Statement st = conn.createStatement()) {
+      st.executeUpdate(TestUtil.insertSQL("byteatest", "ID, DATA", "1, convert_to('Here is some data', 'UTF8')"));
+
+      try (ResultSet rs = st.executeQuery("SELECT ID, DATA FROM byteatest")) {
+        assertTrue(rs.next());
+        Blob blob = rs.getBlob(2);
+        try (InputStream in = blob.getBinaryStream()) {
+          byte[] data = ByteStreams.toByteArray(in);
+          String str = new String(data, UTF_8);
+          assertEquals(str, "Here is some data");
+        }
+        finally {
+          blob.free();
+        }
+      }
+    }
+
   }
 
 }

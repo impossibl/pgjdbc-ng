@@ -28,198 +28,304 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.datetime.TimeZones;
-import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
-import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.Instants;
-import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.PreciseInstant;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
+import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
+import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.timeJavaToPg;
+import static com.impossibl.postgres.system.procs.DatesTimes.timePgToJava;
+import static com.impossibl.postgres.system.procs.DatesTimes.timestampFromParsed;
+import static com.impossibl.postgres.system.procs.DatesTimes.toDateInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.toTimeInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
 import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
 
 import java.io.IOException;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalQueries;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TimeZone;
 
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
 
-public class Timestamps extends SettingSelectProcProvider {
+class Timestamps extends SettingSelectProcProvider {
 
-  private static final long PG_JAVA_EPOCH_DIFF_MICROS = calculateEpochDifferenceMicros();
-
-  private TimeZone zone;
   private PrimitiveType primitiveType;
 
-  public Timestamps(PrimitiveType primitiveType, String... baseNames) {
+  Timestamps(PrimitiveType primitiveType, String... baseNames) {
     super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
         null, null, null, null,
         null, null, null, null,
         baseNames);
     this.primitiveType = primitiveType;
-    this.zone = primitiveType == TimestampTZ ? TimeZones.UTC : null;
-    this.matchedBinEncoder = new BinIntegerEncoder();
-    this.matchedBinDecoder = new BinIntegerDecoder();
+    this.matchedBinEncoder = new BinEncoder();
+    this.matchedBinDecoder = new BinDecoder();
     this.matchedTxtEncoder = this.unmatchedTxtEncoder = new TxtEncoder();
     this.matchedTxtDecoder = this.unmatchedTxtDecoder = new TxtDecoder();
   }
 
-  class BinIntegerDecoder extends BinaryDecoder {
+  private long microsecondsOf(long seconds, int nanoseconds) {
+
+    long micros = SECONDS.toMicros(seconds);
+
+    // Round nanoseconds to microseconds and add to total
+    long insignificantNanoseconds = nanoseconds % 1000;
+    if (insignificantNanoseconds >= 500) {
+      nanoseconds += 1000 - insignificantNanoseconds;
+    }
+
+    micros += NANOSECONDS.toMicros(nanoseconds);
+
+    return micros;
+  }
+
+  private long convertInput(Context context, Object value, Calendar calendar) throws ConversionException {
+
+    if (value instanceof CharSequence) {
+      CharSequence chars = (CharSequence) value;
+
+      if (value.equals(POS_INFINITY)) return Long.MAX_VALUE;
+      if (value.equals(NEG_INFINITY)) return Long.MIN_VALUE;
+
+      TemporalAccessor parsed = context.getTimestampFormatter().getParser().parse(chars);
+      ZonedDateTime dateTime;
+      if (parsed.query(TemporalQueries.zone()) != null) {
+        dateTime = ZonedDateTime.from(parsed);
+      }
+      else {
+        dateTime = LocalDateTime.from(parsed).atZone(calendar.getTimeZone().toZoneId());
+      }
+
+      return microsecondsOf(dateTime.toEpochSecond(), dateTime.get(NANO_OF_SECOND));
+    }
+
+    if (value instanceof Timestamp) {
+      Timestamp ts = (Timestamp) value;
+      Instant instant = ts.toInstant();
+      return microsecondsOf(instant.getEpochSecond(), instant.getNano());
+    }
+
+    if (value instanceof Time) {
+      return toMicros(((Time) value).getTime());
+    }
+
+    if (value instanceof Date) {
+      return toMicros(((Date) value).getTime());
+    }
+
+    throw new ConversionException(value.getClass(), primitiveType);
+  }
+
+  private Object convertOutput(Context context, long micros, Class<?> targetType, TimeZone targetTimeZone) throws ConversionException {
+
+    if (targetType == Time.class) {
+      long millis = toTimeInTimeZone(toMillis(micros), targetTimeZone);
+      return new Time(millis);
+    }
+
+    if (targetType == Date.class) {
+      long millis = toDateInTimeZone(toMillis(micros), targetTimeZone);
+      return new Date(millis);
+    }
+
+    if (targetType == String.class) {
+      if (micros == Long.MAX_VALUE) return POS_INFINITY;
+      if (micros == Long.MIN_VALUE) return NEG_INFINITY;
+      return context.getTimestampFormatter().getPrinter().formatMicros(micros, primitiveType == TimestampTZ ? context.getTimeZone() : targetTimeZone, primitiveType == TimestampTZ);
+    }
+
+    if (targetType == Timestamp.class) {
+
+      if (micros == Long.MAX_VALUE) {
+        return new Timestamp(JAVA_DATE_POSITIVE_INFINITY_MSECS);
+      }
+      else if (micros == Long.MIN_VALUE) {
+        return new Timestamp(JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+      }
+
+      long seconds = MICROSECONDS.toSeconds(micros);
+      int nanoseconds = (int) MICROSECONDS.toNanos(micros - SECONDS.toMicros(seconds));
+      if (nanoseconds < 0) {
+        --seconds;
+        nanoseconds += SECONDS.toNanos(1);
+      }
+
+      Timestamp timestamp = new Timestamp(SECONDS.toMillis(seconds));
+      timestamp.setNanos(nanoseconds);
+
+      return timestamp;
+    }
+
+    throw new ConversionException(primitiveType, targetType);
+  }
+
+  private long toMillis(long micros) {
+    if (micros == Long.MAX_VALUE) return JAVA_DATE_POSITIVE_INFINITY_MSECS;
+    if (micros == Long.MIN_VALUE) return JAVA_DATE_NEGATIVE_INFINITY_MSECS;
+    return MICROSECONDS.toMillis(micros);
+  }
+
+  private long toMicros(long millis) {
+    if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) return Long.MAX_VALUE;
+    if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return Long.MIN_VALUE;
+    return MILLISECONDS.toMicros(millis);
+  }
+
+  private class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(8);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return primitiveType;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public Class<?> getDefaultClass() {
+      return Timestamp.class;
     }
 
     @Override
-    public Instant decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 8) {
-        throw new IOException("invalid length");
-      }
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
       long micros = buffer.readLong();
 
-      if (micros == Long.MAX_VALUE) {
-        return FutureInfiniteInstant.INSTANCE;
-      }
-      else if (micros == Long.MIN_VALUE) {
-        return PastInfiniteInstant.INSTANCE;
+      if (micros != Long.MAX_VALUE && micros != Long.MIN_VALUE) {
+
+        micros = timePgToJava(micros, MICROSECONDS);
+
+        long millis = MICROSECONDS.toMillis(micros);
+        if (primitiveType != TimestampTZ) {
+          millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
+        }
+
+        micros = MILLISECONDS.toMicros(millis) + (micros - MILLISECONDS.toMicros(MICROSECONDS.toMillis(micros)));
       }
 
-      micros += PG_JAVA_EPOCH_DIFF_MICROS;
-
-      if (zone != null)
-        return new PreciseInstant(Instant.Type.Timestamp, micros, zone);
-      else
-        return new AmbiguousInstant(Instant.Type.Timestamp, micros);
+      return convertOutput(context, micros, targetClass, calendar.getTimeZone());
     }
 
   }
 
-  class BinIntegerEncoder extends BinaryEncoder {
+  private class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
+    BinEncoder() {
+      super(8);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return primitiveType;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
+
+      long micros = convertInput(context, value, calendar);
+      if (micros != Long.MAX_VALUE && micros != Long.MIN_VALUE) {
+
+        micros = timeJavaToPg(micros, MICROSECONDS);
+
+        long millis = MICROSECONDS.toMillis(micros);
+        if (primitiveType != TimestampTZ) {
+          millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
+        }
+
+        micros = MILLISECONDS.toMicros(millis) + (micros - MILLISECONDS.toMicros(MICROSECONDS.toMillis(micros)));
+      }
+
+      buffer.writeLong(micros);
+    }
+
+  }
+
+  class TxtDecoder extends BaseTextDecoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return primitiveType;
+    }
+
+    @Override
+    public Class<?> getDefaultClass() {
+      return Timestamp.class;
+    }
+
+    @Override
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
+
+      long micros;
+      if (buffer.equals(POS_INFINITY)) {
+        micros = MILLISECONDS.toMicros(JAVA_DATE_POSITIVE_INFINITY_MSECS);
+      }
+      else if (buffer.equals(NEG_INFINITY)) {
+        micros = MILLISECONDS.toMicros(JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+      }
+      else {
+        TemporalAccessor parsed = context.getTimestampFormatter().getParser().parse(buffer);
+
+        TimeZone timeZone = primitiveType == TimestampTZ ? TimeZone.getTimeZone("UTC") : calendar.getTimeZone();
+
+        micros = timestampFromParsed(parsed, timeZone);
+      }
+
+      return convertOutput(context, micros, targetClass, calendar.getTimeZone());
+    }
+
+  }
+
+  class TxtEncoder extends BaseTextEncoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return primitiveType;
+    }
+
+    @Override
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
+
+      long micros = convertInput(context, value, calendar);
+      if (micros == Long.MAX_VALUE) {
+        buffer.append("infinity");
+      }
+      else if (micros == Long.MIN_VALUE) {
+        buffer.append("-infinity");
       }
       else {
 
-        Instant inst = (Instant) val;
+        String strVal = context.getTimestampFormatter().getPrinter().formatMicros(micros, calendar.getTimeZone(), primitiveType == TimestampTZ);
 
-        long micros;
-        if (primitiveType == PrimitiveType.TimestampTZ) {
-          micros = inst.getMicrosUTC();
-        }
-        else {
-          micros = inst.disambiguate(TimeZone.getDefault()).getMicrosLocal();
-        }
-
-        if (!isInfinity(micros)) {
-
-          micros -= PG_JAVA_EPOCH_DIFF_MICROS;
-        }
-
-        buffer.writeInt(8);
-        buffer.writeLong(micros);
+        buffer.append(strVal);
       }
-
-    }
-
-  }
-
-  private static long calculateEpochDifferenceMicros() {
-
-    Calendar pgEpochInJava = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-
-    pgEpochInJava.clear();
-    pgEpochInJava.set(2000, 0, 1);
-
-    return MILLISECONDS.toMicros(pgEpochInJava.getTimeInMillis());
-  }
-
-  public static boolean isInfinity(long micros) {
-
-    return micros == Long.MAX_VALUE || micros == Long.MIN_VALUE;
-  }
-
-  class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return primitiveType;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
-    }
-
-    @Override
-    protected Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      Map<String, Object> pieces = new HashMap<>();
-
-      context.getTimestampFormatter().getParser().parse(buffer.toString(), 0, pieces);
-
-      Instant instant = Instants.timestampFromPieces(pieces, context.getTimeZone());
-
-      if (primitiveType != PrimitiveType.TimestampTZ) {
-        instant = instant.ambiguate();
-      }
-
-      return instant;
-    }
-
-  }
-
-  class TxtEncoder extends TextEncoder {
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return primitiveType;
-    }
-
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
-    }
-
-    @Override
-    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      String strVal = context.getTimestampFormatter().getPrinter().format((Instant) val);
-
-      buffer.append(strVal);
     }
 
   }

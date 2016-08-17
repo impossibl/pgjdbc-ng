@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgType.Row;
 
@@ -44,12 +45,12 @@ public class BaseType extends Type {
   public BaseType() {
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Codec binaryCodec, Codec textCodec) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec);
+  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    super(id, name, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec, preferredParameterFormat, preferredResultFormat);
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null));
+  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    super(id, name, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null), preferredParameterFormat, preferredResultFormat);
   }
 
   @Override

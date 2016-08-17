@@ -28,8 +28,14 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Tables {
@@ -62,6 +68,14 @@ public class Tables {
     }
 
     throw new UnsupportedServerVersion(currentVersion);
+  }
+
+  public static <R extends Table.Row, T extends Table<R>> List<R> convertRows(Context context, T table, List<RowData> data) throws IOException {
+    List<R> rows = new ArrayList<>(data.size());
+    for (RowData rowData : data) {
+      rows.add(table.createRow(context, rowData));
+    }
+    return rows;
   }
 
 }

@@ -28,9 +28,11 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.api.data.CidrAddr;
 import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.InetAddr.Family;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
@@ -48,44 +50,79 @@ abstract class Networks extends SimpleProcProvider {
 
     T newNetworkObject(String v);
 
-    Class<? extends InetAddr> getObjectClass();
+    PrimitiveType getPrimitiveType();
+
+    Class<T> getObjectType();
+
+  }
+
+  private static InetAddr convertInput(Object value, PrimitiveType primitiveType) throws ConversionException {
+
+    if (value instanceof InetAddr) {
+      return (InetAddr) value;
+    }
+
+    if (value instanceof String) {
+      return InetAddr.parseInetAddr((String) value, true);
+    }
+
+    throw new ConversionException(value.getClass(), primitiveType);
+  }
+
+  private static Object convertOutput(InetAddr value, PrimitiveType srcType, Class<?> targetClass) throws ConversionException {
+
+    if (targetClass == InetAddr.class && srcType == PrimitiveType.Inet) {
+      return value;
+    }
+
+    if (targetClass == CidrAddr.class && srcType == PrimitiveType.Cidr) {
+      return value;
+    }
+
+    if (targetClass == String.class) {
+      return value.toString();
+    }
+
+    throw new ConversionException(srcType, targetClass);
   }
 
   // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
-  public Networks(String pgtype, NetworkObjectFactory<? extends InetAddr> nof) {
+  Networks(String pgtype, NetworkObjectFactory<? extends InetAddr> nof) {
     super(new TxtEncoder(nof), new TxtDecoder(nof), new BinEncoder(nof), new BinDecoder(nof), pgtype);
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
+
     private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public BinDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
+    BinDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return nof.getObjectClass();
+    public Class<?> getDefaultClass() {
+      return nof.getObjectType();
     }
 
     @Override
-    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      } // length should be 8 or 20
-      else if (length != 8 && length != 20) {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      int length = buffer.readableBytes();
+      if (length != 8 && length != 20) {
         throw new IOException("Invalid length: " + length);
       }
+
       // family, bits, is_cidr, address length, address in network byte order.
       short family = buffer.readUnsignedByte();
       short mask = buffer.readUnsignedByte();
-      /* byte isCidr = */buffer.readByte();
+
+      /* byte isCidr = */
+      buffer.readByte();
       int addrSize = buffer.readUnsignedByte();
       if (family == PGSQL_AF_INET) {
         if (addrSize != 4) {
@@ -100,103 +137,93 @@ abstract class Networks extends SimpleProcProvider {
       else {
         throw new IOException("Invalid inet family: " + family);
       }
+
       byte[] addr = new byte[addrSize];
       buffer.readBytes(addr);
-      try {
-        return nof.newNetworkObject(addr, mask);
-      }
-      catch (IllegalArgumentException e) {
-        throw new IOException("Invalid address format", e);
-      }
+
+      InetAddr value = nof.newNetworkObject(addr, mask);
+
+      return convertOutput(value, nof.getPrimitiveType(), targetClass);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
-    private NetworkObjectFactory<? extends InetAddr> nof;
+  static class BinEncoder extends BaseBinaryEncoder {
 
-    public BinEncoder(NetworkObjectFactory<? extends InetAddr> nof) {
+    private NetworkObjectFactory<?> nof;
+
+    BinEncoder(NetworkObjectFactory<?> nof) {
       this.nof = nof;
     }
 
     @Override
-    public Class<?> getInputType() {
-      return nof.getObjectClass();
+    public PrimitiveType getPrimitiveType() {
+      return nof.getPrimitiveType();
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-    @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
-      }
-      else {
-        InetAddr inet = (InetAddr) val;
-        byte[] addr = inet.getAddress();
-        boolean ipV4 = inet.getFamily() == Family.IPv4;
-        buffer.writeInt(ipV4 ? 8 : 20);
-        buffer.writeByte(ipV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
-        buffer.writeByte(inet.getMaskBits());
-        buffer.writeByte(type.getName().equals("cidr") ? 0 : 1);
-        buffer.writeByte(addr.length);
-        buffer.writeBytes(addr);
-      }
-    }
-  }
 
-  static class TxtDecoder extends TextDecoder {
-    private NetworkObjectFactory<? extends InetAddr> nof;
+      InetAddr inet = convertInput(value, nof.getPrimitiveType());
 
-    public TxtDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
-      this.nof = nof;
-    }
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return nof.getObjectClass();
-    }
-
-    @Override
-    public InetAddr decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-      try {
-        return nof.newNetworkObject(buffer.toString());
-      }
-      catch (RuntimeException e) {
-        throw new IOException("Invalid address format", e);
-      }
+      byte[] addr = inet.getAddress();
+      boolean ipV4 = inet.getFamily() == Family.IPv4;
+      buffer.writeByte(ipV4 ? PGSQL_AF_INET : PGSQL_AF_INET6);
+      buffer.writeByte(inet.getMaskBits());
+      buffer.writeByte(type.getName().equals("cidr") ? 0 : 1);
+      buffer.writeByte(addr.length);
+      buffer.writeBytes(addr);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtDecoder extends BaseTextDecoder {
+
     private NetworkObjectFactory<? extends InetAddr> nof;
 
-    public TxtEncoder(NetworkObjectFactory<? extends InetAddr> nof) {
+    TxtDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
     }
 
     @Override
-    public Class<?> getInputType() {
-      return nof.getObjectClass();
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Binary;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      InetAddr inet = (InetAddr) val;
+    public Class<?> getDefaultClass() {
+      return nof.getObjectType();
+    }
+
+    @Override
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      InetAddr value = nof.newNetworkObject(buffer.toString());
+
+      return convertOutput(value, nof.getPrimitiveType(), targetClass);
+    }
+
+  }
+
+  static class TxtEncoder extends BaseTextEncoder {
+
+    private NetworkObjectFactory<?> nof;
+
+    TxtEncoder(NetworkObjectFactory<?> nof) {
+      this.nof = nof;
+    }
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return nof.getPrimitiveType();
+    }
+
+    @Override
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      InetAddr inet = convertInput(value, nof.getPrimitiveType());
+
       buffer.append(inet.toString());
     }
 

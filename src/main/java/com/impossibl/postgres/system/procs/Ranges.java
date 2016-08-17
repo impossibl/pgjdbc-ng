@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,111 +45,91 @@ public class Ranges extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "range_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Range;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Range.class;
     }
 
     @Override
-    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
 
-      Range<?> instance = null;
+      Range.Flags flags = new Range.Flags(buffer.readByte());
+      Object[] values = new Object[2];
 
-      int length = buffer.readInt();
+      Type.Codec.Decoder<ByteBuf> decoder = baseType.getBinaryCodec().getDecoder();
 
-      if (length != -1) {
+      if (flags.hasLowerBound()) {
 
-        Range.Flags flags = new Range.Flags(buffer.readByte());
-        Object[] values = new Object[2];
-
-        if (flags.hasLowerBound()) {
-
-          values[0] = baseType.getBinaryCodec().getDecoder().decode(baseType, null, null, buffer, context);
-        }
-
-        if (flags.hasUpperBound()) {
-
-          values[1] = baseType.getBinaryCodec().getDecoder().decode(baseType, null, null, buffer, context);
-        }
-
-        instance = new Range<>(flags, values);
+        values[0] = decoder.decode(context, baseType, null, null, buffer, targetClass, targetContext);
       }
 
-      return instance;
+      if (flags.hasUpperBound()) {
+
+        values[1] = decoder.decode(context, baseType, null, null, buffer, targetClass, targetContext);
+      }
+
+      return new Range<>(flags, values);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Range.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Range;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      buffer.writeInt(-1);
+      RangeType rangeType = (RangeType) type;
+      Type baseType = rangeType.getBase();
 
-      if (val != null) {
+      Range<?> range = (Range<?>) value;
 
-        int writeStart = buffer.writerIndex();
+      buffer.writeByte(range.getFlags().getValue());
 
-        RangeType rangeType = (RangeType) type;
-        Type baseType = rangeType.getBase();
+      Type.Codec.Encoder<ByteBuf> encoder = baseType.getBinaryCodec().getEncoder();
 
-        Range<?> range = (Range<?>) val;
+      if (range.getFlags().hasLowerBound()) {
 
-        buffer.writeByte(range.getFlags().getValue());
+        encoder.encode(context, baseType, range.getLowerBound(), sourceContext, buffer);
+      }
 
-        if (range.getFlags().hasLowerBound()) {
+      if (range.getFlags().hasUpperBound()) {
 
-          baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, range.getLowerBound(), context);
-        }
-
-        if (range.getFlags().hasUpperBound()) {
-
-          baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, range.getUpperBound(), context);
-        }
-
-        // Set length
-        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
+        encoder.encode(context, baseType, range.getUpperBound(), sourceContext, buffer);
       }
 
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Range;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Range.class;
     }
 
     @Override
-    public Range<?> decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
@@ -164,25 +145,27 @@ public class Ranges extends SimpleProcProvider {
         upperInc = true;
       }
 
-      CharSequence lowerTxt = buffer.subSequence(1, findBound(buffer, 1));
+      Type.Codec.Decoder<CharSequence> decoder = baseType.getTextCodec().getDecoder();
+
+      CharSequence lowerTxt = buffer.subSequence(1, findBound(buffer));
       if (lowerTxt.length() != 0) {
-        lower = baseType.getTextCodec().getDecoder().decode(baseType, null, null, lowerTxt, context);
+        lower = decoder.decode(context, baseType, null, null, lowerTxt, targetClass, targetContext);
       }
 
       CharSequence upperTxt = buffer.subSequence(2 + lowerTxt.length(), buffer.length() - 1);
       if (upperTxt.length() != 0) {
-        upper = baseType.getTextCodec().getDecoder().decode(baseType, null, null, upperTxt, context);
+        upper = decoder.decode(context, baseType, null, null, upperTxt, targetClass, targetContext);
       }
 
       return Range.create(lower, lowerInc, upper, upperInc);
     }
 
-    private static int findBound(CharSequence buffer, int start) {
+    private static int findBound(CharSequence buffer) {
 
       boolean string = false;
 
       int stop;
-      for (stop = start; stop < buffer.length(); ++stop) {
+      for (stop = 1; stop < buffer.length(); ++stop) {
 
         char ch = buffer.charAt(stop);
         switch (ch) {
@@ -210,25 +193,20 @@ public class Ranges extends SimpleProcProvider {
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Range.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Range;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       RangeType rangeType = (RangeType) type;
       Type baseType = rangeType.getBase();
 
-      Range<?> range = (Range<?>) val;
+      Range<?> range = (Range<?>) value;
 
       if (range.isLowerBoundInclusive()) {
         buffer.append('[');
@@ -237,9 +215,11 @@ public class Ranges extends SimpleProcProvider {
         buffer.append('(');
       }
 
+      BaseTextEncoder encoder = (BaseTextEncoder) baseType.getTextCodec().getEncoder();
+
       if (range.hasLowerBound()) {
         StringBuilder lowerBuffer = new StringBuilder();
-        baseType.getTextCodec().getEncoder().encode(baseType, lowerBuffer, range.getLowerBound(), context);
+        encoder.encodeValue(context, baseType, range.getLowerBound(), sourceContext, lowerBuffer);
         String lower = lowerBuffer.toString();
 
         if (needsQuotes(lower)) {
@@ -254,7 +234,7 @@ public class Ranges extends SimpleProcProvider {
 
       if (range.hasUpperBound()) {
         StringBuilder upperBuffer = new StringBuilder();
-        baseType.getTextCodec().getEncoder().encode(baseType, upperBuffer, range.getUpperBound(), context);
+        encoder.encodeValue(context, baseType, range.getUpperBound(), sourceContext, upperBuffer);
         String upper = upperBuffer.toString();
 
         if (needsQuotes(upper)) {

@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Int2;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,99 +45,94 @@ public class Int2s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends NumericBinaryDecoder<Short> {
+
+    BinDecoder() {
+      super(2, Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int2;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Short> getDefaultClass() {
       return Short.class;
     }
 
     @Override
-    public Short decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 2) {
-        throw new IOException("invalid length");
-      }
-
+    protected Short decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readShort();
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Short> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Short.class;
+    BinEncoder() {
+      super(2, Short::parseShort, val -> val ? (short) 1 : (short) 0, Number::shortValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int2;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Short> getDefaultClass() {
+      return Short.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(2);
-        buffer.writeShort((Short) val);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Short value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeShort(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Short> {
+
+    TxtDecoder() {
+      super(Object::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int2;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Short> getDefaultClass() {
       return Short.class;
     }
 
     @Override
-    public Short decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return Short.valueOf(buffer.toString());
+    protected Short decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return context.getIntegerFormatter().parse(buffer.toString()).shortValue();
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Short> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Short.class;
+    TxtEncoder() {
+      super(Short::parseShort, val -> val ? (short) 1 : (short) 0, Number::shortValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int2;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Short> getDefaultClass() {
+      return Short.class;
+    }
 
-      buffer.append((short)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Short value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

@@ -61,15 +61,6 @@ public class PgProcTest {
     assertEquals(PgProc.INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
   }
 
-  @Test
-  public void testRow() throws Exception {
-    PgProc.Row one = new PgProc.Row();
-    PgProc.Row two = PgProc.INSTANCE.createRow();
-
-    assertEquals(one.getName(), two.getName());
-    assertEquals(one.getOid(), two.getOid());
-  }
-
   // copy-paste from PgProc.  Has to be a better way than this, but IDE and dp4j don't seem to get along.
   private static final Object[] SQL = {Version.get(9, 0, 0), " select " + "    \"oid\", proname as \"name\"" + " from" + "   pg_proc"};
 

@@ -32,7 +32,7 @@ import java.sql.SQLException;
 
 class LargeObject64 extends LargeObject {
 
-  LargeObject64(PGConnectionImpl connection, int oid, int fd) throws SQLException {
+  LargeObject64(PGDirectConnection connection, int oid, int fd) throws SQLException {
     super(connection, oid, fd);
 
     ensurePrepared(connection, "lo.lseek64", "select lo_lseek64($1,$2,$3)", "int4", "int8", "int4");
@@ -42,17 +42,17 @@ class LargeObject64 extends LargeObject {
 
   @Override
   long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("@lo.lseek64", true, Long.class, fd, offset, whence);
+    return connection.executeForValue("@lo.lseek64", Long.class, fd, offset, whence);
   }
 
   @Override
   long tell() throws SQLException {
-    return connection.executeForFirstResultValue("@lo.tell64", true, Long.class, fd);
+    return connection.executeForValue("@lo.tell64", Long.class, fd);
   }
 
   @Override
   int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("@lo.truncate64", true, Integer.class, fd, len);
+    return connection.executeForValue("@lo.truncate64", Integer.class, fd, len);
   }
 
 }

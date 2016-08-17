@@ -305,17 +305,17 @@ public class InetAddr {
 
       if (ch == '.' && ((j + IPv4.getByteSize()) <= IPv6.getByteSize())) {
 
-        String ipv4AddrEmb = ipv6Addr.substring(curtok, srcbLength);
+        int endtok;
+        for (endtok = curtok; endtok < srcbLength; ++endtok)
+          if (ipv6Addr.charAt(endtok) == '/') break;
+
+        String ipv4AddrEmb = ipv6Addr.substring(curtok, endtok);
 
         Object[] ipv4parts;
         try {
           ipv4parts = parse4(ipv4AddrEmb, false);
         }
         catch (IllegalArgumentException e) {
-          throw new IllegalArgumentException("invalid embedded IPv4 address");
-        }
-
-        if (ipv4parts[1] != null) {
           throw new IllegalArgumentException("invalid embedded IPv4 address");
         }
 

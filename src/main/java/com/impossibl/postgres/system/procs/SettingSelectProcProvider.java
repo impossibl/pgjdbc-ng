@@ -32,24 +32,27 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
+import io.netty.buffer.ByteBuf;
+
 public class SettingSelectProcProvider extends BaseProcProvider {
 
-  String settingName;
-  Object settingMatchValue;
-  Codec.Encoder matchedTxtEncoder;
-  Codec.Decoder matchedTxtDecoder;
-  Codec.Encoder matchedBinEncoder;
-  Codec.Decoder matchedBinDecoder;
-  Codec.Encoder unmatchedTxtEncoder;
-  Codec.Decoder unmatchedTxtDecoder;
-  Codec.Encoder unmatchedBinEncoder;
-  Codec.Decoder unmatchedBinDecoder;
+  private String settingName;
+  private Object settingMatchValue;
+  Codec.Encoder<StringBuilder> matchedTxtEncoder;
+  Codec.Decoder<CharSequence> matchedTxtDecoder;
+  Codec.Encoder<ByteBuf> matchedBinEncoder;
+  Codec.Decoder<ByteBuf> matchedBinDecoder;
+  Codec.Encoder<StringBuilder> unmatchedTxtEncoder;
+  Codec.Decoder<CharSequence> unmatchedTxtDecoder;
+  Codec.Encoder<ByteBuf> unmatchedBinEncoder;
+  Codec.Decoder<ByteBuf> unmatchedBinDecoder;
 
   public SettingSelectProcProvider(
       String settingName, Object settingMatchValue,
-      Codec.Encoder matchedTxtEncoder, Codec.Decoder matchedTxtDecoder, Codec.Encoder matchedBinEncoder, Codec.Decoder matchedBinDecoder,
-      Codec.Encoder unmatchedTxtEncoder, Codec.Decoder unmatchedTxtDecoder, Codec.Encoder unmatchedBinEncoder, Codec.Decoder unmatchedBinDecoder,
-      String... baseNames) {
+      Codec.Encoder<StringBuilder> matchedTxtEncoder, Codec.Decoder<CharSequence> matchedTxtDecoder,
+      Codec.Encoder<ByteBuf> matchedBinEncoder, Codec.Decoder<ByteBuf> matchedBinDecoder,
+      Codec.Encoder<StringBuilder> unmatchedTxtEncoder, Codec.Decoder<CharSequence> unmatchedTxtDecoder,
+      Codec.Encoder<ByteBuf> unmatchedBinEncoder, Codec.Decoder<ByteBuf> unmatchedBinDecoder, String... baseNames) {
     super(baseNames);
     this.settingName = settingName;
     this.settingMatchValue = settingMatchValue;
@@ -63,36 +66,38 @@ public class SettingSelectProcProvider extends BaseProcProvider {
     this.unmatchedBinDecoder = unmatchedBinDecoder;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Codec.Encoder findEncoder(String name, Context context) {
-    if (name.endsWith("recv") && hasName(name, "recv", context)) {
+  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return matchedBinEncoder;
+        return (Codec.Encoder<Buffer>) matchedBinEncoder;
       else
-        return unmatchedBinEncoder;
+        return (Codec.Encoder<Buffer>) unmatchedBinEncoder;
     }
-    else if (name.endsWith("in") && hasName(name, "in", context)) {
+    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return matchedTxtEncoder;
+        return (Codec.Encoder<Buffer>) matchedTxtEncoder;
       else
-        return unmatchedTxtEncoder;
+        return (Codec.Encoder<Buffer>) unmatchedTxtEncoder;
     }
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Codec.Decoder findDecoder(String name, Context context) {
-    if (name.endsWith("send") && hasName(name, "send", context)) {
+  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return matchedBinDecoder;
+        return (Codec.Decoder<Buffer>) matchedBinDecoder;
       else
-        return unmatchedBinDecoder;
+        return (Codec.Decoder<Buffer>) unmatchedBinDecoder;
     }
-    else if (name.endsWith("out") && hasName(name, "out", context)) {
+    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", context)) {
       if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return matchedTxtDecoder;
+        return (Codec.Decoder<Buffer>) matchedTxtDecoder;
       else
-        return unmatchedTxtDecoder;
+        return (Codec.Decoder<Buffer>) unmatchedTxtDecoder;
     }
     return null;
   }

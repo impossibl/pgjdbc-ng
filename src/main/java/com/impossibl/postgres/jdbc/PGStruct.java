@@ -28,30 +28,26 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.TypeMapContext;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
-
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Struct;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 
-public class PGStruct implements Struct {
+public abstract class PGStruct implements Struct {
 
-  PGConnectionImpl connection;
-  String typeName;
-  Type[] attributeTypes;
-  Object[] attributeValues;
+  protected Context context;
+  protected String typeName;
+  protected Type[] attributeTypes;
 
-  public PGStruct(PGConnectionImpl connection, String typeName, Type[] attributeTypes, Object[] values) {
+  PGStruct(Context context, String typeName, Type[] attributeTypes) {
     super();
-    this.connection = connection;
+    this.context = context;
     this.typeName = typeName;
     this.attributeTypes = attributeTypes;
-    this.attributeValues = values;
   }
 
   public Type[] getAttributeTypes() {
@@ -59,47 +55,29 @@ public class PGStruct implements Struct {
   }
 
   @Override
-  public String getSQLTypeName() throws SQLException {
+  public String getSQLTypeName() {
     return typeName;
   }
 
   @Override
   public Object[] getAttributes() throws SQLException {
-
-    return getAttributes(connection.getTypeMap());
-  }
-
-  @Override
-  public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
-
-    Object[] newValues = new Object[attributeValues.length];
-
-    for (int c = 0; c < attributeTypes.length; c++) {
-
-      Type attrType = attributeTypes[c];
-
-      Class<?> targetType = mapGetType(attrType, map, connection);
-
-      newValues[c] = coerce(attributeValues[c], attrType, targetType, map, connection);
+    try {
+      return getAttributes(context);
     }
-
-    return newValues;
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    PGStruct pgStruct = (PGStruct) o;
-    return Objects.equals(connection, pgStruct.connection) &&
-        Objects.equals(typeName, pgStruct.typeName) &&
-        Arrays.equals(attributeTypes, pgStruct.attributeTypes) &&
-        Arrays.equals(attributeValues, pgStruct.attributeValues);
+  public Object[] getAttributes(Map<String, Class<?>> typeMap) throws SQLException {
+    try {
+      return getAttributes(new TypeMapContext(context, typeMap));
+    }
+    catch (IOException e) {
+      throw new SQLException(e);
+    }
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(connection, typeName, attributeTypes, attributeValues);
-  }
+  public abstract Object[] getAttributes(Context context) throws IOException;
 
 }

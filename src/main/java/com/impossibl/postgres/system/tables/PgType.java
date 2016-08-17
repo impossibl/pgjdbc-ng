@@ -28,7 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
+
+import java.io.IOException;
 
 
 /**
@@ -39,7 +43,7 @@ import com.impossibl.postgres.system.Version;
  */
 public class PgType implements Table<PgType.Row> {
 
-  public static class Row {
+  public static class Row implements Table.Row {
 
     private int oid;
     private String name;
@@ -56,17 +60,40 @@ public class PgType implements Table<PgType.Row> {
     private int sendId;
     private int modInId;
     private int modOutId;
-    private int analyzeId;
     private String alignment;
+    private String namespace;
     private int domainBaseTypeId;
     private int domainTypeMod;
     private boolean domainNotNull;
-    private int domainDimensions;
-    private String namespace;
     private String domainDefault;
-    private int rangeBaseTypeId;
+    private Integer rangeBaseTypeId;
 
     public Row() {
+    }
+
+    public void load(Context context, RowData rowData) throws IOException {
+      this.oid = rowData.getColumn(OID, context, Integer.class);
+      this.name = rowData.getColumn(NAME, context, String.class);
+      this.length = rowData.getColumn(LENGTH, context, Short.class);
+      this.discriminator = rowData.getColumn(DISCRIMINATOR, context, String.class);
+      this.category = rowData.getColumn(CATEGORY, context, String.class);
+      this.deliminator = rowData.getColumn(DELIMINATOR, context, String.class);
+      this.relationId = rowData.getColumn(RELATION_ID, context, Integer.class);
+      this.elementTypeId = rowData.getColumn(ELEMENT_TYPE_ID, context, Integer.class);
+      this.arrayTypeId = rowData.getColumn(ARRAY_TYPE_ID, context, Integer.class);
+      this.inputId = rowData.getColumn(INPUT_ID, context, Integer.class);
+      this.outputId = rowData.getColumn(OUTPUT_ID, context, Integer.class);
+      this.receiveId = rowData.getColumn(RECEIVE_ID, context, Integer.class);
+      this.sendId = rowData.getColumn(SEND_ID, context, Integer.class);
+      this.modInId = rowData.getColumn(MOD_IN_ID, context, Integer.class);
+      this.modOutId = rowData.getColumn(MOD_OUT_ID, context, Integer.class);
+      this.alignment = rowData.getColumn(ALIGNMENT, context, String.class);
+      this.domainBaseTypeId = rowData.getColumn(DOMAIN_BASE_TYPE_ID, context, Integer.class);
+      this.domainTypeMod = rowData.getColumn(DOMAIN_TYPE_MOD, context, Integer.class);
+      this.domainNotNull = rowData.getColumn(DOMAIN_NOT_NULL, context, Boolean.class);
+      this.namespace = rowData.getColumn(NAMESPACE, context, String.class);
+      this.domainDefault = rowData.getColumn(DOMAIN_DEFAULT, context, String.class);
+      this.rangeBaseTypeId = rowData.getColumn(RANGE_BASE_TYPE_ID, context, Integer.class);
     }
 
     public int getOid() {
@@ -189,14 +216,6 @@ public class PgType implements Table<PgType.Row> {
       modOutId = v;
     }
 
-    public int getAnalyzeId() {
-      return analyzeId;
-    }
-
-    public void setAnalyzeId(int v) {
-      analyzeId = v;
-    }
-
     public String getAlignment() {
       return alignment;
     }
@@ -229,14 +248,6 @@ public class PgType implements Table<PgType.Row> {
       domainNotNull = v;
     }
 
-    public int getDomainDimensions() {
-      return domainDimensions;
-    }
-
-    public void setDomainDimensions(int v) {
-      domainDimensions = v;
-    }
-
     public String getNamespace() {
       return namespace;
     }
@@ -253,11 +264,11 @@ public class PgType implements Table<PgType.Row> {
       domainDefault = v;
     }
 
-    public int getRangeBaseTypeId() {
+    public Integer getRangeBaseTypeId() {
       return rangeBaseTypeId;
     }
 
-    public void setRangeBaseTypeId(int v) {
+    public void setRangeBaseTypeId(Integer v) {
       rangeBaseTypeId = v;
     }
 
@@ -285,6 +296,29 @@ public class PgType implements Table<PgType.Row> {
 
   }
 
+  static final int OID = 0;
+  static final int NAME = 1;
+  static final int LENGTH = 2;
+  static final int DISCRIMINATOR = 3;
+  static final int CATEGORY = 4;
+  static final int DELIMINATOR = 5;
+  static final int RELATION_ID = 6;
+  static final int ELEMENT_TYPE_ID = 7;
+  static final int ARRAY_TYPE_ID = 8;
+  static final int INPUT_ID = 9;
+  static final int OUTPUT_ID = 10;
+  static final int RECEIVE_ID = 11;
+  static final int SEND_ID = 12;
+  static final int MOD_IN_ID = 13;
+  static final int MOD_OUT_ID = 14;
+  static final int ALIGNMENT = 15;
+  static final int NAMESPACE = 16;
+  static final int DOMAIN_BASE_TYPE_ID = 17;
+  static final int DOMAIN_TYPE_MOD = 18;
+  static final int DOMAIN_NOT_NULL = 19;
+  static final int DOMAIN_DEFAULT = 20;
+  static final int RANGE_BASE_TYPE_ID = 21;
+
   public static final PgType INSTANCE = new PgType();
 
   private PgType() {
@@ -296,8 +330,10 @@ public class PgType implements Table<PgType.Row> {
   }
 
   @Override
-  public Row createRow() {
-    return new Row();
+  public Row createRow(Context context, RowData rowData) throws IOException {
+    Row row = new Row();
+    row.load(context, rowData);
+    return row;
   }
 
   private static final Object[] SQL = {
@@ -307,7 +343,7 @@ public class PgType implements Table<PgType.Row> {
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
       "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\", " +
-      "   rngsubtype as \"rangeBaseTypeId\" " +
+      "   rngsubtype as \"rangeBaseTypeId\"" +
       " from" +
       "   pg_catalog.pg_type t" +
       " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) " +
@@ -318,6 +354,7 @@ public class PgType implements Table<PgType.Row> {
       "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
       "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
+      "   null as \"rangeBaseTypeId\"" +
       " from" +
       "   pg_catalog.pg_type t" +
       " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) ",

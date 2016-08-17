@@ -29,14 +29,16 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.Tid;
+import com.impossibl.postgres.jdbc.PGRowId;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.sql.RowId;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
-
 
 
 public class Tids extends SimpleProcProvider {
@@ -45,28 +47,58 @@ public class Tids extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "tid");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static Tid convertInput(Context context, Object source, Object sourceContext) {
+
+    if (source instanceof Tid) {
+      return (Tid) source;
+    }
+
+    if (source instanceof PGRowId) {
+      return ((PGRowId) source).getTid();
+    }
+
+    if (source instanceof String) {
+      parseTid((String) source);
+    }
+
+    return null;
+  }
+
+  static Object convertOutput(Context context, Tid decoded, Class<?> targetClass, Object targetContext) {
+
+    if (targetClass == Tid.class) {
+      return decoded;
+    }
+
+    if (targetClass == RowId.class) {
+      return new PGRowId(decoded);
+    }
+
+    if (targetClass == String.class) {
+      return "(" + decoded.getBlock() + "," + decoded.getOffset() + ")";
+    }
+
+    return null;
+  }
+
+  static class BinDecoder extends AutoConvertingBinaryDecoder<Tid> {
+
+    BinDecoder() {
+      super(6, Tids::convertOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Tid;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Tid> getDefaultClass() {
       return Tid.class;
     }
 
     @Override
-    protected Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 6) {
-        throw new IOException("invalid length");
-      }
+    protected Tid decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       int block = buffer.readInt();
       short offset = buffer.readShort();
@@ -76,83 +108,91 @@ public class Tids extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<Tid> {
+
+    BinEncoder() {
+      super(6, Tids::convertInput);
+    }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Tid;
     }
 
     @Override
-    public Class<?> getInputType() {
+    protected Class<Tid> getDefaultClass() {
       return Tid.class;
     }
 
     @Override
-    protected void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeNativeValue(Context context, Type type, Tid value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        Tid tid = (Tid) val;
-
-        buffer.writeInt(6);
-        buffer.writeInt(tid.getBlock());
-        buffer.writeShort(tid.getOffset());
-      }
-
+      buffer.writeInt(value.getBlock());
+      buffer.writeShort(value.getOffset());
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<Tid> {
+
+    TxtDecoder() {
+      super(Tids::convertOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Tid;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Tid> getDefaultClass() {
       return Tid.class;
     }
 
     @Override
-    protected Tid decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Tid decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      String[] items = buffer.subSequence(1, buffer.length() - 1).toString().split(",");
-
-      int block = Integer.parseInt(items[0]);
-      short offset = Short.parseShort(items[1]);
-
-      return new Tid(block, offset);
+      return parseTid(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<Tid> {
+
+    TxtEncoder() {
+      super(Tids::convertInput);
+    }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Tid;
     }
 
     @Override
-    public Class<?> getInputType() {
+    protected Class<Tid> getDefaultClass() {
       return Tid.class;
     }
 
     @Override
-    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeNativeValue(Context context, Type type, Tid value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      Tid tid = (Tid) val;
-
-      buffer.append('(').append(tid.getBlock()).append(',').append(tid.getOffset()).append(')');
+      formatTid(value, buffer);
     }
 
+  }
+
+  private static Tid parseTid(CharSequence source) {
+
+    String[] items = source.subSequence(1, source.length() - 1).toString().split(",");
+
+    int block = Integer.parseInt(items[0]);
+    short offset = Short.parseShort(items[1]);
+
+    return new Tid(block, offset);
+  }
+
+  private static void formatTid(Tid tid, StringBuilder out) {
+    out.append('(').append(tid.getBlock()).append(',').append(tid.getOffset()).append(')');
   }
 
 }

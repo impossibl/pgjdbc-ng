@@ -36,19 +36,19 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
+import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
 
 class PGResultSetMetaData implements ResultSetMetaData {
 
-  PGConnectionImpl connection;
-  List<ResultField> resultFields;
-  Map<String, Class<?>> typeMap;
+  private PGDirectConnection connection;
+  private ResultField[] resultFields;
+  private Map<String, Class<?>> typeMap;
 
-  PGResultSetMetaData(PGConnectionImpl connection, List<ResultField> resultFields, Map<String, Class<?>> typeMap) {
+  PGResultSetMetaData(PGDirectConnection connection, ResultField[] resultFields, Map<String, Class<?>> typeMap) {
     this.connection = connection;
     this.resultFields = resultFields;
     this.typeMap = typeMap;
@@ -63,11 +63,11 @@ class PGResultSetMetaData implements ResultSetMetaData {
    */
   ResultField get(int columnIndex) throws SQLException {
 
-    if (columnIndex < 1 || columnIndex > resultFields.size()) {
+    if (columnIndex < 1 || columnIndex > resultFields.length) {
       throw COLUMN_INDEX_OUT_OF_BOUNDS;
     }
 
-    return resultFields.get(columnIndex - 1);
+    return resultFields[columnIndex - 1];
   }
 
   /**
@@ -77,7 +77,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
    * @return CompositeType of columns table
    * @throws SQLException If columnIndex is out of bounds
    */
-  CompositeType getRelType(int columnIndex) throws SQLException {
+  private CompositeType getRelType(int columnIndex) throws SQLException {
 
     ResultField field = get(columnIndex);
     if (field.getRelationId() == 0)
@@ -93,7 +93,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
    * @return CompositeType.Attribute of the requested column
    * @throws SQLException If columnIndex is out of bounds
    */
-  CompositeType.Attribute getRelAttr(int columnIndex) throws SQLException {
+  private CompositeType.Attribute getRelAttr(int columnIndex) throws SQLException {
 
     ResultField field = get(columnIndex);
 
@@ -114,13 +114,13 @@ class PGResultSetMetaData implements ResultSetMetaData {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isAssignableFrom(getClass());
   }
 
   @Override
-  public int getColumnCount() throws SQLException {
-    return resultFields.size();
+  public int getColumnCount() {
+    return resultFields.length;
   }
 
   @Override
@@ -139,7 +139,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   }
 
   @Override
-  public boolean isSearchable(int column) throws SQLException {
+  public boolean isSearchable(int column) {
     return true;
   }
 
@@ -155,6 +155,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
     ResultField field = get(column);
     CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
 
+    //noinspection MagicConstant
     return SQLTypeMetaData.isNullable(field.getTypeRef().get(), relType, field.getRelationAttributeNumber());
   }
 
@@ -175,7 +176,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   }
 
   @Override
-  public String getCatalogName(int column) throws SQLException {
+  public String getCatalogName(int column) {
 
     return connection.getSetting(Settings.DATABASE).toString();
   }
@@ -238,8 +239,8 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public String getColumnClassName(int column) throws SQLException {
 
-    ResultField field = get(column);
-    return SQLTypeUtils.mapGetType(field.getTypeRef().get(), typeMap, connection).getName();
+    Type type = get(column).getTypeRef().get();
+    return lookupCustomType(type, typeMap, type.getCodec(type.getResultFormat()).getDecoder().getDefaultClass()).getName();
   }
 
   @Override
@@ -253,7 +254,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public int getScale(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getScale(field.getTypeRef().get(), field.getTypeLength(), field.getTypeModifier());
+    return SQLTypeMetaData.getScale(field.getTypeRef().get(), field.getTypeModifier());
   }
 
   @Override

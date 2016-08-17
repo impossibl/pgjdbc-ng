@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,27 +45,22 @@ public class Names extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "name");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return String.class;
     }
 
     @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-
-      byte[] bytes = new byte[length];
+      byte[] bytes = new byte[buffer.readableBytes()];
       buffer.readBytes(bytes);
 
       return new String(bytes, context.getCharset());
@@ -72,15 +68,10 @@ public class Names extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
@@ -89,61 +80,44 @@ public class Names extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val == null) {
+      byte[] bytes = toBytes(value, context);
 
-        buffer.writeInt(-1);
-      }
-      else {
-
-        byte[] bytes = toBytes(val, context);
-
-        buffer.writeInt(bytes.length);
-
-        buffer.writeBytes(bytes);
-      }
-
+      buffer.writeBytes(bytes);
     }
 
   }
 
-  public static class TxtDecoder extends TextDecoder {
+  public static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return String.class;
     }
 
     @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return buffer.toString();
     }
 
   }
 
-  public static class TxtEncoder extends TextEncoder {
+  public static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      buffer.append((String)val);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

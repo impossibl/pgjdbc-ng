@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Int4;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,98 +45,94 @@ public class Int4s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "xid", "cid", "regproc");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends NumericBinaryDecoder<Integer> {
+
+    BinDecoder() {
+      super(4, Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int4;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Integer> getDefaultClass() {
       return Integer.class;
     }
 
     @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 4) {
-        throw new IOException("invalid length");
-      }
-
+    protected Integer decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readInt();
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Integer> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Integer.class;
+    BinEncoder() {
+      super(4, Integer::parseInt, val -> val ? 1 : 0, Number::intValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int4;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    public Class<Integer> getDefaultClass() {
+      return Integer.class;
+    }
 
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(4);
-        buffer.writeInt((Integer) val);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Integer value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeInt(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Integer> {
+
+    TxtDecoder() {
+      super(Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int4;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Integer> getDefaultClass() {
       return Integer.class;
     }
 
     @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return Integer.valueOf(buffer.toString());
+    protected Integer decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return context.getIntegerFormatter().parse(buffer.toString()).intValue();
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Integer> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Integer.class;
+    TxtEncoder() {
+      super(Integer::parseInt, val -> val ? 1 : 0, Number::intValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int4;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Integer> getDefaultClass() {
+      return Integer.class;
+    }
 
-      buffer.append((int)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Integer value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

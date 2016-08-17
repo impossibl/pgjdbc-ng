@@ -31,18 +31,17 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_DECODER;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_ENCODER;
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
+
 import static java.lang.Math.min;
 
 import io.netty.buffer.ByteBuf;
-
-
-
 
 
 public class Jsons extends SimpleProcProvider {
@@ -51,26 +50,22 @@ public class Jsons extends SimpleProcProvider {
     super(TEXT_ENCODER, TEXT_DECODER, new BinEncoder(), new BinDecoder(), "jsonb_");
   }
 
-  public static class BinDecoder extends BinaryDecoder {
+  public static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return String.class;
     }
 
     @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-
+      int length = buffer.readableBytes();
       if (length < 1) {
         throw new IOException("Invalid length for jsonb");
       }
@@ -100,15 +95,10 @@ public class Jsons extends SimpleProcProvider {
 
   }
 
-  public static class BinEncoder extends BinaryEncoder {
+  public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
@@ -117,23 +107,13 @@ public class Jsons extends SimpleProcProvider {
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val == null) {
+      byte[] bytes = toBytes(value, context);
 
-        buffer.writeInt(-1);
-      }
-      else {
+      buffer.writeByte(1);
 
-        byte[] bytes = toBytes(val, context);
-
-        buffer.writeInt(bytes.length + 1);
-
-        buffer.writeByte(1);
-
-        buffer.writeBytes(bytes);
-      }
-
+      buffer.writeBytes(bytes);
     }
 
   }

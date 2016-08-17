@@ -29,12 +29,18 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.types.PrimitiveType.Bool;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,80 +50,198 @@ public class Bools extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bool");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  @SuppressWarnings("unused")
+  private static Boolean convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
+
+    if (source instanceof Boolean) {
+      return (Boolean) source;
+    }
+
+    if (source instanceof Byte) {
+      return (Byte) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Short) {
+      return (Short) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Integer) {
+      return (Integer) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Long) {
+      return (Long) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof BigInteger) {
+      return ((BigInteger) source).compareTo(BigInteger.ZERO) != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Float) {
+      return (Float) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Double) {
+      return (Double) source != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof BigDecimal) {
+      return ((BigDecimal) source).compareTo(BigDecimal.ZERO) != 0 ? TRUE : FALSE;
+    }
+
+    if (source instanceof Character) {
+      switch ((Character) source) {
+        case 'f':
+        case 'F':
+        case 'n':
+        case 'N':
+        case '0':
+          return false;
+        case 't':
+        case 'T':
+        case 'y':
+        case 'Y':
+        case '1':
+          return true;
+        default:
+          throw new ConversionException("Cannot convert value '" + source + "' to bool");
+      }
+    }
+
+    if (source instanceof String) {
+      String val = (String) source;
+      if (val.equalsIgnoreCase("f") ||
+          val.equalsIgnoreCase("false") ||
+          val.equalsIgnoreCase("n") ||
+          val.equalsIgnoreCase("no") ||
+          val.equalsIgnoreCase("off") ||
+          val.equalsIgnoreCase("0"))
+        return false;
+      if (val.equalsIgnoreCase("t") ||
+          val.equalsIgnoreCase("true") ||
+          val.equalsIgnoreCase("y") ||
+          val.equalsIgnoreCase("yes") ||
+          val.equalsIgnoreCase("on") ||
+          val.equalsIgnoreCase("1"))
+        return true;
+      throw new ConversionException("Cannot convert value \"" + val + "\" to bool");
+    }
+
+    return null;
+  }
+
+  @SuppressWarnings("unused")
+  private static Object convertOutput(Context context, Boolean decoded, Class<?> targetClass, Object targetContext) {
+
+    if (targetClass == Boolean.class || targetClass == boolean.class) {
+      return decoded;
+    }
+
+    if (targetClass == Byte.class || targetClass == byte.class) {
+      return decoded ? (byte)1 : (byte)0;
+    }
+
+    if (targetClass == Short.class || targetClass == short.class) {
+      return decoded ? (short)1 : (short)0;
+    }
+
+    if (targetClass == Integer.class || targetClass == int.class) {
+      return decoded ? 1 : 0;
+    }
+
+    if (targetClass == Long.class || targetClass == long.class) {
+      return decoded ? (long)1 : (long)0;
+    }
+
+    if (targetClass == BigInteger.class) {
+      return decoded ? BigInteger.ONE : BigInteger.ZERO;
+    }
+
+    if (targetClass == Float.class || targetClass == float.class) {
+      return decoded ? (float)1.0 : (float)0.0;
+    }
+
+    if (targetClass == Double.class || targetClass == double.class) {
+      return decoded ? 1.0 : 0.0;
+    }
+
+    if (targetClass == BigDecimal.class) {
+      return decoded ? BigDecimal.ONE : BigDecimal.ZERO;
+    }
+
+    if (targetClass == String.class) {
+      return decoded ? "t" : "f";
+    }
+
+    return null;
+  }
+
+  static class BinDecoder extends AutoConvertingBinaryDecoder<Boolean> {
+
+    BinDecoder() {
+      super(1, Bools::convertOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Bool;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Boolean> getDefaultClass() {
       return Boolean.class;
     }
 
     @Override
-    public Boolean decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 1) {
-        throw new IOException("invalid length");
-      }
-
+    protected Boolean decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readByte() != 0;
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<Boolean> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Boolean.class;
+    BinEncoder() {
+      super(1, Bools::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Bool;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Boolean> getDefaultClass() {
+      return Boolean.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(1);
-        buffer.writeByte(((Boolean) val) ? 1 : 0);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Boolean value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeByte(value ? 1 : 0);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<Boolean> {
+
+    TxtDecoder() {
+      super(Bools::convertOutput);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Bool;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Boolean> getDefaultClass() {
       return Boolean.class;
     }
 
     @Override
-    public Boolean decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Boolean decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      switch (buffer.toString()) {
-        case "TRUE":
+      switch (buffer.toString().toLowerCase()) {
         case "t":
         case "true":
         case "y":
@@ -126,7 +250,6 @@ public class Bools extends SimpleProcProvider {
         case "1":
           return true;
 
-        case "FALSE":
         case "f":
         case "false":
         case "n":
@@ -136,27 +259,30 @@ public class Bools extends SimpleProcProvider {
           return false;
       }
 
-      return Boolean.FALSE;
+      throw new ConversionException("Invalid format for boolean");
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<Boolean> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Boolean.class;
+    TxtEncoder() {
+      super(Bools::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Bool;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Boolean> getDefaultClass() {
+      return Boolean.class;
+    }
 
-      buffer.append((boolean)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Boolean value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value ? "t" : "f");
     }
 
   }

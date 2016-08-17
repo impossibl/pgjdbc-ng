@@ -29,7 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.CidrAddr;
-import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.types.PrimitiveType;
 
 public class Cidrs extends Networks {
 
@@ -37,7 +37,7 @@ public class Cidrs extends Networks {
     super("cidr_", new CidrObjectFactory());
   }
 
-  static class CidrObjectFactory implements NetworkObjectFactory<CidrAddr> {
+  private static class CidrObjectFactory implements NetworkObjectFactory<CidrAddr> {
 
     @Override
     public CidrAddr newNetworkObject(byte[] addr, short netmask) {
@@ -50,9 +50,15 @@ public class Cidrs extends Networks {
     }
 
     @Override
-    public Class<? extends InetAddr> getObjectClass() {
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Cidr;
+    }
+
+    @Override
+    public Class<CidrAddr> getObjectType() {
       return CidrAddr.class;
     }
 
   }
+
 }

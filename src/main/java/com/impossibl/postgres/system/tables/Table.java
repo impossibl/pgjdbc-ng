@@ -28,7 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
+
+import java.io.IOException;
 
 
 /**
@@ -43,7 +47,7 @@ import com.impossibl.postgres.system.Version;
  *
  * @param <R> The row type this table uses
  */
-public interface Table<R> {
+public interface Table<R extends Table.Row> {
 
   /**
    * Returns the SQL that is needed to load all rows of this table.
@@ -58,6 +62,13 @@ public interface Table<R> {
    *
    * @return An instance of the table's row type
    */
-  R createRow();
+  R createRow(Context context, RowData rowData) throws IOException;
+
+
+  interface Row {
+
+    void load(Context context, RowData rowData) throws IOException;
+
+  }
 
 }

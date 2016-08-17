@@ -30,7 +30,6 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.protocol.v30.ProtocolShared;
-import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
 import java.sql.Driver;
@@ -52,7 +51,12 @@ import java.util.logging.Logger;
  */
 public class PGDriver implements Driver, DriverAction {
   /** The version of the driver */
-  public static final Version VERSION = Version.get(0, 1, 0);
+  public static final Version VERSION;
+  static {
+    String version = PGDriver.class.getPackage().getImplementationVersion();
+    version = version != null ? version : "0.0.0-DEVELOP";
+    VERSION = Version.parse(version);
+  }
 
   public static final Logger logger = Logger.getLogger(PGDriver.class.getName());
 
@@ -105,12 +109,12 @@ public class PGDriver implements Driver, DriverAction {
 
   @Override
   public int getMajorVersion() {
-    return 0;
+    return VERSION.getMajor();
   }
 
   @Override
   public int getMinorVersion() {
-    return 1;
+    return VERSION.getMinor();
   }
 
   @Override
@@ -120,7 +124,7 @@ public class PGDriver implements Driver, DriverAction {
 
   @Override
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    return Logger.getLogger(Context.class.getPackage().getName());
+    return Logger.getLogger("com.impossibl.postgres");
   }
 
   @Override

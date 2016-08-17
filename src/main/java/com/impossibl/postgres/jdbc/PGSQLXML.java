@@ -113,21 +113,21 @@ public class PGSQLXML implements SQLXML {
   }
 
 
-  private PGConnectionImpl connection;
+  private PGDirectConnection connection;
   private byte[] data;
   private int dataLen;
   private boolean initialized;
 
 
-  public PGSQLXML(PGConnectionImpl conn) {
+  public PGSQLXML(PGDirectConnection conn) {
     this(conn, null, false);
   }
 
-  public PGSQLXML(PGConnectionImpl conn, byte[] data) {
+  public PGSQLXML(PGDirectConnection conn, byte[] data) {
     this(conn, data, true);
   }
 
-  private PGSQLXML(PGConnectionImpl connection, byte[] data, boolean initialized) {
+  private PGSQLXML(PGDirectConnection connection, byte[] data, boolean initialized) {
     this.connection = connection;
     this.data = data;
     this.dataLen = data != null ? data.length : -1;

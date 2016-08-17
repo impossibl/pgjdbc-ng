@@ -249,8 +249,8 @@ public class Base64 {
     // We have to shift left 24 in order to flush out the 1's that appear
     // when Java treats a value as negative that is cast from a byte to an int.
     int inBuff = (numSigBytes > 0 ? ((source[ srcOffset     ] << 24) >>>  8) : 0)
-      | (numSigBytes > 1 ? ((source[ srcOffset + 1 ] << 24) >>> 16) : 0)
-      | (numSigBytes > 2 ? ((source[ srcOffset + 2 ] << 24) >>> 24) : 0);
+        | (numSigBytes > 1 ? ((source[ srcOffset + 1 ] << 24) >>> 16) : 0)
+        | (numSigBytes > 2 ? ((source[ srcOffset + 2 ] << 24) >>> 24) : 0);
 
     switch (numSigBytes) {
       case 3:
@@ -415,7 +415,7 @@ public class Base64 {
     // Example: Dk==
     if (source[srcOffset + 2] == EQUALS_SIGN) {
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
-        | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12);
+          | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12);
 
       destination[destOffset] = (byte)(outBuff >>> 16);
       return 1;
@@ -423,8 +423,8 @@ public class Base64 {
     // Example: DkL=
     else if (source[ srcOffset + 3 ] == EQUALS_SIGN) {
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
-        | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
-        | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6);
+          | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
+          | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6);
 
       destination[destOffset] = (byte)(outBuff >>> 16);
       destination[destOffset + 1] = (byte)(outBuff >>> 8);
@@ -434,9 +434,9 @@ public class Base64 {
     else {
       try {
         int outBuff =   (DECODABET[source[srcOffset]] & 0xFF) << 18
-          | (DECODABET[source[srcOffset + 1]] & 0xFF) << 12
-          | (DECODABET[source[srcOffset + 2]] & 0xFF) <<  6
-          | DECODABET[source[srcOffset + 3]] & 0xFF;
+            | (DECODABET[source[srcOffset + 1]] & 0xFF) << 12
+            | (DECODABET[source[srcOffset + 2]] & 0xFF) <<  6
+            | DECODABET[source[srcOffset + 3]] & 0xFF;
 
         destination[destOffset] = (byte)(outBuff >> 16);
         destination[destOffset + 1] = (byte)(outBuff >> 8);

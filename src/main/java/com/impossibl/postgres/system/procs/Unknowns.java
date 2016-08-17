@@ -39,7 +39,7 @@ public class Unknowns {
   public static class BinDecoder extends ConvertedBytes.BinDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Unknown;
     }
 
@@ -48,7 +48,7 @@ public class Unknowns {
   public static class BinEncoder extends ConvertedBytes.BinEncoder {
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Unknown;
     }
 
@@ -57,7 +57,7 @@ public class Unknowns {
   public static class TxtDecoder extends Strings.TxtDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Unknown;
     }
 
@@ -66,7 +66,7 @@ public class Unknowns {
   public static class TxtEncoder extends Strings.TxtEncoder {
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Unknown;
     }
 
@@ -76,7 +76,7 @@ public class Unknowns {
 
     @Override
     public Map<String, Object> parse(long mod) {
-      return Collections.<String, Object> emptyMap();
+      return Collections.emptyMap();
     }
 
   }

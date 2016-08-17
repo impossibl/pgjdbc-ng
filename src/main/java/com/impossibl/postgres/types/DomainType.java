@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
@@ -63,12 +63,12 @@ public class DomainType extends Type {
   }
 
   @Override
-  public boolean isParameterFormatSupported(Format format) {
+  public boolean isParameterFormatSupported(FieldFormat format) {
     return base.isParameterFormatSupported(format);
   }
 
   @Override
-  public boolean isResultFormatSupported(Format format) {
+  public boolean isResultFormatSupported(FieldFormat format) {
     return base.isResultFormatSupported(format);
   }
 
@@ -83,14 +83,6 @@ public class DomainType extends Type {
 
   public void setModifiers(Map<String, Object> modifiers) {
     this.modifiers = modifiers;
-  }
-
-  public int getNumberOfDimensions() {
-    return numberOfDimensions;
-  }
-
-  public void setNumberOfDimensions(int numberOfDimensions) {
-    this.numberOfDimensions = numberOfDimensions;
   }
 
   public String getDefaultValue() {
@@ -114,7 +106,6 @@ public class DomainType extends Type {
     base = registry.loadType(source.getDomainBaseTypeId());
     nullable = !source.isDomainNotNull();
     modifiers = base.getModifierParser().parse(source.getDomainTypeMod());
-    numberOfDimensions = source.getDomainDimensions();
     defaultValue = source.getDomainDefault() != null ? source.getDomainDefault() : "";
   }
 

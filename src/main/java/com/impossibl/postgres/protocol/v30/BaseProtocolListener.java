@@ -32,19 +32,22 @@ import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
+import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import java.io.IOException;
-import java.util.List;
+
+import static java.lang.Long.MAX_VALUE;
 
 import io.netty.buffer.ByteBuf;
 
 public class BaseProtocolListener implements ProtocolListener {
 
-  boolean aborted;
+  private boolean aborted;
 
   @Override
-  public void abort() {
+  public synchronized void abort() {
     aborted = true;
+    notifyAll();
   }
 
   @Override
@@ -57,28 +60,32 @@ public class BaseProtocolListener implements ProtocolListener {
     return true;
   }
 
-  @Override
-  public void ready(TransactionStatus txStatus) {
+  synchronized void notifyPossibleCompletion() {
+    notifyAll();
   }
 
   @Override
-  public void parseComplete() {
+  public void ready(TransactionStatus txStatus) throws IOException {
   }
 
   @Override
-  public void parametersDescription(List<TypeRef> parameterTypes) {
+  public void parseComplete() throws IOException {
   }
 
   @Override
-  public void noData() {
+  public void parametersDescription(TypeRef[] parameterTypes) throws IOException {
   }
 
   @Override
-  public void bindComplete() {
+  public void noData() throws IOException {
   }
 
   @Override
-  public void rowDescription(List<ResultField> asList) {
+  public void bindComplete() throws IOException {
+  }
+
+  @Override
+  public void rowDescription(ResultField[] asList) throws IOException {
   }
 
   @Override
@@ -86,39 +93,39 @@ public class BaseProtocolListener implements ProtocolListener {
   }
 
   @Override
-  public void functionResult(Object value) {
+  public void functionResult(Object value) throws IOException {
   }
 
   @Override
-  public void emptyQuery() {
+  public void emptyQuery() throws IOException {
   }
 
   @Override
-  public void portalSuspended() {
+  public void portalSuspended() throws IOException {
   }
 
   @Override
-  public void commandComplete(String command, Long rowsAffected, Long oid) {
+  public void commandComplete(String command, Long rowsAffected, Long oid) throws IOException {
   }
 
   @Override
-  public void closeComplete() {
+  public void closeComplete() throws IOException {
   }
 
   @Override
-  public void notification(int processId, String channelName, String payload) {
+  public void notification(int processId, String channelName, String payload) throws IOException {
   }
 
   @Override
-  public void notice(Notice notice) {
+  public void notice(Notice notice) throws IOException {
   }
 
   @Override
-  public void error(Notice error) {
+  public void error(Notice error) throws IOException {
   }
 
   @Override
-  public void backendKeyData(int processId, int secretKey) {
+  public void backendKeyData(int processId, int secretKey) throws IOException {
   }
 
   @Override
@@ -159,6 +166,38 @@ public class BaseProtocolListener implements ProtocolListener {
 
   @Override
   public void exception(Throwable throwable) throws IOException {
+  }
+
+  @Override
+  public synchronized void waitUntilComplete(long totalNetworkTimeout) throws IOException {
+
+    long networkTimeout = totalNetworkTimeout;
+
+    if (networkTimeout < 1) {
+      networkTimeout = MAX_VALUE;
+    }
+
+    while (!isComplete() && !isAborted()) {
+
+      long start = System.currentTimeMillis();
+
+      try {
+
+        wait(networkTimeout);
+
+      }
+      catch (InterruptedException e) {
+        // Ignore
+      }
+
+      networkTimeout -= (System.currentTimeMillis() - start);
+
+      if (networkTimeout < 1) {
+        throw new BlockingReadTimeoutException("network timeout reached");
+      }
+
+    }
+
   }
 
 }

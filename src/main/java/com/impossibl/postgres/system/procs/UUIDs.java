@@ -33,6 +33,7 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
@@ -43,102 +44,95 @@ public class UUIDs extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "uuid_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends AutoConvertingBinaryDecoder<UUID> {
+
+    BinDecoder() {
+      super(16, UUID::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<UUID> getDefaultClass() {
       return UUID.class;
     }
 
     @Override
-    public UUID decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 16) {
-        throw new IOException("invalid length");
-      }
-
+    protected UUID decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class targetClass, Object targetContext) throws IOException {
       return new UUID(buffer.readLong(), buffer.readLong());
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<UUID> {
 
-    @Override
-    public Class<?> getInputType() {
-      return UUID.class;
+    BinEncoder() {
+      super(16, UUID::fromString);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<UUID> getDefaultClass() {
+      return UUID.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(16);
-
-        UUID uval = (UUID)val;
-        buffer.writeLong(uval.getMostSignificantBits());
-        buffer.writeLong(uval.getLeastSignificantBits());
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, UUID value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeLong(value.getMostSignificantBits());
+      buffer.writeLong(value.getLeastSignificantBits());
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<UUID> {
+
+    TxtDecoder() {
+      super(UUID::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<UUID> getDefaultClass() {
       return UUID.class;
     }
 
     @Override
-    public UUID decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
+    protected UUID decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return UUID.fromString(buffer.toString());
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<UUID> {
 
-    @Override
-    public Class<?> getInputType() {
-      return UUID.class;
+    TxtEncoder() {
+      super(UUID::fromString);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.UUID;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<UUID> getDefaultClass() {
+      return UUID.class;
+    }
 
-      buffer.append(val.toString());
+    @Override
+    protected void encodeNativeValue(Context context, Type type, UUID value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

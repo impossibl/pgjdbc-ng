@@ -28,15 +28,13 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.types.Type;
-
-import java.util.List;
+import io.netty.buffer.ByteBuf;
 
 public interface FunctionCallCommand extends Command {
 
   String getFunctionName();
-  List<Type> getParameterTypes();
-  List<Object> getParameterValues();
+  FieldFormat[] getParameterTypes();
+  ByteBuf[] getParameterBuffers();
   Object getResult();
 
 }

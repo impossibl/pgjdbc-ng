@@ -28,25 +28,29 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.types.Type;
-
 import java.util.Map;
 
 public class TypeMapContext extends DecoratorContext {
 
-  Map<String, Class<?>> typeMap;
+  private Map<String, Class<?>> typeMap;
 
-  public TypeMapContext(Context base, Map<String, Class<?>> typeMap) {
-    super(base);
+  public TypeMapContext() {
+    this(null, null);
+  }
+
+  public TypeMapContext(Context context, Map<String, Class<?>> typeMap) {
+    super(context);
+    this.typeMap = typeMap;
+  }
+
+  public void reset(Context base, Map<String, Class<?>> typeMap) {
+    this.base = base;
     this.typeMap = typeMap;
   }
 
   @Override
-  public Class<?> lookupInstanceType(Type type) {
-    Class<?> instanceType = typeMap.get(type.getName());
-    if (instanceType == null)
-      instanceType = super.lookupInstanceType(type);
-    return instanceType;
+  public Map<String, Class<?>> getCustomTypeMap() {
+    return typeMap;
   }
 
 

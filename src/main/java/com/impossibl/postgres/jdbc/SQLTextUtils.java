@@ -246,7 +246,7 @@ class SQLTextUtils {
       return false;
     }
 
-    String preCursor = "DECLARE " + cursorName + " ";
+    String preCursor = "DECLARE " + cursorName + " BINARY ";
 
     if (resultSetType != ResultSet.TYPE_FORWARD_ONLY) {
       preCursor += "SCROLL ";

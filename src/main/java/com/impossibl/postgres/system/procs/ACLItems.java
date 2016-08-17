@@ -34,51 +34,56 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 public class ACLItems extends SimpleProcProvider {
 
   public ACLItems() {
-    super(new Encoder(), new Decoder(), null, null, "aclitem");
+    super(new TxtEncoder(), new TxtDecoder(), null, null, "aclitem");
   }
 
-  static class Decoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<ACLItem> {
+
+    TxtDecoder() {
+      super(ACLItem::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.ACLItem;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<ACLItem> getDefaultClass() {
       return ACLItem.class;
     }
 
     @Override
-    public ACLItem decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
+    protected ACLItem decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return ACLItem.parse(buffer.toString());
     }
+
   }
 
-  static class Encoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<ACLItem> {
 
-    @Override
-    public Class<?> getInputType() {
-      return ACLItem.class;
+    TxtEncoder() {
+      super(ACLItem::parse);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.ACLItem;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected Class<ACLItem> getDefaultClass() {
+      return ACLItem.class;
+    }
 
-      ACLItem item = (ACLItem) val;
-
-      buffer.append(item.toString());
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, ACLItem value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value.toString());
     }
 
   }

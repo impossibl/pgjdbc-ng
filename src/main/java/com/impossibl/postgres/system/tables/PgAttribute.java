@@ -28,7 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
+
+import java.io.IOException;
 
 
 /**
@@ -39,7 +43,7 @@ import com.impossibl.postgres.system.Version;
  */
 public class PgAttribute implements Table<PgAttribute.Row> {
 
-  public static class Row {
+  public static class Row implements Table.Row {
 
     private int relationTypeId;
     private int relationId;
@@ -49,11 +53,25 @@ public class PgAttribute implements Table<PgAttribute.Row> {
     private short length;
     private short number;
     private boolean nullable;
-    private boolean autoIncrement;
+    private Boolean autoIncrement;
     private int numberOfDimensions;
     private boolean hasDefault;
 
     public Row() {
+    }
+
+    public void load(Context context, RowData rowData) throws IOException  {
+      this.relationTypeId = rowData.getColumn(RELATION_TYPE_ID, context, Integer.class);
+      this.relationId = rowData.getColumn(RELATION_ID, context, Integer.class);
+      this.name = rowData.getColumn(NAME, context, String.class);
+      this.typeId = rowData.getColumn(TYPE_ID, context, Integer.class);
+      this.typeModifier = rowData.getColumn(TYPE_MOD, context, Integer.class);
+      this.length = rowData.getColumn(LENGTH, context, Short.class);
+      this.number = rowData.getColumn(NUMBER, context, Short.class);
+      this.nullable = rowData.getColumn(NULLABLE, context, Boolean.class);
+      this.autoIncrement = rowData.getColumn(AUTOINCREMENT, context, Boolean.class);
+      this.numberOfDimensions = rowData.getColumn(NUMBER_OF_DIMS, context, Integer.class);
+      this.hasDefault = rowData.getColumn(HAS_DEFAULT, context, Boolean.class);
     }
 
     public int getRelationTypeId() {
@@ -121,7 +139,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
     }
 
     public boolean isAutoIncrement() {
-      return autoIncrement;
+      return autoIncrement != null ? autoIncrement : false;
     }
 
     public void setAutoIncrement(boolean v) {
@@ -132,8 +150,8 @@ public class PgAttribute implements Table<PgAttribute.Row> {
       return numberOfDimensions;
     }
 
-    public void setNumberOfDimensions(int v) {
-      numberOfDimensions = v;
+    public void setNumberOfDimensions(int numberOfDimensions) {
+      this.numberOfDimensions = numberOfDimensions;
     }
 
     public boolean isHasDefault() {
@@ -175,6 +193,18 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
   }
 
+  static final int RELATION_ID = 0;
+  static final int NAME = 1;
+  static final int TYPE_ID = 2;
+  static final int TYPE_MOD = 3;
+  static final int LENGTH = 4;
+  static final int NUMBER = 5;
+  static final int NULLABLE = 6;
+  static final int AUTOINCREMENT = 7;
+  static final int NUMBER_OF_DIMS = 8;
+  static final int HAS_DEFAULT = 9;
+  static final int RELATION_TYPE_ID = 10;
+
   public static final PgAttribute INSTANCE = new PgAttribute();
 
   private PgAttribute() {
@@ -186,8 +216,10 @@ public class PgAttribute implements Table<PgAttribute.Row> {
   }
 
   @Override
-  public Row createRow() {
-    return new Row();
+  public Row createRow(Context context, RowData rowData) throws IOException {
+    Row row = new Row();
+    row.load(context, rowData);
+    return row;
   }
 
   private static final Object[] SQL = {
@@ -203,7 +235,8 @@ public class PgAttribute implements Table<PgAttribute.Row> {
       " left join pg_catalog.pg_class c" +
       "   on (a.attrelid = c.oid)" +
       " where " +
-      "   not a.attisdropped"
+      "   not a.attisdropped" +
+      "     AND (c.relpersistence <> 't' OR c.relpersistence IS NULL)"
   };
 
 }

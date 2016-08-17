@@ -40,9 +40,11 @@ import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
 import com.impossibl.postgres.utils.GeometryParsers;
+import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -64,10 +66,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 @RunWith(JUnit4.class)
 public class PreparedStatementTest {
@@ -88,6 +93,22 @@ public class PreparedStatementTest {
     TestUtil.dropTable(conn, "texttable");
     TestUtil.dropTable(conn, "intervaltable");
     TestUtil.closeDB(conn);
+  }
+
+  @Test
+  public void testQuick() throws SQLException {
+
+    try (PreparedStatement st = conn.prepareStatement("SELECT ?::numeric")) {
+
+      st.setString(1, "NaN");
+
+      try (ResultSet rs = st.executeQuery()) {
+
+        assertTrue(rs.next());
+        assertEquals(Double.NaN, rs.getObject(1));
+
+      }
+    }
   }
 
   @Test
@@ -112,7 +133,7 @@ public class PreparedStatementTest {
   }
 
   @Test
-  public void testGetBinaryStream() throws SQLException {
+  public void testGetBinaryStream() throws SQLException, IOException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -121,14 +142,16 @@ public class PreparedStatementTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(buf);
     doSetBinaryStream(bais, 10);
 
-    ((PGConnectionImpl)conn).setStrictMode(true);
+    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
-    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    try (InputStream data = (InputStream) rs.getObject(1)) {
+      assertArrayEquals(buf, ByteStreams.toByteArray(data));
+    }
     rs.close();
     stmt.close();
-    ((PGConnectionImpl)conn).setStrictMode(false);
+    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
@@ -465,8 +488,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     rs.getDouble(1);
-    assertTrue(rs.getDouble(1) == 1.0E125);
-    assertTrue(rs.getDouble(2) == 1.0E-130);
+    assertEquals(1.0E125, rs.getDouble(1), 0.0);
+    assertEquals(1.0E-130, rs.getDouble(2), 0.0);
     rs.getDouble(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -491,8 +514,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     rs.getFloat(1);
-    assertTrue("expected 1.0E37,received " + rs.getFloat(1), rs.getFloat(1) == (float) 1.0E37);
-    assertTrue("expected 1.0E-37,received " + rs.getFloat(2), rs.getFloat(2) == (float) 1.0E-37);
+    assertEquals("expected 1.0E37,received " + rs.getFloat(1), rs.getFloat(1), 1.0E37f, 0.0);
+    assertEquals("expected 1.0E-37,received " + rs.getFloat(2), rs.getFloat(2), 1.0E-37f, 0.0);
     rs.getDouble(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -517,8 +540,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1) == true);
-    assertTrue("expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false);
+    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -532,9 +555,8 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInteger = new Integer(2147483647), minInteger = new Integer(-2147483648);
-
-    Double maxFloat = new Double(2147483647), minFloat = new Double(-2147483648);
+    Integer maxInteger = 2147483647, minInteger = -2147483648;
+    Double maxFloat = 2147483647d, minFloat = -2147483648d;
 
     pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxInteger, Types.FLOAT);
@@ -547,8 +569,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxFloat + " ,received " + rs.getObject(1), ((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue("expected " + minFloat + " ,received " + rs.getObject(2), ((Double) rs.getObject(2)).equals(minFloat));
+    assertEquals("expected " + maxFloat + " ,received " + rs.getObject(1), rs.getObject(1), maxFloat);
+    assertEquals("expected " + minFloat + " ,received " + rs.getObject(2), rs.getObject(2), minFloat);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -562,8 +584,8 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    String maxStringFloat = new String("1.0E37"), minStringFloat = new String("1.0E-37");
-    Double maxFloat = new Double(1.0E37), minFloat = new Double(1.0E-37);
+    String maxStringFloat = "1.0E37", minStringFloat = "1.0E-37";
+    Double maxFloat = 1.0E37, minFloat = 1.0E-37;
 
     pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxStringFloat, Types.FLOAT);
@@ -576,8 +598,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected true,received " + rs.getObject(1), ((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue("expected false,received " + rs.getBoolean(2), ((Double) rs.getObject(2)).equals(minFloat));
+    assertEquals("expected true,received " + rs.getObject(1), rs.getObject(1), maxFloat);
+    assertEquals("expected false,received " + rs.getBoolean(2), rs.getObject(2), minFloat);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -592,7 +614,7 @@ public class PreparedStatementTest {
     pstmt.close();
 
     BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat = new BigDecimal("1.0E-37");
-    Double maxFloat = new Double(1.0E37), minFloat = new Double(1.0E-37);
+    Double maxFloat = 1.0E37, minFloat = 1.0E-37;
 
     pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxBigDecimalFloat, Types.FLOAT);
@@ -605,8 +627,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxFloat + " ,received " + rs.getObject(1), ((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue("expected " + minFloat + " ,received " + rs.getObject(2), ((Double) rs.getObject(2)).equals(minFloat));
+    assertEquals("expected " + maxFloat + " ,received " + rs.getObject(1), rs.getObject(1), maxFloat);
+    assertEquals("expected " + minFloat + " ,received " + rs.getObject(2), rs.getObject(2), minFloat);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -620,8 +642,8 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(127), minInt = new Integer(-127);
-    Float maxIntFloat = new Float(127), minIntFloat = new Float(-127);
+    Integer maxInt = 127, minInt = -127;
+    Float maxIntFloat = 127f, minIntFloat = -127f;
 
     pstmt = conn.prepareStatement("insert into tiny_int values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.TINYINT);
@@ -634,8 +656,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxInt + " ,received " + rs.getObject(1), ((Integer) rs.getObject(1)).equals(maxInt));
-    assertTrue("expected " + minInt + " ,received " + rs.getObject(2), ((Integer) rs.getObject(2)).equals(minInt));
+    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
+    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -649,8 +671,8 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(32767), minInt = new Integer(-32768);
-    Float maxIntFloat = new Float(32767), minIntFloat = new Float(-32768);
+    Integer maxInt = 32767, minInt = -32768;
+    Float maxIntFloat = 32767f, minIntFloat = (float) -32768;
 
     pstmt = conn.prepareStatement("insert into small_int values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.SMALLINT);
@@ -663,8 +685,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxInt + " ,received " + rs.getObject(1), ((Integer) rs.getObject(1)).equals(maxInt));
-    assertTrue("expected " + minInt + " ,received " + rs.getObject(2), ((Integer) rs.getObject(2)).equals(minInt));
+    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
+    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -678,8 +700,8 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(1000), minInt = new Integer(-1000);
-    Float maxIntFloat = new Float(1000), minIntFloat = new Float(-1000);
+    Integer maxInt = 1000, minInt = -1000;
+    Float maxIntFloat = 1000f, minIntFloat = (float) -1000;
 
     pstmt = conn.prepareStatement("insert into int_tab values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.INTEGER);
@@ -692,8 +714,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxInt + " ,received " + rs.getObject(1), ((Integer) rs.getObject(1)).equals(maxInt));
-    assertTrue("expected " + minInt + " ,received " + rs.getObject(2), ((Integer) rs.getObject(2)).equals(minInt));
+    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
+    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -707,12 +729,11 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-    Double dBooleanTrue = new Double(1), dBooleanFalse = new Double(0);
+    Double dBooleanTrue = 1d, dBooleanFalse = 0d;
 
     pstmt = conn.prepareStatement("insert into double_tab values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.DOUBLE);
-    pstmt.setObject(2, falseVal, Types.DOUBLE);
+    pstmt.setObject(1, true, Types.DOUBLE);
+    pstmt.setObject(2, false, Types.DOUBLE);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();
@@ -721,8 +742,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((Double) rs.getObject(1)).equals(dBooleanTrue));
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((Double) rs.getObject(2)).equals(dBooleanFalse));
+    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), rs.getObject(1), dBooleanTrue);
+    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), rs.getObject(2), dBooleanFalse);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -736,12 +757,11 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
     BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
 
     pstmt = conn.prepareStatement("insert into numeric_tab values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.NUMERIC, 2);
-    pstmt.setObject(2, falseVal, Types.NUMERIC, 2);
+    pstmt.setObject(1, true, Types.NUMERIC, 2);
+    pstmt.setObject(2, false, Types.NUMERIC, 2);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();
@@ -750,8 +770,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue) == 0);
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse) == 0);
+    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), 0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
+    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), 0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -765,12 +785,11 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
     BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
 
     pstmt = conn.prepareStatement("insert into DECIMAL_TAB values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.DECIMAL, 2);
-    pstmt.setObject(2, falseVal, Types.DECIMAL, 2);
+    pstmt.setObject(1, true, Types.DECIMAL, 2);
+    pstmt.setObject(2, false, Types.DECIMAL, 2);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();
@@ -779,8 +798,8 @@ public class PreparedStatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue) == 0);
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse) == 0);
+    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), 0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
+    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), 0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -809,7 +828,7 @@ public class PreparedStatementTest {
   }
 
   @Test
-  public void testSetObjectBinary() throws SQLException {
+  public void testSetObjectBinary() throws SQLException, IOException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -821,18 +840,20 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGConnectionImpl)conn).setStrictMode(true);
+    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
-    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    try (InputStream data = (InputStream) rs.getObject(1)) {
+      assertArrayEquals(buf, ByteStreams.toByteArray(data));
+    }
     rs.close();
     stmt.close();
-    ((PGConnectionImpl)conn).setStrictMode(false);
+    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
-  public void testSetObjectVarBinary() throws SQLException {
+  public void testSetObjectVarBinary() throws SQLException, IOException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -844,18 +865,20 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGConnectionImpl)conn).setStrictMode(true);
+    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
-    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    try (InputStream data = (InputStream) rs.getObject(1)) {
+      assertArrayEquals(buf, ByteStreams.toByteArray(data));
+    }
     rs.close();
     stmt.close();
-    ((PGConnectionImpl)conn).setStrictMode(false);
+    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
-  public void testSetObjectLongVarBinary() throws SQLException {
+  public void testSetObjectLongVarBinary() throws SQLException, IOException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -867,14 +890,16 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGConnectionImpl)conn).setStrictMode(true);
+    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
-    assertTrue(Arrays.equals(buf, (byte[])rs.getObject(1)));
+    try (InputStream data = (InputStream) rs.getObject(1)) {
+      assertArrayEquals(buf, ByteStreams.toByteArray(data));
+    }
     rs.close();
     stmt.close();
-    ((PGConnectionImpl)conn).setStrictMode(false);
+    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
@@ -901,47 +926,35 @@ public class PreparedStatementTest {
   }
 
   @Test
-  public void testExecuteWithoutParameters() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    try {
+  public void testExecuteWithoutParameters() {
+    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
       pstmt.execute();
       fail("Failed");
     }
     catch (SQLException se) {
       // Correct
     }
-    finally {
-      pstmt.close();
-    }
   }
 
   @Test
-  public void testExecuteQueryWithoutParameters() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    try {
+  public void testExecuteQueryWithoutParameters() {
+    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
       pstmt.executeQuery();
       fail("Failed");
     }
     catch (SQLException se) {
       // Correct
     }
-    finally {
-      pstmt.close();
-    }
   }
 
   @Test
-  public void testExecuteUpdateWithoutParameters() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    try {
+  public void testExecuteUpdateWithoutParameters() {
+    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
       pstmt.executeUpdate();
       fail("Failed");
     }
     catch (SQLException se) {
       // Correct
-    }
-    finally {
-      pstmt.close();
     }
   }
 
@@ -963,10 +976,10 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from inet_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == InetAddr.class);
-    assertTrue(inet1.equals(rs.getObject(1)));
-    assertTrue(rs.getObject(2).getClass() == InetAddr.class);
-    assertTrue(inet2.equals(rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), InetAddr.class);
+    assertEquals(inet1, rs.getObject(1));
+    assertSame(rs.getObject(2).getClass(), InetAddr.class);
+    assertEquals(inet2, rs.getObject(2));
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -991,10 +1004,10 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from cidr_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == CidrAddr.class);
-    assertTrue(cidr1.equals(rs.getObject(1)));
-    assertTrue(rs.getObject(2).getClass() == CidrAddr.class);
-    assertTrue(cidr2.equals(rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), CidrAddr.class);
+    assertEquals(cidr1, rs.getObject(1));
+    assertSame(rs.getObject(2).getClass(), CidrAddr.class);
+    assertEquals(cidr2, rs.getObject(2));
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1019,9 +1032,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from point_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == double[].class);
-    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
-    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), double[].class);
+    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
+    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1045,9 +1058,9 @@ public class PreparedStatementTest {
     try (PreparedStatement pstmt = conn.prepareStatement("select * from path_tab");
         ResultSet rs = pstmt.executeQuery()) {
       assertTrue(rs.next());
-      assertTrue(rs.getObject(1).getClass() == Path.class);
-      assertTrue(p1.equals(rs.getObject(1)));
-      assertTrue(p2.equals(rs.getObject(2)));
+      assertSame(rs.getObject(1).getClass(), Path.class);
+      assertEquals(p1, rs.getObject(1));
+      assertEquals(p2, rs.getObject(2));
       rs.getObject(3);
       assertTrue(rs.wasNull());
     }
@@ -1070,7 +1083,7 @@ public class PreparedStatementTest {
     try (PreparedStatement pstmt = conn.prepareStatement("select * from polygon_tab");
         ResultSet rs = pstmt.executeQuery()) {
       assertTrue(rs.next());
-      assertTrue(rs.getObject(1).getClass() == double[][].class);
+      assertSame(rs.getObject(1).getClass(), double[][].class);
       assertTrue(Arrays.deepEquals(p1, (double[][]) rs.getObject(1)));
       assertTrue(Arrays.deepEquals(p2, (double[][]) rs.getObject(2)));
       rs.getObject(3);
@@ -1096,9 +1109,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from circle_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == double[].class);
-    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
-    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), double[].class);
+    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
+    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1132,9 +1145,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from " + pgtype + "_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == double[].class);
-    assertTrue(Arrays.equals(p1, (double[]) rs.getObject(1)));
-    assertTrue(Arrays.equals(p2, (double[]) rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), double[].class);
+    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
+    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1159,9 +1172,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from mac_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(rs.getObject(1).getClass() == byte[].class);
-    assertTrue(Arrays.equals(mac1, (byte[]) rs.getObject(1)));
-    assertTrue(Arrays.equals(mac2, (byte[]) rs.getObject(2)));
+    assertSame(rs.getObject(1).getClass(), byte[].class);
+    assertArrayEquals(mac1, (byte[]) rs.getObject(1));
+    assertArrayEquals(mac2, (byte[]) rs.getObject(2));
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1171,10 +1184,7 @@ public class PreparedStatementTest {
   @Test
   public void testHStore() throws SQLException {
 
-    if (!TestUtil.isExtensionInstalled(conn, "hstore")) {
-      System.out.println("Skipping hstore (extension not intalled)");
-      return;
-    }
+    assumeTrue("hstore (extension not intalled)", TestUtil.isExtensionInstalled(conn, "hstore"));
 
     PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE hstore_tab (hs1 hstore, hs2 hstore, hs3 hstore)");
     pstmt.executeUpdate();
@@ -1196,9 +1206,9 @@ public class PreparedStatementTest {
     pstmt = conn.prepareStatement("select * from hstore_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(HashMap.class.equals(rs.getObject(1).getClass()));
-    assertTrue(hs1.equals(rs.getObject(1)));
-    assertTrue(hs2.equals(rs.getObject(2)));
+    assertEquals(HashMap.class, rs.getObject(1).getClass());
+    assertEquals(hs1, rs.getObject(1));
+    assertEquals(hs2, rs.getObject(2));
     rs.getObject(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1228,7 +1238,7 @@ public class PreparedStatementTest {
   @Test
   public void testSetObjectCharacter() throws SQLException {
     PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
-    ps.setObject(1, new Character('z'));
+    ps.setObject(1, 'z');
     ps.executeUpdate();
     ps.close();
   }
@@ -1241,7 +1251,7 @@ public class PreparedStatementTest {
   @Test
   public void testStatementDescribe() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
-    pstmt.setObject(1, new Integer(2));
+    pstmt.setObject(1, 2);
     for (int i = 0; i < 10; i++) {
       ResultSet rs = pstmt.executeQuery();
       assertTrue(rs.next());
@@ -1264,31 +1274,11 @@ public class PreparedStatementTest {
     ds.setPassword(TestUtil.getPassword());
     ds.setPreparedStatementCacheSize(0);
 
-    Connection c = null;
-    PreparedStatement pstmt = null;
-    try {
-      c = ds.getConnection();
-      pstmt = c.prepareStatement("SELECT ?::int");
+    try (Connection c = ds.getConnection(); PreparedStatement pstmt = c.prepareStatement("SELECT ?::int")) {
       for (int i = 0; i < 2; i++) {
-        pstmt.setObject(1, new Integer(i));
+        pstmt.setObject(1, i);
         ResultSet rs = pstmt.executeQuery();
         rs.close();
-      }
-    }
-    finally {
-      try {
-        if (pstmt != null)
-          pstmt.close();
-      }
-      catch (SQLException ignore) {
-        // Ignore
-      }
-      try {
-        if (c != null)
-          c.close();
-      }
-      catch (SQLException ignore) {
-        // Ignore
       }
     }
   }

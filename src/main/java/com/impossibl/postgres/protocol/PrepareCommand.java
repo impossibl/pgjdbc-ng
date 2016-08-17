@@ -30,13 +30,11 @@ package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.types.Type;
 
-import java.util.List;
-
 public interface PrepareCommand extends Command {
 
   String getStatementName();
-  List<Type> getParseParameterTypes();
-  List<Type> getDescribedParameterTypes();
-  List<ResultField> getDescribedResultFields();
+  Type[] getParseParameterTypes();
+  Type[] getDescribedParameterTypes();
+  ResultField[] getDescribedResultFields();
 
 }

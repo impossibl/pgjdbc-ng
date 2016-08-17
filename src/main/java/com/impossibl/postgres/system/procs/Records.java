@@ -28,26 +28,33 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.api.data.Record;
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.jdbc.PGBuffersStruct;
+import com.impossibl.postgres.jdbc.PGSQLInput;
+import com.impossibl.postgres.jdbc.PGSQLOutput;
+import com.impossibl.postgres.jdbc.PGStruct;
+import com.impossibl.postgres.jdbc.PGValuesStruct;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.CompositeType;
-import com.impossibl.postgres.types.CompositeType.Attribute;
 import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.PsuedoType;
+import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.Type.Codec;
 
+import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
 import static com.impossibl.postgres.types.PrimitiveType.Record;
+import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
 
 import java.io.IOException;
+import java.sql.SQLData;
+import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import static java.lang.Character.isWhitespace;
 
 import io.netty.buffer.ByteBuf;
+
 
 public class Records extends SimpleProcProvider {
 
@@ -55,215 +62,232 @@ public class Records extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "record_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static PGStruct convertInput(Context context, Object value) throws IOException {
+
+    PGStruct struct;
+    if (value instanceof PGStruct) {
+      struct = (PGStruct) value;
+    }
+    else if (value instanceof SQLData) {
+      PGSQLOutput out = new PGSQLOutput(context);
+      SQLData data = (SQLData) value;
+      try {
+
+        data.writeSQL(out);
+
+        struct = new PGValuesStruct(context, data.getSQLTypeName(), out.getAttributeTypes(), out.getAttributeValues());
+      }
+      catch (SQLException e) {
+        throw new IOException(e);
+      }
+    }
+    else {
+      throw new ConversionException(value.getClass(), Record);
+    }
+
+    return struct;
+  }
+
+  static <Buffer> Object convertOutput(Context context, Type type, Type[] attributeTypes, Buffer[] attributeBuffers, Class<?> targetClass, InputFactory<Buffer> inputFactory, StructFactory<Buffer> structFactory) throws IOException {
+
+    if (targetClass == PGStruct.class) {
+      targetClass = lookupCustomType(type, context.getCustomTypeMap(), targetClass);
+    }
+
+    Object result;
+
+    if (SQLData.class.isAssignableFrom(targetClass)) {
+      SQLData data;
+      try {
+        data = (SQLData) targetClass.newInstance();
+      }
+      catch (Exception e) {
+        throw new IOException("Unable to instantiate custom type", e);
+      }
+
+      try {
+        PGSQLInput<Buffer> input = inputFactory.create(context, attributeTypes, attributeBuffers);
+        data.readSQL(input, type.getName());
+      }
+      catch (SQLException e) {
+        throw new IOException(e);
+      }
+
+      result = data;
+    }
+    else if (targetClass == PGStruct.class) {
+      result = structFactory.create(context, type.getName(), attributeTypes, attributeBuffers);
+    }
+    else {
+      throw new ConversionException(Record, targetClass);
+    }
+
+    return result;
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Record;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Record.class;
+    public Class<?> getDefaultClass() {
+      return PGStruct.class;
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      CompositeType compType;
-      if (type instanceof CompositeType) {
-        compType = (CompositeType) type;
-      }
-      else if (type instanceof PsuedoType && type.getName().equals("record")) {
-        compType = null;
-      }
-      else {
-        throw new IOException("Unsupported type for Record decode");
-      }
+      Registry registry = context.getRegistry();
 
-      List<Type> attributeTypes = new ArrayList<>();
+      int length = buffer.readableBytes();
+      long readStart = buffer.readerIndex();
 
-      Record record = null;
+      int itemCount = buffer.readInt();
 
-      int length = buffer.readInt();
+      Type[] attributeTypes = new Type[itemCount];
+      ByteBuf[] attributeBuffers = new ByteBuf[itemCount];
 
-      if (length != -1) {
+      for (int c = 0; c < itemCount; ++c) {
 
-        long readStart = buffer.readerIndex();
+        Type attributeType = registry.loadType(buffer.readInt());
+        attributeTypes[c] = attributeType;
 
-        int itemCount = buffer.readInt();
-
-        Object[] attributeVals = new Object[itemCount];
-
-        for (int c = 0; c < itemCount; ++c) {
-
-
-          Type attributeType = context.getRegistry().loadType(buffer.readInt());
-          attributeTypes.add(attributeType);
-
-          if (compType != null) {
-
-            Attribute attribute = compType.getAttribute(c + 1);
-            if (attributeType.getId() != attribute.getType().getId()) {
-
-              context.refreshType(attributeType.getId());
-            }
-
-          }
-
-          Object attributeVal = attributeType.getBinaryCodec().getDecoder().decode(attributeType, null, null, buffer, context);
-
-          attributeVals[c] = attributeVal;
+        int attributeLen = buffer.readInt();
+        if (attributeLen != -1) {
+          ByteBuf attributeBuffer = PGBuffersStruct.Binary.ALLOC.buffer(attributeLen);
+          buffer.readSlice(attributeLen).writeBytes(attributeBuffer);
+          attributeBuffers[c] = attributeBuffer;
         }
-
-        if (length != buffer.readerIndex() - readStart) {
-          throw new IllegalStateException();
-        }
-
-        record = new Record(type.getName(), attributeTypes.toArray(new Type[attributeTypes.size()]), attributeVals);
       }
 
-      return record;
+      if (length != buffer.readerIndex() - readStart) {
+        throw new IllegalStateException();
+      }
+
+      return convertOutput(context, type, attributeTypes, attributeBuffers, targetClass, PGSQLInput.Binary::new, PGBuffersStruct.Binary::new);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Record.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Record;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      buffer.writeInt(-1);
+      PGStruct struct = convertInput(context, value);
+      Type[] attributeTypes = struct.getAttributeTypes();
+      Object[] attributeValues = struct.getAttributes(context);
 
-      if (val != null) {
+      buffer.writeInt(attributeValues.length);
 
-        int writeStart = buffer.writerIndex();
+      for (int c = 0; c < attributeValues.length; ++c) {
 
-        Record record = (Record) val;
+        Type attributeType = attributeTypes[c];
+        Object attributeValue = attributeValues[c];
 
-        Object[] attributeVals = record.getAttributeValues();
+        buffer.writeInt(attributeType.getId());
 
-        CompositeType compType = (CompositeType) type;
-
-        Collection<Attribute> attributes = compType.getAttributes();
-
-        buffer.writeInt(attributes.size());
-
-        for (Attribute attribute : attributes) {
-
-          Type attributeType = attribute.getType();
-
-          buffer.writeInt(attributeType.getId());
-
-          Object attributeVal = attributeVals[attribute.getNumber() - 1];
-
-          attributeType.getBinaryCodec().getEncoder().encode(attributeType, buffer, attributeVal, context);
-        }
-
-        //Set length
-        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
+        lengthEncodeBinary(attributeType.getBinaryCodec().getEncoder(), context, attributeType, attributeValue, null, buffer);
       }
-
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Record;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Record.class;
+    public Class<?> getDefaultClass() {
+      return PGStruct.class;
     }
 
     @Override
-    public Record decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      int length = buffer.length();
-
-      Object[] instance = null;
-
-      if (length != 0) {
-
-        List<Object> fields = new ArrayList<>();
-        readComposite(buffer, 0, type.getDelimeter(), (CompositeType) type, context, fields);
-        instance = fields.toArray();
+      Type[] attributeTypes = null;
+      if (type instanceof CompositeType) {
+        attributeTypes = ((CompositeType) type).getAttributesTypes();
       }
 
-      return new Record(type.getName(), ((CompositeType) type).getAttributesTypes(), instance);
+      List<CharSequence> attributeBuffers = new ArrayList<>();
+      parseAttributeBuffers(type.getDelimeter(), buffer, attributeBuffers);
+
+      return convertOutput(context, type, attributeTypes, attributeBuffers.toArray(new CharSequence[0]), targetClass, PGSQLInput.Text::new, PGBuffersStruct.Text::new);
     }
 
-    int readComposite(CharSequence data, int start, char delim, CompositeType type, Context context, List<Object> fields) throws IOException {
+    void parseAttributeBuffers(char delim, CharSequence buffer, List<CharSequence> attributes) {
 
-      if (data.equals("()")) {
-        return start + 1;
-      }
+      int len = buffer.length();
+      StringBuilder attributeText = null;
 
-      StringBuilder elementTxt = null;
+      int charIdx;
 
-      int c;
-      int len = data.length();
+      scan:
+      for (charIdx = 0; charIdx < len; ++charIdx) {
 
-    scan:
-      for (c = start + 1; c < len; ++c) {
-
-        char ch = data.charAt(c);
+        char ch = buffer.charAt(charIdx);
         switch (ch) {
 
           case '(':
-            List<Object> subElements = new ArrayList<>();
-            c = readComposite(data, c, delim, type, context, subElements);
-            fields.add(subElements.toArray());
             break;
 
           case ')':
-            if (elementTxt != null) {
-              fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).getType(), context));
+            if (attributeText != null) {
+              addTextElement(attributeText, attributes);
             }
             break scan;
 
           case '"':
-            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
-            c = readString(data, c, elementTxt);
+            attributeText = new StringBuilder();
+            charIdx = readString(buffer, charIdx, attributeText);
             break;
 
           default:
 
             // Eat whitespace
             if (isWhitespace(ch)) {
-              c = skipWhitespace(data, c);
+              charIdx = skipWhitespace(buffer, charIdx);
               break;
             }
 
             if (ch == delim) {
-              if (elementTxt != null) {
-                fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).getType(), context));
+              if (attributeText != null) {
+                attributeText = addTextElement(attributeText, attributes);
               }
-              elementTxt = null;
               break;
             }
 
-            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
-            elementTxt.append(ch);
+            if (attributeText == null) {
+              attributeText = new StringBuilder();
+            }
+            attributeText.append(ch);
         }
 
       }
 
-      return c;
+    }
+
+    StringBuilder addTextElement(StringBuilder text, List<CharSequence> attributes) {
+      String textStr = text.toString();
+      if (textStr.equalsIgnoreCase("NULL")) {
+        attributes.add(null);
+      }
+      else {
+        attributes.add(textStr);
+      }
+      return null;
     }
 
     int skipWhitespace(CharSequence data, int start) {
@@ -281,7 +305,7 @@ public class Records extends SimpleProcProvider {
       int len = data.length();
       int c;
 
-    scan:
+      scan:
       for (c = start + 1; c < len; ++c) {
 
         char ch = data.charAt(c);
@@ -311,67 +335,53 @@ public class Records extends SimpleProcProvider {
       return c;
     }
 
-    Object decode(String elementTxt, Type type, Context context) throws IOException {
-      if (elementTxt.equals("NULL")) {
-        return null;
-      }
-      return type.getCodec(Format.Text).getDecoder().decode(type, null, null, elementTxt, context);
-    }
-
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Record.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Record;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      writeComposite(buffer, type.getDelimeter(), (CompositeType) type, (Record) val, context);
+      char delim = type.getDelimeter();
 
-    }
+      PGStruct struct = convertInput(context, value);
+      Type[] attributeTypes = struct.getAttributeTypes();
+      Object[] attributeValues = struct.getAttributes(context);
 
-    void writeComposite(StringBuilder out, char delim, CompositeType type, Record val, Context context) throws IOException {
+      buffer.append('(');
 
-      out.append('(');
+      for (int c = 0; c < attributeValues.length; ++c) {
 
-      Object[] vals = val.getAttributeValues();
+        Type attributeType = attributeTypes[c];
+        Object attributeValue = attributeValues[c];
 
-      for (int c = 0; c < vals.length; ++c) {
+        StringBuilder attributeOut = new StringBuilder();
 
-        Attribute attr = type.getAttribute(c + 1);
+        attributeType.getTextCodec().getEncoder()
+            .encode(context, attributeType, attributeValue, null, attributeOut);
 
-        Codec codec = attr.getType().getCodec(Format.Text);
+        String attributeStr = attributeOut.toString();
 
-        StringBuilder attrOut = new StringBuilder();
-
-        codec.getEncoder().encode(attr.getType(), attrOut, vals[c], context);
-
-        String attrStr = attrOut.toString();
-
-        if (needsQuotes(attrStr, delim)) {
-          attrStr = attrStr.replace("\\", "\\\\");
-          attrStr = attrStr.replace("\"", "\\\"");
-          out.append('\"').append(attrStr).append('\"');
+        if (needsQuotes(attributeStr, delim)) {
+          attributeStr = attributeStr.replace("\\", "\\\\");
+          attributeStr = attributeStr.replace("\"", "\\\"");
+          buffer.append('\"').append(attributeStr).append('\"');
         }
         else {
-          out.append(attrStr);
+          buffer.append(attributeStr);
         }
 
-        if (c < vals.length - 1)
-          out.append(delim);
+        if (c < attributeValues.length - 1) {
+          buffer.append(delim);
+        }
       }
 
-      out.append(')');
-
+      buffer.append(')');
     }
 
     private static boolean needsQuotes(String elemStr, char delim) {
@@ -395,4 +405,13 @@ public class Records extends SimpleProcProvider {
 
   }
 
+}
+
+
+interface InputFactory<Buffer> {
+  PGSQLInput<Buffer> create(Context context, Type[] attributeTypes, Buffer[] attributeBuffers);
+}
+
+interface StructFactory<Buffer> {
+  PGBuffersStruct<Buffer> create(Context context, String typeName, Type[] attributeTypes, Buffer[] attributeBuffers);
 }

@@ -28,12 +28,13 @@
  */
 package com.impossibl.postgres.utils;
 
+import static com.impossibl.postgres.system.procs.Bytes.encodeHex;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 public class MD5Authentication {
 
@@ -48,7 +49,6 @@ public class MD5Authentication {
    */
   public static String encode(String password, String user, byte[] salt) {
 
-    HexBinaryAdapter hex = new HexBinaryAdapter();
     byte[] tempDigest, passDigest;
 
     MessageDigest md;
@@ -63,13 +63,13 @@ public class MD5Authentication {
     md.update(user.getBytes(UTF_8));
     tempDigest = md.digest();
 
-    byte[] hexDigest = hex.marshal(tempDigest).toLowerCase().getBytes(US_ASCII);
+    byte[] hexDigest = encodeHex(tempDigest).toLowerCase().getBytes(US_ASCII);
 
     md.update(hexDigest);
     md.update(salt);
     passDigest = md.digest();
 
-    return "md5" + hex.marshal(passDigest).toLowerCase();
+    return "md5" + encodeHex(passDigest).toLowerCase();
   }
 
 }

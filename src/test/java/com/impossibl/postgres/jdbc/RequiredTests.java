@@ -29,7 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
-import com.impossibl.postgres.system.procs.Numerics;
+import com.impossibl.postgres.system.tables.PgAttributeTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -43,7 +43,6 @@ import org.junit.runners.Suite.SuiteClasses;
     BoundParametersAndFieldsLimitTest.class,
     CallableStatementTest.class,
     CiTextTest.class,
-    CodecTest.class,
     ConnectionTest.class,
     CursorFetchTest.class,
     DatabaseMetaDataPropertiesTest.class,
@@ -55,14 +54,14 @@ import org.junit.runners.Suite.SuiteClasses;
     ExceptionTest.class,
     GeneratedKeysTest.class,
     GiantBlobTest.class,
-    IntervalTest.class,
     LeakTest.class,
     LockTest.class,
     MultiSchemasStructsTest.class,
     NetworkTest.class,
     NotificationTest.class,
-    Numerics.class,
+    NumericsTest.class,
     ParameterMetaDataTest.class,
+    PgAttributeTest.class,
     PreparedStatementTest.class,
     PsuedoRecordTest.class,
     ResultSetMetaDataTest.class,
@@ -79,13 +78,12 @@ import org.junit.runners.Suite.SuiteClasses;
     TimeTest.class,
     TimezoneTest.class,
     TruncateTest.class,
-    UpdateableResultTest.class,
+    UpdatableResultTest.class,
     UUIDTest.class,
     VersionTest.class,
     WrapperTest.class,
     XmlTest.class,
     XADataSourceTest.class,
-})
+    })
 public class RequiredTests {
-
 }

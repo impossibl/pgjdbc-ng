@@ -67,7 +67,6 @@ public class Locales {
     LOCALES.put("Breton_France", "br_FR");
     LOCALES.put("Bulgarian_Bulgaria", "bg_BG");
     LOCALES.put("Catalan_Spain", "ca_ES");
-    LOCALES.put("Croatian_Croatia", "hr_HR");
     LOCALES.put("Chinese_China", "zh_CN");
     LOCALES.put("Chinese_Singapore", "zh_SG");
     LOCALES.put("Chinese_Taiwan", "zh_TW");
@@ -214,8 +213,17 @@ public class Locales {
 
   }
 
-  public static String getJavaCompatibleLocale(String windowsLocale) {
-    return LOCALES.get(windowsLocale);
+  /**
+   * If the locale specifier matches a win32 type locale (e.g. "English_United States.1252") it is
+   * mapped to a matching Java locale spec using the table.
+   *
+   * @param localeSpec Locale specifier to test and transform
+   * @return Java compatible locale specifier
+   */
+  public static String getJavaCompatibleLocale(String localeSpec) {
+    String baseLocale = localeSpec.split("\\.")[0];
+    String mappedWindowsLocale = LOCALES.get(baseLocale);
+    return mappedWindowsLocale != null ? mappedWindowsLocale : localeSpec;
   }
 
 }

@@ -665,7 +665,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @exception SQLException
    *              Thrown in case of an error
    */
-  protected PGConnectionImpl createConnection(String u, String p) throws SQLException {
+  protected PGDirectConnection createConnection(String u, String p) throws SQLException {
     String url = buildUrl();
     Properties props = new Properties();
 
@@ -729,12 +729,12 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (getDatabase() == null)
        throw new SQLException("Database parameter mandatory for " + getHost() + ":" + getPort());
 
-    sb = sb.append("jdbc:pgsql://");
-    sb = sb.append(getHost());
-    sb = sb.append(":");
-    sb = sb.append(getPort());
-    sb = sb.append("/");
-    sb = sb.append(getDatabase());
+    sb.append("jdbc:pgsql://")
+        .append(getHost())
+        .append(":")
+        .append(getPort())
+        .append("/")
+        .append(getDatabase());
 
     return sb.toString();
   }

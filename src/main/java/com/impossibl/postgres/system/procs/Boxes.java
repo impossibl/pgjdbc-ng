@@ -38,7 +38,7 @@ import com.impossibl.postgres.utils.GeometryParsers;
  */
 public class Boxes extends LSegs {
 
-  static class BoxFormatter implements Formatter {
+  private static class BoxFormatter implements Formatter {
 
     @Override
     public String getLeftDelim() {
@@ -49,6 +49,7 @@ public class Boxes extends LSegs {
     public String getRightDelim() {
       return "";
     }
+
     @Override
     public double[] parse(CharSequence buffer) {
       return GeometryParsers.INSTANCE.parseBox(buffer);

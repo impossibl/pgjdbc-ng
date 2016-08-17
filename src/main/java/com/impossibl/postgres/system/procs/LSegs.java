@@ -53,7 +53,7 @@ public class LSegs extends SimpleProcProvider {
 
   }
 
-  static class LSegFormatter implements Formatter {
+  private static class LSegFormatter implements Formatter {
 
     @Override
     public String getLeftDelim() {
@@ -76,79 +76,68 @@ public class LSegs extends SimpleProcProvider {
     this("lseg_", new LSegFormatter(), PrimitiveType.LineSegment);
   }
 
-  public LSegs(String pgtype, Formatter formatter, PrimitiveType pt) {
+  LSegs(String pgtype, Formatter formatter, PrimitiveType pt) {
     super(new TxtEncoder(formatter, pt), new TxtDecoder(formatter, pt), new BinEncoder(pt), new BinDecoder(pt), pgtype);
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
+
     private PrimitiveType pt;
 
-    public BinDecoder(PrimitiveType pt) {
+    BinDecoder(PrimitiveType pt) {
+      super(32);
       this.pt = pt;
     }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return pt;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 32) {
-        throw new IOException("invalid length " + length);
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       // phigh.x, phigh.y, plow.x, plow.y
       return new double[] {buffer.readDouble(), buffer.readDouble(), buffer.readDouble(), buffer.readDouble()};
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
+
     private PrimitiveType pt;
 
-    public BinEncoder(PrimitiveType pt) {
+    BinEncoder(PrimitiveType pt) {
+      super(32);
       this.pt = pt;
     }
 
     @Override
-    public Class<?> getInputType() {
-      return double[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return pt;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      double[] box = (double[]) value;
+      if (box.length != 4) {
+        throw new IOException("invalid length");
       }
-      else {
-        double[] box = (double[]) val;
-        if (box.length != 4) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(32);
-        buffer.writeDouble(box[0]); // phigh.x
-        buffer.writeDouble(box[1]); // phigh.y
-        buffer.writeDouble(box[2]); // plow.x
-        buffer.writeDouble(box[3]); // plow.y
-      }
+
+      buffer.writeDouble(box[0]); // phigh.x
+      buffer.writeDouble(box[1]); // phigh.y
+      buffer.writeDouble(box[2]); // plow.x
+      buffer.writeDouble(box[3]); // plow.y
     }
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
+
     private Formatter formatter;
     private PrimitiveType pt;
 
@@ -158,23 +147,24 @@ public class LSegs extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return pt;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return formatter.parse(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
+
     private Formatter formatter;
     private PrimitiveType pt;
 
@@ -184,26 +174,28 @@ public class LSegs extends SimpleProcProvider {
     }
 
     @Override
-    public Class<?> getInputType() {
-      return double[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return pt;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        return;
-      }
-      double[] lseg = (double[]) val;
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      double[] lseg = (double[]) value;
       if (lseg.length != 4) {
         throw new IOException("invalid length");
       }
-      buffer.append(formatter.getLeftDelim()).append('(').append(Double.toString(lseg[0])).append(',').append(Double.toString(lseg[1])).append("),(").append(Double.toString(lseg[2])).append(',').append(Double.toString(lseg[3])).append(')').append(formatter.getRightDelim());
+
+      buffer
+          .append(formatter.getLeftDelim())
+          .append('(')
+          .append(lseg[0]).append(',').append(lseg[1])
+          .append("),(")
+          .append(lseg[2]).append(',').append(lseg[3])
+          .append(')')
+          .append(formatter.getRightDelim());
     }
 
   }
+
 }

@@ -43,48 +43,38 @@ public class Domains extends SimpleProcProvider {
     super(new TxtEncoder(), null, new BinEncoder(), null, "domain_");
   }
 
-  public static class BinEncoder extends BinaryEncoder {
+  public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return null;  //any
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Domain;
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return null;  //any
-    }
-
-    @Override
-    public void encode(Type type, ByteBuf buffer, Object value, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, value, context);
+      baseType.getBinaryCodec().getEncoder().encode(context, baseType, value, sourceContext, buffer);
     }
 
   }
 
-  public static class TxtEncoder extends TextEncoder {
+  public static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return null;  //any
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Domain;
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return null;  //any
-    }
-
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object value, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getTextCodec().getEncoder().encode(baseType, buffer, value, context);
+      baseType.getTextCodec().getEncoder().encode(context, baseType, value, sourceContext, buffer);
     }
 
   }

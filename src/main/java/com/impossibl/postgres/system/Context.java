@@ -31,10 +31,11 @@ package com.impossibl.postgres.system;
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Map;
 import java.util.TimeZone;
 
 public interface Context {
@@ -66,20 +67,30 @@ public interface Context {
 
   KeyData getKeyData();
 
+  NumberFormat getIntegerFormatter();
+
   DecimalFormat getDecimalFormatter();
+
   DecimalFormat getCurrencyFormatter();
+
   DateTimeFormat getDateFormatter();
+
   DateTimeFormat getTimeFormatter();
+
   DateTimeFormat getTimestampFormatter();
 
-  Class<?> lookupInstanceType(Type type);
+  Map<String, Class<?>> getCustomTypeMap();
 
   void refreshType(int typeId);
+
   void refreshRelationType(int relationId);
 
   Object getSetting(String name);
+
   <T> T getSetting(String name, Class<T> type);
+
   <T> T getSetting(String name, T defaultValue);
+
   boolean isSettingEnabled(String name);
 
   Protocol getProtocol();

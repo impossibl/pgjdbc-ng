@@ -44,10 +44,14 @@ import io.netty.buffer.Unpooled;
  */
 public class PGRowId implements RowId {
 
-  Tid tid;
+  private Tid tid;
 
   public PGRowId(Tid tid) {
     this.tid = tid;
+  }
+
+  public Tid getTid() {
+    return tid;
   }
 
   @Override
