@@ -22,6 +22,11 @@ then
   # force postgres to use 5432 as it's port
   sudo sed -i -e 's/port = 5433/port = 5432/g' /etc/postgresql/8.4/main/postgresql.conf
 fi
+if [ ${PGVERSION} = '9.5' ]
+then
+  # force postgres to use 5432 as it's port
+  sudo sed -i -e 's/port = 5433/port = 5432/g' /etc/postgresql/9.5/main/postgresql.conf
+fi
 
 sudo service postgresql restart ${PGVERSION}
 
