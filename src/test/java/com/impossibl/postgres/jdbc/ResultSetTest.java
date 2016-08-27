@@ -35,9 +35,13 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.CharStreams;
+
 import static com.impossibl.postgres.utils.guava.ByteStreams.toByteArray;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -462,9 +466,13 @@ public class ResultSetTest {
     ResultSet rs = con.createStatement().executeQuery("select * from testbytes");
 
     assertTrue(rs.next());
-    assertArrayEquals("12345".getBytes(UTF_8), toByteArray(rs.getBinaryStream(1)));
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(UTF_8), toByteArray(is));
+    }
     // Ensure we can call it multiple times with correct result
-    assertArrayEquals("12345".getBytes(UTF_8), toByteArray(rs.getBinaryStream(1)));
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(UTF_8), toByteArray(is));
+    }
   }
 
   @Test
@@ -472,9 +480,27 @@ public class ResultSetTest {
     ResultSet rs = con.createStatement().executeQuery("select * from teststring");
 
     assertTrue(rs.next());
-    assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(rs.getAsciiStream(1)));
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(is));
+    }
     // Ensure we can call it multiple times with correct result
-    assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(rs.getAsciiStream(1)));
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(is));
+    }
+  }
+
+  @Test
+  public void testgetCharacterStream() throws SQLException, IOException {
+    ResultSet rs = con.createStatement().executeQuery("select * from teststring");
+
+    assertTrue(rs.next());
+    try (Reader r = rs.getCharacterStream(1)) {
+      assertEquals("12345", CharStreams.toString(r));
+    }
+    // Ensure we can call it multiple times with correct result
+    try (Reader r = rs.getCharacterStream(1)) {
+      assertEquals("12345", CharStreams.toString(r));
+    }
   }
 
   @Test
