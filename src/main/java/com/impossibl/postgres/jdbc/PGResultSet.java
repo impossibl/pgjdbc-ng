@@ -162,7 +162,6 @@ class PGResultSet implements ResultSet {
   }
 
 
-
   PGStatement statement;
   Scroller scroller;
   int fetchDirection;
@@ -173,7 +172,6 @@ class PGResultSet implements ResultSet {
   Map<String, Class<?>> typeMap;
   final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
-
 
 
   PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
@@ -720,12 +718,12 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
-    if (data == null) {
-      return null;
-    }
+    try (InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection)) {
 
-    try {
+      if (data == null) {
+        return null;
+      }
+
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {
@@ -800,7 +798,7 @@ class PGResultSet implements ResultSet {
       throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
     }
 
-    return new PGArray(statement.connection, (ArrayType)type, (Object[])value);
+    return new PGArray(statement.connection, (ArrayType) type, (Object[]) value);
   }
 
   @Override
