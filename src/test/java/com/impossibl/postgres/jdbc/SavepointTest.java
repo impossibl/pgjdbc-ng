@@ -74,6 +74,7 @@ public class SavepointTest {
     rs.next();
     int count = rs.getInt(1);
     rs.close();
+    stmt.close();
     return count;
   }
 
