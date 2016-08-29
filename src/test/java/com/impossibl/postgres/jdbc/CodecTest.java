@@ -300,6 +300,8 @@ public class CodecTest {
     expected.reset();
     actual.reset();
     assertArrayEquals(ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
+    expected.close();
+    actual.close();
   }
 
   public interface Maker {
