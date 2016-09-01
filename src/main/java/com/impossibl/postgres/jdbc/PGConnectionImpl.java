@@ -144,8 +144,9 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     Housekeeper.Ref housekeeper;
     StackTraceElement[] allocationStackTrace;
 
-    public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
+    public Cleanup(Protocol protocol, Housekeeper.Ref housekeeper, List<WeakReference<PGStatement>> statements) {
       this.protocol = protocol;
+      this.housekeeper = housekeeper;
       this.statements = statements;
       this.allocationStackTrace = new Exception().getStackTrace();
     }
@@ -237,7 +238,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements));
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, housekeeper, activeStatements));
     else
       this.cleanupKey = null;
   }
