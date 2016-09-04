@@ -611,7 +611,7 @@ public class BasicContext implements Context {
 
   public void updateSystemParameter(String name, String value) {
 
-    logger.config("system paramter: " + name + "=" + value);
+    logger.config("system parameter: " + name + "=" + value);
 
     switch (name) {
 
