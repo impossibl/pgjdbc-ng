@@ -49,6 +49,7 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Converter;
 import com.impossibl.postgres.utils.Factory;
+import com.impossibl.postgres.utils.Locales;
 import com.impossibl.postgres.utils.Timer;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
@@ -276,6 +277,11 @@ public class BasicContext implements Context {
         case "POSIX":
           localeSpec = "en_US";
           break;
+      }
+
+      // Check if locale matches a win32 type locale (e.g. "English_United States.1252")
+      if (Locales.getJavaCompatibleLocale(localeSpec.split("\\.")[0]) != null) {
+        localeSpec = Locales.getJavaCompatibleLocale(localeSpec);
       }
 
       String[] localeIds = localeSpec.split("_|\\.");
