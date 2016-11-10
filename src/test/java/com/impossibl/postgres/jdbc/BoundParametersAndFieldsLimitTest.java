@@ -94,17 +94,21 @@ public class BoundParametersAndFieldsLimitTest {
   }
 
   void testFields(int fields) throws SQLException {
-
-    char[] fisk = new char[fields];
-    for (int i = 0; i < fisk.length; i++) {
-      fisk[i] = '1';
+    PreparedStatement ps = null;
+    try {
+      char[] fisk = new char[fields];
+      for (int i = 0; i < fisk.length; i++) {
+        fisk[i] = '1';
+      }
+      String csv = Arrays.toString(fisk).substring(1);
+      csv = csv.substring(0, csv.length() - 1);
+      String sql = String.format("SELECT %s FROM person p", csv);
+      ps = conn.prepareStatement(sql);
+      ps.executeQuery();
     }
-    String csv = Arrays.toString(fisk).substring(1);
-    csv = csv.substring(0, csv.length() - 1);
-    String sql = String.format("SELECT %s FROM person p", csv);
-    PreparedStatement ps = conn.prepareStatement(sql);
-    ps.executeQuery();
-    ps.close();
+    finally {
+      if (ps != null)
+        ps.close();
+    }
   }
-
 }

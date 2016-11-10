@@ -151,6 +151,8 @@ public class TimeTest {
     assertNotNull(timetz);
     timestamptz = rs.getTimestamp(2);
     assertNotNull(timestamptz);
+    rs.close();
+    stmt.close();
   }
 
   /*
@@ -312,6 +314,7 @@ public class TimeTest {
     assertTrue(!rs.next());
 
     rs.close();
+    st.close();
   }
 
   private java.sql.Time makeTime(int h, int m, int s) {

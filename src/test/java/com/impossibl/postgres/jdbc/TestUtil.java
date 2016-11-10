@@ -426,16 +426,18 @@ public class TestUtil {
   }
 
   public static boolean getStandardConformingStrings(Connection con) throws SQLException {
-
+    boolean result = false;
     Statement stmt = con.createStatement();
-    stmt.closeOnCompletion();
-
     ResultSet rs = stmt.executeQuery("SHOW standard_conforming_strings");
+
     if (rs.next()) {
-      return rs.getBoolean(1);
+      result = rs.getBoolean(1);
     }
 
-    return false;
+    rs.close();
+    stmt.close();
+
+    return result;
   }
 
   public static String fix(int v, int l) {

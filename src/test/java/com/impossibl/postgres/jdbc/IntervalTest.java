@@ -163,6 +163,8 @@ public class IntervalTest {
     assertEquals(0, i.getDays());
     assertEquals(101, i.getHours());
     assertEquals(12, i.getMinutes());
+    rs.close();
+    stmt.close();
   }
 
   @Test

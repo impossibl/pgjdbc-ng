@@ -184,6 +184,7 @@ public class ConnectionTest {
     assertTrue(rs.next());
     assertEquals(9876, rs.getInt(1)); // Should not change!
     rs.close();
+    st.close();
   }
 
   /*
@@ -343,18 +344,19 @@ public class ConnectionTest {
     con.setNetworkTimeout(null, 1000);
     assertEquals(1000, con.getNetworkTimeout());
 
-    try (Statement stmt = con.createStatement()) {
-
-      try {
-
-        stmt.execute("SELECT pg_sleep(10);");
-
-        fail("Expected SQLTimeoutException");
-      }
-      catch (SQLTimeoutException e) {
-        // Ok
-      }
-
+    Statement stmt = con.createStatement();
+    try {
+      stmt.execute("SELECT pg_sleep(10);");
+      fail("Expected SQLTimeoutException");
+    }
+    catch (SQLTimeoutException e) {
+      // Ok
+    }
+    catch (Throwable t) {
+      throw t;
+    }
+    finally {
+      stmt.close();
     }
 
     assertTrue(con.isClosed());

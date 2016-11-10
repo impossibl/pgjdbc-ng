@@ -106,11 +106,6 @@ public class XmlTest {
     TestUtil.closeDB(_conn);
   }
 
-  private ResultSet getRS() throws SQLException {
-    Statement stmt = _conn.createStatement();
-    return stmt.executeQuery("SELECT val FROM xmltest");
-  }
-
 //TODO: reconcile against mainstream driver
 //  public void testUpdateRS() throws SQLException {
 //    Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
@@ -122,7 +117,8 @@ public class XmlTest {
 //  }
   @Test
   public void testDOMParse() throws SQLException {
-    ResultSet rs = getRS();
+    Statement stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
 
     assertTrue(rs.next());
     SQLXML xml = rs.getSQLXML(1);
@@ -146,6 +142,8 @@ public class XmlTest {
     catch (SQLException sqle) {
       // Ok
     }
+    rs.close();
+    stmt.close();
   }
 
   private void transform(Source source) throws Exception {
@@ -156,7 +154,8 @@ public class XmlTest {
   }
 
   private <T extends Source> void testRead(Class<T> sourceClass) throws Exception {
-    ResultSet rs = getRS();
+    Statement stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
 
     assertTrue(rs.next());
     SQLXML xml = rs.getSQLXML(1);
@@ -173,6 +172,9 @@ public class XmlTest {
     catch (Exception sqle) {
       // Ok
     }
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -212,7 +214,8 @@ public class XmlTest {
     ps.executeUpdate();
     ps.close();
 
-    ResultSet rs = getRS();
+    stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
     assertTrue(rs.next());
 
     // DOMResults tack on the additional <?xml ...?> header.
@@ -227,6 +230,9 @@ public class XmlTest {
     assertEquals(header + _xmlDocument, xml.getString());
 
     assertTrue(!rs.next());
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -251,7 +257,8 @@ public class XmlTest {
 
   @Test
   public void testFree() throws SQLException {
-    ResultSet rs = getRS();
+    Statement stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
     assertTrue(rs.next());
     SQLXML xml = rs.getSQLXML(1);
     xml.free();
@@ -263,14 +270,19 @@ public class XmlTest {
     catch (SQLException sqle) {
       // Ok
     }
+    rs.close();
+    stmt.close();
   }
 
   @Test
   public void testGetObject() throws SQLException {
-    ResultSet rs = getRS();
+    Statement stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
     assertTrue(rs.next());
     @SuppressWarnings("unused")
     SQLXML xml = (SQLXML) rs.getObject(1);
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -293,7 +305,8 @@ public class XmlTest {
     ps.executeUpdate();
     ps.close();
 
-    ResultSet rs = getRS();
+    stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
     assertTrue(rs.next());
     assertNull(rs.getObject(1));
     assertTrue(rs.next());
@@ -301,6 +314,8 @@ public class XmlTest {
     assertTrue(rs.next());
     assertNull(rs.getSQLXML("val"));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -338,7 +353,8 @@ public class XmlTest {
       // Ok
     }
 
-    ResultSet rs = getRS();
+    Statement stmt = _conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT val FROM xmltest");
     assertTrue(rs.next());
     xml = rs.getSQLXML(1);
     try {
@@ -348,6 +364,8 @@ public class XmlTest {
     catch (SQLException sqle) {
       // Ok
     }
+    rs.close();
+    stmt.close();
   }
 
   // Don't print warning and errors to System.err, it just

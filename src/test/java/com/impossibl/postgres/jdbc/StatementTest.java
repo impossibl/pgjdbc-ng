@@ -141,6 +141,7 @@ public class StatementTest {
     Statement stmt = con.createStatement();
     stmt.execute("");
     assertNull(stmt.getResultSet());
+    stmt.close();
   }
 
   @Test
@@ -158,6 +159,8 @@ public class StatementTest {
 
     count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
     assertEquals(0, count);
+
+    stmt.close();
   }
 
   @Test
@@ -202,6 +205,7 @@ public class StatementTest {
     rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
     assertTrue(rs.next());
     assertEquals("%found", rs.getString(1));
+    stmt.close();
   }
 
   @Test
@@ -211,12 +215,15 @@ public class StatementTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals("a5", rs.getString(1));
+    rs.close();
+    pstmt.close();
   }
 
   @Test
   public void testAlterTable() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO " + TestUtil.getUser());
+    stmt.close();
   }
 
   @Test
@@ -278,6 +285,8 @@ public class StatementTest {
     assertEquals(Math.sqrt(2.3), rs.getDouble(3), 0.00001);
     assertEquals(Math.tan(-2.3), rs.getDouble(4), 0.00001);
     assertEquals(3.12, rs.getDouble(5), 0.00001);
+
+    stmt.close();
   }
 
   @Test
@@ -310,6 +319,8 @@ public class StatementTest {
     assertEquals("   ", rs.getString(5));
     assertEquals("bc", rs.getString(6));
     assertEquals("ABCD", rs.getString(7));
+
+    stmt.close();
   }
 
   @Test
@@ -320,6 +331,8 @@ public class StatementTest {
     ResultSet rs = ps.executeQuery();
     assertTrue(rs.next());
     assertEquals(rs.getTimestamp(1), rs.getTimestamp(2));
+    rs.close();
+    ps.close();
   }
 
   @Test
@@ -368,6 +381,8 @@ public class StatementTest {
     // stmt.executeQuery("select {fn timestampdiff(SQL_TSI_YEAR,{fn now()},{fn timestampadd(SQL_TSI_YEAR,3,{fn now()})})} ");
     // assertTrue(rs.next());
     // assertEquals(3,rs.getInt(1));
+
+    stmt.close();
   }
 
   @Test
@@ -381,6 +396,8 @@ public class StatementTest {
     rs = stmt.executeQuery("select {fn database()} ");
     assertTrue(rs.next());
     assertEquals(TestUtil.getDatabase(), rs.getString(1));
+
+    stmt.close();
   }
 
   @Test
@@ -411,6 +428,8 @@ public class StatementTest {
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -467,6 +486,7 @@ public class StatementTest {
     catch (SQLException sqle) {
       // Ok
     }
+    stmt.close();
   }
 
   @Test
@@ -479,6 +499,7 @@ public class StatementTest {
     catch (SQLException sqle) {
       // Ok
     }
+    stmt.close();
   }
 
   @Test
@@ -491,6 +512,7 @@ public class StatementTest {
     catch (SQLException sqle) {
       // Ok
     }
+    stmt.close();
   }
 
   @Test
@@ -517,6 +539,7 @@ public class StatementTest {
     }
 
     assertFalse("Query timeout should have canceled the task", res.get());
+    stmt.close();
   }
 
   /**
@@ -549,7 +572,7 @@ public class StatementTest {
     catch (SQLException sqle) {
       fail("Should not have received exception");
     }
-
+    stmt.close();
   }
 
   @Test
@@ -561,12 +584,15 @@ public class StatementTest {
 
     ResultSet rsOther = stmt.getResultSet();
     assertNotNull(rsOther);
+    rs.close();
+    stmt.close();
   }
 
   @Test
   public void testFourPartCommand() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEXT SEARCH CONFIGURATION public.english_nostop ( COPY = pg_catalog.english );");
+    stmt.close();
   }
 
   @Test

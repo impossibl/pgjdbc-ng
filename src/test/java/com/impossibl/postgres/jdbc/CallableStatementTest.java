@@ -1643,7 +1643,6 @@ public class CallableStatementTest {
   @Test
   public void testCallFunctionWithoutParentheses() throws SQLException {
     CallableStatement cs = con.prepareCall("{?=call current_timestamp}");
-    cs = con.prepareCall("{?=call current_timestamp}");
     cs.registerOutParameter(1, Types.TIMESTAMP);
     cs.execute();
     assertNotNull(cs.getTimestamp(1));

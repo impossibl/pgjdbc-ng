@@ -109,6 +109,7 @@ public class ParameterMetaDataTest {
     catch (SQLException sqle) {
       // Ok
     }
+    pstmt.close();
   }
 
   // Make sure we work when mashing two queries into a single statement.
@@ -148,6 +149,7 @@ public class ParameterMetaDataTest {
 
     ResultSet rs = pstmt.executeQuery();
     rs.close();
+    pstmt.close();
   }
 
 }

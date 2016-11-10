@@ -271,7 +271,7 @@ public class TimezoneTest {
     try (Statement stmt = con.createStatement()) {
       stmt.executeUpdate("INSERT INTO testtimezone(tstz,ts,t,tz) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300')");
 
-      try (ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz from testtimezone")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT tstz,ts,t,tz from testtimezone")) {
 
         assertTrue(rs.next());
         checkDatabaseContents("SELECT tstz::text,ts::text,t::text,tz::text,d::text from testtimezone", new String[] {
@@ -728,6 +728,8 @@ public class TimezoneTest {
     ResultSet rs = stmt.executeQuery("SELECT '1969-12-31 20:30:00'::timestamptz");
     assertTrue(rs.next());
     assertEquals(0L, rs.getTimestamp(1).getTime());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -740,6 +742,8 @@ public class TimezoneTest {
     // 'epoch'::timestamptz) * 1000;
 
     assertEquals(-1577923200000L, rs.getTimestamp(1).getTime());
+    rs.close();
+    stmt.close();
   }
 
   /**

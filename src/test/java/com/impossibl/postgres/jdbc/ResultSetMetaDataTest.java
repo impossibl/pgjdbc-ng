@@ -208,6 +208,9 @@ public class ResultSetMetaDataTest {
     assertEquals(7, rsmd.getColumnDisplaySize(7));
     assertEquals(131089, rsmd.getColumnDisplaySize(8));
     assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(9));
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -237,6 +240,8 @@ public class ResultSetMetaDataTest {
       Class<?> cls = Class.forName(rsmd.getColumnClassName(i + 1));
       assertTrue(cls.isAssignableFrom(rs.getObject(i + 1).getClass()));
     }
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -246,6 +251,8 @@ public class ResultSetMetaDataTest {
     ResultSetMetaData rsmd = rs.getMetaData();
     assertEquals(Types.STRUCT, rsmd.getColumnType(1));
     assertEquals("rsmd1", rsmd.getColumnTypeName(1));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -256,6 +263,8 @@ public class ResultSetMetaDataTest {
     assertEquals(1, rsmd.getColumnCount());
     assertEquals("a", rsmd.getColumnName(1));
     assertEquals("pk", rsmd.getColumnLabel(1));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -266,6 +275,8 @@ public class ResultSetMetaDataTest {
     assertEquals(1, rsmd.getColumnCount());
     assertEquals("a", rsmd.getColumnName(1));
     assertEquals("PK", rsmd.getColumnLabel(1));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -278,5 +289,7 @@ public class ResultSetMetaDataTest {
     assertEquals("PK", rsmd.getColumnName(1));
     assertEquals("PK", rsmd.getColumnLabel(1));
     ((PGConnectionImpl)conn).setStrictMode(false);
+    rs.close();
+    stmt.close();
   }
 }

@@ -177,6 +177,8 @@ public class PreparedStatementTest {
     catch (SQLException e) {
       // Ok
     }
+
+    pstmt.close();
   }
 
   @Test
@@ -375,6 +377,8 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals(";", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
+    st.close();
 
     st = conn.prepareStatement("SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;");
     st.setString(1, ";");
@@ -383,6 +387,8 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals("$a$;$x $a$", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
+    st.close();
 
     st = conn.prepareStatement("SELECT ?::text");
     st.setString(1, "$a$ $a$");
@@ -392,27 +398,32 @@ public class PreparedStatementTest {
     assertEquals("$a$ $a$", rs.getString(1));
 
     assertFalse(rs.next());
-
+    rs.close();
     st.close();
   }
 
   @Test
   public void testDollarQuotesAndIdentifiers() throws SQLException {
+    PreparedStatement ps;
 
-    PreparedStatement st;
-
-    conn.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
-    st = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
-    st.setString(1, "a");
-    st.setString(2, "b");
-    st.executeUpdate();
+    Statement st = conn.createStatement();
+    st.execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
     st.close();
 
-    conn.createStatement().execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
-    st = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
-    st.setString(1, "a");
-    st.executeUpdate();
+    ps = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
+    ps.setString(1, "a");
+    ps.setString(2, "b");
+    ps.executeUpdate();
+    ps.close();
+
+    st = conn.createStatement();
+    st.execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
     st.close();
+
+    ps = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
+    ps.setString(1, "a");
+    ps.executeUpdate();
+    ps.close();
   }
 
   @Test
@@ -433,6 +444,7 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals("?", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
     pst.close();
   }
 
