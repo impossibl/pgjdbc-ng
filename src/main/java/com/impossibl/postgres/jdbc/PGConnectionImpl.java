@@ -362,7 +362,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   /**
-   * Closes the given list of result-sets
+   * Closes the given list of statements
    *
    * @throws SQLException
    */
@@ -391,6 +391,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    */
   void closeStatements() throws SQLException {
     closeStatements(activeStatements);
+    activeStatements.clear();
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {

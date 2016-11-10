@@ -52,6 +52,7 @@ import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -949,29 +950,31 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             (returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
 
           String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
-          try (ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
-            while (columnrs.next()) {
-              Type columnType = reg.loadType(columnrs.getInt("atttypid"));
+          try (Statement stmt = connection.createStatement()) {
+            try (ResultSet columnrs = stmt.executeQuery(columnsql)) {
+              while (columnrs.next()) {
+                Type columnType = reg.loadType(columnrs.getInt("atttypid"));
 
-              Object[] row = new Object[resultFields.length];
-              row[0] = null;
-              row[1] = schema;
-              row[2] = procedureName;
-              row[3] = columnrs.getString("attname");
-              row[4] = DatabaseMetaData.procedureColumnResult;
-              row[5] = SQLTypeMetaData.getSQLType(columnType);
-              row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
-              row[7] = null;
-              row[8] = null;
-              row[9] = null;
-              row[10] = null;
-              row[11] = DatabaseMetaData.procedureNullableUnknown;
-              row[12] = null;
-              row[17] = 0;
-              row[18] = "";
-              row[19] = specificName;
+                Object[] row = new Object[resultFields.length];
+                row[0] = null;
+                row[1] = schema;
+                row[2] = procedureName;
+                row[3] = columnrs.getString("attname");
+                row[4] = DatabaseMetaData.procedureColumnResult;
+                row[5] = SQLTypeMetaData.getSQLType(columnType);
+                row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
+                row[7] = null;
+                row[8] = null;
+                row[9] = null;
+                row[10] = null;
+                row[11] = DatabaseMetaData.procedureNullableUnknown;
+                row[12] = null;
+                row[17] = 0;
+                row[18] = "";
+                row[19] = specificName;
 
-              results.add(row);
+                results.add(row);
+              }
             }
           }
         }
