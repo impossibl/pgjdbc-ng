@@ -41,7 +41,7 @@ import io.netty.buffer.ByteBuf;
 
 public class BufferedDataRow implements DataRow {
 
-  public ByteBuf buffer;
+  private ByteBuf buffer;
   private List<ResultField> columns;
   private int[] columnOffsets;
   private Context parsingContext;
