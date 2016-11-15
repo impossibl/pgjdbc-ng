@@ -73,7 +73,7 @@ public class PrepareCommandImpl extends CommandImpl implements PrepareCommand {
 
       // Ensure we are working with binary fields
       for (ResultField field : resultFields)
-        field.format = Format.Binary;
+        field.setFormat(Format.Binary);
 
       PrepareCommandImpl.this.describedResultFields = resultFields;
     }

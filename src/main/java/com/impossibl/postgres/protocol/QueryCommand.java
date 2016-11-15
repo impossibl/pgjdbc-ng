@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.protocol;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public interface QueryCommand extends Command {
@@ -38,20 +39,76 @@ public interface QueryCommand extends Command {
   }
 
   class ResultBatch {
-    public String command;
-    public Long rowsAffected;
-    public Long insertedOid;
-    public List<ResultField> fields;
-    public List<DataRow> results;
+    private String command;
+    private Long rowsAffected;
+    private Long insertedOid;
+    private List<ResultField> fields;
+    private List<DataRow> results;
 
-    public void release() {
+    public ResultBatch() {
+      command = null;
+      rowsAffected = null;
+      insertedOid = null;
+      fields = null;
+      results = null;
+    }
+
+    public void setCommand(String v) {
+      command = v;
+    }
+
+    public String getCommand() {
+      return command;
+    }
+
+    public void setRowsAffected(Long v) {
+      rowsAffected = v;
+    }
+
+    public Long getRowsAffected() {
+      return rowsAffected;
+    }
+
+    public void setInsertedOid(Long v) {
+      insertedOid = v;
+    }
+
+    public Long getInsertedOid() {
+      return insertedOid;
+    }
+
+    public void setFields(List<ResultField> v) {
+      fields = v;
+    }
+
+    public List<ResultField> getFields() {
+      return fields;
+    }
+
+    public void addResult(DataRow v) {
+      if (results == null)
+        results = new ArrayList<>();
+
+      results.add(v);
+    }
+
+    public void resetResults(boolean allowEmpty) {
       if (results != null) {
         for (DataRow dataRow : results) {
           dataRow.release();
         }
       }
+
+      results = (allowEmpty && fields != null && !fields.isEmpty()) ? new ArrayList<DataRow>() : null;
     }
 
+    public List<DataRow> getResults() {
+      return results;
+    }
+
+    public void release() {
+      resetResults(false);
+    }
   }
 
   void setQueryTimeout(long timeout);

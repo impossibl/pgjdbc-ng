@@ -29,7 +29,6 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.BufferedDataRow;
-import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -63,20 +62,20 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
     @Override
     public void rowDescription(List<ResultField> resultFields) {
-      resultBatch.fields = resultFields;
-      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<DataRow>() : null;
+      resultBatch.setFields(resultFields);
+      resultBatch.resetResults(true);
     }
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-      resultBatch.results.add(BufferedDataRow.parse(buffer, resultBatch.fields, parsingContext));
+      resultBatch.addResult(BufferedDataRow.parse(buffer, resultBatch.getFields(), parsingContext));
     }
 
     @Override
     public void commandComplete(String command, Long rowsAffected, Long oid) {
-      resultBatch.command = command;
-      resultBatch.rowsAffected = rowsAffected;
-      resultBatch.insertedOid = oid;
+      resultBatch.setCommand(command);
+      resultBatch.setRowsAffected(rowsAffected);
+      resultBatch.setInsertedOid(oid);
 
       resultBatches.add(resultBatch);
       resultBatch = new ResultBatch();

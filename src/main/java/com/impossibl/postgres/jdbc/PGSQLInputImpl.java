@@ -167,7 +167,7 @@ public class PGSQLInputImpl implements PGSQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    InputStream data = coerceToByteStream(val, attr.type, connection);
+    InputStream data = coerceToByteStream(val, attr.getType(), connection);
 
     try {
       return ByteStreams.toByteArray(data);
@@ -222,9 +222,9 @@ public class PGSQLInputImpl implements PGSQLInput {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    Class<?> targetType = mapGetType(attr.type, typeMap, connection);
+    Class<?> targetType = mapGetType(attr.getType(), typeMap, connection);
 
-    return coerce(val, attr.type, targetType, typeMap, connection);
+    return coerce(val, attr.getType(), targetType, typeMap, connection);
   }
 
   @Override
@@ -251,11 +251,11 @@ public class PGSQLInputImpl implements PGSQLInput {
     }
 
     Attribute attr = type.getAttribute(currentAttrIdx);
-    if (attr == null || !(attr.type instanceof ArrayType) || !(val instanceof Object[])) {
+    if (attr == null || !(attr.getType() instanceof ArrayType) || !(val instanceof Object[])) {
       throw new SQLException("Invalid input request (type not array)");
     }
 
-    return new PGArray(connection, (ArrayType)attr.type, (Object[])val);
+    return new PGArray(connection, (ArrayType)attr.getType(), (Object[])val);
   }
 
   @Override
@@ -270,7 +270,7 @@ public class PGSQLInputImpl implements PGSQLInput {
 
   @Override
   public RowId readRowId() throws SQLException {
-    return coerceToRowId(getNextAttributeValue(), type.getAttribute(currentAttrIdx).type);
+    return coerceToRowId(getNextAttributeValue(), type.getAttribute(currentAttrIdx).getType());
   }
 
   @Override

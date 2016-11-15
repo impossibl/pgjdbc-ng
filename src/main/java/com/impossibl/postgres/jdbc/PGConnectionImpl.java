@@ -621,7 +621,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
 
-    List<DataRow> res = resultBatch.results;
+    List<DataRow> res = resultBatch.getResults();
     if (res == null || res.isEmpty())
       return null;
 
@@ -656,7 +656,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     resultBatch.release();
 
-    return resultBatch.rowsAffected;
+    return resultBatch.getRowsAffected();
   }
 
   /**

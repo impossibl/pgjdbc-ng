@@ -261,12 +261,12 @@ class PGSimpleStatement extends PGStatement {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(c);
 
-        if (resultBatch.command.equals("SELECT")) {
+        if (resultBatch.getCommand().equals("SELECT")) {
           throw new BatchUpdateException("SELECT in executeBatch", Arrays.copyOf(counts, c));
         }
 
-        if (resultBatch.rowsAffected != null) {
-          counts[c] = (int)(long)resultBatches.get(c).rowsAffected;
+        if (resultBatch.getRowsAffected() != null) {
+          counts[c] = (int)(long)resultBatches.get(c).getRowsAffected();
         }
         else {
           counts[c] = Statement.SUCCESS_NO_INFO;

@@ -98,14 +98,21 @@ public class BasicContext implements Context {
 
   private static class NotificationKey {
 
-    public String name;
-    public Pattern channelNameFilter;
+    private String name;
+    private Pattern channelNameFilter;
 
     NotificationKey(String name, Pattern channelNameFilter) {
       this.name = name;
       this.channelNameFilter = channelNameFilter;
     }
 
+    String getName() {
+      return name;
+    }
+
+    Pattern getChannelNameFilter() {
+      return channelNameFilter;
+    }
   }
 
 
@@ -367,7 +374,7 @@ public class BasicContext implements Context {
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).relationId);
+      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).getRelationId());
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -390,7 +397,7 @@ public class BasicContext implements Context {
 
       Integer[] typeIds = new Integer[pgTypes.size()];
       for (int c = 0; c < pgTypes.size(); ++c)
-        typeIds[c] = pgTypes.get(c).relationId;
+        typeIds[c] = pgTypes.get(c).getRelationId();
 
       //Load attributes
       List<PgAttribute.Row> pgAttrs = queryResults("@refresh-types-attrs", PgAttribute.Row.class, (Object) typeIds);
@@ -504,7 +511,7 @@ public class BasicContext implements Context {
 
     QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, params);
 
-    return convertResults(rowType, resultBatch.fields, resultBatch.results);
+    return convertResults(rowType, resultBatch.getFields(), resultBatch.getResults());
   }
 
   public List<DataRow> queryResults(String queryTxt) throws IOException, NoticeException {
@@ -542,7 +549,7 @@ public class BasicContext implements Context {
       return Collections.emptyList();
     }
 
-    return resultBatch.results;
+    return resultBatch.getResults();
   }
 
   public void query(String queryTxt) throws IOException, NoticeException {
@@ -609,10 +616,7 @@ public class BasicContext implements Context {
   }
 
   public void setKeyData(int processId, int secretKey) {
-
-    keyData = new KeyData();
-    keyData.processId = processId;
-    keyData.secretKey = secretKey;
+    keyData = new KeyData(processId, secretKey);
   }
 
   public void updateSystemParameter(String name, String value) {

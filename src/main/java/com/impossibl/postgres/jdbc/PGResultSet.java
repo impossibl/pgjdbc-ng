@@ -337,7 +337,7 @@ class PGResultSet implements ResultSet {
   }
 
   Type getType(int columnIndex) {
-    return scroller.getResultFields().get(columnIndex - 1).typeRef.get();
+    return scroller.getResultFields().get(columnIndex - 1).getTypeRef().get();
   }
 
   @Override
@@ -948,7 +948,7 @@ class PGResultSet implements ResultSet {
 
     for (int c = 0; c < resultFields.size(); ++c) {
 
-      if (resultFields.get(c).name.equalsIgnoreCase(columnLabel))
+      if (resultFields.get(c).getName().equalsIgnoreCase(columnLabel))
         return c + 1;
     }
 
@@ -2037,8 +2037,8 @@ class CommandScroller extends ListScroller {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
-        resultFields = resultBatch.fields;
-        setResults(resultBatch.results);
+        resultFields = resultBatch.getFields();
+        setResults(resultBatch.getResults());
 
         resultsIndexOffset += currentRowIndex;
         currentRowIndex = -1;
@@ -2344,7 +2344,7 @@ class CursorScroller extends Scroller {
       throw new SQLException("Invalid update row");
     }
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder("INSERT INTO ");
 
@@ -2377,7 +2377,7 @@ class CursorScroller extends Scroller {
       throw new SQLException("Invalid update row");
     }
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder("UPDATE ");
 
@@ -2388,7 +2388,7 @@ class CursorScroller extends Scroller {
     Iterator<ResultField> fieldsIter = resultFields.iterator();
     int pid = 1;
     while (fieldsIter.hasNext()) {
-      sb.append(fieldsIter.next().name);
+      sb.append(fieldsIter.next().getName());
       sb.append(" = $");
       sb.append(pid++);
       sb.append(fieldsIter.hasNext() ? ", " : " ");
@@ -2408,7 +2408,7 @@ class CursorScroller extends Scroller {
     if (!isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder();
     sb.append("DELETE FROM ").append('"').append(relType.getName()).append('"').append(" WHERE CURRENT OF ").append(cursorName);

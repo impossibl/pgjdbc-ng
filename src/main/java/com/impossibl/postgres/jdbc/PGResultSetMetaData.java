@@ -80,10 +80,10 @@ class PGResultSetMetaData implements ResultSetMetaData {
   CompositeType getRelType(int columnIndex) throws SQLException {
 
     ResultField field = get(columnIndex);
-    if (field.relationId == 0)
+    if (field.getRelationId() == 0)
       return null;
 
-    return connection.getRegistry().loadRelationType(field.relationId);
+    return connection.getRegistry().loadRelationType(field.getRelationId());
   }
 
   /**
@@ -97,11 +97,11 @@ class PGResultSetMetaData implements ResultSetMetaData {
 
     ResultField field = get(columnIndex);
 
-    CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+    CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
     if (relType == null)
       return null;
 
-    return relType.getAttribute(field.relationAttributeNumber);
+    return relType.getAttribute(field.getRelationAttributeNumber());
   }
 
   @Override
@@ -127,15 +127,15 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public boolean isAutoIncrement(int column) throws SQLException {
 
     ResultField field = get(column);
-    CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+    CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
 
-    return SQLTypeMetaData.isAutoIncrement(field.typeRef.get(), relType, field.relationAttributeNumber);
+    return SQLTypeMetaData.isAutoIncrement(field.getTypeRef().get(), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
 
-    return SQLTypeMetaData.isCaseSensitive(get(column).typeRef.get());
+    return SQLTypeMetaData.isCaseSensitive(get(column).getTypeRef().get());
   }
 
   @Override
@@ -146,28 +146,28 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public boolean isCurrency(int column) throws SQLException {
 
-    return SQLTypeMetaData.isCurrency(get(column).typeRef.get());
+    return SQLTypeMetaData.isCurrency(get(column).getTypeRef().get());
   }
 
   @Override
   public int isNullable(int column) throws SQLException {
 
     ResultField field = get(column);
-    CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+    CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
 
-    return SQLTypeMetaData.isNullable(field.typeRef.get(), relType, field.relationAttributeNumber);
+    return SQLTypeMetaData.isNullable(field.getTypeRef().get(), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public boolean isSigned(int column) throws SQLException {
 
-    return SQLTypeMetaData.isSigned(get(column).typeRef.get());
+    return SQLTypeMetaData.isSigned(get(column).getTypeRef().get());
   }
 
   @Override
   public String getColumnLabel(int column) throws SQLException {
 
-    String val = get(column).name;
+    String val = get(column).getName();
     if (val == null)
       val = getColumnName(column);
 
@@ -208,66 +208,66 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public String getColumnName(int column) throws SQLException {
     if (connection.isStrictMode()) {
-      String val = get(column).name;
+      String val = get(column).getName();
       if (val != null)
         return val;
     }
 
     CompositeType.Attribute attr = getRelAttr(column);
     if (attr == null)
-      return get(column).name;
+      return get(column).getName();
 
-    return attr.name;
+    return attr.getName();
   }
 
   @Override
   public int getColumnType(int column) throws SQLException {
     ResultField field = get(column);
-    return getSQLType(field.typeRef.get());
+    return getSQLType(field.getTypeRef().get());
   }
 
   @Override
   public String getColumnTypeName(int column) throws SQLException {
 
     ResultField field = get(column);
-    CompositeType relType = connection.getRegistry().loadRelationType(field.relationId);
+    CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
 
-    return SQLTypeMetaData.getTypeName(field.typeRef.get(), relType, field.relationAttributeNumber);
+    return SQLTypeMetaData.getTypeName(field.getTypeRef().get(), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public String getColumnClassName(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeUtils.mapGetType(field.typeRef.get(), typeMap, connection).getName();
+    return SQLTypeUtils.mapGetType(field.getTypeRef().get(), typeMap, connection).getName();
   }
 
   @Override
   public int getPrecision(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getPrecision(field.typeRef.get(), field.typeLength, field.typeModifier);
+    return SQLTypeMetaData.getPrecision(field.getTypeRef().get(), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override
   public int getScale(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getScale(field.typeRef.get(), field.typeLength, field.typeModifier);
+    return SQLTypeMetaData.getScale(field.getTypeRef().get(), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override
   public int getColumnDisplaySize(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getDisplaySize(field.typeRef.get(), field.typeLength, field.typeModifier);
+    return SQLTypeMetaData.getDisplaySize(field.getTypeRef().get(), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override
   public boolean isReadOnly(int column) throws SQLException {
 
     //If it's a computed column we assume it's read only
-    return get(column).relationAttributeNumber == 0;
+    return get(column).getRelationAttributeNumber() == 0;
   }
 
   @Override

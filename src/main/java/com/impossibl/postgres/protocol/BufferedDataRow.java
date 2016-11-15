@@ -53,6 +53,22 @@ public class BufferedDataRow implements DataRow {
     this.parsingContext = parsingContext;
   }
 
+  @Override
+  public Object getColumn(int columnIndex) throws IOException {
+
+    ResultField field = columns.get(columnIndex);
+    Type type = field.getTypeRef().get();
+    int offset = columnOffsets[columnIndex];
+    ByteBuf fieldBuffer = buffer.slice(offset, max(buffer.getInt(offset), 0) + 4);
+
+    return type.getCodec(field.getFormat()).getDecoder().decode(type, field.getTypeLength(), field.getTypeModifier(), fieldBuffer, parsingContext);
+  }
+
+  @Override
+  public void release() {
+    buffer.release();
+  }
+
   public static BufferedDataRow parse(ByteBuf buffer, List<ResultField> columns, Context parsingContext) {
 
     int columnsCount = buffer.readUnsignedShort();
@@ -65,21 +81,4 @@ public class BufferedDataRow implements DataRow {
 
     return new BufferedDataRow(buffer, columns, offsets, parsingContext);
   }
-
-  @Override
-  public Object getColumn(int columnIndex) throws IOException {
-
-    ResultField field = columns.get(columnIndex);
-    Type type = field.typeRef.get();
-    int offset = columnOffsets[columnIndex];
-    ByteBuf fieldBuffer = buffer.slice(offset, max(buffer.getInt(offset), 0) + 4);
-
-    return type.getCodec(field.format).decoder.decode(type, field.typeLength, field.typeModifier, fieldBuffer, parsingContext);
-  }
-
-  @Override
-  public void release() {
-    buffer.release();
-  }
-
 }

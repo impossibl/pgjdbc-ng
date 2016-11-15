@@ -205,13 +205,13 @@ public class CodecTest {
       Object[] srcArray = (Object[]) value;
       Object[] dstArray = new Object[srcArray.length];
       for (int c = 0; c < srcArray.length; ++c) {
-        Class<?> targetType = ((ArrayType)type).getElementType().getCodec(format).encoder.getInputType();
+        Class<?> targetType = ((ArrayType)type).getElementType().getCodec(format).getEncoder().getInputType();
         dstArray[c] = SQLTypeUtils.coerce(format, srcArray[c], ((ArrayType) type).getElementType(), targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
       }
       res = dstArray;
     }
     else {
-      Class<?> targetType = type.getCodec(format).encoder.getInputType();
+      Class<?> targetType = type.getCodec(format).getEncoder().getInputType();
       res = SQLTypeUtils.coerce(format, value, type, targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
     }
     return res;
@@ -224,8 +224,8 @@ public class CodecTest {
     Codec codec = type.getCodec(format);
 
     ByteBuf buffer = Unpooled.buffer();
-    codec.encoder.encode(type, buffer, value, conn);
-    Object res = codec.decoder.decode(type, null, null, buffer, conn);
+    codec.getEncoder().encode(type, buffer, value, conn);
+    Object res = codec.getDecoder().decode(type, null, null, buffer, conn);
 
     if (res instanceof Object[]) {
       Object[] resSrcArray = (Object[]) res;

@@ -318,12 +318,12 @@ abstract class PGStatement implements Statement {
 
   boolean hasResults() {
     return !resultBatches.isEmpty() &&
-        resultBatches.get(0).results != null;
+      resultBatches.get(0).getResults() != null;
   }
 
   boolean hasUpdateCount() {
     return !resultBatches.isEmpty() &&
-        resultBatches.get(0).rowsAffected != null;
+      resultBatches.get(0).getRowsAffected() != null;
   }
 
   /**
@@ -588,7 +588,7 @@ abstract class PGStatement implements Statement {
       //Shouldn't be any actual rows, but release it to any buffers
       resultBatch.release();
 
-      rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.fields);
+      rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.getFields());
     }
     else if (command.getStatus() == QueryCommand.Status.Completed) {
 
@@ -596,7 +596,7 @@ abstract class PGStatement implements Statement {
 
       // This batch can be re-used so let "close" or "getMoreResults" release it
 
-      rs = new PGResultSet(this, resultBatch.fields, resultBatch.results);
+      rs = new PGResultSet(this, resultBatch.getFields(), resultBatch.getResults());
     }
     else {
       QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
@@ -604,7 +604,7 @@ abstract class PGStatement implements Statement {
       // The batch cannot be re-used, but the result set will clean it up when it's
       // done using it
 
-      rs = new PGResultSet(this, command, resultBatch.fields, resultBatch.results);
+      rs = new PGResultSet(this, command, resultBatch.getFields(), resultBatch.getResults());
 
       // Command cannot be re-used when portal'd batching is in progress
       command = null;
@@ -622,7 +622,7 @@ abstract class PGStatement implements Statement {
       return -1;
     }
 
-    return (int) (long) resultBatches.get(0).rowsAffected;
+    return (int) (long) resultBatches.get(0).getRowsAffected();
   }
 
   @Override

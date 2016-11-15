@@ -40,8 +40,21 @@ import java.util.TimeZone;
 public interface Context {
 
   class KeyData {
-    public int processId;
-    public int secretKey;
+    private int processId;
+    private int secretKey;
+
+    KeyData(int processId, int secretKey) {
+      this.processId = processId;
+      this.secretKey = secretKey;
+    }
+
+    public int getProcessId() {
+      return processId;
+    }
+
+    public int getSecretKey() {
+      return secretKey;
+    }
   }
 
 

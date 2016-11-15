@@ -380,18 +380,18 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           }
 
           QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-          if (!allowBatchSelects() && resultBatch.command.equals("SELECT")) {
+          if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
             throw new SQLException("SELECT in executeBatch");
           }
-          if (resultBatch.rowsAffected == null) {
+          if (resultBatch.getRowsAffected() == null) {
             counts[c] = 0;
           }
           else {
-            counts[c] = (int) (long) resultBatch.rowsAffected;
+            counts[c] = (int) (long) resultBatch.getRowsAffected();
           }
 
           if (wantsGeneratedKeys) {
-            generatedKeys.add(resultBatch.results.get(0));
+            generatedKeys.add(resultBatch.getResults().get(0));
           }
 
           c++;

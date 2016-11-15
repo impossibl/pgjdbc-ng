@@ -48,7 +48,7 @@ import static org.junit.Assert.fail;
 public class TablesTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQL() {

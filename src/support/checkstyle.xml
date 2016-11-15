@@ -67,6 +67,12 @@
     </module>
     <module name="WhitespaceAround"/>
 
+    <!-- Visibility modifiers -->
+    <module name="VisibilityModifier">
+      <property name="packageAllowed" value ="true"/>
+      <property name="protectedAllowed" value ="true"/>
+    </module>
+
     <!-- Don't allow empty blocks -->
     <module name="EmptyBlock">
       <property name="option" value="text"/>

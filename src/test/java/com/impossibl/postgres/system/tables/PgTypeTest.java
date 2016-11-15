@@ -43,7 +43,7 @@ import static org.junit.Assert.*;
 public class PgTypeTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQLVersionEqual() throws Exception {
@@ -99,9 +99,7 @@ public class PgTypeTest {
 
   private PgType.Row createRow(int oid) {
     PgType.Row pgTypeRow = new PgType.Row();
-
-    pgTypeRow.oid = oid;
-
+    pgTypeRow.setOid(oid);
     return pgTypeRow;
   }
 

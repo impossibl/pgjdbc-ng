@@ -124,8 +124,40 @@ public abstract class Type {
       void encode(Type type, Object buffer, Object value, Context context) throws IOException;
     }
 
-    public Decoder decoder;
-    public Encoder encoder;
+    private Decoder decoder;
+    private Encoder encoder;
+
+    /**
+     * Set the encoder
+     * @param v The value
+     */
+    public void setEncoder(Encoder v) {
+      encoder = v;
+    }
+
+    /**
+     * Get the encoder
+     * @return The value
+     */
+    public Encoder getEncoder() {
+      return encoder;
+    }
+
+    /**
+     * Set the decoder
+     * @param v The value
+     */
+    public void setDecoder(Decoder v) {
+      decoder = v;
+    }
+
+    /**
+     * Get the decoder
+     * @return The value
+     */
+    public Decoder getDecoder() {
+      return decoder;
+    }
   }
 
   private int id;
@@ -292,7 +324,7 @@ public abstract class Type {
   }
 
   public boolean isParameterFormatSupported(Format format) {
-    return getCodec(format).encoder.getOutputPrimitiveType() != PrimitiveType.Unknown;
+    return getCodec(format).getEncoder().getOutputPrimitiveType() != PrimitiveType.Unknown;
   }
 
   public Format getParameterFormat() {
@@ -328,20 +360,20 @@ public abstract class Type {
    */
   public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
 
-    id = source.oid;
-    name = source.name;
-    namespace = source.namespace;
-    length = source.length != -1 ? source.length : null;
-    alignment = getAlignment(source.alignment != null ? source.alignment.charAt(0) : null);
-    category = Category.findValue(source.category);
-    delimeter = source.deliminator != null ? source.deliminator.charAt(0) : null;
-    arrayTypeId = source.arrayTypeId;
-    relationId = source.relationId;
+    id = source.getOid();
+    name = source.getName();
+    namespace = source.getNamespace();
+    length = source.getLength() != -1 ? source.getLength() : null;
+    alignment = getAlignment(source.getAlignment() != null ? source.getAlignment().charAt(0) : null);
+    category = Category.findValue(source.getCategory());
+    delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
+    arrayTypeId = source.getArrayTypeId();
+    relationId = source.getRelationId();
     codecs = new Codec[] {
-        registry.loadCodec(source.inputId, source.outputId, Format.Text),
-        registry.loadCodec(source.receiveId, source.sendId, Format.Binary),
+      registry.loadCodec(source.getInputId(), source.getOutputId(), Format.Text),
+      registry.loadCodec(source.getReceiveId(), source.getSendId(), Format.Binary),
     };
-    modifierParser = registry.loadModifierParser(source.modInId, source.modOutId);
+    modifierParser = registry.loadModifierParser(source.getModInId(), source.getModOutId());
   }
 
   /**

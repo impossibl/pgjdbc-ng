@@ -159,7 +159,7 @@ public class Arrays extends SimpleProcProvider {
 
       for (int c = 0; c < len; ++c) {
 
-        Array.set(inst, c, type.getBinaryCodec().decoder.decode(type, null, null, buffer, context));
+        Array.set(inst, c, type.getBinaryCodec().getDecoder().decode(type, null, null, buffer, context));
 
       }
 
@@ -238,7 +238,7 @@ public class Arrays extends SimpleProcProvider {
 
     void writeArray(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
 
-      if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().encoder.getInputType().isArray()) {
+      if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().getEncoder().getInputType().isArray()) {
 
         writeSubArray(buffer, type, val, context);
       }
@@ -255,7 +255,7 @@ public class Arrays extends SimpleProcProvider {
 
       for (int c = 0; c < len; ++c) {
 
-        type.getBinaryCodec().encoder.encode(type, buffer, Array.get(val, c), context);
+        type.getBinaryCodec().getEncoder().encode(type, buffer, Array.get(val, c), context);
       }
 
     }
@@ -424,7 +424,7 @@ public class Arrays extends SimpleProcProvider {
       if (elementTxt.equals("NULL")) {
         return null;
       }
-      return type.getCodec(Format.Text).decoder.decode(type, null, null, elementTxt, context);
+      return type.getCodec(Format.Text).getDecoder().decode(type, null, null, elementTxt, context);
     }
 
   }
@@ -459,7 +459,7 @@ public class Arrays extends SimpleProcProvider {
 
     void writeArray(StringBuilder out, char delim, Type type, Object val, Context context) throws IOException {
 
-      TextEncoder encoder = (TextEncoder) type.getCodec(Format.Text).encoder;
+      TextEncoder encoder = (TextEncoder) type.getCodec(Format.Text).getEncoder();
 
       out.append('{');
 
@@ -523,7 +523,7 @@ public class Arrays extends SimpleProcProvider {
   }
 
   public static int getDimensions(Class<?> type, Type elementType) {
-    if (type.isArray() && type != elementType.getBinaryCodec().encoder.getInputType())
+    if (type.isArray() && type != elementType.getBinaryCodec().getEncoder().getInputType())
       return 1 + getDimensions(type.getComponentType(), elementType);
     return 0;
   }

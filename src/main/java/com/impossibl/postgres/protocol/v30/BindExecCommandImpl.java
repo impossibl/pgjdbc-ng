@@ -30,7 +30,6 @@ package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.BufferedDataRow;
-import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
@@ -77,25 +76,25 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     public void rowDescription(List<ResultField> newResultFields) {
       resultFields = newResultFields;
       resultFieldFormats = getResultFieldFormats(newResultFields);
-      resultBatch.fields = newResultFields;
-      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<DataRow>() : null;
+      resultBatch.setFields(newResultFields);
+      resultBatch.resetResults(true);
     }
 
     @Override
     public void noData() {
-      resultBatch.fields = Collections.emptyList();
-      resultBatch.results = null;
+      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.resetResults(false);
     }
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-      resultBatch.results.add(BufferedDataRow.parse(buffer, resultFields, parsingContext));
+      resultBatch.addResult(BufferedDataRow.parse(buffer, resultFields, parsingContext));
     }
 
     @Override
     public void emptyQuery() {
-      resultBatch.fields = Collections.emptyList();
-      resultBatch.results = null;
+      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.resetResults(false);
       status = Status.Completed;
     }
 
@@ -108,9 +107,9 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     @Override
     public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
       status = Status.Completed;
-      resultBatch.command = command;
-      resultBatch.rowsAffected = rowsAffected;
-      resultBatch.insertedOid = oid;
+      resultBatch.setCommand(command);
+      resultBatch.setRowsAffected(rowsAffected);
+      resultBatch.setInsertedOid(oid);
 
       if (maxRows > 0) {
         notifyAll();
@@ -179,8 +178,8 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
   private void reset() {
     status = null;
     resultBatch = new ResultBatch();
-    resultBatch.fields = resultFields;
-    resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<DataRow>() : null;
+    resultBatch.setFields(resultFields);
+    resultBatch.resetResults(true);
   }
 
   @Override
@@ -278,8 +277,8 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     List<Format> resultFieldFormats = new ArrayList<>();
 
     for (ResultField resultField : resultFields) {
-      resultField.format = resultField.typeRef.get().getResultFormat();
-      resultFieldFormats.add(resultField.format);
+      resultField.setFormat(resultField.getTypeRef().get().getResultFormat());
+      resultFieldFormats.add(resultField.getFormat());
     }
 
     return resultFieldFormats;

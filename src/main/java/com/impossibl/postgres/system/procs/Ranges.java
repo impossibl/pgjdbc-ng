@@ -73,12 +73,12 @@ public class Ranges extends SimpleProcProvider {
 
         if (flags.hasLowerBound()) {
 
-          values[0] = baseType.getBinaryCodec().decoder.decode(baseType, null, null, buffer, context);
+          values[0] = baseType.getBinaryCodec().getDecoder().decode(baseType, null, null, buffer, context);
         }
 
         if (flags.hasUpperBound()) {
 
-          values[1] = baseType.getBinaryCodec().decoder.decode(baseType, null, null, buffer, context);
+          values[1] = baseType.getBinaryCodec().getDecoder().decode(baseType, null, null, buffer, context);
         }
 
         instance = new Range<>(flags, values);
@@ -119,12 +119,12 @@ public class Ranges extends SimpleProcProvider {
 
         if (range.getFlags().hasLowerBound()) {
 
-          baseType.getBinaryCodec().encoder.encode(baseType, buffer, range.getLowerBound(), context);
+          baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, range.getLowerBound(), context);
         }
 
         if (range.getFlags().hasUpperBound()) {
 
-          baseType.getBinaryCodec().encoder.encode(baseType, buffer, range.getUpperBound(), context);
+          baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, range.getUpperBound(), context);
         }
 
         // Set length
@@ -166,12 +166,12 @@ public class Ranges extends SimpleProcProvider {
 
       CharSequence lowerTxt = buffer.subSequence(1, findBound(buffer, 1));
       if (lowerTxt.length() != 0) {
-        lower = baseType.getTextCodec().decoder.decode(baseType, null, null, lowerTxt, context);
+        lower = baseType.getTextCodec().getDecoder().decode(baseType, null, null, lowerTxt, context);
       }
 
       CharSequence upperTxt = buffer.subSequence(2 + lowerTxt.length(), buffer.length() - 1);
       if (upperTxt.length() != 0) {
-        upper = baseType.getTextCodec().decoder.decode(baseType, null, null, upperTxt, context);
+        upper = baseType.getTextCodec().getDecoder().decode(baseType, null, null, upperTxt, context);
       }
 
       return Range.create(lower, lowerInc, upper, upperInc);
@@ -239,7 +239,7 @@ public class Ranges extends SimpleProcProvider {
 
       if (range.hasLowerBound()) {
         StringBuilder lowerBuffer = new StringBuilder();
-        baseType.getTextCodec().encoder.encode(baseType, lowerBuffer, range.getLowerBound(), context);
+        baseType.getTextCodec().getEncoder().encode(baseType, lowerBuffer, range.getLowerBound(), context);
         String lower = lowerBuffer.toString();
 
         if (needsQuotes(lower)) {
@@ -254,7 +254,7 @@ public class Ranges extends SimpleProcProvider {
 
       if (range.hasUpperBound()) {
         StringBuilder upperBuffer = new StringBuilder();
-        baseType.getTextCodec().encoder.encode(baseType, upperBuffer, range.getUpperBound(), context);
+        baseType.getTextCodec().getEncoder().encode(baseType, upperBuffer, range.getUpperBound(), context);
         String upper = upperBuffer.toString();
 
         if (needsQuotes(upper)) {

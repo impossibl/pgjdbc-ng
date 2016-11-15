@@ -69,15 +69,15 @@ public class Procs {
 
   public Codec loadNamedTextCodec(String baseName, Context context) {
     Codec codec = new Codec();
-    codec.encoder = loadEncoderProc(baseName + "in",  context, DEFAULT_ENCODERS[Format.Text.ordinal()]);
-    codec.decoder = loadDecoderProc(baseName + "out", context, DEFAULT_DECODERS[Format.Text.ordinal()]);
+    codec.setEncoder(loadEncoderProc(baseName + "in",  context, DEFAULT_ENCODERS[Format.Text.ordinal()]));
+    codec.setDecoder(loadDecoderProc(baseName + "out", context, DEFAULT_DECODERS[Format.Text.ordinal()]));
     return codec;
   }
 
   public Codec loadNamedBinaryCodec(String baseName, Context context) {
     Codec codec = new Codec();
-    codec.encoder = loadEncoderProc(baseName + "recv", context, DEFAULT_ENCODERS[Format.Binary.ordinal()]);
-    codec.decoder = loadDecoderProc(baseName + "send", context, DEFAULT_DECODERS[Format.Binary.ordinal()]);
+    codec.setEncoder(loadEncoderProc(baseName + "recv", context, DEFAULT_ENCODERS[Format.Binary.ordinal()]));
+    codec.setDecoder(loadDecoderProc(baseName + "send", context, DEFAULT_DECODERS[Format.Binary.ordinal()]));
     return codec;
   }
 

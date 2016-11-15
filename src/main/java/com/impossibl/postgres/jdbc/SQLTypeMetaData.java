@@ -101,7 +101,7 @@ class SQLTypeMetaData {
     if (relType != null && relAttrNum > 0) {
 
       CompositeType.Attribute attr = relType.getAttribute(relAttrNum);
-      if (attr != null && attr.autoIncrement)
+      if (attr != null && attr.isAutoIncrement())
         return true;
     }
     else if (type instanceof DomainType) {
@@ -121,10 +121,10 @@ class SQLTypeMetaData {
       CompositeType.Attribute attr = relType.getAttribute(relAttrNum);
       if (attr != null) {
 
-        if (attr.nullable && nullable == columnNullableUnknown) {
+        if (attr.isNullable() && nullable == columnNullableUnknown) {
           nullable = columnNullable;
         }
-        else if (!attr.nullable) {
+        else if (!attr.isNullable()) {
           nullable = columnNoNulls;
         }
 

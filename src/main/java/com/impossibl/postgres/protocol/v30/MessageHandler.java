@@ -45,7 +45,7 @@ public class MessageHandler extends ChannelInboundHandlerAdapter {
       protocol.dispatch(msg);
     }
     finally {
-      ReferenceCountUtil.release(msg.data);
+      ReferenceCountUtil.release(msg.getData());
     }
   }
 

@@ -43,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 public class PgProcTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQLVersionEqual() throws Exception {
@@ -66,8 +66,8 @@ public class PgProcTest {
     PgProc.Row one = new PgProc.Row();
     PgProc.Row two = PgProc.INSTANCE.createRow();
 
-    assertEquals(one.name, two.name);
-    assertEquals(one.oid, two.oid);
+    assertEquals(one.getName(), two.getName());
+    assertEquals(one.getOid(), two.getOid());
   }
 
   // copy-paste from PgProc.  Has to be a better way than this, but IDE and dp4j don't seem to get along.

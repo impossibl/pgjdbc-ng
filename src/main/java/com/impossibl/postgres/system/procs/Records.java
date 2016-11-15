@@ -104,14 +104,14 @@ public class Records extends SimpleProcProvider {
           if (compType != null) {
 
             Attribute attribute = compType.getAttribute(c + 1);
-            if (attributeType.getId() != attribute.type.getId()) {
+            if (attributeType.getId() != attribute.getType().getId()) {
 
               context.refreshType(attributeType.getId());
             }
 
           }
 
-          Object attributeVal = attributeType.getBinaryCodec().decoder.decode(attributeType, null, null, buffer, context);
+          Object attributeVal = attributeType.getBinaryCodec().getDecoder().decode(attributeType, null, null, buffer, context);
 
           attributeVals[c] = attributeVal;
         }
@@ -161,13 +161,13 @@ public class Records extends SimpleProcProvider {
 
         for (Attribute attribute : attributes) {
 
-          Type attributeType = attribute.type;
+          Type attributeType = attribute.getType();
 
           buffer.writeInt(attributeType.getId());
 
-          Object attributeVal = attributeVals[attribute.number - 1];
+          Object attributeVal = attributeVals[attribute.getNumber() - 1];
 
-          attributeType.getBinaryCodec().encoder.encode(attributeType, buffer, attributeVal, context);
+          attributeType.getBinaryCodec().getEncoder().encode(attributeType, buffer, attributeVal, context);
         }
 
         //Set length
@@ -232,7 +232,7 @@ public class Records extends SimpleProcProvider {
 
           case ')':
             if (elementTxt != null) {
-              fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).type, context));
+              fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).getType(), context));
             }
             break scan;
 
@@ -251,7 +251,7 @@ public class Records extends SimpleProcProvider {
 
             if (ch == delim) {
               if (elementTxt != null) {
-                fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).type, context));
+                fields.add(decode(elementTxt.toString(), type.getAttribute(fields.size() + 1).getType(), context));
               }
               elementTxt = null;
               break;
@@ -315,7 +315,7 @@ public class Records extends SimpleProcProvider {
       if (elementTxt.equals("NULL")) {
         return null;
       }
-      return type.getCodec(Format.Text).decoder.decode(type, null, null, elementTxt, context);
+      return type.getCodec(Format.Text).getDecoder().decode(type, null, null, elementTxt, context);
     }
 
   }
@@ -349,11 +349,11 @@ public class Records extends SimpleProcProvider {
 
         Attribute attr = type.getAttribute(c + 1);
 
-        Codec codec = attr.type.getCodec(Format.Text);
+        Codec codec = attr.getType().getCodec(Format.Text);
 
         StringBuilder attrOut = new StringBuilder();
 
-        codec.encoder.encode(attr.type, attrOut, vals[c], context);
+        codec.getEncoder().encode(attr.getType(), attrOut, vals[c], context);
 
         String attrStr = attrOut.toString();
 

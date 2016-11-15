@@ -638,8 +638,8 @@ public class ProtocolImpl implements Protocol {
 
       os.writeInt(16);
       os.writeInt(80877102);
-      os.writeInt(keyData.processId);
-      os.writeInt(keyData.secretKey);
+      os.writeInt(keyData.getProcessId());
+      os.writeInt(keyData.getSecretKey());
 
     }
     catch (IOException e) {
@@ -674,7 +674,7 @@ public class ProtocolImpl implements Protocol {
         Object paramValue = paramValues.get(c);
 
         Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
-        codec.encoder.encode(paramType, buffer, paramValue, context);
+        codec.getEncoder().encode(paramType, buffer, paramValue, context);
 
       }
     }
@@ -720,81 +720,81 @@ public class ProtocolImpl implements Protocol {
 
   public void dispatch(ResponseMessage msg) throws IOException {
 
-    switch (msg.id) {
+    switch (msg.getId()) {
       case AUTHENTICATION_MSG_ID:
-        receiveAuthentication(msg.data);
+        receiveAuthentication(msg.getData());
         break;
 
       case BACKEND_KEY_MSG_ID:
-        receiveBackendKeyData(msg.data);
+        receiveBackendKeyData(msg.getData());
         break;
 
       case PARAMETER_DESC_MSG_ID:
-        receiveParameterDescriptions(msg.data);
+        receiveParameterDescriptions(msg.getData());
         break;
 
       case ROW_DESC_MSG_ID:
-        receiveRowDescription(msg.data);
+        receiveRowDescription(msg.getData());
         break;
 
       case ROW_DATA_MSG_ID:
-        receiveRowData(msg.data);
+        receiveRowData(msg.getData());
         break;
 
       case PORTAL_SUSPENDED_MSG_ID:
-        receivePortalSuspended(msg.data);
+        receivePortalSuspended(msg.getData());
         break;
 
       case NO_DATA_MSG_ID:
-        receiveNoData(msg.data);
+        receiveNoData(msg.getData());
         break;
 
       case PARSE_COMPLETE_MSG_ID:
-        receiveParseComplete(msg.data);
+        receiveParseComplete(msg.getData());
         break;
 
       case BIND_COMPLETE_MSG_ID:
-        receiveBindComplete(msg.data);
+        receiveBindComplete(msg.getData());
         break;
 
       case CLOSE_COMPLETE_MSG_ID:
-        receiveCloseComplete(msg.data);
+        receiveCloseComplete(msg.getData());
         break;
 
       case EMPTY_QUERY_MSG_ID:
-        receiveEmptyQuery(msg.data);
+        receiveEmptyQuery(msg.getData());
         break;
 
       case FUNCTION_RESULT_MSG_ID:
-        receiveFunctionResult(msg.data);
+        receiveFunctionResult(msg.getData());
         break;
 
       case ERROR_MSG_ID:
-        receiveError(msg.data);
+        receiveError(msg.getData());
         break;
 
       case NOTICE_MSG_ID:
-        receiveNotice(msg.data);
+        receiveNotice(msg.getData());
         break;
 
       case NOTIFICATION_MSG_ID:
-        receiveNotification(msg.data);
+        receiveNotification(msg.getData());
         break;
 
       case COMMAND_COMPLETE_MSG_ID:
-        receiveCommandComplete(msg.data);
+        receiveCommandComplete(msg.getData());
         break;
 
       case PARAMETER_STATUS_MSG_ID:
-        receiveParameterStatus(msg.data);
+        receiveParameterStatus(msg.getData());
         break;
 
       case READY_FOR_QUERY_MSG_ID:
-        receiveReadyForQuery(msg.data);
+        receiveReadyForQuery(msg.getData());
         break;
 
       default:
-        logger.fine("unsupported message type: " + (msg.id & 0xff));
+        logger.fine("unsupported message type: " + (msg.getId() & 0xff));
     }
 
   }
@@ -929,14 +929,13 @@ public class ProtocolImpl implements Protocol {
 
     for (int c = 0; c < fieldCount; ++c) {
 
-      ResultField field = new ResultField();
-      field.name = readCString(buffer, context.getCharset());
-      field.relationId = buffer.readInt();
-      field.relationAttributeNumber = buffer.readUnsignedShort();
-      field.typeRef = TypeRef.from(buffer.readInt(), registry);
-      field.typeLength = buffer.readShort();
-      field.typeModifier = buffer.readInt();
-      field.format = ResultField.Format.values()[buffer.readUnsignedShort()];
+      ResultField field = new ResultField(readCString(buffer, context.getCharset()),
+                                          buffer.readInt(),
+                                          (short)buffer.readUnsignedShort(),
+                                          TypeRef.from(buffer.readInt(), registry),
+                                          buffer.readShort(),
+                                          buffer.readInt(),
+                                          ResultField.Format.values()[buffer.readUnsignedShort()]);
 
       fields.add(field);
     }

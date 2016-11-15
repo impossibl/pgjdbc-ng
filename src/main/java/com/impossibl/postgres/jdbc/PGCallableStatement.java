@@ -182,17 +182,17 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
         QueryCommand.ResultBatch returnValuesBatch = resultBatches.remove(0);
         try {
 
-          if (returnValuesBatch.fields.size() != outParameterTypes.size()) {
+          if (returnValuesBatch.getFields().size() != outParameterTypes.size()) {
             throw new SQLException("incorrect number of out parameters");
           }
 
-          if (!returnValuesBatch.results.isEmpty()) {
+          if (returnValuesBatch.getResults() != null && !returnValuesBatch.getResults().isEmpty()) {
 
-            DataRow returnValues = returnValuesBatch.results.get(0);
+            DataRow returnValues = returnValuesBatch.getResults().get(0);
 
             for (int c = 0; c < outParameterValues.size(); ++c) {
 
-              ResultField field = returnValuesBatch.fields.get(c);
+              ResultField field = returnValuesBatch.getFields().get(c);
 
               Object value;
               try {
@@ -202,8 +202,8 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
                 throw new PGSQLSimpleException("Error decoding column", e);
               }
 
-              outParameterNames.set(c, field.name);
-              outParameterTypes.set(c, field.typeRef.get());
+              outParameterNames.set(c, field.getName());
+              outParameterTypes.set(c, field.getTypeRef().get());
               outParameterValues.set(c, value);
             }
 

@@ -288,7 +288,7 @@ public class Registry {
       if (pgProc == null)
         return null;
 
-      return pgProc.name;
+      return pgProc.getName();
     }
     finally {
       lock.readLock().unlock();
@@ -310,7 +310,7 @@ public class Registry {
       if (pgProc == null)
         return 0;
 
-      return pgProc.oid;
+      return pgProc.getOid();
     }
     finally {
       lock.readLock().unlock();
@@ -341,16 +341,16 @@ public class Registry {
 
       //Remove attribute info for updating types
       for (PgType.Row pgType : pgTypeRows) {
-        pgAttrData.remove(pgType.relationId);
+        pgAttrData.remove(pgType.getRelationId());
       }
 
       //Add updated info
       for (PgAttribute.Row pgAttrRow : pgAttrRows) {
 
-        Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.relationId);
+        Collection<PgAttribute.Row> relRows = pgAttrData.get(pgAttrRow.getRelationId());
         if (relRows == null) {
           relRows = new HashSet<>();
-          pgAttrData.put(pgAttrRow.relationId, relRows);
+          pgAttrData.put(pgAttrRow.getRelationId(), relRows);
         }
 
         relRows.add(pgAttrRow);
@@ -361,8 +361,8 @@ public class Registry {
        */
 
       for (PgProc.Row pgProcRow : pgProcRows) {
-        pgProcData.put(pgProcRow.oid, pgProcRow);
-        pgProcNameMap.put(pgProcRow.name, pgProcRow);
+        pgProcData.put(pgProcRow.getOid(), pgProcRow);
+        pgProcNameMap.put(pgProcRow.getName(), pgProcRow);
       }
 
 
@@ -370,10 +370,10 @@ public class Registry {
        * Update type info
        */
       for (PgType.Row pgTypeRow : pgTypeRows) {
-        pgTypeData.put(pgTypeRow.oid, pgTypeRow);
-        oidMap.remove(pgTypeRow.oid);
-        nameMap.remove(pgTypeRow.name);
-        relIdMap.remove(pgTypeRow.relationId);
+        pgTypeData.put(pgTypeRow.getOid(), pgTypeRow);
+        oidMap.remove(pgTypeRow.getOid());
+        nameMap.remove(pgTypeRow.getName());
+        relIdMap.remove(pgTypeRow.getRelationId());
       }
 
     }
@@ -385,7 +385,7 @@ public class Registry {
      * (re)load all types just updated
      */
     for (PgType.Row pgType : pgTypeRows) {
-      loadType(pgType.oid);
+      loadType(pgType.getOid());
     }
 
   }
@@ -405,7 +405,7 @@ public class Registry {
       if (pgType == null)
         return null;
 
-      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.relationId);
+      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.getRelationId());
 
       Type type;
 
@@ -446,7 +446,7 @@ public class Registry {
       Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
       if (pgAttrs != null && !pgAttrs.isEmpty()) {
 
-        PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().relationTypeId);
+        PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().getRelationTypeId());
         if (pgType == null)
           return null;
 
@@ -459,7 +459,7 @@ public class Registry {
         }
 
         if (type != null) {
-          oidMap.put(pgType.oid, type);
+          oidMap.put(pgType.getOid(), type);
           nameMap.put(type.getName(), type);
           relIdMap.put(type.getRelationId(), type);
         }
@@ -480,16 +480,16 @@ public class Registry {
 
     Type type;
 
-    if (pgType.elementTypeId != 0 && pgType.category.equals("A")) {
+    if (pgType.getElementTypeId() != 0 && pgType.getCategory().equals("A")) {
 
       ArrayType array = new ArrayType();
-      array.setElementType(loadType(pgType.elementTypeId));
+      array.setElementType(loadType(pgType.getElementTypeId()));
 
       type = array;
     }
     else {
 
-      switch (pgType.discriminator.charAt(0)) {
+      switch (pgType.getDiscriminator().charAt(0)) {
         case 'b':
           type = new BaseType();
           break;
@@ -519,7 +519,7 @@ public class Registry {
 
       lock.writeLock().lock();
       try {
-        oidMap.put(pgType.oid, type);
+        oidMap.put(pgType.getOid(), type);
       }
       finally {
         lock.writeLock().unlock();
@@ -534,7 +534,7 @@ public class Registry {
 
       lock.writeLock().lock();
       try {
-        oidMap.remove(pgType.oid);
+        oidMap.remove(pgType.getOid());
       }
       finally {
         lock.writeLock().unlock();
@@ -554,8 +554,8 @@ public class Registry {
   public Codec loadCodec(int encoderId, int decoderId, Format format) {
 
     Codec io = new Codec();
-    io.decoder = loadDecoderProc(decoderId, procs.getDefaultDecoder(format));
-    io.encoder = loadEncoderProc(encoderId, procs.getDefaultEncoder(format));
+    io.setDecoder(loadDecoderProc(decoderId, procs.getDefaultDecoder(format)));
+    io.setEncoder(loadEncoderProc(encoderId, procs.getDefaultEncoder(format)));
     return io;
   }
 

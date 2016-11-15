@@ -59,8 +59,8 @@ public class TypeRef {
 
 class Locator {
 
-  public int typeId;
-  public Registry registry;
+  private int typeId;
+  private Registry registry;
 
   public Locator(int typeId, Registry registry) {
     this.typeId = typeId;

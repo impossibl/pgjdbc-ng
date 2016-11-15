@@ -61,7 +61,7 @@ public class Domains extends SimpleProcProvider {
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getBinaryCodec().encoder.encode(baseType, buffer, value, context);
+      baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, value, context);
     }
 
   }
@@ -84,7 +84,7 @@ public class Domains extends SimpleProcProvider {
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getTextCodec().encoder.encode(baseType, buffer, value, context);
+      baseType.getTextCodec().getEncoder().encode(baseType, buffer, value, context);
     }
 
   }

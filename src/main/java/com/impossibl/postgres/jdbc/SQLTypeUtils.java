@@ -251,7 +251,7 @@ class SQLTypeUtils {
     }
     else if (val instanceof String && sourceType.isParameterFormatSupported(Format.Text)) {
       try {
-        return sourceType.getCodec(Format.Text).decoder.decode(sourceType, sourceType.getLength(), null, val, connection);
+        return sourceType.getCodec(Format.Text).getDecoder().decode(sourceType, sourceType.getLength(), null, val, connection);
       }
       catch (IOException e) {
         // fall-thru
@@ -802,7 +802,7 @@ class SQLTypeUtils {
       final ByteBuf buffer = Unpooled.buffer();
 
       try {
-        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+        sourceType.getBinaryCodec().getEncoder().encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
         throw createCoercionException(val.getClass(), byte[].class, val);
@@ -846,9 +846,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof String) {
 
-      if (sourceType.isParameterFormatSupported(Format.Text) && sourceType.getTextCodec().decoder.getOutputType() == byte[].class) {
+      if (sourceType.isParameterFormatSupported(Format.Text) && sourceType.getTextCodec().getDecoder().getOutputType() == byte[].class) {
         try {
-          return (byte[]) sourceType.getTextCodec().decoder.decode(sourceType, sourceType.getLength(), null, val, context);
+          return (byte[]) sourceType.getTextCodec().getDecoder().decode(sourceType, sourceType.getLength(), null, val, context);
         }
         catch (IOException e) {
           throw createCoercionException(val.getClass(), byte[].class, val);
@@ -868,7 +868,7 @@ class SQLTypeUtils {
       ByteBuf buffer = Unpooled.buffer();
 
       try {
-        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+        sourceType.getBinaryCodec().getEncoder().encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
         throw createCoercionException(val.getClass(), byte[].class, val);
@@ -1075,7 +1075,7 @@ class SQLTypeUtils {
 
       for (int c = 0; c < attributeVals.length; ++c) {
 
-        Type attrType = compType.getAttribute(c + 1).type;
+        Type attrType = compType.getAttribute(c + 1).getType();
         Class<?> attrTargetType = mapSetType(format, attrType);
 
         attributeVals[c] = coerce(format, attributeVals[c], attrType, attrTargetType, typeMap, zone, connection);
@@ -1196,7 +1196,7 @@ class SQLTypeUtils {
   public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException {
     try {
       StringBuilder buffer = new StringBuilder();
-      type.getCodec(Format.Text).encoder.encode(type, buffer, val, context);
+      type.getCodec(Format.Text).getEncoder().encode(type, buffer, val, context);
       return buffer.toString();
     }
     catch (IOException e) {

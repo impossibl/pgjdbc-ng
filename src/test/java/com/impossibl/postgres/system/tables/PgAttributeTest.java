@@ -49,7 +49,7 @@ import static org.junit.Assert.assertTrue;
 public class PgAttributeTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQLVersionEqual() throws Exception {
@@ -139,19 +139,17 @@ public class PgAttributeTest {
                                     int numberOfDimensions,
                                     boolean hasDefault) {
     PgAttribute.Row pgAttrRow = new PgAttribute.Row();
-
-    pgAttrRow.relationTypeId = relationTypeId;
-    pgAttrRow.relationId = relationId;
-    pgAttrRow.name = name;
-    pgAttrRow.typeId = typeId;
-    pgAttrRow.typeModifier = typeModifier;
-    pgAttrRow.length = length;
-    pgAttrRow.number = number;
-    pgAttrRow.nullable = nullable;
-    pgAttrRow.autoIncrement = autoIncrement;
-    pgAttrRow.numberOfDimensions = numberOfDimensions;
-    pgAttrRow.hasDefault = hasDefault;
-
+    pgAttrRow.setRelationTypeId(relationTypeId);
+    pgAttrRow.setRelationId(relationId);
+    pgAttrRow.setName(name);
+    pgAttrRow.setTypeId(typeId);
+    pgAttrRow.setTypeModifier(typeModifier);
+    pgAttrRow.setLength(length);
+    pgAttrRow.setNumber(number);
+    pgAttrRow.setNullable(nullable);
+    pgAttrRow.setAutoIncrement(autoIncrement);
+    pgAttrRow.setNumberOfDimensions(numberOfDimensions);
+    pgAttrRow.setHasDefault(hasDefault);
     return pgAttrRow;
   }
 
