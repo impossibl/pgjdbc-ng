@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
@@ -108,6 +109,16 @@ public class NullByteBuf extends AbstractByteBuf {
 
   @Override
   public int getBytes(int index, GatheringByteChannel out, int length) throws IOException {
+    return 0;
+  }
+
+  @Override
+  public int getBytes(int index, FileChannel out, long position, int length) throws IOException {
+    return 0;
+  }
+
+  @Override
+  public int setBytes(int index, FileChannel in, long position, int length) throws IOException {
     return 0;
   }
 
@@ -222,6 +233,26 @@ public class NullByteBuf extends AbstractByteBuf {
   }
 
   @Override
+  protected short _getShortLE(int index) {
+    return 0;
+  }
+
+  @Override
+  protected int _getUnsignedMediumLE(int index) {
+    return 0;
+  }
+
+  @Override
+  protected int _getIntLE(int index) {
+    return 0;
+  }
+
+  @Override
+  protected long _getLongLE(int index) {
+    return 0;
+  }
+
+  @Override
   protected void _setByte(int index, int value) {
 
   }
@@ -243,6 +274,26 @@ public class NullByteBuf extends AbstractByteBuf {
 
   @Override
   protected void _setLong(int index, long value) {
+
+  }
+
+  @Override
+  protected void _setShortLE(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setMediumLE(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setIntLE(int index, int value) {
+
+  }
+
+  @Override
+  protected void _setLongLE(int index, long value) {
 
   }
 
@@ -309,5 +360,15 @@ public class NullByteBuf extends AbstractByteBuf {
   @Override
   public boolean release(int decrement) {
     return false;
+  }
+
+  @Override
+  public ByteBuf touch() {
+    return null;
+  }
+
+  @Override
+  public ByteBuf touch(Object hint) {
+    return null;
   }
 }
