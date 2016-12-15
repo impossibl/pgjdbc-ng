@@ -30,7 +30,6 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.utils.Factory;
-import com.impossibl.postgres.utils.Paths;
 
 import static com.impossibl.postgres.system.Settings.SSL_CERT_FILE;
 import static com.impossibl.postgres.system.Settings.SSL_CERT_FILE_DEFAULT;
@@ -39,9 +38,7 @@ import static com.impossibl.postgres.system.Settings.SSL_KEY_FILE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SSL_PASSWORD_CALLBACK;
 import static com.impossibl.postgres.system.Settings.SSL_PASSWORD_CALLBACK_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SSL_ROOT_CERT_FILE;
-import static com.impossibl.postgres.system.Settings.SSL_ROOT_CERT_FILE_DEFAULT;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -67,16 +64,13 @@ import javax.security.auth.callback.CallbackHandler;
 public class SSLEngineFactory {
 
 
-  private static final String TRUST_MANAGER_FACTORY_TYPE = "PKIX";
-  private static final String SSL_PROTOCOL = "TLS";
-  private static final String KEY_STORE_TYPE = "JKS";
-  private static final String SSL_DIR_NAME = "postgresql";
+  private static final String TRUST_MANAGER_FACTORY_TYPE = TrustManagerFactory.getDefaultAlgorithm();
+  private static final String SSLCONTEXT_PROTOCOL = "TLS";
+  private static final String KEY_STORE_TYPE = KeyStore.getDefaultType();
   private static final String CERTIFICATE_FACTORY_TYPE = "X.509";
 
 
   public static SSLEngine create(SSLMode sslMode, Context context) throws IOException {
-
-    String sslDir = Paths.getHome(SSL_DIR_NAME);
 
     /*
      * Load client's certificate and key file paths
@@ -145,40 +139,41 @@ public class SSLEngineFactory {
        */
 
       String sslRootCertFile = context.getSetting(SSL_ROOT_CERT_FILE, String.class);
-      if (sslRootCertFile == null) {
-        sslRootCertFile = sslDir + File.separator + SSL_ROOT_CERT_FILE_DEFAULT;
-      }
+      if (sslRootCertFile != null) {
 
-      try (FileInputStream sslRootCertInputStream = new FileInputStream(sslRootCertFile)) {
+        try (FileInputStream sslRootCertInputStream = new FileInputStream(sslRootCertFile)) {
 
-        try {
+          try {
 
-          CertificateFactory certificateFactory = CertificateFactory.getInstance(CERTIFICATE_FACTORY_TYPE);
+            CertificateFactory certificateFactory = CertificateFactory.getInstance(CERTIFICATE_FACTORY_TYPE);
 
-          Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(sslRootCertInputStream);
+            Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(sslRootCertInputStream);
 
-          keyStore.load(null, null);
+            keyStore.load(null, null);
 
-          Iterator<? extends Certificate> certificatesIter = certificates.iterator();
-          for (int i = 0; certificatesIter.hasNext(); ++i) {
-            keyStore.setCertificateEntry("cert" + i, certificatesIter.next());
+            Iterator<? extends Certificate> certificatesIter = certificates.iterator();
+            for (int i = 0; certificatesIter.hasNext(); ++i) {
+              keyStore.setCertificateEntry("cert" + i, certificatesIter.next());
+            }
+
+            trustManagerFactory.init(keyStore);
+          }
+          catch (GeneralSecurityException e) {
+            throw new IOException("loading SSL root certificate failed", e);
           }
 
-          trustManagerFactory.init(keyStore);
         }
-        catch (GeneralSecurityException e) {
-          throw new IOException("loading SSL root certificate failed", e);
+        catch (FileNotFoundException e) {
+          throw new IOException("cannot not open SSL root certificate file " + sslRootCertFile, e);
+        }
+        catch (IOException e1) {
+          // Ignore...
         }
 
+        trustManagers = trustManagerFactory.getTrustManagers();
+      } else {
+        trustManagers = null;
       }
-      catch (FileNotFoundException e) {
-        throw new IOException("cannot not open SSL root certificate file " + sslRootCertFile, e);
-      }
-      catch (IOException e1) {
-        // Ignore...
-      }
-
-      trustManagers = trustManagerFactory.getTrustManagers();
     }
     else {
 
@@ -191,7 +186,7 @@ public class SSLEngineFactory {
 
     SSLContext sslContext;
     try {
-      sslContext = SSLContext.getInstance(SSL_PROTOCOL);
+      sslContext = SSLContext.getInstance(SSLCONTEXT_PROTOCOL);
     }
     catch (NoSuchAlgorithmException e) {
       throw new IOException("ssl context not available", e);
