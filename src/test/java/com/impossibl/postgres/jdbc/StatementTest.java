@@ -609,4 +609,28 @@ public class StatementTest {
 
     ((PGConnection)con).setDefaultFetchSize(oldValue);
   }
+
+  @Test
+  public void testQuestionMarkExcaping() throws SQLException {
+    if (!((PGConnection)con).isServerMinimumVersion(9, 4))
+      return;
+
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '{\"a\":1, \"b\":2}'::jsonb ?? 'b'");
+    assertTrue(rs.next());
+    assertEquals(true, rs.getBoolean(1));
+    rs.close();
+
+    rs = stmt.executeQuery("SELECT '{\"a\":1, \"b\":2, \"c\":3}'::jsonb ?| array['b', 'd']");
+    assertTrue(rs.next());
+    assertEquals(true, rs.getBoolean(1));
+    rs.close();
+
+    rs = stmt.executeQuery("SELECT '{\"a\":1, \"b\":2, \"c\":3}'::jsonb ?& array['b', 'd']");
+    assertTrue(rs.next());
+    assertEquals(false, rs.getBoolean(1));
+    rs.close();
+
+    stmt.close();
+  }
 }

@@ -128,8 +128,22 @@ public class SQLText {
             ndx = consumeQuotedIdentifier(sql, ndx, parents.peek());
             continue;
           case '?':
-            ParameterPiece parameterPiece = new ParameterPiece(paramId++, ndx);
-            parents.peek().add(parameterPiece);
+            char nextChar = lookAhead(sql, ndx);
+            if (nextChar == '|' || nextChar == '&' || nextChar == '?') {
+              final GrammarPiece grammarPiece;
+              if (nextChar == '?') {
+                grammarPiece = new GrammarPiece("?", ndx);
+              }
+              else {
+                grammarPiece = new GrammarPiece("?" + nextChar, ndx);
+              }
+              parents.peek().add(grammarPiece);
+              ++ndx;
+            }
+            else {
+              ParameterPiece parameterPiece = new ParameterPiece(paramId++, ndx);
+              parents.peek().add(parameterPiece);
+            }
             break;
           case '$':
             ndx = consumeDollar(sql, ndx, parents.peek());
