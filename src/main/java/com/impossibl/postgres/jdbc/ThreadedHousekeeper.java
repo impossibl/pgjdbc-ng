@@ -120,7 +120,10 @@ public class ThreadedHousekeeper implements Housekeeper {
 
       if (logLeaks) {
         String allocationTrace = printStackTrace(getSimplifiedAllocationStackTrace());
-        logger.log(Level.WARNING, "cleaning up leaked " + cleanup.getKind() + "\n" + allocationTrace);
+        logger.log(
+            Level.WARNING,
+            "Cleaning up leaked " + cleanup.getKind() + "\n"
+                + "Allocation occurred @\n" + allocationTrace);
       }
 
       cleanup.run();
