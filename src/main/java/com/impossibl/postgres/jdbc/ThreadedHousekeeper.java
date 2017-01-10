@@ -189,6 +189,8 @@ public class ThreadedHousekeeper implements Housekeeper {
           continue;
         }
 
+        ref.clear();
+
         try {
           ref.cleanup();
         }
@@ -249,6 +251,7 @@ public class ThreadedHousekeeper implements Housekeeper {
     while (refIter.hasNext()) {
       HousekeeperReference<?> ref = refIter.next();
       if (ref.cleanup == cleanupKey) {
+        ref.clear();
         refIter.remove();
         return;
       }
