@@ -492,7 +492,7 @@ public class CursorFetchTest {
   public void testGetRow() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setFetchSize(1);
-    ResultSet rs = stmt.executeQuery("SELECT 1 UNION SELECT 2 UNION SELECT 3");
+    ResultSet rs = stmt.executeQuery("SELECT 1 AS id UNION SELECT 2 AS id UNION SELECT 3 AS id ORDER BY id");
     int count = 0;
     while (rs.next()) {
       count++;
