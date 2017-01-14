@@ -38,11 +38,13 @@ public class BlobInputStream extends InputStream {
 
   private static final int MAX_BUF_SIZE = 8 * 1024;
 
+  PGBlob owner;
   LargeObject lo;
   byte[] buf = {};
   int pos = 0;
 
-  public BlobInputStream(LargeObject lo) {
+  public BlobInputStream(PGBlob owner, LargeObject lo) {
+    this.owner = owner;
     this.lo = lo;
   }
 
@@ -90,6 +92,25 @@ public class BlobInputStream extends InputStream {
     }
 
     return len - left;
+  }
+
+  @Override
+  public void close() throws IOException {
+    if (lo == null) {
+      return;
+    }
+
+    try {
+      lo.close();
+    }
+    catch (SQLException e) {
+      throw new IOException("Error closing stream", e);
+    }
+    if (owner != null) {
+      owner.removeStream(lo);
+    }
+    owner = null;
+    lo = null;
   }
 
   public void readNextRegion() throws IOException {

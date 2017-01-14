@@ -38,11 +38,13 @@ public class ClobReader extends Reader {
 
   private static final int MAX_BUF_SIZE = 8 * 1024;
 
+  PGClob owner;
   LargeObject lo;
   byte[] buf = {};
   int pos = 0;
 
-  public ClobReader(LargeObject lo) {
+  public ClobReader(PGClob owner, LargeObject lo) {
+    this.owner = owner;
     this.lo = lo;
   }
 
@@ -80,6 +82,25 @@ public class ClobReader extends Reader {
     return len != left ? len - left : -1;
   }
 
+  @Override
+  public void close() throws IOException {
+    if (lo == null) {
+      return;
+    }
+
+    try {
+      lo.close();
+    }
+    catch (SQLException e) {
+      throw new IOException("Error closing stream", e);
+    }
+    if (owner != null) {
+      owner.removeStream(lo);
+    }
+    owner = null;
+    lo = null;
+  }
+
   public void readNextRegion() throws IOException {
     try {
       buf = lo.read(MAX_BUF_SIZE);
@@ -91,10 +112,6 @@ public class ClobReader extends Reader {
     catch (SQLException e) {
       throw new IOException(e);
     }
-  }
-
-  @Override
-  public void close() throws IOException {
   }
 
 }
