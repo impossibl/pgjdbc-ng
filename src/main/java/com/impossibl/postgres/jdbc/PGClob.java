@@ -136,7 +136,7 @@ public class PGClob implements Clob {
 
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
-    return new ClobReader(streamLo);
+    return new ClobReader(this, streamLo);
   }
 
   @Override
@@ -147,7 +147,7 @@ public class PGClob implements Clob {
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
     streamLo.lseek((pos - 1) * CHAR_SIZE, LargeObject.SEEK_SET);
-    return CharStreams.limit(new ClobReader(streamLo), length * CHAR_SIZE);
+    return CharStreams.limit(new ClobReader(this, streamLo), length * CHAR_SIZE);
   }
 
   @Override

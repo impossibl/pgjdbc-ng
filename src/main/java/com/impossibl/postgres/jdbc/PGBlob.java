@@ -120,7 +120,7 @@ public class PGBlob implements Blob {
 
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
-    return new BlobInputStream(streamLo);
+    return new BlobInputStream(this, streamLo);
   }
 
   @Override
@@ -131,7 +131,7 @@ public class PGBlob implements Blob {
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
     streamLo.lseek(pos - 1, LargeObject.SEEK_SET);
-    return ByteStreams.limit(new BlobInputStream(streamLo), length);
+    return ByteStreams.limit(new BlobInputStream(this, streamLo), length);
   }
 
   @Override

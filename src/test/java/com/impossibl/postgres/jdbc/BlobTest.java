@@ -1106,6 +1106,8 @@ public class BlobTest {
     assertEquals(-1, in.read());
     assertEquals(-1, in.read(new byte[4], 0, 4));
 
+    in.close();
+    blob.free();
     rs.close();
     stmt.close();
   }
@@ -1126,6 +1128,8 @@ public class BlobTest {
     assertEquals(-1, in.read());
     assertEquals(-1, in.read(new char[4], 0, 4));
 
+    in.close();
+    clob.free();
     rs.close();
     stmt.close();
   }
