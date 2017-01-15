@@ -47,4 +47,8 @@ public class ParsedDataRow implements DataRow {
   public void release() {
   }
 
+  @Override
+  public void touch() {
+  }
+
 }

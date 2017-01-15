@@ -110,6 +110,14 @@ public interface QueryCommand extends Command {
       resetResults(false);
     }
 
+    public void touch() {
+      if (results != null) {
+        for (DataRow row : results) {
+          row.touch();
+        }
+      }
+    }
+
     public static List<ResultBatch> releaseResultBatches(List<ResultBatch> resultBatches) {
       if (resultBatches != null) {
         for (ResultBatch resultBatch : resultBatches) {

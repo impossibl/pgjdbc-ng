@@ -36,4 +36,6 @@ public interface DataRow {
 
   void release();
 
+  void touch();
+
 }

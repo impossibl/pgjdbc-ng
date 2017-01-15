@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ResourceLeakDetector;
 
 class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
@@ -160,6 +161,16 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
     enableCancelTimer(protocol, queryTimeout);
 
     waitFor(listener);
+
+    if (ResourceLeakDetector.getLevel().compareTo(ResourceLeakDetector.Level.SIMPLE) > 0) {
+      // Touch results batches (and therefore DataRows) in the
+      // correct thread to make debugging leaks easier.
+      if (resultBatches != null) {
+        for (ResultBatch resultBatch : resultBatches) {
+          resultBatch.touch();
+        }
+      }
+    }
   }
 
   @Override
