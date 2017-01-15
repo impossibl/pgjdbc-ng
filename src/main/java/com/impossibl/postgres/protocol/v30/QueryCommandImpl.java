@@ -145,10 +145,15 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
     protocol.setListener(listener);
 
     ByteBuf msg = protocol.channel.alloc().buffer();
+    try {
+      protocol.writeQuery(msg, command);
 
-    protocol.writeQuery(msg, command);
-
-    protocol.writeSync(msg);
+      protocol.writeSync(msg);
+    }
+    catch (Throwable t) {
+      msg.release();
+      throw t;
+    }
 
     protocol.send(msg);
 
