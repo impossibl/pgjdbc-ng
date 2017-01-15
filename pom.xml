@@ -234,6 +234,30 @@
     </plugins>
   </reporting>
 
+  <profiles>
+    <profile>
+      <id>leakCheck</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.18.1</version>
+            <configuration>
+              <properties>
+                <property>
+                  <name>listener</name>
+                  <value>com.impossibl.postgres.jdbc.util.VerboseTestInformation</value>
+                </property>
+              </properties>
+              <argLine>-Dio.netty.leakDetection.level=paranoid -Dio.netty.leakDetection.maxRecords=10</argLine>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <name>PGJDBC-NG</name>
   <url>http://impossibl.github.io/pgjdbc-ng/</url>
   <description>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres.
