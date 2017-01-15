@@ -835,7 +835,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof InputStream) {
       try {
-        return ByteStreams.toByteArray((InputStream) val);
+        try (InputStream is = (InputStream) val) {
+          return ByteStreams.toByteArray(is);
+        }
       }
       catch (IOException e) {
         throw new SQLException(e);
