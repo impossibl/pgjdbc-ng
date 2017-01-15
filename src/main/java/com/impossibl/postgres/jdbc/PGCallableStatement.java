@@ -482,11 +482,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public byte[] getBytes(int parameterIndex) throws SQLException {
     checkClosed();
 
-    InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection);
-    if (data == null)
-      return null;
+    try (InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection)) {
 
-    try {
+      if (data == null)
+        return null;
+
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {
