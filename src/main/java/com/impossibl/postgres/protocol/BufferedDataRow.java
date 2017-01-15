@@ -69,6 +69,13 @@ public class BufferedDataRow implements DataRow {
     buffer.release();
   }
 
+  @Override
+  public void touch() {
+    if (buffer != null) {
+      buffer.touch();
+    }
+  }
+
   public static BufferedDataRow parse(ByteBuf buffer, List<ResultField> columns, Context parsingContext) {
 
     int columnsCount = buffer.readUnsignedShort();

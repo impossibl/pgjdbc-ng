@@ -49,6 +49,7 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ResourceLeakDetector;
 
 
 class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
@@ -277,6 +278,13 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
     waitFor(listener);
 
+    if (ResourceLeakDetector.getLevel().compareTo(ResourceLeakDetector.Level.SIMPLE) > 0) {
+      // Touch results batches (and therefore DataRows) in the
+      // correct thread to make debugging leaks easier.
+      if (resultBatch != null) {
+        resultBatch.touch();
+      }
+    }
   }
 
   private static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
