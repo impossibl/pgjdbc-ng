@@ -40,6 +40,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -254,7 +255,6 @@ class PGSimpleStatement extends PGStatement {
       }
 
       execute(batchCommands);
-
       counts = new int[resultBatches.size()];
 
       for (c = 0; c < resultBatches.size(); ++c) {
@@ -283,9 +283,9 @@ class PGSimpleStatement extends PGStatement {
     }
     finally {
 
+      resultBatches = releaseResultBatches(resultBatches);
       batchCommands = null;
       command = null;
-      resultBatches = null;
     }
 
   }
