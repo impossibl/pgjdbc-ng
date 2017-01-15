@@ -240,28 +240,35 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     protocol.setListener(listener);
 
     ByteBuf msg = protocol.channel.alloc().buffer(DEFAULT_MESSAGE_SIZE);
+    try {
 
-    if (status != Status.Suspended) {
+      if (status != Status.Suspended) {
 
-      protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+
+      }
+
+      reset();
+
+      if (resultFields == null) {
+
+        protocol.writeDescribe(msg, Portal, portalName);
+
+      }
+
+      protocol.writeExecute(msg, portalName, maxRows);
+
+      if (maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+        protocol.writeFlush(msg);
+      }
+      else {
+        protocol.writeSync(msg);
+      }
 
     }
-
-    reset();
-
-    if (resultFields == null) {
-
-      protocol.writeDescribe(msg, Portal, portalName);
-
-    }
-
-    protocol.writeExecute(msg, portalName, maxRows);
-
-    if (maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
-      protocol.writeFlush(msg);
-    }
-    else {
-      protocol.writeSync(msg);
+    catch (Throwable t) {
+      msg.release();
+      throw t;
     }
 
     protocol.send(msg);
