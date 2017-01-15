@@ -142,7 +142,7 @@ public class PGArray implements Array {
 
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(Arrays.asList(fields), results, map);
+    return stmt.createResultSet(Arrays.asList(fields), results, false);
   }
 
   @Override

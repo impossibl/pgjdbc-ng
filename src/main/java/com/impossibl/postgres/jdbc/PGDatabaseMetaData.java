@@ -125,7 +125,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(resultFields, dataRows);
+    return stmt.createResultSet(resultFields, dataRows, false);
   }
 
   private int getMaxNameLength() throws SQLException {

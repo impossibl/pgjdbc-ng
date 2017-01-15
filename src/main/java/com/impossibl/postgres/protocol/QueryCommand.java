@@ -109,6 +109,15 @@ public interface QueryCommand extends Command {
     public void release() {
       resetResults(false);
     }
+
+    public static List<ResultBatch> releaseResultBatches(List<ResultBatch> resultBatches) {
+      if (resultBatches != null) {
+        for (ResultBatch resultBatch : resultBatches) {
+          resultBatch.release();
+        }
+      }
+      return null;
+    }
   }
 
   void setQueryTimeout(long timeout);

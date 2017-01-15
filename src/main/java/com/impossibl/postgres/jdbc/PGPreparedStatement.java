@@ -51,6 +51,7 @@ import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -375,23 +376,30 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           warningChain = chainWarnings(warningChain, warnings);
 
           List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-          if (resultBatches.size() != 1) {
-            throw new BatchUpdateException(counts);
-          }
+          try {
 
-          QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-          if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
-            throw new SQLException("SELECT in executeBatch");
-          }
-          if (resultBatch.getRowsAffected() == null) {
-            counts[c] = 0;
-          }
-          else {
-            counts[c] = (int) (long) resultBatch.getRowsAffected();
-          }
+            if (resultBatches.size() != 1) {
+              throw new BatchUpdateException("Query generated multiple result sets", counts);
+            }
 
-          if (wantsGeneratedKeys) {
-            generatedKeys.add(resultBatch.getResults().get(0));
+            QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+            if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
+              throw new SQLException("SELECT in executeBatch");
+            }
+            if (resultBatch.getRowsAffected() == null) {
+              counts[c] = 0;
+            }
+            else {
+              counts[c] = (int) (long) resultBatch.getRowsAffected();
+            }
+
+            if (wantsGeneratedKeys) {
+              generatedKeys.add(resultBatch.getResults().remove(0));
+            }
+          }
+          finally {
+            releaseResultBatches(resultBatches);
           }
 
           c++;
@@ -407,7 +415,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         throw new BatchUpdateException(updateCounts, se);
       }
 
-      generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys);
+      generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys, true);
 
       return counts;
 

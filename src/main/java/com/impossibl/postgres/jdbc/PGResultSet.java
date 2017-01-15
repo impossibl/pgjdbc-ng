@@ -184,9 +184,9 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
+  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) throws SQLException {
     this(statement, null);
-    this.scroller = new ListScroller(resultFields, results);
+    this.scroller = new ListScroller(resultFields, results, releaseResults);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
       if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
@@ -1774,15 +1774,29 @@ class ListScroller extends Scroller {
   int currentRowIndex = -1;
   List<DataRow> results;
   List<ResultField> resultFields;
+  boolean releaseResults;
 
   @SuppressWarnings("unchecked")
-  ListScroller(List<ResultField> resultFields, List<DataRow> results) {
+  ListScroller(List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) {
     this.resultFields = resultFields;
+    this.results = results;
+    this.releaseResults = releaseResults;
+  }
+
+  void setResults(List<DataRow> results) {
+    if (this.results != null) {
+      for (DataRow dataRow : this.results) {
+        dataRow.release();
+      }
+    }
     this.results = results;
   }
 
   @Override
   void close() throws SQLException {
+    if (releaseResults) {
+      setResults(null);
+    }
   }
 
   @Override
@@ -1932,24 +1946,14 @@ class CommandScroller extends ListScroller {
   QueryCommand command;
 
   CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) {
-    super(resultFields, results);
+    super(resultFields, results, true);
     this.resultSet = resultSet;
     this.command = command;
-  }
-
-  void setResults(List<DataRow> results) {
-    if (this.results != null) {
-      for (DataRow dataRow : this.results) {
-        dataRow.release();
-      }
-    }
-    this.results = results;
   }
 
   @Override
   void close() throws SQLException {
     super.close();
-    setResults(null);
     resultSet.statement.dispose(command);
   }
 

@@ -43,6 +43,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.lang.ref.WeakReference;
@@ -55,7 +56,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -201,15 +201,6 @@ abstract class PGStatement implements Statement {
 
   }
 
-  void releaseResultBatches() {
-    if (resultBatches != null) {
-      for (QueryCommand.ResultBatch resultBatch : resultBatches) {
-        resultBatch.release();
-      }
-      resultBatches = null;
-    }
-  }
-
   /**
    * Closes the given list of result-sets
    *
@@ -301,7 +292,7 @@ abstract class PGStatement implements Statement {
   void internalClose() throws SQLException {
 
     closeResultSets();
-    releaseResultBatches();
+    resultBatches = releaseResultBatches(resultBatches);
 
     if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
       dispose(connection, Statement, name);
@@ -338,7 +329,7 @@ abstract class PGStatement implements Statement {
   public boolean executeSimple(String sql) throws SQLException {
 
     closeResultSets();
-    releaseResultBatches();
+    resultBatches = releaseResultBatches(resultBatches);
 
     command = connection.getProtocol().createQuery(sql);
 
@@ -366,7 +357,7 @@ abstract class PGStatement implements Statement {
   public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
 
     closeResultSets();
-    releaseResultBatches();
+    resultBatches = releaseResultBatches(resultBatches);
 
     String portalName = null;
 
@@ -394,13 +385,23 @@ abstract class PGStatement implements Statement {
     return hasResults();
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results) throws SQLException {
-    return createResultSet(resultFields, results, connection.getTypeMap());
+  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) throws SQLException {
+
+    PGResultSet resultSet = new PGResultSet(this, resultFields, results, releaseResults);
+    activeResultSets.add(new WeakReference<>(resultSet));
+    return resultSet;
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results, Map<String, Class<?>> typeMap) throws SQLException {
+  PGResultSet createResultSet(QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
 
-    PGResultSet resultSet = new PGResultSet(this, resultFields, results);
+    PGResultSet resultSet = new PGResultSet(this, command, resultFields, results);
+    activeResultSets.add(new WeakReference<>(resultSet));
+    return resultSet;
+  }
+
+  PGResultSet createResultSet(String cursorName, int resultSetType, int resultSetHoldability, List<ResultField> resultFields) throws SQLException {
+
+    PGResultSet resultSet = new PGResultSet(this, cursorName, resultSetType, resultSetHoldability, resultFields);
     activeResultSets.add(new WeakReference<>(resultSet));
     return resultSet;
   }
@@ -579,8 +580,6 @@ abstract class PGStatement implements Statement {
       return null;
     }
 
-    PGResultSet rs;
-
     if (cursorName != null) {
 
       QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
@@ -588,7 +587,7 @@ abstract class PGStatement implements Statement {
       //Shouldn't be any actual rows, but release it to any buffers
       resultBatch.release();
 
-      rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.getFields());
+      return createResultSet(getCursorName(), resultSetType, resultSetHoldability, resultBatch.getFields());
     }
     else if (command.getStatus() == QueryCommand.Status.Completed) {
 
@@ -596,7 +595,7 @@ abstract class PGStatement implements Statement {
 
       // This batch can be re-used so let "close" or "getMoreResults" release it
 
-      rs = new PGResultSet(this, resultBatch.getFields(), resultBatch.getResults());
+      return createResultSet(resultBatch.getFields(), resultBatch.getResults(), false);
     }
     else {
       QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
@@ -604,14 +603,13 @@ abstract class PGStatement implements Statement {
       // The batch cannot be re-used, but the result set will clean it up when it's
       // done using it
 
-      rs = new PGResultSet(this, command, resultBatch.getFields(), resultBatch.getResults());
+      PGResultSet rs = createResultSet(command, resultBatch.getFields(), resultBatch.getResults());
 
       // Command cannot be re-used when portal'd batching is in progress
       command = null;
-    }
 
-    activeResultSets.add(new WeakReference<>(rs));
-    return rs;
+      return rs;
+    }
   }
 
   @Override
@@ -649,7 +647,7 @@ abstract class PGStatement implements Statement {
     checkClosed();
 
     if (generatedKeysResultSet == null) {
-      return createResultSet(Collections.<ResultField>emptyList(), Collections.<DataRow>emptyList());
+      return createResultSet(Collections.<ResultField>emptyList(), Collections.<DataRow>emptyList(), false);
     }
 
     return generatedKeysResultSet;
