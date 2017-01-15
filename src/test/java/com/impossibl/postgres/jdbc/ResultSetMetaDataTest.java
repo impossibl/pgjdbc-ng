@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -238,7 +240,16 @@ public class ResultSetMetaDataTest {
     assertTrue(rs.next());
     for (int i = 0; i < rsmd.getColumnCount(); i++) {
       Class<?> cls = Class.forName(rsmd.getColumnClassName(i + 1));
-      assertTrue(cls.isAssignableFrom(rs.getObject(i + 1).getClass()));
+      Object value = rs.getObject(i + 1);
+      assertTrue(cls.isAssignableFrom(value.getClass()));
+      if (value instanceof Closeable) {
+        try {
+          ((Closeable) value).close();
+        }
+        catch (IOException e) {
+          // Ignore
+        }
+      }
     }
     rs.close();
     stmt.close();
