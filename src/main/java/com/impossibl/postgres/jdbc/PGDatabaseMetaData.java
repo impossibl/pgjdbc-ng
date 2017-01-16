@@ -2268,6 +2268,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       results.add(row);
     }
 
+    rs.close();
+
     return createResultSet(Arrays.asList(fields), results);
   }
 
