@@ -53,5 +53,8 @@ for db in hostdb hostssldb hostnossldb certdb hostsslcertdb; do
   psql $db -c "create extension sslinfo"
 done
 
-The username for connecting to postgres as specified in build.local.properties tests has to be "test".
+The tests are run as
+
+mvn -Dtest=com.impossibl.postgres.jdbc.SSLTest -Dpgjdbc.test.user=test -Dpgjdbc.test.password=test clean test
+mvn -Dtest=com.impossibl.postgres.jdbc.SSLDataSourceTest -Dpgjdbc.test.user=test -Dpgjdbc.test.password=test clean test
 

@@ -202,24 +202,20 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
       ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
 
-    if (ssl) {
-      ref.add(new StringRefAddr("ssl", "true"));
+    if (sslMode != null)
+      ref.add(new StringRefAddr("sslMode", sslMode));
 
-      if (sslMode != null)
-        ref.add(new StringRefAddr("sslMode", sslMode));
+    if (sslPassword != null)
+      ref.add(new StringRefAddr("sslPassword", sslPassword));
 
-      if (sslPassword != null)
-        ref.add(new StringRefAddr("sslPassword", sslPassword));
+    if (sslCertificateFile != null)
+      ref.add(new StringRefAddr("sslCertificateFile", sslCertificateFile));
 
-      if (sslCertificateFile != null)
-        ref.add(new StringRefAddr("sslCertificateFile", sslCertificateFile));
+    if (sslKeyFile != null)
+      ref.add(new StringRefAddr("sslKeyFile", sslKeyFile));
 
-      if (sslKeyFile != null)
-        ref.add(new StringRefAddr("sslKeyFile", sslKeyFile));
-
-      if (sslRootCertificateFile != null)
-        ref.add(new StringRefAddr("sslRootCertificateFile", sslRootCertificateFile));
-    }
+    if (sslRootCertificateFile != null)
+      ref.add(new StringRefAddr("sslRootCertificateFile", sslRootCertificateFile));
 
     return ref;
   }
@@ -579,26 +575,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
-   * Is SSL enabled
-   * @return The value
-   */
-  public boolean getSSL() {
-    return ssl;
-  }
-
-  /**
-   * Enable/disable SSL
-   * @param v The value
-   */
-  public void setSSL(boolean v) {
-    ssl = v;
-  }
-
-  /**
    * Get the SSL mode
    * @return The value
    */
-  public String getSSLMode() {
+  public String getSslMode() {
     return sslMode;
   }
 
@@ -606,7 +586,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Set the SSL mode
    * @param v The value
    */
-  public void setSSLMode(String v) {
+  public void setSslMode(String v) {
     sslMode = v;
   }
 
@@ -614,7 +594,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Get the SSL password
    * @return The value
    */
-  public String getSSLPassword() {
+  public String getSslPassword() {
     return sslPassword;
   }
 
@@ -622,7 +602,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Set the SSL password
    * @param v The value
    */
-  public void setSSLPassword(String v) {
+  public void setSslPassword(String v) {
     sslPassword = v;
   }
 
@@ -630,7 +610,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Get the SSL certificate file
    * @return The value
    */
-  public String getSSLCertificateFile() {
+  public String getSslCertificateFile() {
     return sslCertificateFile;
   }
 
@@ -638,7 +618,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Set the SSL certificate file
    * @param v The value
    */
-  public void setSSLCertificateFile(String v) {
+  public void setSslCertificateFile(String v) {
     sslCertificateFile = v;
   }
 
@@ -646,7 +626,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Get the SSL key file
    * @return The value
    */
-  public String getSSLKeyFile() {
+  public String getSslKeyFile() {
     return sslKeyFile;
   }
 
@@ -654,7 +634,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Set the SSL key file
    * @param v The value
    */
-  public void setSSLKeyFile(String v) {
+  public void setSslKeyFile(String v) {
     sslKeyFile = v;
   }
 
@@ -662,7 +642,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Get the SSL root certificate file
    * @return The value
    */
-  public String getSSLRootCertificateFile() {
+  public String getSslRootCertificateFile() {
     return sslRootCertificateFile;
   }
 
@@ -670,7 +650,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Set the SSL root certificate file
    * @param v The value
    */
-  public void setSSLRootCertificateFile(String v) {
+  public void setSslRootCertificateFile(String v) {
     sslRootCertificateFile = v;
   }
 
@@ -725,24 +705,20 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
       props.put(Settings.SEND_BUFFER_SIZE, Integer.toString(sendBufferSize));
 
-    if (ssl) {
-      if (sslMode != null)
-        props.put(Settings.SSL_MODE, sslMode);
-      else
-        props.put(Settings.SSL_MODE, "Require");
+    if (sslMode != null)
+      props.put(Settings.SSL_MODE, sslMode);
 
-      if (sslPassword != null)
-        props.put(Settings.SSL_PASSWORD, sslPassword);
+    if (sslPassword != null)
+      props.put(Settings.SSL_PASSWORD, sslPassword);
 
-      if (sslCertificateFile != null)
-        props.put(Settings.SSL_CERT_FILE, sslCertificateFile);
+    if (sslCertificateFile != null)
+      props.put(Settings.SSL_CERT_FILE, sslCertificateFile);
 
-      if (sslKeyFile != null)
-        props.put(Settings.SSL_KEY_FILE, sslKeyFile);
+    if (sslKeyFile != null)
+      props.put(Settings.SSL_KEY_FILE, sslKeyFile);
 
-      if (sslRootCertificateFile != null)
-        props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
-    }
+    if (sslRootCertificateFile != null)
+      props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }

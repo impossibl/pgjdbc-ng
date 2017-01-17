@@ -108,30 +108,26 @@ The 'receiveBufferSize' parameter specifies the size of the receive buffer for t
 
 The 'sendBufferSize' parameter specifies the size of the send buffer for the connection.
 
-	SSL                 (boolean)  false
+	sslMode          (String)
 
-Enable SSL for data sources.
+The 'sslMode' parameter specifies which SSL mode that should be used to connect to the database server.
+Valid values include 'prefer', 'require', 'verify-ca' and 'verify-full'.
 
-	ssl.mode          (String)
+	sslPassword          (String)
 
-The 'ssl.mode' parameter specifies which SSL mode that should be used to connect to the database server.
-Valid values include 'prefer', 'require', 'verify-ca' and 'verify-full'. Data source property is 'SSLMode'.
+The 'sslPassword' parameter specifies the SSL password.
 
-	ssl.password          (String)
+	sslCertificateFile          (String)
 
-The 'ssl.password' parameter specifies the SSL password. Data source property is 'SSLPassword'.
+The 'sslCertificateFile' parameter specifies the SSL certificate file as a path.
 
-	ssl.cert.file          (String)
+	sslKeyFile          (String)
 
-The 'ssl.cert.file' parameter specifies the SSL certificate file as a path. Data source property is 'SSLCertificateFile'.
+The 'sslKeyFile' parameter specifies the SSL key file as a path.
 
-	ssl.key.file          (String)
+	sslRootCertificateFile          (String)
 
-The 'ssl.key.file' parameter specifies the SSL key file as a path. Data source property is 'SSLKeyFile'.
-
-	ssl.root.cert.file          (String)
-
-The 'ssl.root.cert.file' parameter specifies the SSL root certificate file as a path. Data source property is 'SSLRootCertificateFile'.
+The 'sslRootCertificateFile' parameter specifies the SSL root certificate file as a path.
 
 
 ## License

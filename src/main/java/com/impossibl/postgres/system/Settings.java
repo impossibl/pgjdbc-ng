@@ -64,21 +64,21 @@ public class Settings {
   public static final String CLOB_TYPE = "clob.type";
   public static final String CLOB_TYPE_DEFAULT = "clobid";
 
-  public static final String SSL_MODE = "ssl.mode";
+  public static final String SSL_MODE = "sslMode";
   public static final SSLMode SSL_MODE_DEFAULT = SSLMode.Disable;
 
-  public static final String SSL_CERT_FILE = "ssl.cert.file";
+  public static final String SSL_CERT_FILE = "sslCertificateFile";
   public static final String SSL_CERT_FILE_DEFAULT = "postgresql.crt";
 
-  public static final String SSL_KEY_FILE = "ssl.key.file";
+  public static final String SSL_KEY_FILE = "sslKeyFile";
   public static final String SSL_KEY_FILE_DEFAULT = "postgresql.pk8";
 
-  public static final String SSL_PASSWORD = "ssl.password";
+  public static final String SSL_PASSWORD = "sslPassword";
 
-  public static final String SSL_PASSWORD_CALLBACK = "ssl.password.callback";
+  public static final String SSL_PASSWORD_CALLBACK = "sslPasswordCallback";
   public static final String SSL_PASSWORD_CALLBACK_DEFAULT = ConsolePasswordCallbackHandler.class.getName();
 
-  public static final String SSL_ROOT_CERT_FILE = "ssl.root.cert.file";
+  public static final String SSL_ROOT_CERT_FILE = "sslRootCertificateFile";
   public static final String SSL_ROOT_CERT_FILE_DEFAULT = "root.crt";
 
   public static final String NETWORK_TIMEOUT = "networkTimeout";
