@@ -47,7 +47,7 @@
   </parent>
 
   <properties>
-    <netty.version>4.1.7.Final</netty.version>
+    <netty.version>4.1.4.Final</netty.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Checkstyle configuration -->
     <linkXRef>false</linkXRef>
