@@ -15,7 +15,7 @@ layout: default
 * Updatable ResultSets
 * Callable Statements
 * Asynchronous Notifications
-* SSL Authentication and Encrpytion
+* SSL Authentication and Encryption
 * DataSource / XADataSource
 
 ## Connection format
@@ -108,6 +108,39 @@ A value of 0 indicates that there isnt a timeout for database operations.
 The 'strictMode' parameter specifies if the JDBC driver should follow behavior assumed by certain frameworks, and test suites.
 See http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode for additional details.
 
+	defaultFetchSize         (int)  0
+
+The 'defaultFetchSize' parameter specifies the default fetch size for statements.
+
+	receiveBufferSize         (int)     -1
+
+The 'receiveBufferSize' parameter specifies the size of the receive buffer for the connection.
+
+	sendBufferSize         (int)     -1
+
+The 'sendBufferSize' parameter specifies the size of the send buffer for the connection.
+
+	sslMode          (String)
+
+The 'sslMode' parameter specifies which SSL mode that should be used to connect to the database server.
+Valid values include 'prefer', 'require', 'verify-ca' and 'verify-full'.
+
+	sslPassword          (String)
+
+The 'sslPassword' parameter specifies the SSL password.
+
+	sslCertificateFile          (String)
+
+The 'sslCertificateFile' parameter specifies the SSL certificate file as a path.
+
+	sslKeyFile          (String)
+
+The 'sslKeyFile' parameter specifies the SSL key file as a path.
+
+	sslRootCertificateFile          (String)
+
+The 'sslRootCertificateFile' parameter specifies the SSL root certificate file as a path.
+
 ## License
 
 pgjdbc-ng is released under the 3 clause BSD license.
@@ -121,7 +154,7 @@ pgjdbc-ng is released under the 3 clause BSD license.
 ## Requirements
 
 * Java 7
-* PostgreSQL 9.1
+* PostgreSQL 9.2
 
 ## Sponsors
 
