@@ -34,7 +34,7 @@
 
   <groupId>com.impossibl.pgjdbc-ng</groupId>
   <artifactId>pgjdbc-ng</artifactId>
-  <version>0.7</version>
+  <version>0.8-SNAPSHOT</version>
 
   <!-- to generate OSGi bundle (just a JAR) -->
   <packaging>bundle</packaging>
