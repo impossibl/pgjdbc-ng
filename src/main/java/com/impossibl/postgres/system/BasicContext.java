@@ -287,8 +287,9 @@ public class BasicContext implements Context {
       }
 
       // Check if locale matches a win32 type locale (e.g. "English_United States.1252")
-      if (Locales.getJavaCompatibleLocale(localeSpec.split("\\.")[0]) != null) {
-        localeSpec = Locales.getJavaCompatibleLocale(localeSpec);
+      String windowsLocale = localeSpec.split("\\.")[0];
+      if (Locales.getJavaCompatibleLocale(windowsLocale) != null) {
+        localeSpec = Locales.getJavaCompatibleLocale(windowsLocale);
       }
 
       String[] localeIds = localeSpec.split("_|\\.");
