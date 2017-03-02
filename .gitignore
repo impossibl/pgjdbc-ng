@@ -1,8 +1,8 @@
 .classpath
 .project
 .settings/
-.idea/
+#.idea/
+#*.iml
 target/
 
 /bin
-/pgjdbc-ng.iml
