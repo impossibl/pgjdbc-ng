@@ -89,6 +89,12 @@
       <version>${netty.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation</artifactId>
+      <version>6.0.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -172,20 +178,33 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.2.0</version>
         <extensions>true</extensions>
         <configuration>
           <instructions>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-            <!-- do not import ourself -->
+            <!-- import ourself -->
             <Import-Package>
-              !com.impossibl.postgres*,
-              io.netty.*;version="[4.1,5)",
+              <!--io.netty.*;version="[4.1,5)",-->
               *
             </Import-Package>
           </instructions>
         </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>baseline</goal>
+              
+            </goals>
+            <!--<configuration>-->
+              <!--<comparisonVersion>0.7</comparisonVersion>-->
+            <!--</configuration>-->
+
+          </execution>
+        </executions>
       </plugin>
+
     </plugins>
     <pluginManagement>
       <plugins>
