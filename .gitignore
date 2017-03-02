@@ -1,8 +1,8 @@
 .classpath
 .project
 .settings/
-#.idea/
-#*.iml
+.idea/
+*.iml
 target/
 
 /bin
