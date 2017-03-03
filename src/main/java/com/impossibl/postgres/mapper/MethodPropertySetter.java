@@ -40,10 +40,15 @@ import java.lang.reflect.Method;
  */
 public class MethodPropertySetter implements PropertySetter {
 
-  Method method;
+  private boolean primitive;
+  private Method method;
 
   public MethodPropertySetter(Method method) {
     super();
+    Class<?>[] parameterTypes = method.getParameterTypes();
+    assert parameterTypes.length == 1;
+    this.primitive = parameterTypes[0].isPrimitive();
+
     this.method = method;
     this.method.setAccessible(true);
   }
@@ -51,12 +56,13 @@ public class MethodPropertySetter implements PropertySetter {
   @Override
   public void set(Object instance, Object value) {
 
-    try {
-      method.invoke(instance, value);
-    }
-    catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
-      // Ignore mapping errors (they shouldn't happen)
+    if (!primitive || value != null) {
+      try {
+        method.invoke(instance, value);
+      }
+      catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+        // Ignore mapping errors (they shouldn't happen)
+      }
     }
   }
-
 }
