@@ -93,6 +93,8 @@
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.annotation</artifactId>
       <version>6.0.0</version>
+      <!--compile time only -->
+      <scope>provided</scope>
     </dependency>
 
   </dependencies>
