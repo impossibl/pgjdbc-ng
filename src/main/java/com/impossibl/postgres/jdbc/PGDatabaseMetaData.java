@@ -775,7 +775,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException {
-
     StringBuilder sql = new StringBuilder();
     List<Object> params = new ArrayList<>();
 
@@ -804,15 +803,26 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
+    return getProcedureColumns(catalog, schemaPattern, procedureNamePattern, columnNamePattern, true);
+  }
+
+  private ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern, boolean proc) throws SQLException {
 
     Registry reg = connection.getRegistry();
 
     ResultField[] resultFields = new ResultField[20];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] =   new ResultField("PROCEDURE_CAT",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[1] =   new ResultField("PROCEDURE_SCHEM",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[2] =   new ResultField("PROCEDURE_NAME",     0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    if (proc) {
+      resultFields[0] =   new ResultField("PROCEDURE_CAT",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+      resultFields[1] =   new ResultField("PROCEDURE_SCHEM",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+      resultFields[2] =   new ResultField("PROCEDURE_NAME",     0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    }
+    else {
+      resultFields[0] =   new ResultField("FUNCTION_CAT",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+      resultFields[1] =   new ResultField("FUNCTION_SCHEM",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+      resultFields[2] =   new ResultField("FUNCTION_NAME",     0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    }
     resultFields[3] =   new ResultField("COLUMN_NAME",        0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
     resultFields[4] =   new ResultField("COLUMN_TYPE",        0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
     resultFields[5] =   new ResultField("DATA_TYPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
@@ -878,14 +888,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           row[1] = schema;
           row[2] = procedureName;
           row[3] = "returnValue";
-          row[4] = DatabaseMetaData.procedureColumnReturn;
+          row[4] = DatabaseMetaData.procedureColumnReturn; // JDBC spec bug (DatabaseMetaData.functionColumnReturn missing)
           row[5] = SQLTypeMetaData.getSQLType(returnType);
           row[6] = SQLTypeMetaData.getTypeName(returnType, null, 0);
           row[7] = null;
           row[8] = null;
           row[9] = null;
           row[10] = null;
-          row[11] = DatabaseMetaData.procedureNullableUnknown;
+          row[11] = proc ? DatabaseMetaData.procedureNullableUnknown : DatabaseMetaData.functionNullableUnknown;
           row[12] = null;
           row[17] = 0;
           row[18] = "";
@@ -909,14 +919,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             row[3] = "$" + (i + 1);
           }
 
-          int columnMode = DatabaseMetaData.procedureColumnIn;
+          int columnMode = proc ? DatabaseMetaData.procedureColumnIn : DatabaseMetaData.functionColumnIn;
           if (argModes != null) {
 
             if (argModes[i].equals("o")) {
-              columnMode = DatabaseMetaData.procedureColumnOut;
+              columnMode = proc ? DatabaseMetaData.procedureColumnOut : DatabaseMetaData.functionColumnOut;
             }
             else if (argModes[i].equals("b")) {
-              columnMode = DatabaseMetaData.procedureColumnInOut;
+              columnMode = proc ? DatabaseMetaData.procedureColumnInOut : DatabaseMetaData.functionColumnInOut;
             }
           }
 
@@ -936,7 +946,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           row[8] = null;
           row[9] = null;
           row[10] = null;
-          row[11] = DatabaseMetaData.procedureNullableUnknown;
+          row[11] = proc ? DatabaseMetaData.procedureNullableUnknown : DatabaseMetaData.functionNullableUnknown;
           row[12] = null;
           row[17] = i + 1;
           row[18] = "";
@@ -960,14 +970,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
                 row[1] = schema;
                 row[2] = procedureName;
                 row[3] = columnrs.getString("attname");
-                row[4] = DatabaseMetaData.procedureColumnResult;
+                row[4] = proc ? DatabaseMetaData.procedureColumnResult : DatabaseMetaData.functionColumnResult;
                 row[5] = SQLTypeMetaData.getSQLType(columnType);
                 row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
                 row[7] = null;
                 row[8] = null;
                 row[9] = null;
                 row[10] = null;
-                row[11] = DatabaseMetaData.procedureNullableUnknown;
+                row[11] = proc ? DatabaseMetaData.procedureNullableUnknown : DatabaseMetaData.functionNullableUnknown;
                 row[12] = null;
                 row[17] = 0;
                 row[18] = "";
@@ -2564,12 +2574,36 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
-    throw NOT_IMPLEMENTED;
+    StringBuilder sql = new StringBuilder();
+    List<Object> params = new ArrayList<>();
+
+    // JDBC spec bug: DatabaseMetaData.functionReturnsResult missing
+    sql.append(
+        "SELECT NULL AS FUNCTION_CAT, n.nspname AS FUNCTION_SCHEM, p.proname AS FUNCTION_NAME, " +
+        " d.description AS REMARKS, " +  java.sql.DatabaseMetaData.procedureReturnsResult + " AS FUNCTION_TYPE, p.proname || '_' || p.oid AS SPECIFIC_NAME " +
+        " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p " +
+        " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) " +
+        " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') " +
+        " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') " +
+        " WHERE p.pronamespace=n.oid");
+
+    if (schemaPattern != null) {
+      sql.append(" AND n.nspname LIKE ?");
+      params.add(schemaPattern);
+    }
+    if (!isNullOrEmpty(functionNamePattern)) {
+      sql.append(" AND p.proname LIKE ?");
+      params.add(functionNamePattern);
+    }
+
+    sql.append(" ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, SPECIFIC_NAME");
+
+    return execForResultSet(sql.toString(), params);
   }
 
   @Override
   public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
-    throw NOT_IMPLEMENTED;
+    return getProcedureColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern, false);
   }
 
   @Override

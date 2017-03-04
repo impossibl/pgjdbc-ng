@@ -749,6 +749,15 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testFunctions() throws SQLException {
+    // At the moment just test that no exceptions are thrown
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getFunctions(null, null, null);
+    rs.close();
+  }
+
+  @Test
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getCatalogs();
