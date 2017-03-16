@@ -208,6 +208,7 @@ public class Locales {
     LOCALES.put("Yakut_Russia", "sah_RU");
     LOCALES.put("Yi_China", "ii_CN");
     LOCALES.put("Yoruba_Nigeria", "yo_NG");
+    LOCALES.put("Norwegian Nynorsk_Norway", "nn_NO");
   }
 
   private Locales() {
@@ -215,6 +216,9 @@ public class Locales {
   }
 
   public static String getJavaCompatibleLocale(String windowsLocale) {
+    if (windowsLocale.startsWith("Norwegian Bokm")) {
+      return "nb_NO";
+    }
     return LOCALES.get(windowsLocale);
   }
 
