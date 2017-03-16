@@ -34,7 +34,7 @@ sudo tail /var/log/postgresql/postgresql-${PGVERSION}-main.log
 
 # Setup postgres' users and databases
 sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
-sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;'
+sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc LC_COLLATE 'Norwegian Bokmål' LC_CTYPE 'Norwegian Bokmål' ;'
 
 # Install hstore extension if >= 9.1
 if [ "${PGVERSION}" != '8.4' -a "${PGVERSION}" != '9.0' ]
