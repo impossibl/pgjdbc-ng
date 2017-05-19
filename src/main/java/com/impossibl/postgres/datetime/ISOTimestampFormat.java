@@ -142,7 +142,7 @@ public class ISOTimestampFormat implements DateTimeFormat {
       if (year < 1000) {
         // Add leading zeros
         yearString = "" + year;
-        yearString = yearZeros.substring(0, (4 - yearString.length())) + yearString;
+        yearString = yearZeros.substring(0, 4 - yearString.length()) + yearString;
       }
       else {
         yearString = "" + year;
@@ -184,7 +184,7 @@ public class ISOTimestampFormat implements DateTimeFormat {
         microsString = Integer.toString(micros);
 
         // Add leading zeros
-        microsString = zeros.substring(0, (6 - microsString.length())) + microsString;
+        microsString = zeros.substring(0, 6 - microsString.length()) + microsString;
 
         // Truncate trailing zeros
         char[] microsChar = new char[microsString.length()];
@@ -220,7 +220,7 @@ public class ISOTimestampFormat implements DateTimeFormat {
         timestampBuf.append(zoneOff);
       }
 
-      return (timestampBuf.toString());
+      return timestampBuf.toString();
     }
 
   }

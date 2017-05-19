@@ -43,8 +43,6 @@ public class Numerics extends SimpleProcProvider {
 
   private static final short NUMERIC_POS =    (short) 0x0000;
   private static final short NUMERIC_NEG =    (short) 0x4000;
-  //private static final short NUMERIC_SHORT =  (short) 0x8000;
-  //private static final short NUMERIC_NAN =    (short) 0xC000;
   private static final short DEC_DIGITS = 4;
 
   public Numerics() {
@@ -293,7 +291,7 @@ public class Numerics extends SimpleProcProvider {
     /*
      * Digits before decimal
      */
-    int d = 0;
+    int d;
 
     if (weight < 0) {
       d = weight + 1;
@@ -310,7 +308,7 @@ public class Numerics extends SimpleProcProvider {
 
           short d1 = (short) (dig / b);
           dig -= d1 * b;
-          putIt |= (d1 > 0);
+          putIt |= d1 > 0;
           if (putIt)
             sb.append((char) (d1 + '0'));
         }

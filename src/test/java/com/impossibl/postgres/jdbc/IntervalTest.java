@@ -46,6 +46,9 @@ import java.sql.Statement;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
+
+import static java.lang.String.format;
 
 import org.junit.After;
 import org.junit.Before;
@@ -57,7 +60,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 
 
 @RunWith(JUnit4.class)
@@ -111,7 +113,7 @@ public class IntervalTest {
     stmt.close();
 
     PreparedStatement pstmt = _conn
-        .prepareStatement("SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
+        .prepareStatement("SELECT v FROM testdate WHERE v < (?::TIMESTAMP WITH TIME ZONE + ? * ?::INTERVAL) ORDER BY v");
     pstmt.setObject(1, makeDate(2010, 1, 1));
     pstmt.setObject(2, Integer.valueOf(2));
     pstmt.setObject(3, "1 day");
@@ -144,7 +146,7 @@ public class IntervalTest {
     Type type = pgConnectionImpl.getRegistry().loadType("Interval");
     String coercedStringValue = SQLTypeUtils.coerceToString(interval, type, pgConnectionImpl);
 
-    assertEquals("@ 1 years 3 months 0 days 0 hours 0 minutes 0.00 seconds", coercedStringValue);
+    assertEquals(format("@ 1 years 3 months 0 days 0 hours 0 minutes %.2f seconds", 0.0), coercedStringValue);
   }
 
   @Test(expected = SQLException.class)
@@ -155,12 +157,14 @@ public class IntervalTest {
   @Test
   public void testDaysHours() throws SQLException {
     Statement stmt = _conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT '101:12:00'::interval");
+    ResultSet rs = stmt.executeQuery("SELECT '101:12:00'::INTERVAL");
     assertTrue(rs.next());
     Interval i = (Interval) rs.getObject(1);
     assertEquals(0, i.getDays());
     assertEquals(101, i.getHours());
     assertEquals(12, i.getMinutes());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -187,18 +191,18 @@ public class IntervalTest {
     assertEquals(57, pgi.getMinutes());
     assertEquals(12.1, pgi.getSeconds(), 0);
 
-    Interval pgi2 = new Interval("@ 2004 years 4 mons 20 days 15 hours 57 mins 12.1 secs");
+    Interval pgi2 = new Interval("@ 2004 years 4 mons 20 days 15 hours 57 mins 12.1 secs", Locale.US);
     assertEquals(pgi, pgi2);
 
     // Singular units
-    Interval pgi3 = new Interval("@ 2004 year 4 mon 20 day 15 hour 57 min 12.1 sec");
+    Interval pgi3 = new Interval("@ 2004 year 4 mon 20 day 15 hour 57 min 12.1 sec", Locale.US);
     assertEquals(pgi, pgi3);
 
-    Interval pgi4 = new Interval("2004 years 4 mons 20 days 15:57:12.1");
+    Interval pgi4 = new Interval("2004 years 4 mons 20 days 15:57:12.1", Locale.US);
     assertEquals(pgi, pgi4);
 
     // Ago test
-    pgi = new Interval("@ 2004 years 4 mons 20 days 15 hours 57 mins 12.1 secs ago");
+    pgi = new Interval("@ 2004 years 4 mons 20 days 15 hours 57 mins 12.1 secs ago", Locale.US);
     assertEquals(-2004, pgi.getYears());
     assertEquals(-4, pgi.getMonths());
     assertEquals(-20, pgi.getDays());
@@ -207,7 +211,7 @@ public class IntervalTest {
     assertEquals(-12.1, pgi.getSeconds(), 0);
 
     // Char test
-    pgi = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs");
+    pgi = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs", Locale.US);
     assertEquals(2003, pgi.getYears());
     assertEquals(8, pgi.getMonths());
     assertEquals(20, pgi.getDays());
@@ -233,7 +237,7 @@ public class IntervalTest {
   public void testCalendar() throws Exception {
     Calendar cal = getStartCalendar();
 
-    Interval pgi = new Interval("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs");
+    Interval pgi = new Interval("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs", Locale.US);
     pgi.addTo(cal);
 
     assertEquals(2006, cal.get(Calendar.YEAR));
@@ -244,7 +248,7 @@ public class IntervalTest {
     assertEquals(43, cal.get(Calendar.SECOND));
     assertEquals(100, cal.get(Calendar.MILLISECOND));
 
-    pgi = new Interval("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago");
+    pgi = new Interval("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago", Locale.US);
     pgi.addTo(cal);
 
     assertEquals(2005, cal.get(Calendar.YEAR));
@@ -257,7 +261,7 @@ public class IntervalTest {
 
     cal = getStartCalendar();
 
-    pgi = new Interval("@ 1 year -23 hours -3 mins -3.30 secs");
+    pgi = new Interval("@ 1 year -23 hours -3 mins -3.30 secs", Locale.US);
     pgi.addTo(cal);
 
     assertEquals(2006, cal.get(Calendar.YEAR));
@@ -268,7 +272,7 @@ public class IntervalTest {
     assertEquals(38, cal.get(Calendar.SECOND));
     assertEquals(800, cal.get(Calendar.MILLISECOND));
 
-    pgi = new Interval("@ 1 year -23 hours -3 mins -3.30 secs ago");
+    pgi = new Interval("@ 1 year -23 hours -3 mins -3.30 secs ago", Locale.US);
     pgi.addTo(cal);
 
     assertEquals(2005, cal.get(Calendar.YEAR));
@@ -285,10 +289,10 @@ public class IntervalTest {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 
-    Interval pgi = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs");
+    Interval pgi = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs", Locale.US);
     pgi.addTo(date);
 
-    Interval pgi2 = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs ago");
+    Interval pgi2 = new Interval("@ +2004 years -4 mons +20 days -15 hours +57 mins -12.1 secs ago", Locale.US);
     pgi2.addTo(date);
 
     assertEquals(date2, date);
@@ -299,10 +303,10 @@ public class IntervalTest {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 
-    Interval pgi = new Interval("+2004 years -4 mons +20 days -15:57:12.1");
+    Interval pgi = new Interval("+2004 years -4 mons +20 days -15:57:12.1", Locale.US);
     pgi.addTo(date);
 
-    Interval pgi2 = new Interval("-2004 years 4 mons -20 days 15:57:12.1");
+    Interval pgi2 = new Interval("-2004 years 4 mons -20 days 15:57:12.1", Locale.US);
     pgi2.addTo(date);
 
     assertEquals(date2, date);

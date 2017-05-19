@@ -44,6 +44,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -847,6 +848,49 @@ public class PGPreparedStatementDelegator extends PGStatementDelegator implement
   public void setURL(int parameterIndex, URL x) throws SQLException {
     try {
       delegator.setURL(parameterIndex, x);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    try {
+      delegator.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+    try {
+      delegator.setObject(parameterIndex, x, targetSqlType);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    try {
+      return delegator.executeLargeUpdate();
     }
     catch (SQLException se) {
       owner.fireStatementError(this, se);

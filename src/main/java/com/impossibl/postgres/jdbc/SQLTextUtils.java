@@ -242,7 +242,7 @@ class SQLTextUtils {
       return false;
     }
 
-    if (sqlText.getFirstStatement().getFirstNode().toString().equalsIgnoreCase("SELECT") == false) {
+    if (!sqlText.getFirstStatement().getFirstNode().toString().equalsIgnoreCase("SELECT")) {
       return false;
     }
 

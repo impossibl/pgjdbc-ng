@@ -40,6 +40,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -254,19 +255,18 @@ class PGSimpleStatement extends PGStatement {
       }
 
       execute(batchCommands);
-
       counts = new int[resultBatches.size()];
 
       for (c = 0; c < resultBatches.size(); ++c) {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(c);
 
-        if (resultBatch.command.equals("SELECT")) {
+        if (resultBatch.getCommand().equals("SELECT")) {
           throw new BatchUpdateException("SELECT in executeBatch", Arrays.copyOf(counts, c));
         }
 
-        if (resultBatch.rowsAffected != null) {
-          counts[c] = (int)(long)resultBatches.get(c).rowsAffected;
+        if (resultBatch.getRowsAffected() != null) {
+          counts[c] = (int)(long)resultBatches.get(c).getRowsAffected();
         }
         else {
           counts[c] = Statement.SUCCESS_NO_INFO;
@@ -283,9 +283,9 @@ class PGSimpleStatement extends PGStatement {
     }
     finally {
 
+      resultBatches = releaseResultBatches(resultBatches);
       batchCommands = null;
       command = null;
-      resultBatches = null;
     }
 
   }

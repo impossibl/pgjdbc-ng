@@ -35,6 +35,13 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.CharStreams;
+
+import static com.impossibl.postgres.utils.guava.ByteStreams.toByteArray;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,12 +50,16 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Locale;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -77,6 +88,9 @@ public class ResultSetTest {
 
     TestUtil.createTable(con, "teststring", "a text");
     stmt.executeUpdate("INSERT INTO teststring VALUES ('12345')");
+
+    TestUtil.createTable(con, "testbytes", "a bytea");
+    stmt.executeUpdate("INSERT INTO testbytes VALUES (convert_to('12345', 'UTF8'))");
 
     TestUtil.createTable(con, "testint", "a int");
     stmt.executeUpdate("INSERT INTO testint VALUES (12345)");
@@ -187,6 +201,8 @@ public class ResultSetTest {
     assertTrue(!rs.first());
     assertTrue(!rs.last());
     assertTrue(!rs.next());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -203,12 +219,17 @@ public class ResultSetTest {
     // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
     assertTrue(rs.getBytes(1).length >= 4);
 
+    rs.close();
+
     // max should apply to the following since the column is
     // a varchar column
     rs = stmt.executeQuery("select * from teststring");
     rs.next();
     assertEquals("12", rs.getString(1));
     assertEquals("12", new String(rs.getBytes(1)));
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -227,13 +248,18 @@ public class ResultSetTest {
     pstmt.setObject(1, "True", Types.BIT);
     pstmt.executeUpdate();
 
-    ResultSet rs = con.createStatement().executeQuery("select * from testbool");
+    pstmt.close();
+
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testbool");
     for (int i = 0; i < 2; i++) {
       assertTrue(rs.next());
       assertEquals(false, rs.getBoolean(1));
       assertTrue(rs.next());
       assertEquals(true, rs.getBoolean(1));
     }
+    rs.close();
+    st.close();
 
     /*
      * pstmt = con.prepareStatement("insert into testbit values (?)");
@@ -255,7 +281,8 @@ public class ResultSetTest {
      * rs.getBoolean(1)); }
      */
 
-    rs = con.createStatement().executeQuery("select * from testboolstring");
+    st = con.createStatement();
+    rs = st.executeQuery("select * from testboolstring");
 
     for (int i = 0; i < 4; i++) {
       assertTrue(rs.next());
@@ -263,11 +290,15 @@ public class ResultSetTest {
       assertTrue(rs.next());
       assertEquals(false, rs.getBoolean(1));
     }
+
+    rs.close();
+    st.close();
   }
 
   @Test
   public void testgetByte() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getByte(1));
@@ -294,11 +325,13 @@ public class ResultSetTest {
       }
     }
     rs.close();
+    st.close();
   }
 
   @Test
   public void testgetShort() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getShort(1));
@@ -325,11 +358,13 @@ public class ResultSetTest {
       }
     }
     rs.close();
+    st.close();
   }
 
   @Test
   public void testgetInt() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -374,11 +409,13 @@ public class ResultSetTest {
       }
     }
     rs.close();
+    st.close();
   }
 
   @Test
   public void testgetLong() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
@@ -435,6 +472,75 @@ public class ResultSetTest {
       }
     }
     rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testgetBytes() throws SQLException {
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testbytes");
+
+    assertTrue(rs.next());
+    assertArrayEquals("12345".getBytes(UTF_8), rs.getBytes(1));
+    // Ensure we can call it multiple times with correct result
+    assertArrayEquals("12345".getBytes(UTF_8), rs.getBytes(1));
+
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testgetBinaryStream() throws SQLException, IOException {
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from testbytes");
+
+    assertTrue(rs.next());
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(UTF_8), toByteArray(is));
+    }
+    // Ensure we can call it multiple times with correct result
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(UTF_8), toByteArray(is));
+    }
+
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testgetAsciiStream() throws SQLException, IOException {
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from teststring");
+
+    assertTrue(rs.next());
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(is));
+    }
+    // Ensure we can call it multiple times with correct result
+    try (InputStream is = rs.getBinaryStream(1)) {
+      assertArrayEquals("12345".getBytes(US_ASCII), toByteArray(is));
+    }
+
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testgetCharacterStream() throws SQLException, IOException {
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select * from teststring");
+
+    assertTrue(rs.next());
+    try (Reader r = rs.getCharacterStream(1)) {
+      assertEquals("12345", CharStreams.toString(r));
+    }
+    // Ensure we can call it multiple times with correct result
+    try (Reader r = rs.getCharacterStream(1)) {
+      assertEquals("12345", CharStreams.toString(r));
+    }
+
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -661,6 +767,9 @@ public class ResultSetTest {
     catch (SQLException sqle) {
       // Ok
     }
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -682,6 +791,9 @@ public class ResultSetTest {
     catch (SQLException sqle) {
       // Ok
     }
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -775,6 +887,7 @@ public class ResultSetTest {
     catch (SQLException e) {
       // Ok
     }
+    stmt.close();
   }
 
   /*
@@ -787,6 +900,8 @@ public class ResultSetTest {
     ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt("a"));
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -801,6 +916,7 @@ public class ResultSetTest {
         sum += rs.getInt("ID");
       }
       rs.close();
+      stmt.close();
       assertEquals(25, sum);
     }
     finally {

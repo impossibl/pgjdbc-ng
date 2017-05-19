@@ -100,9 +100,13 @@ class RecoveredXid implements Xid {
   //--- Routines for converting xid to string and back.
 
   static String xidToString(Xid xid) {
-    return xid.getFormatId() + "_"
-      + Base64.encodeBytes(xid.getGlobalTransactionId(), Base64.DONT_BREAK_LINES) + "_"
-      + Base64.encodeBytes(xid.getBranchQualifier(), Base64.DONT_BREAK_LINES);
+    StringBuilder sb = new StringBuilder(256);
+    sb.append(Integer.toString(xid.getFormatId()))
+      .append('_')
+      .append(Base64.encodeBytes(xid.getGlobalTransactionId(), Base64.DONT_BREAK_LINES))
+      .append('_')
+      .append(Base64.encodeBytes(xid.getBranchQualifier(), Base64.DONT_BREAK_LINES));
+    return sb.toString();
   }
 
   /**

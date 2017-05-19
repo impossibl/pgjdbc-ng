@@ -177,6 +177,17 @@ public class DateTest {
     stmt.close();
   }
 
+  @Test
+  public void testSetNull() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"))) {
+        ps.setDate(1, null);
+        ps.execute();
+      }
+    }
+
+  }
+
   /*
    * Helper for the date tests. It tests what should be in the db
    */

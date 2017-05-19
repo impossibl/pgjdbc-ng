@@ -57,7 +57,6 @@ public class Mapper {
    * @return List of setters that can perform the mapping
    */
   public static List<PropertySetter> buildMapping(Class<?> rowType, List<ResultField> fields) {
-
     PropertySetter[] setters;
 
     if (rowType.isArray() && rowType.getComponentType() == Object.class) {
@@ -121,7 +120,7 @@ public class Mapper {
     PropertySetter[] setters = new PropertySetter[fields.size()];
 
     for (int c = 0; c < setters.length; ++c) {
-      setters[c] = new MapPropertySetter(fields.get(c).name);
+      setters[c] = new MapPropertySetter(fields.get(c).getName());
     }
 
     return setters;
@@ -152,14 +151,14 @@ public class Mapper {
     for (int c = 0; c < setters.length; ++c) {
 
       //Look for a valid property to map to
-      PropertyDescriptor propDesc = findPropertyDescriptor(propDescs, fields.get(c).name);
+      PropertyDescriptor propDesc = findPropertyDescriptor(propDescs, fields.get(c).getName());
       if (propDesc != null) {
         setters[c] = new MethodPropertySetter(propDesc.getWriteMethod());
         continue;
       }
 
       //Look for a valid field to map to
-      Field field = findField(instanceType, fields.get(c).name);
+      Field field = findField(instanceType, fields.get(c).getName());
       if (field != null) {
         setters[c] = new FieldPropertySetter(field);
         continue;
@@ -173,18 +172,23 @@ public class Mapper {
   }
 
   private static Field findField(Class<?> instanceType, String name) {
-
-    try {
-      return instanceType.getField(name);
-    }
-    catch (NoSuchFieldException | SecurityException e) {
-      // Ignore
+    Class<?> clz = instanceType;
+    while (clz != Object.class) {
+      try {
+        return instanceType.getDeclaredField(name);
+      }
+      catch (NoSuchFieldException | SecurityException e) {
+        // Ignore
+      }
+      clz = clz.getSuperclass();
     }
 
     return null;
   }
 
   private static PropertyDescriptor findPropertyDescriptor(PropertyDescriptor[] propDescs, String name) {
+    if (name == null || name.equals(""))
+      return null;
 
     for (PropertyDescriptor propDesc : propDescs) {
 

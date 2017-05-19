@@ -254,19 +254,19 @@ public class Base64 {
 
     switch (numSigBytes) {
       case 3:
-        destination[ destOffset     ] = ALPHABET[ (inBuff >>> 18)        ];
+        destination[ destOffset     ] = ALPHABET[ inBuff >>> 18        ];
         destination[ destOffset + 1 ] = ALPHABET[ (inBuff >>> 12) & 0x3f ];
         destination[ destOffset + 2 ] = ALPHABET[ (inBuff >>>  6) & 0x3f ];
-        destination[ destOffset + 3 ] = ALPHABET[ (inBuff) & 0x3f ];
+        destination[ destOffset + 3 ] = ALPHABET[ inBuff & 0x3f ];
         return destination;
       case 2:
-        destination[ destOffset     ] = ALPHABET[ (inBuff >>> 18)        ];
+        destination[ destOffset     ] = ALPHABET[ inBuff >>> 18        ];
         destination[ destOffset + 1 ] = ALPHABET[ (inBuff >>> 12) & 0x3f ];
         destination[ destOffset + 2 ] = ALPHABET[ (inBuff >>>  6) & 0x3f ];
         destination[ destOffset + 3 ] = EQUALS_SIGN;
         return destination;
       case 1:
-        destination[ destOffset     ] = ALPHABET[ (inBuff >>> 18)        ];
+        destination[ destOffset     ] = ALPHABET[ inBuff >>> 18        ];
         destination[ destOffset + 1 ] = ALPHABET[ (inBuff >>> 12) & 0x3f ];
         destination[ destOffset + 2 ] = EQUALS_SIGN;
         destination[ destOffset + 3 ] = EQUALS_SIGN;
@@ -346,7 +346,7 @@ public class Base64 {
    */
   public static String encodeBytes(byte[] source, int off, int len, int options) {
     // Isolate options
-    int dontBreakLines = (options & DONT_BREAK_LINES);
+    int dontBreakLines = options & DONT_BREAK_LINES;
 
     // Else, don't compress. Better not to use streams at all then.
     {
@@ -414,9 +414,6 @@ public class Base64 {
   private static int decode4to3(byte[] source, int srcOffset, byte[] destination, int destOffset) {
     // Example: Dk==
     if (source[srcOffset + 2] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      //int outBuff =   ( ( DECODABET[ source[ srcOffset    ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1] ] << 24 ) >>> 12 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
         | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12);
 
@@ -425,10 +422,6 @@ public class Base64 {
     }
     // Example: DkL=
     else if (source[ srcOffset + 3 ] == EQUALS_SIGN) {
-      // Two ways to do the same thing. Don't know which way I like best.
-      //int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-      //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-      //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 );
       int outBuff = ((DECODABET[source[srcOffset]] & 0xFF) << 18)
         | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
         | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6);
@@ -440,15 +433,10 @@ public class Base64 {
     // Example: DkLE
     else {
       try {
-        // Two ways to do the same thing. Don't know which way I like best.
-        //int outBuff =   ( ( DECODABET[ source[ srcOffset     ] ] << 24 ) >>>  6 )
-        //              | ( ( DECODABET[ source[ srcOffset + 1 ] ] << 24 ) >>> 12 )
-        //              | ( ( DECODABET[ source[ srcOffset + 2 ] ] << 24 ) >>> 18 )
-        //              | ( ( DECODABET[ source[ srcOffset + 3 ] ] << 24 ) >>> 24 );
-        int outBuff =   ((DECODABET[source[srcOffset]] & 0xFF) << 18)
-          | ((DECODABET[source[srcOffset + 1]] & 0xFF) << 12)
-          | ((DECODABET[source[srcOffset + 2]] & 0xFF) <<  6)
-          | ((DECODABET[source[srcOffset + 3]] & 0xFF));
+        int outBuff =   (DECODABET[source[srcOffset]] & 0xFF) << 18
+          | (DECODABET[source[srcOffset + 1]] & 0xFF) << 12
+          | (DECODABET[source[srcOffset + 2]] & 0xFF) <<  6
+          | DECODABET[source[srcOffset + 3]] & 0xFF;
 
         destination[destOffset] = (byte)(outBuff >> 16);
         destination[destOffset + 1] = (byte)(outBuff >> 8);
@@ -457,10 +445,10 @@ public class Base64 {
         return 3;
       }
       catch (Exception e) {
-        System.out.println("" + source[srcOffset] + ": " + (DECODABET[source[srcOffset]]));
-        System.out.println("" + source[srcOffset + 1] +  ": " + (DECODABET[source[srcOffset + 1]]));
-        System.out.println("" + source[srcOffset + 2] +  ": " + (DECODABET[source[srcOffset + 2]]));
-        System.out.println("" + source[srcOffset + 3] +  ": " + (DECODABET[source[srcOffset + 3]]));
+        System.out.println(Byte.toString(source[srcOffset]) + ": " + Byte.toString(DECODABET[source[srcOffset]]));
+        System.out.println(Byte.toString(source[srcOffset + 1]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 1]]));
+        System.out.println(Byte.toString(source[srcOffset + 2]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 2]]));
+        System.out.println(Byte.toString(source[srcOffset + 3]) +  ": " + Byte.toString(DECODABET[source[srcOffset + 3]]));
         return -1;
       }
     }
@@ -484,9 +472,9 @@ public class Base64 {
 
     byte[] b4        = new byte[4];
     int    b4Posn    = 0;
-    int    i         = 0;
-    byte   sbiCrop   = 0;
-    byte   sbiDecode = 0;
+    int    i;
+    byte   sbiCrop;
+    byte   sbiDecode;
     for (i = off; i < off + len; i++) {
       sbiCrop = (byte)(source[i] & 0x7f); // Only the low seven bits
       sbiDecode = DECODABET[ sbiCrop ];

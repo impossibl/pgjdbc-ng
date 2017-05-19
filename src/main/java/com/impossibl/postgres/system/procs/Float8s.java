@@ -97,11 +97,6 @@ public class Float8s extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 12;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {

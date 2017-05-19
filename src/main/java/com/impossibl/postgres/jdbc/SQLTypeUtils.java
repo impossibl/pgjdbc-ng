@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.Interval;
-import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.api.data.Record;
 import com.impossibl.postgres.api.data.Tid;
 import com.impossibl.postgres.datetime.instants.Instant;
@@ -73,7 +72,6 @@ import java.util.UUID;
 
 import static java.math.RoundingMode.HALF_EVEN;
 
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
@@ -85,10 +83,7 @@ class SQLTypeUtils {
   }
 
   public static Class<?> mapSetType(Format format, Type sourceType) {
-
-    Class<?> targetType = sourceType.getJavaType(format, null);
-
-    return targetType;
+    return sourceType.getJavaType(format, null);
   }
 
   public static Class<?> mapGetType(Type sourceType, Map<String, Class<?>> typeMap, Context context) {
@@ -97,71 +92,54 @@ class SQLTypeUtils {
 
   public static Class<?> mapGetType(Format format, Type sourceType, Map<String, Class<?>> typeMap, Context context) {
 
-    Class<?> targetType = sourceType.getJavaType(format, typeMap);
+    Class<?> targetType;
 
-    Class<?> mappedType = typeMap.get(sourceType.getName());
-    if (mappedType != null) {
-      targetType = mappedType;
-    }
-    else {
+    switch (sourceType.getPrimitiveType()) {
 
-      switch (sourceType.getPrimitiveType()) {
-        case Oid:
-          if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
-            targetType = Blob.class;
-          }
-          if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
-            targetType = Clob.class;
-          }
-          break;
+      case Date:
+        targetType = Date.class;
+        break;
 
-        case Tid:
-          targetType = RowId.class;
-          break;
+      case Time:
+      case TimeTZ:
+        targetType = Time.class;
+        break;
 
-        case XML:
-          targetType = SQLXML.class;
-          break;
+      case Timestamp:
+      case TimestampTZ:
+        targetType = Timestamp.class;
+        break;
 
-        case Time:
-        case TimeTZ:
-          targetType = Time.class;
-          break;
+      case Record:
+        targetType = sourceType.getJavaType(format, typeMap);
+        targetType = SQLData.class.isAssignableFrom(targetType) ? targetType : Struct.class;
+        break;
 
-        case Date:
-          targetType = Date.class;
-          break;
+      case Tid:
+        targetType = RowId.class;
+        break;
 
-        case Timestamp:
-        case TimestampTZ:
-          targetType = Timestamp.class;
-          break;
+      case XML:
+        targetType = SQLXML.class;
+        break;
 
-        case Record:
-          targetType = Struct.class;
-          break;
+      case Array:
+        ArrayType arrayType = (ArrayType) sourceType;
+        targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
+        break;
 
-        case Point:
-        case Box:
-        case Line:
-        case LineSegment:
-        case Circle:
-          targetType = double[].class;
+      case Oid:
+        if (sourceType.getName().equals(context.getSetting(BLOB_TYPE, BLOB_TYPE_DEFAULT))) {
+          targetType = Blob.class;
           break;
-        case Path:
-          targetType = Path.class;
+        }
+        else if (sourceType.getName().equals(context.getSetting(CLOB_TYPE, CLOB_TYPE_DEFAULT))) {
+          targetType = Clob.class;
           break;
-        case Polygon:
-          targetType = double[][].class;
-          break;
-        case Array:
-          ArrayType arrayType = (ArrayType) sourceType;
-          targetType = Array.newInstance(mapGetType(format, arrayType.getElementType(), typeMap, context), 0).getClass();
-          break;
-        default:
-          break;
-      }
+        }
 
+      default:
+        targetType = sourceType.getJavaType(format, typeMap);
     }
 
     return targetType;
@@ -273,7 +251,7 @@ class SQLTypeUtils {
     }
     else if (val instanceof String && sourceType.isParameterFormatSupported(Format.Text)) {
       try {
-        return sourceType.getCodec(Format.Text).decoder.decode(sourceType, sourceType.getLength(), null, val, connection);
+        return sourceType.getCodec(Format.Text).getDecoder().decode(sourceType, sourceType.getLength(), null, val, connection);
       }
       catch (IOException e) {
         // fall-thru
@@ -537,7 +515,7 @@ class SQLTypeUtils {
       return ((Number) val).toString();
     }
     else if (val instanceof Character) {
-      return new String(new char[] {(Character) val });
+      return new String(new char[] {(Character) val});
     }
     else if (val instanceof Boolean) {
       return val.toString();
@@ -796,7 +774,16 @@ class SQLTypeUtils {
       return null;
     }
     else if (val instanceof InputStream) {
-      return (InputStream) val;
+      InputStream is = (InputStream) val;
+      try {
+        // Ensure stream is at beginning (in cases
+        // where it is used multiple times)
+        is.reset();
+      }
+      catch (IOException e) {
+        throw new SQLException(e);
+      }
+      return is;
     }
     else if (val instanceof byte[]) {
       return new ByteArrayInputStream((byte[]) val);
@@ -808,14 +795,14 @@ class SQLTypeUtils {
       byte[] data = ((PGSQLXML) val).getData();
       return data != null ? new ByteArrayInputStream(data) : null;
     }
-    else if (sourceType.getJavaType(format, Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+    else if (sourceType.getJavaType(format, Collections.<String, Class<?>>emptyMap()).isInstance(val)) {
 
       // Encode into byte array using type encoder
 
       final ByteBuf buffer = Unpooled.buffer();
 
       try {
-        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+        sourceType.getBinaryCodec().getEncoder().encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
         throw createCoercionException(val.getClass(), byte[].class, val);
@@ -848,7 +835,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof InputStream) {
       try {
-        return ByteStreams.toByteArray((InputStream) val);
+        try (InputStream is = (InputStream) val) {
+          return ByteStreams.toByteArray(is);
+        }
       }
       catch (IOException e) {
         throw new SQLException(e);
@@ -859,9 +848,9 @@ class SQLTypeUtils {
     }
     else if (val instanceof String) {
 
-      if (sourceType.isParameterFormatSupported(Format.Text) && sourceType.getTextCodec().decoder.getOutputType() == byte[].class) {
+      if (sourceType.isParameterFormatSupported(Format.Text) && sourceType.getTextCodec().getDecoder().getOutputType() == byte[].class) {
         try {
-          return (byte[]) sourceType.getTextCodec().decoder.decode(sourceType, sourceType.getLength(), null, val, context);
+          return (byte[]) sourceType.getTextCodec().getDecoder().decode(sourceType, sourceType.getLength(), null, val, context);
         }
         catch (IOException e) {
           throw createCoercionException(val.getClass(), byte[].class, val);
@@ -874,14 +863,14 @@ class SQLTypeUtils {
     else if (val instanceof PGSQLXML) {
       return ((PGSQLXML) val).getData();
     }
-    else if (sourceType.getJavaType(format, Collections.<String, Class<?>> emptyMap()).isInstance(val)) {
+    else if (sourceType.getJavaType(format, Collections.<String, Class<?>>emptyMap()).isInstance(val)) {
 
       // Encode into byte array using type encoder
 
       ByteBuf buffer = Unpooled.buffer();
 
       try {
-        sourceType.getBinaryCodec().encoder.encode(sourceType, buffer, val, context);
+        sourceType.getBinaryCodec().getEncoder().encode(sourceType, buffer, val, context);
       }
       catch (IOException e) {
         throw createCoercionException(val.getClass(), byte[].class, val);
@@ -994,7 +983,7 @@ class SQLTypeUtils {
         dst = Array.newInstance(targetType.getComponentType(), count);
 
         for (int i = 0; i < count; ++i) {
-          Array.set(dst, i, Array.get(val, i));
+          Array.set(dst, i, Array.get(val, i + index));
         }
       }
       else {
@@ -1027,7 +1016,7 @@ class SQLTypeUtils {
     }
     else if (val instanceof Record) {
 
-      return new PGStruct(connection, ((Record) val).getType(), ((Record) val).getValues());
+      return new PGStruct(connection, ((Record) val).getTypeName(), ((Record) val).getAttributeTypes(), ((Record) val).getAttributeValues());
     }
     else if (SQLData.class.isInstance(val) && sourceType instanceof CompositeType) {
 
@@ -1037,13 +1026,13 @@ class SQLTypeUtils {
 
       ((SQLData) val).writeSQL(out);
 
-      return new PGStruct(connection, compType, out.getAttributeValues());
+      return new PGStruct(connection, compType.getName(), compType.getAttributesTypes(), out.getAttributeValues());
     }
     else if (val instanceof Object[] && sourceType instanceof CompositeType) {
 
       CompositeType compType = (CompositeType) sourceType;
 
-      return new PGStruct(connection, compType, (Object[]) val);
+      return new PGStruct(connection, compType.getName(), compType.getAttributesTypes(), (Object[]) val);
     }
 
     throw createCoercionException(val.getClass(), Struct.class, val);
@@ -1088,13 +1077,13 @@ class SQLTypeUtils {
 
       for (int c = 0; c < attributeVals.length; ++c) {
 
-        Type attrType = compType.getAttribute(c + 1).type;
+        Type attrType = compType.getAttribute(c + 1).getType();
         Class<?> attrTargetType = mapSetType(format, attrType);
 
         attributeVals[c] = coerce(format, attributeVals[c], attrType, attrTargetType, typeMap, zone, connection);
       }
 
-      return new Record(compType, attributeVals);
+      return new Record(compType.getName(), compType.getAttributesTypes(), attributeVals);
     }
 
     throw createCoercionException(val.getClass(), Struct.class, val);
@@ -1120,7 +1109,7 @@ class SQLTypeUtils {
       else if (val instanceof Record) {
 
         Record record = (Record) val;
-        attributeVals = record.getValues();
+        attributeVals = record.getAttributeValues();
       }
       else {
         throw createCoercionException(val.getClass(), targetType, val);
@@ -1153,7 +1142,7 @@ class SQLTypeUtils {
       return (UUID) val;
     }
     else if (val instanceof String) {
-      return UUID.fromString((String)val);
+      return UUID.fromString((String) val);
     }
 
     throw createCoercionException(val.getClass(), UUID.class, val);
@@ -1169,7 +1158,7 @@ class SQLTypeUtils {
     }
     if (val instanceof String) {
 
-      return new PGSQLXML(connection, ((String)val).getBytes(connection.getCharset()));
+      return new PGSQLXML(connection, ((String) val).getBytes(connection.getCharset()));
     }
     else if (val instanceof byte[]) {
 
@@ -1185,12 +1174,12 @@ class SQLTypeUtils {
 
   public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val) {
     return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
-                            dstType.getName() + "' is not supported (" + val + ")");
+        dstType.getName() + "' is not supported (" + val + ")");
   }
 
   public static SQLException createCoercionException(Class<?> srcType, Class<?> dstType, Object val, Exception cause) {
     return new SQLException("Coercion from '" + srcType.getName() + "' to '" +
-                            dstType.getName() + "' failed (" + val + ")", cause);
+        dstType.getName() + "' failed (" + val + ")", cause);
   }
 
   public static SQLException createCoercionParseException(String val, int parseErrorPos, Class<?> dstType) {
@@ -1206,11 +1195,10 @@ class SQLTypeUtils {
     return new SQLException("Coercion from 'String' to '" + dstType.getName() + "' failed. Parser error near '" + errorText + "'");
   }
 
-  public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException
-  {
+  public static String coerceToStringFromType(Object val, Type type, Context context) throws SQLException {
     try {
       StringBuilder buffer = new StringBuilder();
-      type.getCodec(Format.Text).encoder.encode(type, buffer, val, context);
+      type.getCodec(Format.Text).getEncoder().encode(type, buffer, val, context);
       return buffer.toString();
     }
     catch (IOException e) {

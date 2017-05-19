@@ -126,6 +126,8 @@ public class StructTest {
     assertEquals(ts.str2, ts2.str2);
     assertEquals(ts.id, ts2.id);
     assertEquals(ts.num, ts2.num, 0.00000001);
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -153,7 +155,8 @@ public class StructTest {
     assertEquals(ts.str2, ts2.str2);
     assertEquals(ts.id, ts2.id);
     assertEquals(ts.num, ts2.num, 0.00000001);
-
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -183,7 +186,8 @@ public class StructTest {
     assertEquals(ts.str2, ts2.str2);
     assertEquals(ts.id, ts2.id);
     assertEquals(ts.num, ts2.num, 0.00000001);
-
+    rs.close();
+    st.close();
   }
 
   @Test

@@ -28,14 +28,24 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.system.Context;
+
+import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
+import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
+import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Runtime.getRuntime;
+import static java.lang.System.getProperty;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -43,6 +53,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.ThreadDeathWatcher;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GlobalEventExecutor;
+
+
 
 public class ProtocolShared {
 
@@ -64,11 +77,11 @@ public class ProtocolShared {
 
   static ProtocolShared instance;
 
-  public static synchronized Ref acquire() {
+  public static synchronized Ref acquire(Context context) {
     if (instance == null) {
       instance = new ProtocolShared();
     }
-    return instance.addReference();
+    return instance.addReference(context);
   }
 
   private Bootstrap bootstrap;
@@ -78,9 +91,9 @@ public class ProtocolShared {
     return bootstrap;
   }
 
-  private synchronized Ref addReference() {
+  private synchronized Ref addReference(Context context) {
     if (count == 0) {
-      init();
+      init(context);
     }
     count++;
     return new Ref();
@@ -96,7 +109,18 @@ public class ProtocolShared {
     }
   }
 
-  private void init() {
+  private void init(Context context) {
+
+    ByteBufAllocator allocator = null;
+    switch (getProperty("com.impossibl.netty.bytebuf.allocator", "pooled")) {
+      case "pooled":
+        allocator = PooledByteBufAllocator.DEFAULT;
+        break;
+      case "unpooled":
+        allocator = UnpooledByteBufAllocator.DEFAULT;
+        break;
+    }
+
     int workerCount = getRuntime().availableProcessors();
     NioEventLoopGroup group = new NioEventLoopGroup(workerCount, new NamedThreadFactory("PG-JDBC EventLoop"));
 
@@ -106,7 +130,15 @@ public class ProtocolShared {
       protected void initChannel(SocketChannel ch) throws Exception {
         ch.pipeline().addLast(new MessageDecoder(), new MessageHandler());
       }
-    }).option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+    }).option(ChannelOption.ALLOCATOR, allocator);
+
+    if (context != null) {
+      if (context.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT)
+        bootstrap.option(ChannelOption.SO_RCVBUF, context.getSetting(RECEIVE_BUFFER_SIZE, int.class));
+
+      if (context.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT)
+        bootstrap.option(ChannelOption.SO_SNDBUF, context.getSetting(SEND_BUFFER_SIZE, int.class));
+    }
   }
 
   public Future<?> shutdown() {
@@ -116,10 +148,35 @@ public class ProtocolShared {
 
   public void waitForShutdown() {
 
-    shutdown().awaitUninterruptibly();
+    shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
+
+    Thread deathThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e) {
+          // Ignore
+        }
+      }
+    });
+
+    Thread globalThread = new Thread() {
+      @Override
+      public void run() {
+        try {
+          GlobalEventExecutor.INSTANCE.awaitInactivity(5, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e) {
+          // Ignore
+        }
+      }
+    };
 
     try {
-      ThreadDeathWatcher.awaitInactivity(30, TimeUnit.SECONDS);
+      globalThread.join(TimeUnit.SECONDS.toMillis(5));
+      deathThread.join(TimeUnit.SECONDS.toMillis(5));
     }
     catch (InterruptedException e) {
       // Ignore

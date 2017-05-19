@@ -53,13 +53,53 @@ public class CompositeType extends Type {
    */
   public static class Attribute {
 
-    public int number;
-    public String name;
-    public Type type;
-    public boolean nullable;
-    public boolean autoIncrement;
-    public boolean hasDefault;
-    public Map<String, Object> typeModifiers;
+    private int number;
+    private String name;
+    private Type type;
+    private boolean nullable;
+    private boolean autoIncrement;
+    private boolean hasDefault;
+    private Map<String, Object> typeModifiers;
+
+    Attribute(int number, String name, Type type,
+              boolean nullable, boolean autoIncrement,
+              boolean hasDefault, Map<String, Object> typeModifiers) {
+      this.number = number;
+      this.name = name;
+      this.type = type;
+      this.nullable = nullable;
+      this.autoIncrement = autoIncrement;
+      this.hasDefault = hasDefault;
+      this.typeModifiers = typeModifiers;
+    }
+
+    public int getNumber() {
+      return number;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Type getType() {
+      return type;
+    }
+
+    public boolean isNullable() {
+      return nullable;
+    }
+
+    public boolean isAutoIncrement() {
+      return autoIncrement;
+    }
+
+    public boolean isHasDefault() {
+      return hasDefault;
+    }
+
+    public Map<String, Object> getTypeModifiers() {
+      return typeModifiers;
+    }
 
     @Override
     public String toString() {
@@ -107,6 +147,14 @@ public class CompositeType extends Type {
     this.attributes = attributes;
   }
 
+  public Type[] getAttributesTypes() {
+    Type[] attributeTypes = new Type[attributes.size()];
+    for (int c = 0; c < attributes.size(); ++c) {
+      attributeTypes[c] = attributes.get(c).type;
+    }
+    return attributeTypes;
+  }
+
   @Override
   public boolean isParameterFormatSupported(Format format) {
 
@@ -132,9 +180,12 @@ public class CompositeType extends Type {
   @Override
   public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
 
-    Class<?> type = (customizations != null) ? customizations.get(getName()) : null;
+    Class<?> type = (customizations != null) ? customizations.get(getNamespace() + "." + getName()) : null;
     if (type == null) {
-      type = super.getJavaType(format, customizations);
+      type = (customizations != null) ? customizations.get(getName()) : null;
+      if (type == null) {
+        type = super.getJavaType(format, customizations);
+      }
     }
 
     return type;
@@ -154,15 +205,14 @@ public class CompositeType extends Type {
       attributes = new ArrayList<>(pgAttrs.size());
 
       for (PgAttribute.Row pgAttr : pgAttrs) {
-
-        Attribute attr = new Attribute();
-        attr.number = pgAttr.number;
-        attr.name = pgAttr.name;
-        attr.type = registry.loadType(pgAttr.typeId);
-        attr.nullable = pgAttr.nullable;
-        attr.hasDefault = pgAttr.hasDefault;
-        attr.typeModifiers = attr.type != null ? attr.type.getModifierParser().parse(pgAttr.typeModifier) : Collections.<String, Object>emptyMap();
-        attr.autoIncrement = pgAttr.autoIncrement;
+        Type type = registry.loadType(pgAttr.getTypeId());
+        Attribute attr = new Attribute(pgAttr.getNumber(),
+                                       pgAttr.getName(),
+                                       type,
+                                       pgAttr.isNullable(),
+                                       pgAttr.isAutoIncrement(),
+                                       pgAttr.isHasDefault(),
+                                       type != null ? type.getModifierParser().parse(pgAttr.getTypeModifier()) : Collections.<String, Object>emptyMap());
 
         attributes.add(attr);
       }

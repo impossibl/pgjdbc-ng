@@ -94,7 +94,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
     try {
 
-      ProtocolShared.Ref sharedRef = ProtocolShared.acquire();
+      ProtocolShared.Ref sharedRef = ProtocolShared.acquire(context);
 
       Bootstrap clientBootstrap = sharedRef.get().getBootstrap();
 
@@ -201,9 +201,9 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
 
   }
 
-  private void startup(ProtocolImpl protocol, BasicContext context) throws IOException, NoticeException {
+  private static void startup(ProtocolImpl protocol, BasicContext context) throws IOException, NoticeException {
 
-    Map<String, Object> params = new HashMap<String, Object>();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(APPLICATION_NAME, context.getSetting(APPLICATION_NAME, "pgjdbc app"));
     params.put(CLIENT_ENCODING, context.getSetting(CLIENT_ENCODING, "UTF8"));
@@ -273,7 +273,7 @@ public class ProtocolFactoryImpl implements ProtocolFactory {
     }
   }
 
-  private IOException translateConnectionException(Exception e) {
+  private static IOException translateConnectionException(Exception e) {
 
     IOException io;
 

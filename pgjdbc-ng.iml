@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" version="4">
+  <component name="FacetManager">
+    <facet type="Osmorc" name="OSGi">
+      <configuration manifestGenerationMode="OsmorcControlled" manifestLocation="" jarfileLocation="pgjdbc-ng-0.7.0-SNAPSHOT.jar" outputPathType="CompilerOutputPath" bndFileLocation="" bundlorFileLocation="" bundleActivator="" bundleSymbolicName="pgjdbc-ng" bundleVersion="0.7.0.SNAPSHOT" ignoreFilePattern="" useProjectDefaultManifestFileLocation="true" alwaysRebuildBundleJAR="false" doNotSynchronizeWithMaven="false">
+        <additionalProperties>
+          <property key="Bundle-Description" value="A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres." />
+          <property key="Bundle-Vendor" value="impossibl.com" />
+          <property key="Bundle-DocURL" value="http://www.impossibl.com" />
+          <property key="Import-Package" value="!com.impossibl.postgres*,io.netty.*;version=&quot;[4.0,4.1)&quot;,*" />
+          <property key="Bundle-Name" value="PGJDBC-NG" />
+          <property key="Include-Resource" value="META-INF/services/com.impossibl.postgres.system.procs.ProcProvider=$MODULE_DIR$/src/main/resources/META-INF/services/com.impossibl.postgres.system.procs.ProcProvider,META-INF/services/java.sql.Driver=$MODULE_DIR$/src/main/resources/META-INF/services/java.sql.Driver" />
+        </additionalProperties>
+        <additionalJARContents />
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_7" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/resources" type="java-test-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.11" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-common:4.1.7.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-buffer:4.1.7.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport:4.1.7.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-resolver:4.1.7.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-codec:4.1.7.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-handler:4.1.7.Final" level="project" />
+  </component>
+</module>

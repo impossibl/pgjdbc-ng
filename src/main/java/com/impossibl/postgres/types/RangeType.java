@@ -72,7 +72,7 @@ public class RangeType extends Type {
 
     super.load(source, attrs, registry);
 
-    base = registry.loadType(source.rangeBaseTypeId);
+    base = registry.loadType(source.getRangeBaseTypeId());
   }
 
 }

@@ -44,7 +44,7 @@ public abstract class TextDecoder implements Type.Codec.Decoder {
 
     if (buffer instanceof ByteBuf)  {
 
-      CharSequence textBuffer = (CharSequence) Strings.BINARY_DECODER.decode(type, typeLength, typeModifier, buffer, context);
+      CharSequence textBuffer = (CharSequence) Strings.BINARY_DECODER.decode(type, typeLength, typeModifier, buffer, context.unwrap());
       if (textBuffer == null)
         return null;
 

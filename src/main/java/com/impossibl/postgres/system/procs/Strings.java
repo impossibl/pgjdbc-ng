@@ -49,9 +49,11 @@ public class Strings extends SimpleProcProvider {
 
   public static final BinDecoder BINARY_DECODER = new BinDecoder();
   public static final BinEncoder BINARY_ENCODER = new BinEncoder();
+  public static final TxtDecoder TEXT_DECODER = new TxtDecoder();
+  public static final TxtEncoder TEXT_ENCODER = new TxtEncoder();
 
   public Strings() {
-    super(new TxtEncoder(), new TxtDecoder(), BINARY_ENCODER, BINARY_DECODER, new ModParser(), "text", "varchar",
+    super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(), "text", "varchar",
             "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
   }
 
@@ -127,11 +129,6 @@ public class Strings extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 4 + toBytes(val, context).length;
-    }
-
   }
 
   public static class TxtDecoder extends TextDecoder {
@@ -149,7 +146,14 @@ public class Strings extends SimpleProcProvider {
     @Override
     public String decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
 
-      return buffer.toString();
+      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      if (maxLength != null) {
+        return buffer.subSequence(0, min(buffer.length(), maxLength)).toString();
+      }
+      else {
+        return buffer.toString();
+      }
+
     }
 
   }
@@ -187,7 +191,7 @@ public class Strings extends SimpleProcProvider {
     @Override
     public Map<String, Object> parse(long mod) {
 
-      Map<String, Object> mods = new HashMap<String, Object>();
+      Map<String, Object> mods = new HashMap<>();
 
       if (mod > 4) {
         mods.put(LENGTH, (int)(mod - 4));

@@ -41,17 +41,108 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
   public static class Row {
 
-    public int relationTypeId;
-    public int relationId;
-    public String name;
-    public int typeId;
-    public int typeModifier;
-    public short length;
-    public short number;
-    public boolean nullable;
-    public boolean autoIncrement;
-    public int numberOfDimensions;
-    public boolean hasDefault;
+    private int relationTypeId;
+    private int relationId;
+    private String name;
+    private int typeId;
+    private int typeModifier;
+    private short length;
+    private short number;
+    private boolean nullable;
+    private boolean autoIncrement;
+    private int numberOfDimensions;
+    private boolean hasDefault;
+
+    public Row() {
+    }
+
+    public int getRelationTypeId() {
+      return relationTypeId;
+    }
+
+    public void setRelationTypeId(int v) {
+      relationTypeId = v;
+    }
+
+    public int getRelationId() {
+      return relationId;
+    }
+
+    public void setRelationId(int v) {
+      relationId = v;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String v) {
+      name = v;
+    }
+
+    public int getTypeId() {
+      return typeId;
+    }
+
+    public void setTypeId(int v) {
+      typeId = v;
+    }
+
+    public int getTypeModifier() {
+      return typeModifier;
+    }
+
+    public void setTypeModifier(int v) {
+      typeModifier = v;
+    }
+
+    public short getLength() {
+      return length;
+    }
+
+    public void setLength(short v) {
+      length = v;
+    }
+
+    public short getNumber() {
+      return number;
+    }
+
+    public void setNumber(short v) {
+      number = v;
+    }
+
+    public boolean isNullable() {
+      return nullable;
+    }
+
+    public void setNullable(boolean v) {
+      nullable = v;
+    }
+
+    public boolean isAutoIncrement() {
+      return autoIncrement;
+    }
+
+    public void setAutoIncrement(boolean v) {
+      autoIncrement = v;
+    }
+
+    public int getNumberOfDimensions() {
+      return numberOfDimensions;
+    }
+
+    public void setNumberOfDimensions(int v) {
+      numberOfDimensions = v;
+    }
+
+    public boolean isHasDefault() {
+      return hasDefault;
+    }
+
+    public void setHasDefault(boolean v) {
+      hasDefault = v;
+    }
 
     @Override
     public int hashCode() {

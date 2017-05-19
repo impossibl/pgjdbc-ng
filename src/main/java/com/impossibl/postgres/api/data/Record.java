@@ -28,9 +28,10 @@
  */
 package com.impossibl.postgres.api.data;
 
-import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.Type;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,53 +39,53 @@ import static java.util.Objects.requireNonNull;
 
 public class Record {
 
-  CompositeType type;
-  Object[] values;
+  String typeName;
+  Type[] attributeTypes;
+  Object[] attributeValues;
 
-  public Record(CompositeType type, Object[] values) {
-    this.type = requireNonNull(type);
-    this.values = requireNonNull(values);
+  public Record(String typeName, Type[] attributeTypes, Object[] attributeValues) {
+    this.typeName = typeName;
+    this.attributeTypes = attributeTypes;
+    this.attributeValues = requireNonNull(attributeValues);
   }
 
-  public CompositeType getType() {
-    return type;
+  public String getTypeName() {
+    return typeName;
   }
 
-  public void setType(CompositeType type) {
-    this.type = type;
+  public void setTypeName(String typeName) {
+    this.typeName = typeName;
   }
 
-  public Object[] getValues() {
-    return values;
+  public Type[] getAttributeTypes() {
+    return attributeTypes;
   }
 
-  public void setValues(Object[] values) {
-    this.values = values;
+  public void setAttributeTypes(Type[] attributeTypes) {
+    this.attributeTypes = attributeTypes;
+  }
+
+  public Object[] getAttributeValues() {
+    return attributeValues;
+  }
+
+  public void setAttributeValues(Object[] attributeValues) {
+    this.attributeValues = attributeValues;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Record record = (Record) o;
+    return Objects.equals(typeName, record.typeName) &&
+        Arrays.equals(attributeTypes, record.attributeTypes) &&
+        Arrays.equals(attributeValues, record.attributeValues);
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + type.hashCode();
-    result = prime * result + Arrays.hashCode(values);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    Record other = (Record) obj;
-    if (!type.equals(other.type))
-      return false;
-    if (!Arrays.equals(values, other.values))
-      return false;
-    return true;
+    return Objects.hash(typeName, attributeTypes, attributeValues);
   }
 
 }

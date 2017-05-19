@@ -41,6 +41,7 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -1642,6 +1643,118 @@ public class PGCallableStatementDelegator extends PGPreparedStatementDelegator i
   public boolean wasNull() throws SQLException {
     try {
       return delegator.wasNull();
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    try {
+      delegator.setObject(parameterName, x, targetSqlType, scaleOrLength);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    try {
+      delegator.setObject(parameterName, x, targetSqlType);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterIndex, sqlType);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterIndex, sqlType, scale);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterIndex, sqlType, typeName);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterName, sqlType);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterName, sqlType, scale);
+    }
+    catch (SQLException se) {
+      owner.fireStatementError(this, se);
+      throw se;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
+    try {
+      delegator.registerOutParameter(parameterName, sqlType, typeName);
     }
     catch (SQLException se) {
       owner.fireStatementError(this, se);

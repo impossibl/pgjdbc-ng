@@ -30,8 +30,11 @@ package com.impossibl.postgres.api.data;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 import static java.lang.Double.parseDouble;
@@ -51,14 +54,6 @@ public class Interval {
   private static final long SECS_TO_MICROS = SECONDS.toMicros(1);
   private static final long SECS_TO_MILLIS = SECONDS.toMillis(1);
 
-  private static final DecimalFormat secondsFormat;
-  static {
-    secondsFormat = new DecimalFormat("0.00####");
-    DecimalFormatSymbols dfs = secondsFormat.getDecimalFormatSymbols();
-    dfs.setDecimalSeparator('.');
-    secondsFormat.setDecimalFormatSymbols(dfs);
-  }
-
   public Interval(int months, int days, long timeMicros) {
     super();
     setValue(months, days, timeMicros);
@@ -70,14 +65,22 @@ public class Interval {
   }
 
   public Interval(String interval) {
+    this(interval, Locale.getDefault());
+  }
+
+  public Interval(String interval, Locale locale) {
     super();
-    setValue(interval);
+    setValue(interval, locale);
   }
 
   public Interval() {
   }
 
   public void setValue(String value) {
+    setValue(value, Locale.getDefault());
+  }
+
+  public void setValue(String value, Locale locale) {
 
     boolean isISOFormat = !value.startsWith("@");
 
@@ -98,11 +101,11 @@ public class Interval {
 
     try {
 
-      String valueToken = null;
+      String valueToken;
 
-      value = value.replace('+', ' ').replace('@', ' ');
+      final String changedValue = value.replace('+', ' ').replace('@', ' ');
 
-      StringTokenizer st = new StringTokenizer(value);
+      StringTokenizer st = new StringTokenizer(changedValue);
       while (st.hasMoreTokens()) {
 
         String token = st.nextToken();
@@ -128,16 +131,16 @@ public class Interval {
           // Pre 7.4 servers do not put second information into the results
           // unless it is non-zero.
           int endMinutes = token.indexOf(':', endHours + 1);
-          if (endMinutes != -1)
-            seconds = parseDouble(token.substring(endMinutes + 1));
+          if (endMinutes != -1) {
+            NumberFormat numberFormat = NumberFormat.getNumberInstance(locale);
+            seconds = numberFormat.parse(token.substring(endMinutes + 1)).doubleValue();
+          }
 
           if (offset == 1) {
             hours = -hours;
             minutes = -minutes;
             seconds = -seconds;
           }
-
-          valueToken = null;
 
           break;
         }
@@ -167,7 +170,7 @@ public class Interval {
 
       }
     }
-    catch (NumberFormatException e) {
+    catch (ParseException e) {
       throw new IllegalArgumentException("invalid interval", e);
     }
 
@@ -331,6 +334,12 @@ public class Interval {
 
   @Override
   public String toString() {
+    return toString(Locale.getDefault());
+  }
+
+  public String toString(Locale locale) {
+
+    DecimalFormat secondsFormat = new DecimalFormat("0.00####", DecimalFormatSymbols.getInstance(locale));
 
     StringBuilder buffer = new StringBuilder();
 

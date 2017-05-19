@@ -32,15 +32,18 @@ import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.CloseCommand;
 import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 
 import java.lang.ref.WeakReference;
@@ -53,7 +56,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -148,6 +150,7 @@ abstract class PGStatement implements Statement {
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
     this.generatedKeysResultSet = null;
+    this.fetchSize = connection.getDefaultFetchSize() != Settings.DEFAULT_FETCH_SIZE_DEFAULT ? Integer.valueOf(connection.getDefaultFetchSize()) : null;
 
     this.housekeeper = connection.housekeeper;
 
@@ -289,6 +292,7 @@ abstract class PGStatement implements Statement {
   void internalClose() throws SQLException {
 
     closeResultSets();
+    resultBatches = releaseResultBatches(resultBatches);
 
     if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
       dispose(connection, Statement, name);
@@ -300,18 +304,17 @@ abstract class PGStatement implements Statement {
     connection = null;
     command = null;
     resultFields = null;
-    resultBatches = null;
     generatedKeysResultSet = null;
   }
 
   boolean hasResults() {
     return !resultBatches.isEmpty() &&
-        resultBatches.get(0).results != null;
+      resultBatches.get(0).getResults() != null;
   }
 
   boolean hasUpdateCount() {
     return !resultBatches.isEmpty() &&
-        resultBatches.get(0).rowsAffected != null;
+      resultBatches.get(0).getRowsAffected() != null;
   }
 
   /**
@@ -326,6 +329,7 @@ abstract class PGStatement implements Statement {
   public boolean executeSimple(String sql) throws SQLException {
 
     closeResultSets();
+    resultBatches = releaseResultBatches(resultBatches);
 
     command = connection.getProtocol().createQuery(sql);
 
@@ -353,6 +357,7 @@ abstract class PGStatement implements Statement {
   public boolean executeStatement(String statementName, List<Type> parameterTypes, List<Object> parameterValues) throws SQLException {
 
     closeResultSets();
+    resultBatches = releaseResultBatches(resultBatches);
 
     String portalName = null;
 
@@ -360,7 +365,7 @@ abstract class PGStatement implements Statement {
       portalName = connection.getNextPortalName();
     }
 
-    BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields, Object[].class);
+    BindExecCommand command = connection.getProtocol().createBindExec(portalName, statementName, parameterTypes, parameterValues, resultFields);
 
     //Set query timeout
     long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
@@ -380,13 +385,23 @@ abstract class PGStatement implements Statement {
     return hasResults();
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
-    return createResultSet(resultFields, results, connection.getTypeMap());
+  PGResultSet createResultSet(List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) throws SQLException {
+
+    PGResultSet resultSet = new PGResultSet(this, resultFields, results, releaseResults);
+    activeResultSets.add(new WeakReference<>(resultSet));
+    return resultSet;
   }
 
-  PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results, Map<String, Class<?>> typeMap) throws SQLException {
+  PGResultSet createResultSet(QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
 
-    PGResultSet resultSet = new PGResultSet(this, resultFields, results);
+    PGResultSet resultSet = new PGResultSet(this, command, resultFields, results);
+    activeResultSets.add(new WeakReference<>(resultSet));
+    return resultSet;
+  }
+
+  PGResultSet createResultSet(String cursorName, int resultSetType, int resultSetHoldability, List<ResultField> resultFields) throws SQLException {
+
+    PGResultSet resultSet = new PGResultSet(this, cursorName, resultSetType, resultSetHoldability, resultFields);
     activeResultSets.add(new WeakReference<>(resultSet));
     return resultSet;
   }
@@ -565,22 +580,36 @@ abstract class PGStatement implements Statement {
       return null;
     }
 
-    QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-
-    PGResultSet rs;
-
     if (cursorName != null) {
-      rs = new PGResultSet(this, getCursorName(), resultSetType, resultSetHoldability, resultBatch.fields);
+
+      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+      //Shouldn't be any actual rows, but release it to any buffers
+      resultBatch.release();
+
+      return createResultSet(getCursorName(), resultSetType, resultSetHoldability, resultBatch.getFields());
     }
     else if (command.getStatus() == QueryCommand.Status.Completed) {
-      rs = new PGResultSet(this, resultBatch.fields, resultBatch.results);
+
+      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+      // This batch can be re-used so let "close" or "getMoreResults" release it
+
+      return createResultSet(resultBatch.getFields(), resultBatch.getResults(), false);
     }
     else {
-      rs = new PGResultSet(this, command, resultBatch.fields, resultBatch.results);
-    }
+      QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
 
-    activeResultSets.add(new WeakReference<>(rs));
-    return rs;
+      // The batch cannot be re-used, but the result set will clean it up when it's
+      // done using it
+
+      PGResultSet rs = createResultSet(command, resultBatch.getFields(), resultBatch.getResults());
+
+      // Command cannot be re-used when portal'd batching is in progress
+      command = null;
+
+      return rs;
+    }
   }
 
   @Override
@@ -591,7 +620,7 @@ abstract class PGStatement implements Statement {
       return -1;
     }
 
-    return (int) (long) resultBatches.get(0).rowsAffected;
+    return (int) (long) resultBatches.get(0).getRowsAffected();
   }
 
   @Override
@@ -607,7 +636,8 @@ abstract class PGStatement implements Statement {
       return false;
     }
 
-    resultBatches.remove(0);
+    QueryCommand.ResultBatch finishedBatch = resultBatches.remove(0);
+    finishedBatch.release();
 
     return hasResults();
   }
@@ -617,7 +647,7 @@ abstract class PGStatement implements Statement {
     checkClosed();
 
     if (generatedKeysResultSet == null) {
-      return createResultSet(Collections.<ResultField>emptyList(), Collections.<Object[]>emptyList());
+      return createResultSet(Collections.<ResultField>emptyList(), Collections.<DataRow>emptyList(), false);
     }
 
     return generatedKeysResultSet;
@@ -674,4 +704,67 @@ abstract class PGStatement implements Statement {
     return iface.isAssignableFrom(getClass());
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long getLargeUpdateCount() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setLargeMaxRows(long max) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long getLargeMaxRows() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long[] executeLargeBatch() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate(String sql) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

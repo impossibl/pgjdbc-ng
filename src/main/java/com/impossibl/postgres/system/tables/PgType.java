@@ -41,30 +41,225 @@ public class PgType implements Table<PgType.Row> {
 
   public static class Row {
 
-    public int oid;
-    public String name;
-    public short length;
-    public String discriminator;
-    public String category;
-    public String deliminator;
-    public int relationId;
-    public int elementTypeId;
-    public int arrayTypeId;
-    public int inputId;
-    public int outputId;
-    public int receiveId;
-    public int sendId;
-    public int modInId;
-    public int modOutId;
-    public int analyzeId;
-    public String alignment;
-    public int domainBaseTypeId;
-    public int domainTypeMod;
-    public boolean domainNotNull;
-    public int domainDimensions;
-    public String namespace;
-    public String domainDefault;
-    public int rangeBaseTypeId;
+    private int oid;
+    private String name;
+    private short length;
+    private String discriminator;
+    private String category;
+    private String deliminator;
+    private int relationId;
+    private int elementTypeId;
+    private int arrayTypeId;
+    private int inputId;
+    private int outputId;
+    private int receiveId;
+    private int sendId;
+    private int modInId;
+    private int modOutId;
+    private int analyzeId;
+    private String alignment;
+    private int domainBaseTypeId;
+    private int domainTypeMod;
+    private boolean domainNotNull;
+    private int domainDimensions;
+    private String namespace;
+    private String domainDefault;
+    private int rangeBaseTypeId;
+
+    public Row() {
+    }
+
+    public int getOid() {
+      return oid;
+    }
+
+    public void setOid(int v) {
+      oid = v;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String v) {
+      name = v;
+    }
+
+    public short getLength() {
+      return length;
+    }
+
+    public void setLength(short v) {
+      length = v;
+    }
+
+    public String getDiscriminator() {
+      return discriminator;
+    }
+
+    public void setDiscriminator(String v) {
+      discriminator = v;
+    }
+
+    public String getCategory() {
+      return category;
+    }
+
+    public void setCategory(String v) {
+      category = v;
+    }
+
+    public String getDeliminator() {
+      return deliminator;
+    }
+
+    public void setDeliminator(String v) {
+      deliminator = v;
+    }
+
+    public int getRelationId() {
+      return relationId;
+    }
+
+    public void setRelationId(int v) {
+      relationId = v;
+    }
+
+    public int getElementTypeId() {
+      return elementTypeId;
+    }
+
+    public void setElementTypeId(int v) {
+      elementTypeId = v;
+    }
+
+    public int getArrayTypeId() {
+      return arrayTypeId;
+    }
+
+    public void setArrayTypeId(int v) {
+      arrayTypeId = v;
+    }
+
+    public int getInputId() {
+      return inputId;
+    }
+
+    public void setInputId(int v) {
+      inputId = v;
+    }
+
+    public int getOutputId() {
+      return outputId;
+    }
+
+    public void setOutputId(int v) {
+      outputId = v;
+    }
+
+    public int getReceiveId() {
+      return receiveId;
+    }
+
+    public void setReceiveId(int v) {
+      receiveId = v;
+    }
+
+    public int getSendId() {
+      return sendId;
+    }
+
+    public void setSendId(int v) {
+      sendId = v;
+    }
+
+    public int getModInId() {
+      return modInId;
+    }
+
+    public void setModInId(int v) {
+      modInId = v;
+    }
+
+    public int getModOutId() {
+      return modOutId;
+    }
+
+    public void setModOutId(int v) {
+      modOutId = v;
+    }
+
+    public int getAnalyzeId() {
+      return analyzeId;
+    }
+
+    public void setAnalyzeId(int v) {
+      analyzeId = v;
+    }
+
+    public String getAlignment() {
+      return alignment;
+    }
+
+    public void setAlignment(String v) {
+      alignment = v;
+    }
+
+    public int getDomainBaseTypeId() {
+      return domainBaseTypeId;
+    }
+
+    public void setDomainBaseTypeId(int v) {
+      domainBaseTypeId = v;
+    }
+
+    public int getDomainTypeMod() {
+      return domainTypeMod;
+    }
+
+    public void setDomainTypeMod(int v) {
+      domainTypeMod = v;
+    }
+
+    public boolean isDomainNotNull() {
+      return domainNotNull;
+    }
+
+    public void setDomainNotNull(boolean v) {
+      domainNotNull = v;
+    }
+
+    public int getDomainDimensions() {
+      return domainDimensions;
+    }
+
+    public void setDomainDimensions(int v) {
+      domainDimensions = v;
+    }
+
+    public String getNamespace() {
+      return namespace;
+    }
+
+    public void setNamespace(String v) {
+      namespace = v;
+    }
+
+    public String getDomainDefault() {
+      return domainDefault;
+    }
+
+    public void setDomainDefault(String v) {
+      domainDefault = v;
+    }
+
+    public int getRangeBaseTypeId() {
+      return rangeBaseTypeId;
+    }
+
+    public void setRangeBaseTypeId(int v) {
+      rangeBaseTypeId = v;
+    }
 
     @Override
     public boolean equals(Object obj) {

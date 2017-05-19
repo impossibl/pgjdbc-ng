@@ -41,9 +41,27 @@ public class PgProc implements Table<PgProc.Row> {
 
   public static class Row {
 
-    public int oid;
-    public String name;
+    private int oid;
+    private String name;
 
+    public Row() {
+    }
+
+    public int getOid() {
+      return oid;
+    }
+
+    public void setOid(int v) {
+      oid = v;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String v) {
+      name = v;
+    }
   }
 
   public static final PgProc INSTANCE = new PgProc();

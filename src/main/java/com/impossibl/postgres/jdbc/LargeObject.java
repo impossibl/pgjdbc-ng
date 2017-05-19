@@ -117,8 +117,7 @@ class LargeObject {
   }
 
   byte[] read(long len) throws SQLException {
-    InputStream data = connection.executeForFirstResultValue("@lo.read", true, InputStream.class, fd, (int) len);
-    try {
+    try (InputStream data = connection.executeForFirstResultValue("@lo.read", true, InputStream.class, fd, (int) len)) {
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {

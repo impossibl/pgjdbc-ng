@@ -131,11 +131,6 @@ public class Dates extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 8;
-    }
-
   }
 
   private static final long PG_EPOCH_SECS = 946684800L;

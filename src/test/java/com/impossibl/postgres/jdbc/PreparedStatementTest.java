@@ -39,7 +39,6 @@ import com.impossibl.postgres.api.data.CidrAddr;
 import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
-import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.ByteArrayInputStream;
@@ -89,17 +88,6 @@ public class PreparedStatementTest {
     TestUtil.dropTable(conn, "texttable");
     TestUtil.dropTable(conn, "intervaltable");
     TestUtil.closeDB(conn);
-  }
-
-  @Test
-  public void testLargeBinaryStream() throws SQLException {
-
-    byte[] data = new byte[Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT * 2];
-
-    ByteArrayInputStream bais = new ByteArrayInputStream(data);
-
-    doSetBinaryStream(bais, data.length);
-
   }
 
   @Test
@@ -189,6 +177,8 @@ public class PreparedStatementTest {
     catch (SQLException e) {
       // Ok
     }
+
+    pstmt.close();
   }
 
   @Test
@@ -304,13 +294,13 @@ public class PreparedStatementTest {
   @Test
   public void testSingleQuotes() throws SQLException {
     String[] testStrings = new String[] {"bare ? question mark", "quoted \\' single quote", "doubled '' single quote", "octal \\060 constant", "escaped \\? question mark",
-      "double \\\\ backslash", "double \" quote", };
+      "double \\\\ backslash", "double \" quote", "backslash \\\\\\' single quote"};
 
     String[] testStringsStdConf = new String[] {"bare ? question mark", "quoted '' single quote", "doubled '' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", };
+      "double \\ backslash", "double \" quote", "backslash \\'' single quote"};
 
     String[] expected = new String[] {"bare ? question mark", "quoted ' single quote", "doubled ' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", };
+      "double \\ backslash", "double \" quote", "backslash \\' single quote"};
 
     boolean oldStdStrings = TestUtil.getStandardConformingStrings(conn);
     Statement stmt = conn.createStatement();
@@ -387,6 +377,8 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals(";", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
+    st.close();
 
     st = conn.prepareStatement("SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;");
     st.setString(1, ";");
@@ -395,6 +387,8 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals("$a$;$x $a$", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
+    st.close();
 
     st = conn.prepareStatement("SELECT ?::text");
     st.setString(1, "$a$ $a$");
@@ -404,27 +398,32 @@ public class PreparedStatementTest {
     assertEquals("$a$ $a$", rs.getString(1));
 
     assertFalse(rs.next());
-
+    rs.close();
     st.close();
   }
 
   @Test
   public void testDollarQuotesAndIdentifiers() throws SQLException {
+    PreparedStatement ps;
 
-    PreparedStatement st;
-
-    conn.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
-    st = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
-    st.setString(1, "a");
-    st.setString(2, "b");
-    st.executeUpdate();
+    Statement st = conn.createStatement();
+    st.execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
     st.close();
 
-    conn.createStatement().execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
-    st = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
-    st.setString(1, "a");
-    st.executeUpdate();
+    ps = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
+    ps.setString(1, "a");
+    ps.setString(2, "b");
+    ps.executeUpdate();
+    ps.close();
+
+    st = conn.createStatement();
+    st.execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
     st.close();
+
+    ps = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
+    ps.setString(1, "a");
+    ps.executeUpdate();
+    ps.close();
   }
 
   @Test
@@ -445,6 +444,7 @@ public class PreparedStatementTest {
     assertTrue(rs.next());
     assertEquals("?", rs.getString(1));
     assertFalse(rs.next());
+    rs.close();
     pst.close();
   }
 

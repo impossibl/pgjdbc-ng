@@ -36,22 +36,25 @@ openssl pkcs8 -topk8 -in badclient.key -out badclient.pk8 -outform DER -v1 PBE-M
 cp goodclient.crt server/root.crt
 cd server
 openssl req -x509 -newkey rsa:1024 -nodes -days 3650 -keyout server.key -out server.crt
-cp server.crt ../goodroot.crt
 #Common name is localhost, no password
+cp server.crt ../goodroot.crt
 
 The subdirectory server contains what should be copied to the PGDATA directory.
 If you do not overwrite the pg_hba.conf then remember to comment out all lines
 starting with "host all".
 
 For the tests the sslinfo module must be installed into every database.
-The ssl=on must be set in postgresql.conf
+The ssl=on and ssl_ca_file='root.crt' must be set in postgresql.conf.
 
 The following command creates the databases and installs the sslinfo module.
 
-for db in hostssldb hostnossldb certdb hostsslcertdb; do
+for db in hostdb hostssldb hostnossldb certdb hostsslcertdb; do
   createdb $db
   psql $db -c "create extension sslinfo"
 done
 
-The username for connecting to postgres as specified in build.local.properties tests has to be "test".
+The tests are run as
+
+mvn -Dtest=com.impossibl.postgres.jdbc.SSLTest -Dpgjdbc.test.user=test -Dpgjdbc.test.password=test clean test
+mvn -Dtest=com.impossibl.postgres.jdbc.SSLDataSourceTest -Dpgjdbc.test.user=test -Dpgjdbc.test.password=test clean test
 

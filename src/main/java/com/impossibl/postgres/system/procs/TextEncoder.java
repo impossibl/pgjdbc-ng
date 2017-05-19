@@ -49,6 +49,7 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
       if (value == null) {
 
         channelBuffer.writeInt(-1);
+
       }
       else {
 
@@ -60,21 +61,22 @@ public abstract class TextEncoder implements Type.Codec.Encoder {
 
         channelBuffer.writeInt(bytes.length);
         channelBuffer.writeBytes(bytes);
+
       }
 
     }
     else {
 
-      encode(type, (StringBuilder)buffer, value, context);
+      StringBuilder builder = (StringBuilder) buffer;
+
+      if (value == null) {
+        builder.append("NULL");
+      }
+      else {
+        encode(type, builder, value, context);
+      }
     }
 
-  }
-
-  @Override
-  public int length(Type type, Object val, Context context) throws IOException {
-    StringBuilder computer = new StringBuilder();
-    encode(type, computer, val, context);
-    return computer.length() + 4;
   }
 
 }

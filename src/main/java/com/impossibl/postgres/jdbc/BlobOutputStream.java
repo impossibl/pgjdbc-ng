@@ -50,6 +50,7 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void write(int b) throws IOException {
+    checkClosed();
 
     if (pos >= buf.length) {
       writeNextRegion();
@@ -67,6 +68,7 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
+    checkClosed();
 
     if (pos > 0) {
       writeNextRegion();
@@ -83,6 +85,10 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void flush() throws IOException {
+    if (lo == null) {
+      return;
+    }
+
     if (pos > 0) {
       writeNextRegion();
     }
@@ -90,6 +96,10 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void close() throws IOException {
+    if (lo == null) {
+      return;
+    }
+
     flush();
     try {
       lo.close();
@@ -114,6 +124,12 @@ public class BlobOutputStream extends OutputStream {
       throw new IOException(e);
     }
 
+  }
+
+  private void checkClosed() throws IOException {
+    if (lo == null) {
+      throw new IOException("Stream is closed");
+    }
   }
 
 }

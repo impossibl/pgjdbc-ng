@@ -151,6 +151,8 @@ public class TimeTest {
     assertNotNull(timetz);
     timestamptz = rs.getTimestamp(2);
     assertNotNull(timestamptz);
+    rs.close();
+    stmt.close();
   }
 
   /*
@@ -223,6 +225,17 @@ public class TimeTest {
     assertEquals(10, stmt.executeUpdate("DELETE FROM testtime"));
     stmt.close();
     ps.close();
+  }
+
+  @Test
+  public void testSetNull() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"))) {
+        ps.setTime(1, null);
+        ps.execute();
+      }
+    }
+
   }
 
   /*
@@ -301,6 +314,7 @@ public class TimeTest {
     assertTrue(!rs.next());
 
     rs.close();
+    st.close();
   }
 
   private java.sql.Time makeTime(int h, int m, int s) {

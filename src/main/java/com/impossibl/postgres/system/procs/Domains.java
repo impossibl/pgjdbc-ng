@@ -61,16 +61,7 @@ public class Domains extends SimpleProcProvider {
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getBinaryCodec().encoder.encode(baseType, buffer, value, context);
-    }
-
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      DomainType domainType = (DomainType) type;
-      Type baseType = domainType.getBase();
-
-      return baseType.getBinaryCodec().encoder.length(baseType, val, context);
+      baseType.getBinaryCodec().getEncoder().encode(baseType, buffer, value, context);
     }
 
   }
@@ -93,7 +84,7 @@ public class Domains extends SimpleProcProvider {
       DomainType domainType = (DomainType) type;
       Type baseType = domainType.getBase();
 
-      baseType.getTextCodec().encoder.encode(baseType, buffer, value, context);
+      baseType.getTextCodec().getEncoder().encode(baseType, buffer, value, context);
     }
 
   }

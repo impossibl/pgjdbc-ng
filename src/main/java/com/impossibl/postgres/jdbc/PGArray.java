@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.ParsedDataRow;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
@@ -133,14 +135,14 @@ public class PGArray implements Array {
       new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
     };
 
-    List<Object[]> results = new ArrayList<Object[]>(value.length);
+    List<DataRow> results = new ArrayList<>(value.length);
     for (long c = index, end = index + count; c < end; ++c) {
-      results.add(new Object[]{c, value[(int) c - 1]});
+      results.add(new ParsedDataRow(new Object[]{c, value[(int) c - 1]}));
     }
 
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(Arrays.asList(fields), results, map);
+    return stmt.createResultSet(Arrays.asList(fields), results, false);
   }
 
   @Override

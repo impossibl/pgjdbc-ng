@@ -28,9 +28,8 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import com.impossibl.postgres.mapper.Mapper;
-import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.BufferedDataRow;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
@@ -38,35 +37,30 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.SettingsContext;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.StreamingByteBuf;
-import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
-import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD;
-import static com.impossibl.postgres.system.Settings.PARAMETER_STREAM_THRESHOLD_DEFAULT;
-import static com.impossibl.postgres.utils.Factory.createInstance;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ResourceLeakDetector;
 
-public class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
+
+class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
   private static final int DEFAULT_MESSAGE_SIZE = 8192;
-  private static final int STREAM_MESSAGE_SIZE = 32 * 1024;
 
-  class BindExecCommandListener extends BaseProtocolListener {
+  private class Listener extends BaseProtocolListener {
 
     Context context;
 
-    public BindExecCommandListener(Context context) {
+    Listener(Context context) {
       this.context = context;
     }
 
@@ -83,51 +77,25 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     public void rowDescription(List<ResultField> newResultFields) {
       resultFields = newResultFields;
       resultFieldFormats = getResultFieldFormats(newResultFields);
-      resultBatch.fields = newResultFields;
-      resultBatch.results = !resultFields.isEmpty() ? new ArrayList<>() : null;
-      resultSetters = Mapper.buildMapping(rowType, newResultFields);
+      resultBatch.setFields(newResultFields);
+      resultBatch.resetResults(true);
     }
 
     @Override
     public void noData() {
-      resultBatch.fields = Collections.emptyList();
-      resultBatch.results = null;
-      status = Status.Completed;
+      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.resetResults(false);
     }
 
     @Override
     public void rowData(ByteBuf buffer) throws IOException {
-      try {
-        int itemCount = buffer.readShort();
-
-        Object rowInstance = createInstance(rowType, itemCount);
-
-        for (int c = 0; c < itemCount; ++c) {
-
-          ResultField field = resultBatch.fields.get(c);
-
-          Type fieldType = field.typeRef.get();
-
-          Type.Codec.Decoder decoder = fieldType.getCodec(field.format).decoder;
-
-          Object fieldVal = decoder.decode(fieldType, field.typeLength, field.typeModifier, buffer, context);
-
-          resultSetters.get(c).set(rowInstance, fieldVal);
-        }
-
-        @SuppressWarnings("unchecked")
-        List<Object> res = (List<Object>) resultBatch.results;
-        res.add(rowInstance);
-      }
-      finally {
-        buffer.release();
-      }
+      resultBatch.addResult(BufferedDataRow.parse(buffer, resultFields, parsingContext));
     }
 
     @Override
     public void emptyQuery() {
-      resultBatch.fields = Collections.emptyList();
-      resultBatch.results = null;
+      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.resetResults(false);
       status = Status.Completed;
     }
 
@@ -140,9 +108,9 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     @Override
     public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
       status = Status.Completed;
-      resultBatch.command = command;
-      resultBatch.rowsAffected = rowsAffected;
-      resultBatch.insertedOid = oid;
+      resultBatch.setCommand(command);
+      resultBatch.setRowsAffected(rowsAffected);
+      resultBatch.setInsertedOid(oid);
 
       if (maxRows > 0) {
         notifyAll();
@@ -171,7 +139,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
       notifyAll();
     }
 
-  };
+  }
 
 
   private String statementName;
@@ -179,59 +147,45 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
   private List<Type> parameterTypes;
   private List<Object> parameterValues;
   private List<ResultField> resultFields;
-  private Class<?> rowType;
-  private List<PropertySetter> resultSetters;
   private int maxRows;
   private int maxFieldLength;
   private Status status;
-  private SettingsContext parsingContext;
   private ResultBatch resultBatch;
   private List<Format> resultFieldFormats;
+  private SettingsContext parsingContext;
   private long queryTimeout;
 
 
-  public BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
+  BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues,
+                      List<ResultField> resultFields) {
 
     this.statementName = statementName;
     this.portalName = portalName;
     this.parameterTypes = parameterTypes;
     this.parameterValues = parameterValues;
     this.resultFields = resultFields;
-    this.rowType = rowType;
     this.maxRows = 0;
     this.maxFieldLength = Integer.MAX_VALUE;
 
     if (resultFields != null) {
-      this.resultSetters = Mapper.buildMapping(rowType, resultFields);
       this.resultFieldFormats = getResultFieldFormats(resultFields);
     }
     else {
-      this.resultSetters = Collections.emptyList();
       this.resultFieldFormats = Collections.emptyList();
     }
 
   }
 
-  public void reset() {
+  private void reset() {
     status = null;
     resultBatch = new ResultBatch();
-    resultBatch.fields = resultFields;
-    resultBatch.results = (resultFields != null && !resultFields.isEmpty()) ? new ArrayList<>() : null;
-  }
-
-  @Override
-  public long getQueryTimeout() {
-    return queryTimeout;
+    resultBatch.setFields(resultFields);
+    resultBatch.resetResults(true);
   }
 
   @Override
   public void setQueryTimeout(long queryTimeout) {
     this.queryTimeout = queryTimeout;
-  }
-
-  @Override
-  public String getStatementName() {
-    return statementName;
   }
 
   @Override
@@ -255,28 +209,13 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
   }
 
   @Override
-  public List<Object> getParameterValues() {
-    return parameterValues;
-  }
-
-  @Override
   public void setParameterValues(List<Object> parameterValues) {
     this.parameterValues = parameterValues;
   }
 
   @Override
-  public int getMaxRows() {
-    return maxRows;
-  }
-
-  @Override
   public void setMaxRows(int maxRows) {
     this.maxRows = maxRows;
-  }
-
-  @Override
-  public int getMaxFieldLength() {
-    return maxFieldLength;
   }
 
   @Override
@@ -286,7 +225,7 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
   @Override
   public List<ResultBatch> getResultBatches() {
-    return asList(resultBatch);
+    return singletonList(resultBatch);
   }
 
   @Override
@@ -297,46 +236,40 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
     parsingContext = new SettingsContext(protocol.getContext());
     parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
-    BindExecCommandListener listener = new BindExecCommandListener(parsingContext);
+    Listener listener = new Listener(parsingContext);
 
     protocol.setListener(listener);
 
     ByteBuf msg = protocol.channel.alloc().buffer(DEFAULT_MESSAGE_SIZE);
+    try {
 
-    if (status != Status.Suspended) {
+      if (status != Status.Suspended) {
 
-      if (shouldStreamBind(parsingContext, parameterValues)) {
+        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
 
-        StreamingByteBuf bindMsg = new StreamingByteBuf(protocol.channel, STREAM_MESSAGE_SIZE);
+      }
 
-        protocol.writeBind(bindMsg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
+      reset();
 
-        bindMsg.flush();
+      if (resultFields == null) {
 
+        protocol.writeDescribe(msg, Portal, portalName);
+
+      }
+
+      protocol.writeExecute(msg, portalName, maxRows);
+
+      if (maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+        protocol.writeFlush(msg);
       }
       else {
-
-        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats, true);
-
+        protocol.writeSync(msg);
       }
 
     }
-
-    reset();
-
-    if (resultFields == null) {
-
-      protocol.writeDescribe(msg, Portal, portalName);
-
-    }
-
-    protocol.writeExecute(msg, portalName, maxRows);
-
-    if (maxRows > 0 && protocol.getTransactionStatus() == TransactionStatus.Idle) {
-      protocol.writeFlush(msg);
-    }
-    else {
-      protocol.writeSync(msg);
+    catch (Throwable t) {
+      msg.release();
+      throw t;
     }
 
     protocol.send(msg);
@@ -345,33 +278,22 @@ public class BindExecCommandImpl extends CommandImpl implements BindExecCommand 
 
     waitFor(listener);
 
-  }
-
-  static boolean shouldStreamBind(Context context, List<Object> parameterValues) {
-
-    int streamThreshold = context.getSetting(PARAMETER_STREAM_THRESHOLD, PARAMETER_STREAM_THRESHOLD_DEFAULT);
-    int streamTotal = 0;
-
-    for (Object parameterValue : parameterValues) {
-
-      if (parameterValue instanceof ByteStreams.LimitedInputStream) {
-        streamTotal += ((ByteStreams.LimitedInputStream) parameterValue).limit();
-      }
-      else if (parameterValue instanceof InputStream) {
-        return false;
+    if (ResourceLeakDetector.getLevel().compareTo(ResourceLeakDetector.Level.SIMPLE) > 0) {
+      // Touch results batches (and therefore DataRows) in the
+      // correct thread to make debugging leaks easier.
+      if (resultBatch != null) {
+        resultBatch.touch();
       }
     }
-
-    return streamTotal > streamThreshold;
   }
 
-  static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
+  private static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
 
     List<Format> resultFieldFormats = new ArrayList<>();
 
     for (ResultField resultField : resultFields) {
-      resultField.format = resultField.typeRef.get().getResultFormat();
-      resultFieldFormats.add(resultField.format);
+      resultField.setFormat(resultField.getTypeRef().get().getResultFormat());
+      resultFieldFormats.add(resultField.getFormat());
     }
 
     return resultFieldFormats;

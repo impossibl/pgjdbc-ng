@@ -64,6 +64,16 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String clientEncoding;
   private int networkTimeout;
   private boolean strictMode;
+  private int defaultFetchSize;
+  private int receiveBufferSize;
+  private int sendBufferSize;
+
+  private boolean ssl;
+  private String sslMode;
+  private String sslPassword;
+  private String sslCertificateFile;
+  private String sslKeyFile;
+  private String sslRootCertificateFile;
 
   /**
    * Constructor
@@ -82,6 +92,16 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.clientEncoding = null;
     this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
     this.strictMode = Settings.STRICT_MODE_DEFAULT;
+    this.defaultFetchSize = Settings.DEFAULT_FETCH_SIZE_DEFAULT;
+    this.receiveBufferSize = Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
+    this.sendBufferSize = Settings.SEND_BUFFER_SIZE_DEFAULT;
+
+    this.ssl = false;
+    this.sslMode = null;
+    this.sslPassword = null;
+    this.sslCertificateFile = null;
+    this.sslKeyFile = null;
+    this.sslRootCertificateFile = null;
   }
 
   /**
@@ -173,6 +193,30 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (strictMode != Settings.STRICT_MODE_DEFAULT)
       ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
 
+    if (defaultFetchSize != Settings.DEFAULT_FETCH_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("defaultFetchSize", Integer.toString(defaultFetchSize)));
+
+    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
+
+    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
+      ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
+
+    if (sslMode != null)
+      ref.add(new StringRefAddr("sslMode", sslMode));
+
+    if (sslPassword != null)
+      ref.add(new StringRefAddr("sslPassword", sslPassword));
+
+    if (sslCertificateFile != null)
+      ref.add(new StringRefAddr("sslCertificateFile", sslCertificateFile));
+
+    if (sslKeyFile != null)
+      ref.add(new StringRefAddr("sslKeyFile", sslKeyFile));
+
+    if (sslRootCertificateFile != null)
+      ref.add(new StringRefAddr("sslRootCertificateFile", sslRootCertificateFile));
+
     return ref;
   }
 
@@ -181,7 +225,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param reference The reference
    */
   public void init(Reference reference) {
-    String value = null;
+    String value;
 
     value = getReferenceValue(reference, "host");
     if (value != null)
@@ -230,6 +274,44 @@ public abstract class AbstractDataSource implements CommonDataSource {
     value = getReferenceValue(reference, "strictMode");
     if (value != null)
       strictMode = Boolean.valueOf(value);
+
+    value = getReferenceValue(reference, "defaultFetchSize");
+    if (value != null)
+      defaultFetchSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "receiveBufferSize");
+    if (value != null)
+      receiveBufferSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "sendBufferSize");
+    if (value != null)
+      sendBufferSize = Integer.valueOf(value);
+
+    value = getReferenceValue(reference, "ssl");
+    if (value != null)
+      ssl = true;
+
+    if (ssl) {
+      value = getReferenceValue(reference, "sslMode");
+      if (value != null)
+        sslMode = value;
+
+      value = getReferenceValue(reference, "sslPassword");
+      if (value != null)
+        sslPassword = value;
+
+      value = getReferenceValue(reference, "sslCertificateFile");
+      if (value != null)
+        sslCertificateFile = value;
+
+      value = getReferenceValue(reference, "sslKeyFile");
+      if (value != null)
+        sslKeyFile = value;
+
+      value = getReferenceValue(reference, "sslRootCertificateFile");
+      if (value != null)
+        sslRootCertificateFile = value;
+    }
   }
 
   /**
@@ -238,7 +320,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param key The key
    * @return The value
    */
-  private String getReferenceValue(Reference reference, String key) {
+  private static String getReferenceValue(Reference reference, String key) {
     RefAddr refAddr = reference.get(key);
 
     if (refAddr == null)
@@ -445,6 +527,134 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
+   * Get the default fetch size
+   * @return The value
+   */
+  public int getDefaultFetchSize() {
+    return defaultFetchSize;
+  }
+
+  /**
+   * Set the default fetch size
+   * @param v The value
+   */
+  public void setDefaultFetchSize(int v) {
+    defaultFetchSize = v;
+  }
+
+  /**
+   * Get the receive buffer size
+   * @return The value
+   */
+  public int getReceiveBufferSize() {
+    return receiveBufferSize;
+  }
+
+  /**
+   * Set the receive buffer size
+   * @param v The value
+   */
+  public void setReceiveBufferSize(int v) {
+    receiveBufferSize = v;
+  }
+
+  /**
+   * Get the send buffer size
+   * @return The value
+   */
+  public int getSendBufferSize() {
+    return sendBufferSize;
+  }
+
+  /**
+   * Set the send buffer size
+   * @param v The value
+   */
+  public void setSendBufferSize(int v) {
+    sendBufferSize = v;
+  }
+
+  /**
+   * Get the SSL mode
+   * @return The value
+   */
+  public String getSslMode() {
+    return sslMode;
+  }
+
+  /**
+   * Set the SSL mode
+   * @param v The value
+   */
+  public void setSslMode(String v) {
+    sslMode = v;
+  }
+
+  /**
+   * Get the SSL password
+   * @return The value
+   */
+  public String getSslPassword() {
+    return sslPassword;
+  }
+
+  /**
+   * Set the SSL password
+   * @param v The value
+   */
+  public void setSslPassword(String v) {
+    sslPassword = v;
+  }
+
+  /**
+   * Get the SSL certificate file
+   * @return The value
+   */
+  public String getSslCertificateFile() {
+    return sslCertificateFile;
+  }
+
+  /**
+   * Set the SSL certificate file
+   * @param v The value
+   */
+  public void setSslCertificateFile(String v) {
+    sslCertificateFile = v;
+  }
+
+  /**
+   * Get the SSL key file
+   * @return The value
+   */
+  public String getSslKeyFile() {
+    return sslKeyFile;
+  }
+
+  /**
+   * Set the SSL key file
+   * @param v The value
+   */
+  public void setSslKeyFile(String v) {
+    sslKeyFile = v;
+  }
+
+  /**
+   * Get the SSL root certificate file
+   * @return The value
+   */
+  public String getSslRootCertificateFile() {
+    return sslRootCertificateFile;
+  }
+
+  /**
+   * Set the SSL root certificate file
+   * @param v The value
+   */
+  public void setSslRootCertificateFile(String v) {
+    sslRootCertificateFile = v;
+  }
+
+  /**
    * Create a connection
    *
    * @param u
@@ -487,6 +697,28 @@ public abstract class AbstractDataSource implements CommonDataSource {
       props.put(Settings.CLIENT_ENCODING, clientEncoding);
     props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
     props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
+    props.put(Settings.DEFAULT_FETCH_SIZE, Integer.toString(defaultFetchSize));
+
+    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
+      props.put(Settings.RECEIVE_BUFFER_SIZE, Integer.toString(receiveBufferSize));
+
+    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
+      props.put(Settings.SEND_BUFFER_SIZE, Integer.toString(sendBufferSize));
+
+    if (sslMode != null)
+      props.put(Settings.SSL_MODE, sslMode);
+
+    if (sslPassword != null)
+      props.put(Settings.SSL_PASSWORD, sslPassword);
+
+    if (sslCertificateFile != null)
+      props.put(Settings.SSL_CERT_FILE, sslCertificateFile);
+
+    if (sslKeyFile != null)
+      props.put(Settings.SSL_KEY_FILE, sslKeyFile);
+
+    if (sslRootCertificateFile != null)
+      props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
 
     return ConnectionUtil.createConnection(url, props, housekeeper);
   }

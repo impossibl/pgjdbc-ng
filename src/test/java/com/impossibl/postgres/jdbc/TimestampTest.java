@@ -634,6 +634,25 @@ public class TimestampTest {
     stmt.close();
   }
 
+  @Test
+  public void testSetNull() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL(TSWTZ_TABLE, "?"))) {
+        ps.setTimestamp(1, null);
+        ps.execute();
+      }
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL(TSWOTZ_TABLE, "?"))) {
+        ps.setTimestamp(1, null);
+        ps.execute();
+      }
+      try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL(DATE_TABLE, "?"))) {
+        ps.setTimestamp(1, null);
+        ps.execute();
+      }
+    }
+
+  }
+
   private static java.sql.Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f, String tz) {
     java.sql.Timestamp l_return = null;
     java.text.DateFormat l_df;

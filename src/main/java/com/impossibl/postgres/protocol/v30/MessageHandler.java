@@ -39,14 +39,13 @@ public class MessageHandler extends ChannelInboundHandlerAdapter {
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object message) throws Exception {
+    ResponseMessage msg = (ResponseMessage) message;
     try {
-      ResponseMessage msg = (ResponseMessage) message;
-
       ProtocolImpl protocol = ProtocolImpl.getAttached(ctx.channel());
       protocol.dispatch(msg);
     }
     finally {
-      ReferenceCountUtil.release(message);
+      ReferenceCountUtil.release(msg.getData());
     }
   }
 

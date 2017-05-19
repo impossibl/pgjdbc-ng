@@ -32,13 +32,19 @@ import io.netty.buffer.ByteBuf;
 
 public class ResponseMessage {
 
-  public byte id;
-  public ByteBuf data;
+  private byte id;
+  private ByteBuf data;
 
   public ResponseMessage(byte id, ByteBuf data) {
-    super();
     this.id = id;
     this.data = data;
   }
 
+  byte getId() {
+    return id;
+  }
+
+  ByteBuf getData() {
+    return data;
+  }
 }

@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -73,6 +74,7 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -158,7 +160,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     super.parseIfNeeded();
   }
 
-  private Pattern getRegexForParameter(int paramIndex) {
+  private static Pattern getRegexForParameter(int paramIndex) {
 
     Pattern pattern = PARAM_REPLACE_REGEXES.get(paramIndex);
     if (pattern == null) {
@@ -179,24 +181,38 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
       if (!resultBatches.isEmpty()) {
 
         QueryCommand.ResultBatch returnValuesBatch = resultBatches.remove(0);
+        try {
 
-        if (returnValuesBatch.fields.size() != outParameterTypes.size()) {
-          throw new SQLException("incorrect number of out parameters");
-        }
-
-        if (!returnValuesBatch.results.isEmpty()) {
-
-          Object[] returnValues = (Object[]) returnValuesBatch.results.get(0);
-
-          for (int c = 0; c < outParameterValues.size(); ++c) {
-
-            ResultField field = returnValuesBatch.fields.get(c);
-
-            outParameterNames.set(c, field.name);
-            outParameterTypes.set(c, field.typeRef.get());
-            outParameterValues.set(c, returnValues[c]);
+          if (returnValuesBatch.getFields().size() != outParameterTypes.size()) {
+            throw new SQLException("incorrect number of out parameters");
           }
 
+          if (returnValuesBatch.getResults() != null && !returnValuesBatch.getResults().isEmpty()) {
+
+            DataRow returnValues = returnValuesBatch.getResults().get(0);
+
+            for (int c = 0; c < outParameterValues.size(); ++c) {
+
+              ResultField field = returnValuesBatch.getFields().get(c);
+
+              Object value;
+              try {
+                value = returnValues.getColumn(c);
+              }
+              catch (IOException e) {
+                throw new PGSQLSimpleException("Error decoding column", e);
+              }
+
+              outParameterNames.set(c, field.getName());
+              outParameterTypes.set(c, field.getTypeRef().get());
+              outParameterValues.set(c, value);
+            }
+
+          }
+
+        }
+        finally {
+          returnValuesBatch.release();
         }
 
       }
@@ -467,11 +483,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   public byte[] getBytes(int parameterIndex) throws SQLException {
     checkClosed();
 
-    InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection);
-    if (data == null)
-      return null;
+    try (InputStream data = coerceToByteStream(get(parameterIndex), getOutType(parameterIndex), connection)) {
 
-    try {
+      if (data == null)
+        return null;
+
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {
@@ -1019,4 +1035,67 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     setNClob(findParameter(parameterName), reader);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

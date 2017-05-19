@@ -45,7 +45,7 @@ public class BitMods extends SimpleProcProvider {
     @Override
     public Map<String, Object> parse(long mod) {
 
-      Map<String, Object> mods = new HashMap<String, Object>();
+      Map<String, Object> mods = new HashMap<>();
 
       mods.put(LENGTH, (int)mod);
 

@@ -62,6 +62,7 @@ import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -304,8 +305,8 @@ public class ProtocolImpl implements Protocol {
   }
 
   @Override
-  public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType) {
-    return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields, rowType);
+  public BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields) {
+    return new BindExecCommandImpl(portalName, statementName, parameterTypes, parameterValues, resultFields);
   }
 
   @Override
@@ -489,7 +490,7 @@ public class ProtocolImpl implements Protocol {
     endMessage(msg);
   }
 
-  public void writeBind(ByteBuf msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats, boolean computeLength) throws IOException {
+  public void writeBind(ByteBuf msg, String portalName, String stmtName, List<Type> parameterTypes, List<Object> parameterValues, List<Format> resultFieldFormats) throws IOException {
 
     Context context = getContext();
 
@@ -499,29 +500,11 @@ public class ProtocolImpl implements Protocol {
     byte[] portalNameBytes = nullToEmpty(portalName).getBytes(context.getCharset());
     byte[] stmtNameBytes = nullToEmpty(stmtName).getBytes(context.getCharset());
 
-    if (computeLength) {
+    beginMessage(msg, BIND_MSG_ID);
 
-      // Compute length of message
-      int length = 4;
-      length += portalNameBytes.length + 1;
-      length += stmtNameBytes.length + 1;
-      length += lengthOfParams(parameterTypes, parameterValues, context);
-      length += resultFieldFormats.isEmpty() ? 4 : 2 + (2 * resultFieldFormats.size());
+    writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
 
-      // Write actual message
-      beginMessage(msg, BIND_MSG_ID, length);
-      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
-
-    }
-    else {
-
-      beginMessage(msg, BIND_MSG_ID);
-
-      writeBind(msg, portalNameBytes, stmtNameBytes, parameterTypes, parameterValues, resultFieldFormats, context);
-
-      endMessage(msg);
-
-    }
+    endMessage(msg);
 
   }
 
@@ -655,8 +638,8 @@ public class ProtocolImpl implements Protocol {
 
       os.writeInt(16);
       os.writeInt(80877102);
-      os.writeInt(keyData.processId);
-      os.writeInt(keyData.secretKey);
+      os.writeInt(keyData.getProcessId());
+      os.writeInt(keyData.getSecretKey());
 
     }
     catch (IOException e) {
@@ -691,42 +674,10 @@ public class ProtocolImpl implements Protocol {
         Object paramValue = paramValues.get(c);
 
         Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
-        codec.encoder.encode(paramType, buffer, paramValue, context);
+        codec.getEncoder().encode(paramType, buffer, paramValue, context);
 
       }
     }
-  }
-
-  protected int lengthOfParams(List<Type> paramTypes, List<Object> paramValues, Context context) throws IOException {
-
-    int length = 0;
-
-    // Select format for parameters
-    if (paramTypes == null) {
-      length += 4;
-    }
-    else {
-      length += 2 + (paramTypes.size() * 2);
-    }
-
-    // Values for each parameter
-    if (paramTypes == null) {
-      length += 2;
-    }
-    else {
-      length += 2;
-      for (int c = 0; c < paramTypes.size(); ++c) {
-
-        Type paramType = paramTypes.get(c);
-        Object paramValue = paramValues.get(c);
-
-        Type.Codec codec = paramType.getCodec(paramType.getParameterFormat());
-        length += codec.encoder.length(paramType, paramValue, context);
-
-      }
-    }
-
-    return length;
   }
 
   protected void writeMessage(ByteBuf msg, byte msgId) throws IOException {
@@ -769,81 +720,81 @@ public class ProtocolImpl implements Protocol {
 
   public void dispatch(ResponseMessage msg) throws IOException {
 
-    switch (msg.id) {
+    switch (msg.getId()) {
       case AUTHENTICATION_MSG_ID:
-        receiveAuthentication(msg.data);
+        receiveAuthentication(msg.getData());
         break;
 
       case BACKEND_KEY_MSG_ID:
-        receiveBackendKeyData(msg.data);
+        receiveBackendKeyData(msg.getData());
         break;
 
       case PARAMETER_DESC_MSG_ID:
-        receiveParameterDescriptions(msg.data);
+        receiveParameterDescriptions(msg.getData());
         break;
 
       case ROW_DESC_MSG_ID:
-        receiveRowDescription(msg.data);
+        receiveRowDescription(msg.getData());
         break;
 
       case ROW_DATA_MSG_ID:
-        receiveRowData(msg.data);
+        receiveRowData(msg.getData());
         break;
 
       case PORTAL_SUSPENDED_MSG_ID:
-        receivePortalSuspended(msg.data);
+        receivePortalSuspended(msg.getData());
         break;
 
       case NO_DATA_MSG_ID:
-        receiveNoData(msg.data);
+        receiveNoData(msg.getData());
         break;
 
       case PARSE_COMPLETE_MSG_ID:
-        receiveParseComplete(msg.data);
+        receiveParseComplete(msg.getData());
         break;
 
       case BIND_COMPLETE_MSG_ID:
-        receiveBindComplete(msg.data);
+        receiveBindComplete(msg.getData());
         break;
 
       case CLOSE_COMPLETE_MSG_ID:
-        receiveCloseComplete(msg.data);
+        receiveCloseComplete(msg.getData());
         break;
 
       case EMPTY_QUERY_MSG_ID:
-        receiveEmptyQuery(msg.data);
+        receiveEmptyQuery(msg.getData());
         break;
 
       case FUNCTION_RESULT_MSG_ID:
-        receiveFunctionResult(msg.data);
+        receiveFunctionResult(msg.getData());
         break;
 
       case ERROR_MSG_ID:
-        receiveError(msg.data);
+        receiveError(msg.getData());
         break;
 
       case NOTICE_MSG_ID:
-        receiveNotice(msg.data);
+        receiveNotice(msg.getData());
         break;
 
       case NOTIFICATION_MSG_ID:
-        receiveNotification(msg.data);
+        receiveNotification(msg.getData());
         break;
 
       case COMMAND_COMPLETE_MSG_ID:
-        receiveCommandComplete(msg.data);
+        receiveCommandComplete(msg.getData());
         break;
 
       case PARAMETER_STATUS_MSG_ID:
-        receiveParameterStatus(msg.data);
+        receiveParameterStatus(msg.getData());
         break;
 
       case READY_FOR_QUERY_MSG_ID:
-        receiveReadyForQuery(msg.data);
+        receiveReadyForQuery(msg.getData());
         break;
 
       default:
-        logger.fine("unsupported message type: " + (msg.id & 0xff));
+        logger.fine("unsupported message type: " + (msg.getId() & 0xff));
     }
 
   }
@@ -951,7 +902,7 @@ public class ProtocolImpl implements Protocol {
 
     Context context = getContext();
 
-    short paramCount = buffer.readShort();
+    int paramCount = buffer.readUnsignedShort();
 
     TypeRef[] paramTypes = new TypeRef[paramCount];
 
@@ -972,27 +923,26 @@ public class ProtocolImpl implements Protocol {
 
     Registry registry = context.getRegistry();
 
-    short fieldCount = buffer.readShort();
+    int fieldCount = buffer.readUnsignedShort();
 
-    ResultField[] fields = new ResultField[fieldCount];
+    List<ResultField> fields = new ArrayList<>(fieldCount);
 
     for (int c = 0; c < fieldCount; ++c) {
 
-      ResultField field = new ResultField();
-      field.name = readCString(buffer, context.getCharset());
-      field.relationId = buffer.readInt();
-      field.relationAttributeNumber = buffer.readShort();
-      field.typeRef = TypeRef.from(buffer.readInt(), registry);
-      field.typeLength = buffer.readShort();
-      field.typeModifier = buffer.readInt();
-      field.format = ResultField.Format.values()[buffer.readShort()];
+      ResultField field = new ResultField(readCString(buffer, context.getCharset()),
+                                          buffer.readInt(),
+                                          (short)buffer.readUnsignedShort(),
+                                          TypeRef.from(buffer.readInt(), registry),
+                                          buffer.readShort(),
+                                          buffer.readInt(),
+                                          ResultField.Format.values()[buffer.readUnsignedShort()]);
 
-      fields[c] = field;
+      fields.add(field);
     }
 
     logger.finest("ROW-DESC: " + fieldCount);
 
-    listener.rowDescription(asList(fields));
+    listener.rowDescription(fields);
   }
 
   private void receiveRowData(ByteBuf buffer) throws IOException {
@@ -1129,9 +1079,6 @@ public class ProtocolImpl implements Protocol {
 
         break;
 
-      case "TRUNCATE":
-        break;
-
       case "PREPARE":
         if (parts.length == 2) {
           // Nothing to parse but accepted
@@ -1159,10 +1106,19 @@ public class ProtocolImpl implements Protocol {
         }
         break;
 
+      case "DEALLOCATE":
+      case "TRUNCATE":
+      case "LOCK":
+      case "GRANT":
+      case "REVOKE":
+        // These are "complex" (e.g. greater than one word) but known good
+        break;
+
       default:
 
-        if (parts.length != 1)
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        if (parts.length > 1) {
+          logger.warning("Ignoring unknown complex command tag: " + command + " (" + Arrays.toString(parts) + ")");
+        }
 
         rowsAffected = 0L;
     }

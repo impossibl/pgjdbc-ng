@@ -140,6 +140,9 @@ public class ArrayTest {
     String[] strarr = (String[]) arr.getArray();
     assertEquals("abc", strarr[0]);
     assertEquals("def", strarr[1]);
+
+    rs.close();
+    ps.close();
   }
 
   @Test
@@ -269,6 +272,8 @@ public class ArrayTest {
       assertEquals(3, intarr[2].intValue());
     }
     assertEquals(3, resultCount);
+    rs.close();
+    select.close();
   }
 
   /**
@@ -290,6 +295,8 @@ public class ArrayTest {
     for (int i = 0; i < intarr.length; i++) {
       assertEquals(i, intarr[i].intValue());
     }
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -324,6 +331,8 @@ public class ArrayTest {
     assertEquals(1, i[0].intValue());
     assertNull(i[1]);
     assertEquals(3, i[2].intValue());
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -340,6 +349,10 @@ public class ArrayTest {
     ResultSet arrRS = arr.getResultSet();
     ResultSetMetaData arrRSMD = arrRS.getMetaData();
     assertEquals("aclitem", arrRSMD.getColumnTypeName(2));
+    arrRS.close();
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -397,6 +410,9 @@ public class ArrayTest {
     assertEquals(2, s.length);
     assertEquals("a", s[0]);
     assertNull(s[1]);
+
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -433,6 +449,12 @@ public class ArrayTest {
     assertTrue(rs2.next());
     assertEquals("'", rs2.getString(2));
     assertTrue(!rs2.next());
+
+    rs2.close();
+    rs1.close();
+    arrRS.close();
+    rs.close();
+    stmt.close();
   }
 
   @Test
@@ -457,6 +479,9 @@ public class ArrayTest {
     assertEquals(2, i[0][1].intValue());
     assertEquals(3, i[1][0].intValue());
     assertEquals(4, i[1][1].intValue());
+
+    rs.close();
+    pstmt.close();
   }
 
   @Test
@@ -477,6 +502,9 @@ public class ArrayTest {
     assertEquals(0, out[0].intValue());
     assertEquals(-1, out[1].intValue());
     assertEquals(2, out[2].intValue());
+
+    rs.close();
+    pstmt.close();
   }
 
   @Test
@@ -500,6 +528,9 @@ public class ArrayTest {
     assertEquals("", out[0][1]);
     assertEquals("\\", out[1][0]);
     assertEquals("\"\\'z", out[1][1]);
+
+    rs.close();
+    pstmt.close();
   }
 
   @Test
@@ -521,6 +552,9 @@ public class ArrayTest {
     assertEquals(2, out.length);
     assertNull(out[0]);
     assertNull(out[1]);
+
+    rs.close();
+    pstmt.close();
   }
 
   @Test
@@ -539,6 +573,10 @@ public class ArrayTest {
 
     ResultSet arrRs = arr.getResultSet();
     assertFalse(arrRs.next());
+    arrRs.close();
+
+    rs.close();
+    pstmt.close();
   }
 
   @Test

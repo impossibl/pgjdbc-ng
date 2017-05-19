@@ -67,6 +67,12 @@
     </module>
     <module name="WhitespaceAround"/>
 
+    <!-- Visibility modifiers -->
+    <module name="VisibilityModifier">
+      <property name="packageAllowed" value ="true"/>
+      <property name="protectedAllowed" value ="true"/>
+    </module>
+
     <!-- Don't allow empty blocks -->
     <module name="EmptyBlock">
       <property name="option" value="text"/>
@@ -76,9 +82,9 @@
     <module name="EmptyStatement"/>
     <module name="EqualsHashCode"/>
     <module name="IllegalInstantiation"/>
-    <module name="RedundantThrows">
+    <!--module name="RedundantThrows">
       <property name="allowUnchecked" value="true"/>
-    </module>
+    </module-->
 
     <!-- Miscellaneous other checks. -->
     <module name="UpperEll"/>

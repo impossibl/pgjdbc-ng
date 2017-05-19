@@ -243,6 +243,8 @@ public class UpdateableResultTest {
       rs.insertRow();
       assertTrue(rs.first());
       assertEquals(ts, rs.getTimestamp(2));
+      rs.close();
+      stmt.close();
     }
     finally {
       TimeZone.setDefault(origTZ);
@@ -316,6 +318,8 @@ public class UpdateableResultTest {
     assertTrue(!rs.next());
     rs.moveToInsertRow();
     rs.moveToCurrentRow();
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -373,6 +377,8 @@ public class UpdateableResultTest {
     catch (SQLException ex) {
       // Expected...
     }
+
+    rs.close();
 
     rs = st.executeQuery("select oid,* from updateable");
     assertTrue(rs.first());
@@ -476,6 +482,8 @@ public class UpdateableResultTest {
     assertTrue(rs.next());
     rs.updateInt(1, 2);
     rs.updateRow();
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -489,6 +497,8 @@ public class UpdateableResultTest {
     catch (SQLException e) {
       // Expected...
     }
+    rs.close();
+    st.close();
   }
 
   @Test
@@ -519,6 +529,9 @@ public class UpdateableResultTest {
     catch (SQLException sqle) {
       // Expected...
     }
+
+    rs.close();
+    st.close();
   }
 
   @Test

@@ -35,12 +35,14 @@ import com.impossibl.postgres.jdbc.SQLTextTree.Node;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.Command;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
@@ -70,6 +72,8 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
+import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE;
+import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
@@ -139,16 +143,19 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     List<WeakReference<PGStatement>> statements;
     Housekeeper.Ref housekeeper;
     StackTraceElement[] allocationStackTrace;
+    String connectionInfo;
 
-    public Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements) {
+    public Cleanup(Protocol protocol, Housekeeper.Ref housekeeper, List<WeakReference<PGStatement>> statements, String connectionInfo) {
       this.protocol = protocol;
+      this.housekeeper = housekeeper;
       this.statements = statements;
       this.allocationStackTrace = new Exception().getStackTrace();
+      this.connectionInfo = connectionInfo;
     }
 
     @Override
     public String getKind() {
-      return "connection";
+      return "connection ( " + connectionInfo + " )";
     }
 
     @Override
@@ -179,6 +186,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   SQLWarning warningChain;
   List<WeakReference<PGStatement>> activeStatements;
   Map<CachedStatementKey, CachedStatement> preparedStatementCache;
+  int defaultFetchSize;
   final Housekeeper.Ref housekeeper;
   final Object cleanupKey;
 
@@ -228,9 +236,11 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       }
     }
 
+    this.defaultFetchSize = getSetting(DEFAULT_FETCH_SIZE, DEFAULT_FETCH_SIZE_DEFAULT);
+
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements));
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, housekeeper, activeStatements, settings.getProperty(Settings.DATABASE_URL)));
     else
       this.cleanupKey = null;
   }
@@ -308,15 +318,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   void checkTransaction() throws SQLException {
 
     if (!autoCommit && protocol.getTransactionStatus() == Idle) {
-      try {
-        query(getBeginText());
-      }
-      catch (IOException e) {
-        throw new SQLException(e);
-      }
-      catch (NoticeException e) {
-        throw makeSQLException(e.getNotice());
-      }
+      execute(getBeginText(), false);
     }
 
   }
@@ -362,7 +364,7 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   /**
-   * Closes the given list of result-sets
+   * Closes the given list of statements
    *
    * @throws SQLException
    */
@@ -391,18 +393,21 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
    */
   void closeStatements() throws SQLException {
     closeStatements(activeStatements);
+    activeStatements.clear();
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
 
     try {
+      final boolean standardConformingStrings = getSetting(Settings.STANDARD_CONFORMING_STRINGS, false);
+
       if (parsedSqlCache == null) {
-        return new SQLText(sqlText);
+        return new SQLText(sqlText, standardConformingStrings);
       }
 
       SQLText parsedSql = parsedSqlCache.get(sqlText);
       if (parsedSql == null) {
-        parsedSql = new SQLText(sqlText);
+        parsedSql = new SQLText(sqlText, standardConformingStrings);
         parsedSqlCache.put(sqlText, parsedSql);
       }
 
@@ -459,6 +464,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (IOException e) {
 
+      if (!protocol.isConnected()) {
+        close();
+      }
+
       throw new SQLException(e);
     }
 
@@ -485,25 +494,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
@@ -531,25 +546,31 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
@@ -562,52 +583,70 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     try {
 
-      return queryBatch(sql, Object[].class, params);
+      return queryBatch(sql, params);
 
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      throw new SQLException(e);
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw new SQLException(e);
     }
     catch (NoticeException e) {
 
-      throw makeSQLException(e.getNotice());
+      if (!protocol.isConnected()) {
+        internalClose();
+      }
 
+      throw makeSQLException(e.getNotice());
     }
 
   }
 
-  Object[] executeForFirstResult(String sql, boolean checkTxn, Object... params) throws SQLException {
+  DataRow executeForFirstResult(String sql, boolean checkTxn, Object... params) throws SQLException {
 
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
 
-    List<?> res = resultBatch.results;
+    List<DataRow> res = resultBatch.getResults();
     if (res == null || res.isEmpty())
       return null;
 
-    return (Object[]) res.get(0);
+    DataRow firstResult = res.remove(0);
+
+    resultBatch.release();
+
+    return firstResult;
   }
 
   <T> T executeForFirstResultValue(String sql, boolean checkTxn, Class<T> returnType, Object... params) throws SQLException {
 
-    Object[] result = executeForFirstResult(sql, checkTxn, params);
-    if (result == null || result.length == 0)
+    DataRow result = executeForFirstResult(sql, checkTxn, params);
+    if (result == null)
       return null;
 
-    return returnType.cast(result[0]);
+    try {
+      return returnType.cast(result.getColumn(0));
+    }
+    catch (IOException e) {
+      throw new SQLException("Error decoding column", e);
+    }
+    finally {
+      result.release();
+    }
 
   }
 
@@ -615,7 +654,9 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     QueryCommand.ResultBatch resultBatch = executeForFirstResultBatch(sql, checkTxn, params);
 
-    return resultBatch.rowsAffected;
+    resultBatch.release();
+
+    return resultBatch.getRowsAffected();
   }
 
   /**
@@ -633,6 +674,20 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  public void setDefaultFetchSize(int v) {
+    defaultFetchSize = v;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public int getDefaultFetchSize() {
+    return defaultFetchSize;
+  }
+
+  /**
    * Closes all statements and shuts down the protocol
    *
    * @throws SQLException If an error occurs closing any of the statements
@@ -642,6 +697,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
     closeStatements();
 
     shutdown();
+
+    notificationListeners.clear();
 
     if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
@@ -997,6 +1054,10 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
 
     }, true);
 
+    if (parameterCount[0] > 0xffff) {
+      throw new PGSQLSimpleException("Too many parameters specified: Max of 65535 allowed");
+    }
+
     PGPreparedStatement statement =
         new PGPreparedStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, statementName, sqlText.toString(), parameterCount[0], cursorName);
 
@@ -1163,7 +1224,8 @@ public class PGConnectionImpl extends BasicContext implements PGConnection {
       throw new SQLException("Invalid type for struct");
     }
 
-    return new PGStruct(this, (CompositeType)type, attributes);
+    CompositeType compositeType = (CompositeType) type;
+    return new PGStruct(this, type.getName(), compositeType.getAttributesTypes(), attributes);
   }
 
   @Override

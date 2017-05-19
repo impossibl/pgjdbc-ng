@@ -38,16 +38,19 @@ public class BlobInputStream extends InputStream {
 
   private static final int MAX_BUF_SIZE = 8 * 1024;
 
+  PGBlob owner;
   LargeObject lo;
   byte[] buf = {};
   int pos = 0;
 
-  public BlobInputStream(LargeObject lo) {
+  public BlobInputStream(PGBlob owner, LargeObject lo) {
+    this.owner = owner;
     this.lo = lo;
   }
 
   @Override
   public int read() throws IOException {
+    checkClosed();
 
     if (pos >= buf.length) {
       readNextRegion();
@@ -58,6 +61,8 @@ public class BlobInputStream extends InputStream {
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
+    checkClosed();
+
     if (b == null) {
       throw new NullPointerException();
     }
@@ -89,6 +94,25 @@ public class BlobInputStream extends InputStream {
     return len - left;
   }
 
+  @Override
+  public void close() throws IOException {
+    if (lo == null) {
+      return;
+    }
+
+    try {
+      lo.close();
+    }
+    catch (SQLException e) {
+      throw new IOException("Error closing stream", e);
+    }
+    if (owner != null) {
+      owner.removeStream(lo);
+    }
+    owner = null;
+    lo = null;
+  }
+
   public void readNextRegion() throws IOException {
     try {
       buf = lo.read(MAX_BUF_SIZE);
@@ -96,6 +120,12 @@ public class BlobInputStream extends InputStream {
     }
     catch (SQLException e) {
       throw new IOException(e);
+    }
+  }
+
+  private void checkClosed() throws IOException {
+    if (lo == null) {
+      throw new IOException("Stream is closed");
     }
   }
 

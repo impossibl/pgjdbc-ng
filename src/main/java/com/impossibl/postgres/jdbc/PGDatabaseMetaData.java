@@ -29,6 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.ParsedDataRow;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.CompositeType;
@@ -50,6 +52,7 @@ import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -114,9 +117,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   private PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
 
+    List<DataRow> dataRows = new ArrayList<>();
+
+    for (Object[] row : results) {
+      dataRows.add(new ParsedDataRow(row));
+    }
+
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(resultFields, results);
+    return stmt.createResultSet(resultFields, dataRows, false);
   }
 
   private int getMaxNameLength() throws SQLException {
@@ -941,29 +950,31 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             (returnTypeType.equals("p") && argModes != null && returnTypeRelId != 0)) {
 
           String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelId + " AND a.attnum > 0 ORDER BY a.attnum ";
-          try (ResultSet columnrs = connection.createStatement().executeQuery(columnsql)) {
-            while (columnrs.next()) {
-              Type columnType = reg.loadType(columnrs.getInt("atttypid"));
+          try (Statement stmt = connection.createStatement()) {
+            try (ResultSet columnrs = stmt.executeQuery(columnsql)) {
+              while (columnrs.next()) {
+                Type columnType = reg.loadType(columnrs.getInt("atttypid"));
 
-              Object[] row = new Object[resultFields.length];
-              row[0] = null;
-              row[1] = schema;
-              row[2] = procedureName;
-              row[3] = columnrs.getString("attname");
-              row[4] = DatabaseMetaData.procedureColumnResult;
-              row[5] = SQLTypeMetaData.getSQLType(columnType);
-              row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
-              row[7] = null;
-              row[8] = null;
-              row[9] = null;
-              row[10] = null;
-              row[11] = DatabaseMetaData.procedureNullableUnknown;
-              row[12] = null;
-              row[17] = 0;
-              row[18] = "";
-              row[19] = specificName;
+                Object[] row = new Object[resultFields.length];
+                row[0] = null;
+                row[1] = schema;
+                row[2] = procedureName;
+                row[3] = columnrs.getString("attname");
+                row[4] = DatabaseMetaData.procedureColumnResult;
+                row[5] = SQLTypeMetaData.getSQLType(columnType);
+                row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
+                row[7] = null;
+                row[8] = null;
+                row[9] = null;
+                row[10] = null;
+                row[11] = DatabaseMetaData.procedureNullableUnknown;
+                row[12] = null;
+                row[17] = 0;
+                row[18] = "";
+                row[19] = specificName;
 
-              results.add(row);
+                results.add(row);
+              }
             }
           }
         }
@@ -1275,7 +1286,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[15] = columnData.typeLength;
       row[16] = columnData.relationAttrNum;
 
-      String nullable = null;
+      String nullable;
       switch ((int)row[10]) {
         case columnNoNulls:
           nullable = "NO";
@@ -1531,7 +1542,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return createResultSet(Arrays.asList(fields), results);
   }
 
-  private void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
 
     if (aclItems == null) {
       // Null is shortcut for owner having full privileges
@@ -1545,14 +1556,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         continue;
       }
 
-      for (int i = 0; i < aclItem.privileges.length(); i++) {
+      for (int i = 0; i < aclItem.getPrivileges().length(); i++) {
 
-        char c = aclItem.privileges.charAt(i);
+        char c = aclItem.getPrivileges().charAt(i);
         if (c != '*') {
 
           String sqlpriv;
           String grantable;
-          if (i < aclItem.privileges.length() - 1 && aclItem.privileges.charAt(i + 1) == '*') {
+          if (i < aclItem.getPrivileges().length() - 1 && aclItem.getPrivileges().charAt(i + 1) == '*') {
             grantable = "YES";
           }
           else {
@@ -1606,13 +1617,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             privileges.put(sqlpriv, usersWithPermission);
           }
 
-          List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.user);
+          List<String[]> permissionByGrantor = usersWithPermission.get(aclItem.getUser());
           if (permissionByGrantor == null) {
             permissionByGrantor = new ArrayList<>();
-            usersWithPermission.put(aclItem.user, permissionByGrantor);
+            usersWithPermission.put(aclItem.getUser(), permissionByGrantor);
           }
 
-          permissionByGrantor.add(new String[] {aclItem.grantor, grantable});
+          permissionByGrantor.add(new String[] {aclItem.getGrantor(), grantable});
 
         }
 
@@ -1930,13 +1941,22 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         "  END AS TYPE, " +
         "  (i.keys).n AS ORDINAL_POSITION, " +
         "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, " +
+        (connection.isServerMinimumVersion(9, 6) ?
+        "  CASE am.amname " +
+        "    WHEN 'btree' THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
+        "      WHEN 1 THEN 'D' " +
+        "      ELSE 'A' " +
+        "    END " +
+        "    ELSE NULL " +
+        "  END AS ASC_OR_DESC, "
+        :
         "  CASE am.amcanorder " +
         "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
         "      WHEN 1 THEN 'D' " +
         "      ELSE 'A' " +
         "    END " +
         "    ELSE NULL " +
-        "  END AS ASC_OR_DESC, " +
+        "  END AS ASC_OR_DESC, ") +
         "  ci.reltuples AS CARDINALITY, " +
         "  ci.relpages AS PAGES, " +
         "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION " +
@@ -2248,6 +2268,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       results.add(row);
     }
 
+    rs.close();
+
     return createResultSet(Arrays.asList(fields), results);
   }
 
@@ -2386,7 +2408,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[14] = attrData.typeLength;
       row[15] = attrData.relationAttrNum;
 
-      String nullable = null;
+      String nullable;
       switch ((int)row[9]) {
         case attributeNoNulls:
           nullable = "NO";
@@ -2662,7 +2684,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[9] = columnData.description;
       row[10] = columnData.typeLength;
 
-      String nullable = null;
+      String nullable;
       int isNullable = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
       switch (isNullable) {
         case columnNoNulls:
@@ -2689,4 +2711,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long getMaxLogicalLobSize() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean supportsRefCursors() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

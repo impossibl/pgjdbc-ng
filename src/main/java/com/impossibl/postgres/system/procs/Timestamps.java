@@ -155,11 +155,6 @@ public class Timestamps extends SettingSelectProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-      return val == null ? 4 : 12;
-    }
-
   }
 
   private static long calculateEpochDifferenceMicros() {

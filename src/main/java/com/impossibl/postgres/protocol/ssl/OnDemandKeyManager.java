@@ -71,7 +71,7 @@ import javax.security.auth.x500.X500Principal;
  * A Key manager that only loads the keys, if necessary.
  *
  */
-public class OnDemadKeyManager extends X509ExtendedKeyManager {
+public class OnDemandKeyManager extends X509ExtendedKeyManager {
 
   private X509Certificate[] certificates = null;
   private PrivateKey key = null;
@@ -90,7 +90,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
    * @param cbh
    * @param defaultfile
    */
-  public OnDemadKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
+  public OnDemandKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
     this.certfile = certfile;
     this.keyfileName = keyfile;
     this.cbh = cbh;
@@ -101,7 +101,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
    * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any
    * exception is stored in this.error and can be raised by this method
    *
-   * @throws PSQLException
+   * @throws SQLException
    */
   public void throwKeyManagerException() throws SQLException {
     if (error != null)
@@ -138,7 +138,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
               found = true;
             }
           }
-          return (found ? "user" : null);
+          return found ? "user" : null;
         }
       }
     }
@@ -190,7 +190,7 @@ public class OnDemadKeyManager extends X509ExtendedKeyManager {
   @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     String alias = chooseClientAlias(new String[] {keyType}, issuers, (Socket) null);
-    return (alias == null ? new String[] {} : new String[] {alias});
+    return alias == null ? new String[] {} : new String[] {alias};
   }
 
   @Override

@@ -39,7 +39,6 @@ import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
-import com.impossibl.postgres.utils.NullByteBuf;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import java.io.ByteArrayInputStream;
@@ -53,6 +52,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -69,7 +69,6 @@ import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -158,31 +157,6 @@ public class CodecTest {
   }
 
   @Test
-  public void testBinaryEncoderLength() throws IOException, SQLException {
-
-    try {
-      makeValue();
-    }
-    catch (SQLFeatureNotSupportedException e) {
-      System.out.println("Skipping " + typeName + " - " + e.getMessage() + " (binlen)");
-      return;
-    }
-
-    Type type = conn.getRegistry().loadType(typeName);
-    if (type == null) {
-      System.out.println("Skipping " + typeName + " unknown (binlen)");
-      return;
-    }
-
-    if (!type.isParameterFormatSupported(Format.Binary) || !type.isResultFormatSupported(Format.Binary)) {
-      return;
-    }
-
-    compareLengths(coerceValue(type, Format.Binary, value), type, type.getBinaryCodec());
-
-  }
-
-  @Test
   public void testSendReceive() throws SQLException, IOException {
 
     try {
@@ -231,13 +205,13 @@ public class CodecTest {
       Object[] srcArray = (Object[]) value;
       Object[] dstArray = new Object[srcArray.length];
       for (int c = 0; c < srcArray.length; ++c) {
-        Class<?> targetType = ((ArrayType)type).getElementType().getCodec(format).encoder.getInputType();
+        Class<?> targetType = ((ArrayType)type).getElementType().getCodec(format).getEncoder().getInputType();
         dstArray[c] = SQLTypeUtils.coerce(format, srcArray[c], ((ArrayType) type).getElementType(), targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
       }
       res = dstArray;
     }
     else {
-      Class<?> targetType = type.getCodec(format).encoder.getInputType();
+      Class<?> targetType = type.getCodec(format).getEncoder().getInputType();
       res = SQLTypeUtils.coerce(format, value, type, targetType, conn.getTypeMap(), TimeZone.getDefault(), conn);
     }
     return res;
@@ -250,8 +224,8 @@ public class CodecTest {
     Codec codec = type.getCodec(format);
 
     ByteBuf buffer = Unpooled.buffer();
-    codec.encoder.encode(type, buffer, value, conn);
-    Object res = codec.decoder.decode(type, null, null, buffer, conn);
+    codec.getEncoder().encode(type, buffer, value, conn);
+    Object res = codec.getDecoder().decode(type, null, null, buffer, conn);
 
     if (res instanceof Object[]) {
       Object[] resSrcArray = (Object[]) res;
@@ -306,10 +280,10 @@ public class CodecTest {
     else if (expected instanceof Record) {
 
       Record expectedStruct = (Record) expected;
-      Object[] expectedAttrs = expectedStruct.getValues();
+      Object[] expectedAttrs = expectedStruct.getAttributeValues();
 
       Record actualStruct = (Record) actual;
-      Object[] actualAttrs = actualStruct.getValues();
+      Object[] actualAttrs = actualStruct.getAttributeValues();
 
       assertEquals("Record Length", expectedAttrs.length, actualAttrs.length);
       for (int c = 0; c < expectedAttrs.length; ++c) {
@@ -322,22 +296,12 @@ public class CodecTest {
 
   }
 
-  private void compareLengths(Object val, Type type, Codec codec) throws IOException {
-
-    // Compute length with encoder
-    int length = codec.encoder.length(type, val, conn);
-
-    // Compute length using null channel buffer
-    NullByteBuf lengthComputer = new NullByteBuf();
-    codec.encoder.encode(type, lengthComputer, val, conn);
-
-    assertEquals(typeName + " computes length incorrectly", lengthComputer.readableBytes(), length);
-  }
-
   private void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
     expected.reset();
     actual.reset();
     assertArrayEquals(ByteStreams.toByteArray(expected), ByteStreams.toByteArray(actual));
+    expected.close();
+    actual.close();
   }
 
   public interface Maker {
@@ -348,6 +312,42 @@ public class CodecTest {
   @SuppressWarnings("deprecation")
   public static Collection<Object[]> data() throws Exception {
     Object[][] scalarTypesData = new Object[][] {
+      {"json", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) throws SQLException {
+
+          try (Statement stmt = conn.createStatement()) {
+            try {
+              stmt.execute("SELECT '{}'::json");
+            }
+            catch (Exception e) {
+              throw new SQLFeatureNotSupportedException("json not supported");
+            }
+          }
+
+          return "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}";
+        }
+
+      } },
+      {"jsonb", new Maker() {
+
+        @Override
+        public Object make(PGConnectionImpl conn) throws SQLException {
+
+          try (Statement stmt = conn.createStatement()) {
+            try {
+              stmt.execute("SELECT '{}'::jsonb");
+            }
+            catch (Exception e) {
+              throw new SQLFeatureNotSupportedException("jsonb not supported");
+            }
+          }
+
+          return "{\"field\": 5, \"field2\": false, \"field3\": 5, \"field4\": \"6\"}";
+        }
+
+      } },
       {"aclitem", new ACLItem(TestUtil.getUser(), "rw", TestUtil.getUser())},
       {"bit", BitSet.valueOf(new byte[] {(byte) 0x7f})},
       {"varbit", BitSet.valueOf(new byte[] {(byte) 0xff, (byte) 0xff})},

@@ -44,7 +44,7 @@ public interface Protocol {
   SSLRequestCommand createSSLRequest();
   StartupCommand createStartup(Map<String, Object> parameters);
   PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
-  BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields, Class<?> rowType);
+  BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields);
   QueryCommand createQuery(String sqlText);
   FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues);
 

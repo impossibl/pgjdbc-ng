@@ -61,7 +61,6 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * Constructor
    * @param owner The owner
-   * @param isXA Is XA
    * @param delegator The delegator
    */
   public PGPooledConnectionDelegator(PGPooledConnection owner, PGConnection delegator) {
@@ -993,6 +992,20 @@ public class PGPooledConnectionDelegator implements PGConnection {
    */
   public boolean isStrictMode() {
     return delegator.isStrictMode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public void setDefaultFetchSize(int v) {
+    delegator.setDefaultFetchSize(v);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public int getDefaultFetchSize() {
+    return delegator.getDefaultFetchSize();
   }
 
   void reset() {

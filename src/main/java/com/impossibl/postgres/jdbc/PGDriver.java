@@ -34,6 +34,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
 import java.sql.Driver;
+import java.sql.DriverAction;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
@@ -49,7 +50,7 @@ import java.util.logging.Logger;
  * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
-public class PGDriver implements Driver {
+public class PGDriver implements Driver, DriverAction {
   /** The version of the driver */
   public static final Version VERSION = Version.get(0, 1, 0);
 
@@ -122,6 +123,11 @@ public class PGDriver implements Driver {
     return Logger.getLogger(Context.class.getPackage().getName());
   }
 
+  @Override
+  public void deregister() {
+    cleanup();
+  }
+
   public static void cleanup() {
 
     if (registered != null) {
@@ -133,7 +139,7 @@ public class PGDriver implements Driver {
       }
     }
 
-    ProtocolShared.acquire().get().waitForShutdown();
+    ProtocolShared.acquire(null).get().waitForShutdown();
   }
 
 }

@@ -111,11 +111,11 @@ public class DomainType extends Type {
 
     super.load(source, attrs, registry);
 
-    base = registry.loadType(source.domainBaseTypeId);
-    nullable = !source.domainNotNull;
-    modifiers = base.getModifierParser().parse(source.domainTypeMod);
-    numberOfDimensions = source.domainDimensions;
-    defaultValue = source.domainDefault != null ? source.domainDefault : "";
+    base = registry.loadType(source.getDomainBaseTypeId());
+    nullable = !source.isDomainNotNull();
+    modifiers = base.getModifierParser().parse(source.getDomainTypeMod());
+    numberOfDimensions = source.getDomainDimensions();
+    defaultValue = source.getDomainDefault() != null ? source.getDomainDefault() : "";
   }
 
 }

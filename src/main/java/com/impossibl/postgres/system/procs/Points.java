@@ -143,7 +143,7 @@ public class Points extends SimpleProcProvider {
       if (point.length != 2) {
         throw new IOException("invalid length");
       }
-      buffer.append('(').append(Double.toString(point[0])).append(',').append(Double.toString(point[1]));
+      buffer.append('(').append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append(')');
     }
 
   }

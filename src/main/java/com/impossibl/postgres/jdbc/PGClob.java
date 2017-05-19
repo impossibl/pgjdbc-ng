@@ -62,14 +62,14 @@ public class PGClob implements Clob {
     }
 
     boolean hasNext() throws SQLException {
-      boolean result = false;
+      boolean result;
       if (idx < buffer.length) {
         result = true;
       }
       else {
         buffer = lo.read(MAX_BUFFER_SIZE);
         idx = 0;
-        result = (buffer.length > 0);
+        result = buffer.length > 0;
       }
       return result;
     }
@@ -104,7 +104,7 @@ public class PGClob implements Clob {
     }
   }
 
-  private void checkPosition(long pos) throws SQLException {
+  private static void checkPosition(long pos) throws SQLException {
     if (pos < 1) {
       throw ILLEGAL_ARGUMENT;
     }
@@ -136,7 +136,7 @@ public class PGClob implements Clob {
 
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
-    return new ClobReader(streamLo);
+    return new ClobReader(this, streamLo);
   }
 
   @Override
@@ -147,7 +147,7 @@ public class PGClob implements Clob {
     LargeObject streamLo = lo.dup();
     streamLos.add(streamLo);
     streamLo.lseek((pos - 1) * CHAR_SIZE, LargeObject.SEEK_SET);
-    return CharStreams.limit(new ClobReader(streamLo), length * CHAR_SIZE);
+    return CharStreams.limit(new ClobReader(this, streamLo), length * CHAR_SIZE);
   }
 
   @Override

@@ -217,7 +217,7 @@ class SQLTextEscapeFunctions {
    * @return a Method object or null if not found
    */
   public static Method getEscapeMethod(String functionName) {
-    return (Method) functionMap.get(functionName.toLowerCase(Locale.US));
+    return functionMap.get(functionName.toLowerCase(Locale.US));
   }
 
   public static Node invokeEscape(Method method, String name, List<Node> args) throws SQLException {
@@ -593,13 +593,6 @@ class SQLTextEscapeFunctions {
       return ident("hour");
     else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
       return ident("minute");
-    // See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
-    /*
-     * else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType)) return "month"; else
-     * if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType)) return "quarter"; else
-     * if (SQL_TSI_WEEK.equalsIgnoreCase(shortType)) return "week"; else if
-     * (SQL_TSI_YEAR.equalsIgnoreCase(shortType)) return "year";
-     */
     else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
       throw new SQLException(GT.tr("Interval {0} not yet implemented", "SQL_TSI_FRAC_SECOND"), PSQLState.SYNTAX_ERROR);
     else

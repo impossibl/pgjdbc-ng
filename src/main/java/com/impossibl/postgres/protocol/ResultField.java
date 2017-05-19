@@ -37,37 +37,64 @@ public class ResultField {
     Binary
   }
 
-  public String name;
-  public int relationId;
-  public short relationAttributeNumber;
-  public TypeRef typeRef;
-  public short typeLength;
-  public int typeModifier;
-  public Format format;
+  private String name;
+  private int relationId;
+  private int relationAttributeNumber;
+  private TypeRef typeRef;
+  private short typeLength;
+  private int typeModifier;
+  private Format format;
 
-  public ResultField(String name, int relationId, short relationAttributeIndex, Type type, short typeLength, int typeModifier, Format format) {
-    super();
+  public ResultField(String name, int relationId, short relationAttributeNumber, Type type, short typeLength, int typeModifier, Format format) {
     this.name = name;
     this.relationId = relationId;
-    this.relationAttributeNumber = relationAttributeIndex;
+    this.relationAttributeNumber = relationAttributeNumber;
     this.typeRef = TypeRef.from(type);
     this.typeLength = typeLength;
     this.typeModifier = typeModifier;
     this.format = format;
   }
 
-  public ResultField(String name, int relationId, short relationAttributeIndex, TypeRef typeRef, short typeLength, int typeModifier, Format format) {
-    super();
+  public ResultField(String name, int relationId, short relationAttributeNumber, TypeRef typeRef, short typeLength, int typeModifier, Format format) {
     this.name = name;
     this.relationId = relationId;
-    this.relationAttributeNumber = relationAttributeIndex;
+    this.relationAttributeNumber = relationAttributeNumber;
     this.typeRef = typeRef;
     this.typeLength = typeLength;
     this.typeModifier = typeModifier;
     this.format = format;
   }
 
-  public ResultField() {
+  public String getName() {
+    return name;
+  }
+
+  public int getRelationId() {
+    return relationId;
+  }
+
+  public int getRelationAttributeNumber() {
+    return relationAttributeNumber;
+  }
+
+  public TypeRef getTypeRef() {
+    return typeRef;
+  }
+
+  public short getTypeLength() {
+    return typeLength;
+  }
+
+  public int getTypeModifier() {
+    return typeModifier;
+  }
+
+  public void setFormat(Format v) {
+    format = v;
+  }
+
+  public Format getFormat() {
+    return format;
   }
 
   @Override

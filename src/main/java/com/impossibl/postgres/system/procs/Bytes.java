@@ -121,7 +121,7 @@ public class Bytes extends SimpleProcProvider {
       else {
 
         if (val instanceof byte[])
-          val = new ByteArrayInputStream((byte[])val);
+          val = new ByteArrayInputStream((byte[]) val);
 
         InputStream in = (InputStream) val;
 
@@ -134,6 +134,11 @@ public class Bytes extends SimpleProcProvider {
 
         }
         else if (in instanceof ByteArrayInputStream) {
+
+          totalLength = in.available();
+
+        }
+        else if (in instanceof ByteBufInputStream) {
 
           totalLength = in.available();
 
@@ -162,40 +167,6 @@ public class Bytes extends SimpleProcProvider {
 
     }
 
-    @Override
-    public int length(Type type, Object val, Context context) throws IOException {
-
-      int length = 4;
-
-      if (val != null) {
-
-        if (val instanceof byte[])
-          val = new ByteArrayInputStream((byte[])val);
-
-        InputStream in = (InputStream) val;
-
-        // Do we know, for sure, how long the stream is?
-        if (in instanceof ByteStreams.LimitedInputStream) {
-
-          length += (int) ((ByteStreams.LimitedInputStream) in).limit();
-
-        }
-        else if (in instanceof ByteArrayInputStream) {
-
-          length += in.available();
-
-        }
-        else {
-
-          throw new IOException("unable to compute length of InputStream type: " + val.getClass().getName());
-
-        }
-
-      }
-
-      return length;
-    }
-
   }
 
   static class TxtDecoder extends TextDecoder {
@@ -219,7 +190,7 @@ public class Bytes extends SimpleProcProvider {
         data = decodeHex(buffer.subSequence(2, buffer.length()));
       }
       else {
-        data = decodeEscape(buffer);
+        data = decodeEscape(buffer.subSequence(2, buffer.length()));
       }
 
       return new ByteArrayInputStream(data);
@@ -286,7 +257,7 @@ public class Bytes extends SimpleProcProvider {
     public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
 
       if (val instanceof byte[])
-        val = new ByteArrayInputStream((byte[])val);
+        val = new ByteArrayInputStream((byte[]) val);
 
       InputStream in = (InputStream) val;
 

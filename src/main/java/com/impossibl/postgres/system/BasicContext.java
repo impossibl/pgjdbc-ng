@@ -32,7 +32,10 @@ import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
+import com.impossibl.postgres.mapper.Mapper;
+import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
@@ -45,6 +48,8 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.utils.Converter;
+import com.impossibl.postgres.utils.Factory;
+import com.impossibl.postgres.utils.Locales;
 import com.impossibl.postgres.utils.Timer;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
@@ -52,14 +57,16 @@ import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -91,14 +98,21 @@ public class BasicContext implements Context {
 
   private static class NotificationKey {
 
-    public String name;
-    public Pattern channelNameFilter;
+    private String name;
+    private Pattern channelNameFilter;
 
     NotificationKey(String name, Pattern channelNameFilter) {
       this.name = name;
       this.channelNameFilter = channelNameFilter;
     }
 
+    String getName() {
+      return name;
+    }
+
+    Pattern getChannelNameFilter() {
+      return channelNameFilter;
+    }
   }
 
 
@@ -109,11 +123,13 @@ public class BasicContext implements Context {
   protected DateTimeFormat dateFormatter;
   protected DateTimeFormat timeFormatter;
   protected DateTimeFormat timestampFormatter;
+  protected DecimalFormat decimalFormatter;
+  protected DecimalFormat currencyFormatter;
   protected Properties settings;
   protected Version serverVersion;
   protected KeyData keyData;
   protected Protocol protocol;
-  protected Map<NotificationKey, WeakReference<NotificationListener>> notificationListeners;
+  protected Map<NotificationKey, NotificationListener> notificationListeners;
   protected Map<String, PreparedQuery> utilQueries;
 
 
@@ -167,7 +183,6 @@ public class BasicContext implements Context {
     return converter.apply(settings.get(name));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public <T> T getSetting(String name, T defaultValue) {
     Object val = settings.get(name);
@@ -189,7 +204,7 @@ public class BasicContext implements Context {
   public boolean isSettingEnabled(String name) {
     Object val = getSetting(name);
     if (val instanceof String)
-      return ((String)val).equalsIgnoreCase("on");
+      return ((String) val).equalsIgnoreCase("on");
     if (val instanceof Boolean)
       return (Boolean) val;
     return false;
@@ -239,11 +254,60 @@ public class BasicContext implements Context {
     return timestampFormatter;
   }
 
+  @Override
+  public DecimalFormat getDecimalFormatter() {
+    return decimalFormatter;
+  }
+
+  @Override
+  public DecimalFormat getCurrencyFormatter() {
+    return currencyFormatter;
+  }
+
   protected void init() throws IOException, NoticeException {
 
     loadTypes();
 
     prepareRefreshTypeQueries();
+
+    loadLocale();
+  }
+
+  private void loadLocale() throws IOException, NoticeException {
+
+    for (DataRow row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
+
+      String localeSpec = row.getColumn(1).toString();
+
+      switch (localeSpec.toUpperCase(Locale.US)) {
+        case "C":
+        case "POSIX":
+          localeSpec = "en_US";
+          break;
+      }
+
+      // Check if locale matches a win32 type locale (e.g. "English_United States.1252")
+      String windowsLocale = localeSpec.split("\\.")[0];
+      if (Locales.getJavaCompatibleLocale(windowsLocale) != null) {
+        localeSpec = Locales.getJavaCompatibleLocale(windowsLocale);
+      }
+
+      String[] localeIds = localeSpec.split("_|\\.");
+
+      switch (row.getColumn(0).toString()) {
+        case "lc_numeric":
+          Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+          decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
+          decimalFormatter.setParseBigDecimal(true);
+          currencyFormatter = (DecimalFormat) NumberFormat.getCurrencyInstance(numLocale);
+          currencyFormatter.setParseBigDecimal(true);
+          break;
+        case "lc_time":
+          Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+      }
+
+      row.release();
+    }
   }
 
   private void loadTypes() throws IOException, NoticeException {
@@ -311,7 +375,7 @@ public class BasicContext implements Context {
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).relationId);
+      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).getRelationId());
 
       registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
     }
@@ -334,7 +398,7 @@ public class BasicContext implements Context {
 
       Integer[] typeIds = new Integer[pgTypes.size()];
       for (int c = 0; c < pgTypes.size(); ++c)
-        typeIds[c] = pgTypes.get(c).relationId;
+        typeIds[c] = pgTypes.get(c).getRelationId();
 
       //Load attributes
       List<PgAttribute.Row> pgAttrs = queryResults("@refresh-types-attrs", PgAttribute.Row.class, (Object) typeIds);
@@ -408,7 +472,7 @@ public class BasicContext implements Context {
       return util;
     }
 
-    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type> emptyList());
+    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
 
     protocol.execute(prepare);
 
@@ -419,17 +483,39 @@ public class BasicContext implements Context {
     return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
   }
 
-  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+  private <T> List<T> convertResults(Class<T> rowType, List<ResultField> columnFields, List<DataRow> dataRows) throws IOException {
 
-    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, rowType, params);
+    List<PropertySetter> columnSetters = Mapper.buildMapping(rowType, columnFields);
 
-    @SuppressWarnings("unchecked")
-    List<T> res = (List<T>) resultBatch.results;
+    List<T> results = new ArrayList<>(dataRows.size());
+    for (int r = 0; r < dataRows.size(); ++r) {
 
-    return res;
+      DataRow dataRow = dataRows.get(r);
+      T row = Factory.createInstance(rowType, columnFields.size());
+
+      for (int c = 0; c < columnSetters.size(); ++c) {
+
+        Object columnValue = dataRow.getColumn(c);
+
+        columnSetters.get(c).set(row, columnValue);
+      }
+
+      dataRow.release();
+
+      results.add(row);
+    }
+
+    return results;
   }
 
-  public List<Object> queryResults(String queryTxt) throws IOException, NoticeException {
+  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
+
+    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, params);
+
+    return convertResults(rowType, resultBatch.getFields(), resultBatch.getResults());
+  }
+
+  public List<DataRow> queryResults(String queryTxt) throws IOException, NoticeException {
 
     QueryCommand.ResultBatch resultBatch;
 
@@ -437,7 +523,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
+      resultBatch = preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
     else {
 
@@ -464,10 +550,7 @@ public class BasicContext implements Context {
       return Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
-    List<Object> results = (List<Object>) resultBatch.results;
-
-    return results;
+    return resultBatch.getResults();
   }
 
   public void query(String queryTxt) throws IOException, NoticeException {
@@ -476,7 +559,7 @@ public class BasicContext implements Context {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
+      preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
     }
 
     QueryCommand query = protocol.createQuery(queryTxt);
@@ -489,73 +572,36 @@ public class BasicContext implements Context {
 
   }
 
-  public Object queryValue(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand.ResultBatch resultBatch;
-
-    if (queryTxt.charAt(0) == '@') {
-
-      PreparedQuery pq = prepareQuery(queryTxt);
-
-      resultBatch = preparedQuery(null, pq.name, Object[].class, Collections.<Type> emptyList(), Collections.emptyList(), pq.resultFields);
-    }
-    else {
-
-      QueryCommand query = protocol.createQuery(queryTxt);
-
-      protocol.execute(query);
-
-      if (query.getError() != null) {
-        throw new NoticeException("Error preparing query", query.getError());
-      }
-
-      List<QueryCommand.ResultBatch> res = query.getResultBatches();
-      if (res.isEmpty()) {
-        return null;
-      }
-
-      resultBatch = res.get(0);
-    }
-
-    if (resultBatch.results == null || resultBatch.results.isEmpty()) {
-      return resultBatch.rowsAffected;
-    }
-
-    Object[] firstRow = (Object[]) resultBatch.results.get(0);
-    if (firstRow.length == 0)
-      return null;
-
-    return firstRow[0];
-  }
-
   public String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
 
-    List<Object> res = queryResults(queryTxt);
+    List<DataRow> res = queryResults(queryTxt);
     if (res.isEmpty()) {
       return "";
     }
 
-    Object[] firstRow = (Object[]) res.get(0);
-    if (firstRow.length == 0)
+    Object val = res.get(0).getColumn(0);
+
+    for (DataRow row : res) {
+      row.release();
+    }
+
+    if (val == null)
       return "";
 
-    if (firstRow[0] == null)
-      return "";
-
-    return firstRow[0].toString();
+    return val.toString();
   }
 
-  public QueryCommand.ResultBatch queryBatch(String queryTxt, Class<?> rowType, Object... params) throws IOException, NoticeException {
+  public QueryCommand.ResultBatch queryBatch(String queryTxt, Object... params) throws IOException, NoticeException {
 
     PreparedQuery pq = prepareQuery(queryTxt);
 
-    return preparedQuery(null, pq.name, rowType, pq.parameterTypes, asList(params), pq.resultFields);
+    return preparedQuery(null, pq.name, pq.parameterTypes, asList(params), pq.resultFields);
   }
 
-  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, Class<?> rowType, List<Type> paramTypes, List<Object> paramValues,
-      List<ResultField> resultFields) throws IOException, NoticeException {
+  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, List<Type> paramTypes, List<Object> paramValues,
+                                                 List<ResultField> resultFields) throws IOException, NoticeException {
 
-    BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields, rowType);
+    BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields);
 
     protocol.execute(query);
 
@@ -571,15 +617,12 @@ public class BasicContext implements Context {
   }
 
   public void setKeyData(int processId, int secretKey) {
-
-    keyData = new KeyData();
-    keyData.processId = processId;
-    keyData.secretKey = secretKey;
+    keyData = new KeyData(processId, secretKey);
   }
 
   public void updateSystemParameter(String name, String value) {
 
-    logger.config("system paramter: " + name + "=" + value);
+    logger.config("system parameter: " + name + "=" + value);
 
     switch (name) {
 
@@ -652,20 +695,17 @@ public class BasicContext implements Context {
 
     NotificationKey key = new NotificationKey(name, channelNameFilterPattern);
 
-    synchronized (notificationListeners) {
-      notificationListeners.put(key, new WeakReference<NotificationListener>(listener));
-    }
-
+    notificationListeners.put(key, listener);
   }
 
   public synchronized void removeNotificationListener(NotificationListener listener) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
-      NotificationListener iterListener = entry.getValue().get();
+      NotificationListener iterListener = entry.getValue();
       if (iterListener == null || iterListener.equals(listener)) {
 
         iter.remove();
@@ -676,13 +716,13 @@ public class BasicContext implements Context {
 
   public synchronized void removeNotificationListener(String listenerName) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
       String iterListenerName = entry.getKey().name;
-      NotificationListener iterListener = entry.getValue().get();
+      NotificationListener iterListener = entry.getValue();
       if (iterListenerName.equals(listenerName) || iterListener == null) {
 
         iter.remove();
@@ -694,23 +734,24 @@ public class BasicContext implements Context {
   @Override
   public synchronized void reportNotification(int processId, String channelName, String payload) {
 
-    Iterator<Map.Entry<NotificationKey, WeakReference<NotificationListener>>> iter = notificationListeners.entrySet().iterator();
+    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
 
-      Map.Entry<NotificationKey, WeakReference<NotificationListener>> entry = iter.next();
+      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
 
-      NotificationListener listener = entry.getValue().get();
-      if (listener == null) {
-
-        iter.remove();
-      }
-      else if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
+      NotificationListener listener = entry.getValue();
+      if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
 
         listener.notification(processId, channelName, payload);
       }
 
     }
 
+  }
+
+  @Override
+  public Context unwrap() {
+    return this;
   }
 
 }

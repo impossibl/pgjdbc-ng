@@ -30,6 +30,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.protocol.BindExecCommand;
+import com.impossibl.postgres.protocol.DataRow;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
@@ -50,6 +51,7 @@ import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,6 +73,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -105,7 +108,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
 
   PGPreparedStatement(PGConnectionImpl connection, int type, int concurrency, int holdability, String name, String sqlText, int parameterCount, String cursorName) {
-    super(connection, type, concurrency, holdability, null, null);
+    super(connection, type, concurrency, holdability, name, null);
     this.sqlText = sqlText;
     this.parameterTypes = new ArrayList<>(asList(new Type[parameterCount]));
     this.parameterValues = new ArrayList<>(asList(new Object[parameterCount]));
@@ -214,8 +217,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       catch (ExecutionException e) {
         throw (SQLException) e.getCause();
       }
+      catch (SQLException e) {
+        throw e;
+      }
       catch (Exception e) {
-        throw (SQLException) e;
+        throw new SQLException(e);
       }
 
       name = cachedStatement.name;
@@ -334,9 +340,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       int[] counts = new int[batchParameterValues.size()];
       Arrays.fill(counts, SUCCESS_NO_INFO);
 
-      List<Object[]> generatedKeys = new ArrayList<>();
+      List<DataRow> generatedKeys = new ArrayList<>();
 
-      BindExecCommand command = connection.getProtocol().createBindExec(null, null, parameterTypes, Collections.emptyList(), resultFields, Object[].class);
+      BindExecCommand command = connection.getProtocol().createBindExec(null, null, parameterTypes, Collections.emptyList(), resultFields);
 
       List<Type> lastParameterTypes = null;
       List<ResultField> lastResultFields = null;
@@ -353,7 +359,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
             PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
 
-            connection.execute(prep, true);
+            SQLWarning warnings = connection.execute(prep, true);
+            warningChain = chainWarnings(warningChain, warnings);
 
             parameterTypes = prep.getDescribedParameterTypes();
             lastParameterTypes = parameterTypes;
@@ -370,41 +377,46 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           warningChain = chainWarnings(warningChain, warnings);
 
           List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-          if (resultBatches.size() != 1) {
-            throw new BatchUpdateException(counts);
-          }
+          try {
 
-          QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
-          if (!allowBatchSelects() && resultBatch.command.equals("SELECT")) {
-            throw new SQLException("SELECT in executeBatch");
-          }
-          if (resultBatch.rowsAffected == null) {
-            counts[c] = 0;
-          }
-          else {
-            counts[c] = (int) (long) resultBatch.rowsAffected;
-          }
+            if (resultBatches.size() != 1) {
+              throw new BatchUpdateException("Query generated multiple result sets", counts);
+            }
 
-          if (wantsGeneratedKeys) {
-            generatedKeys.add((Object[]) resultBatch.results.get(0));
+            QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+
+            if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
+              throw new SQLException("SELECT in executeBatch");
+            }
+            if (resultBatch.getRowsAffected() == null) {
+              counts[c] = 0;
+            }
+            else {
+              counts[c] = (int) (long) resultBatch.getRowsAffected();
+            }
+
+            if (wantsGeneratedKeys) {
+              generatedKeys.add(resultBatch.getResults().remove(0));
+            }
+          }
+          finally {
+            releaseResultBatches(resultBatches);
           }
 
           c++;
         }
       }
       catch (SQLException se) {
-        int[] updateCounts = new int[c + 1];
 
-        for (int i = 0; i < updateCounts.length - 1; i++) {
-          updateCounts[i] = counts[i];
-        }
+        int[] updateCounts = new int[c + 1];
+        System.arraycopy(counts, 0, updateCounts, 0, updateCounts.length - 1);
 
         updateCounts[c] = Statement.EXECUTE_FAILED;
 
         throw new BatchUpdateException(updateCounts, se);
       }
 
-      generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys);
+      generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys, true);
 
       return counts;
 
@@ -553,7 +565,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromDate(x, zone), Types.DATE);
+    set(parameterIndex, x != null ? Instants.fromDate(x, zone) : null, Types.DATE);
   }
 
   @Override
@@ -562,7 +574,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromTime(x, zone), Types.TIME);
+    set(parameterIndex, x != null ? Instants.fromTime(x, zone) : null, Types.TIME);
   }
 
   @Override
@@ -571,7 +583,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     TimeZone zone = cal.getTimeZone();
 
-    set(parameterIndex, Instants.fromTimestamp(x, zone), Types.TIMESTAMP);
+    set(parameterIndex, x != null ? Instants.fromTimestamp(x, zone) : null, Types.TIMESTAMP);
   }
 
   @Override
@@ -940,4 +952,27 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     throw NOT_ALLOWED_ON_PREP_STMT;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }

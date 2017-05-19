@@ -86,10 +86,10 @@ public class SSLTest {
 
   private String makeConnStr(String sslmode, boolean goodclient, boolean goodserver) {
     return connstr
-        + "&ssl.mode=" + sslmode
-        + "&ssl.cert.file=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
-        + "&ssl.key.file=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8")
-        + "&ssl.root.cert.file=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt");
+        + "&sslMode=" + sslmode
+        + "&sslCertificateFile=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
+        + "&sslKeyFile=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8")
+        + "&sslRootCertificateFile=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt");
   }
 
   /**

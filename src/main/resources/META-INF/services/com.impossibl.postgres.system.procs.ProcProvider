@@ -14,9 +14,11 @@ com.impossibl.postgres.system.procs.Float8s
 com.impossibl.postgres.system.procs.HStores
 com.impossibl.postgres.system.procs.Inets
 com.impossibl.postgres.system.procs.Int2s
+com.impossibl.postgres.system.procs.Int2Vectors
 com.impossibl.postgres.system.procs.Int4s
 com.impossibl.postgres.system.procs.Int8s
 com.impossibl.postgres.system.procs.Intervals
+com.impossibl.postgres.system.procs.Jsons
 com.impossibl.postgres.system.procs.Lines
 com.impossibl.postgres.system.procs.LSegs
 com.impossibl.postgres.system.procs.MacAddrs
@@ -25,6 +27,7 @@ com.impossibl.postgres.system.procs.Names
 com.impossibl.postgres.system.procs.NumericMods
 com.impossibl.postgres.system.procs.Numerics
 com.impossibl.postgres.system.procs.Oids
+com.impossibl.postgres.system.procs.OidVectors
 com.impossibl.postgres.system.procs.Paths
 com.impossibl.postgres.system.procs.Points
 com.impossibl.postgres.system.procs.Polygons

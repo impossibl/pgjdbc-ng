@@ -129,7 +129,7 @@ public class ISODateFormat implements DateTimeFormat {
       if (year < 1000) {
         // Add leading zeros
         yearString = "" + year;
-        yearString = yearZeros.substring(0, (4 - yearString.length())) + yearString;
+        yearString = yearZeros.substring(0, 4 - yearString.length()) + yearString;
       }
       else {
         yearString = "" + year;
@@ -156,7 +156,7 @@ public class ISODateFormat implements DateTimeFormat {
       timestampBuf.append(dayString);
       timestampBuf.append(" ");
 
-      return (timestampBuf.toString());
+      return timestampBuf.toString();
     }
 
   }

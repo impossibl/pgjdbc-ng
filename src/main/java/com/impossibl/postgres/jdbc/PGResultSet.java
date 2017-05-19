@@ -29,6 +29,8 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
+import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.ParsedDataRow;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.ArrayType;
@@ -90,6 +92,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -160,7 +163,6 @@ class PGResultSet implements ResultSet {
   }
 
 
-
   PGStatement statement;
   Scroller scroller;
   int fetchDirection;
@@ -173,8 +175,7 @@ class PGResultSet implements ResultSet {
   final Object cleanupKey;
 
 
-
-  PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<?> results) throws SQLException {
+  PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
     this(statement, command);
     this.scroller = new CommandScroller(this, command, resultFields, results);
 
@@ -184,9 +185,9 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<?> results) throws SQLException {
+  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) throws SQLException {
     this(statement, null);
-    this.scroller = new ListScroller(resultFields, results);
+    this.scroller = new ListScroller(resultFields, results, releaseResults);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
       if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
@@ -287,8 +288,14 @@ class PGResultSet implements ResultSet {
    *          Column index to retrieve
    * @return Column value as Object
    */
-  Object get(int columnIndex) {
-    Object val = scroller.getRowData()[columnIndex - 1];
+  Object get(int columnIndex) throws PGSQLSimpleException {
+    Object val = null;
+    try {
+      val = scroller.getRowData().getColumn(columnIndex - 1);
+    }
+    catch (IOException e) {
+      throw new PGSQLSimpleException("Error decoding column", e);
+    }
     nullFlag = val == null;
     return val;
   }
@@ -298,11 +305,23 @@ class PGResultSet implements ResultSet {
     checkColumnIndex(columnIdx);
 
     if (updatedRowValues == null) {
-      Object[] rowData = scroller.getRowData();
-      if (rowData == null) {
+
+      DataRow dataRow = scroller.getRowData();
+      if (dataRow == null) {
         throw RS_NOT_UPDATABLE;
       }
-      updatedRowValues = rowData.clone();
+
+      Object[] rowData = new Object[scroller.getResultFields().size()];
+      for (int c = 0, len = rowData.length; c < len; ++c) {
+        try {
+          rowData[c] = dataRow.getColumn(c);
+        }
+        catch (IOException e) {
+          throw new SQLException("Error decoding column", e);
+        }
+      }
+
+      updatedRowValues = rowData;
     }
 
     Type colType = getType(columnIdx);
@@ -319,7 +338,7 @@ class PGResultSet implements ResultSet {
   }
 
   Type getType(int columnIndex) {
-    return scroller.getResultFields().get(columnIndex - 1).typeRef.get();
+    return scroller.getResultFields().get(columnIndex - 1).getTypeRef().get();
   }
 
   @Override
@@ -700,12 +719,12 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
-    if (data == null) {
-      return null;
-    }
+    try (InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection)) {
 
-    try {
+      if (data == null) {
+        return null;
+      }
+
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {
@@ -780,7 +799,7 @@ class PGResultSet implements ResultSet {
       throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
     }
 
-    return new PGArray(statement.connection, (ArrayType)type, (Object[])value);
+    return new PGArray(statement.connection, (ArrayType) type, (Object[]) value);
   }
 
   @Override
@@ -930,7 +949,7 @@ class PGResultSet implements ResultSet {
 
     for (int c = 0; c < resultFields.size(); ++c) {
 
-      if (resultFields.get(c).name.equalsIgnoreCase(columnLabel))
+      if (resultFields.get(c).getName().equalsIgnoreCase(columnLabel))
         return c + 1;
     }
 
@@ -1689,8 +1708,42 @@ class PGResultSet implements ResultSet {
     return iface.isAssignableFrom(getClass());
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateObject(int columnIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateObject(String columnLabel, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateObject(int columnIndex, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateObject(String columnLabel, Object x, SQLType targetSqlType) throws SQLException {
+    throw NOT_IMPLEMENTED;
+  }
 }
 
+/**
+ * An implementation of different scrolling functionality required by JDBC resultsets.
+ */
 abstract class Scroller {
 
   abstract void close() throws SQLException;
@@ -1709,7 +1762,7 @@ abstract class Scroller {
 
   abstract int getRow() throws SQLException;
 
-  abstract Object[] getRowData();
+  abstract DataRow getRowData();
 
   abstract boolean isBeforeFirst() throws SQLException;
 
@@ -1745,20 +1798,37 @@ abstract class Scroller {
 
 }
 
+/**
+ * A forward-only scroller that scrolls through a single list of results
+ */
 class ListScroller extends Scroller {
 
   int currentRowIndex = -1;
-  List<Object[]> results;
+  List<DataRow> results;
   List<ResultField> resultFields;
+  boolean releaseResults;
 
   @SuppressWarnings("unchecked")
-  public ListScroller(List<ResultField> resultFields, List<?> results) {
+  ListScroller(List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) {
     this.resultFields = resultFields;
-    this.results = (List<Object[]>) results;
+    this.results = results;
+    this.releaseResults = releaseResults;
+  }
+
+  void setResults(List<DataRow> results) {
+    if (this.results != null) {
+      for (DataRow dataRow : this.results) {
+        dataRow.release();
+      }
+    }
+    this.results = results;
   }
 
   @Override
   void close() throws SQLException {
+    if (releaseResults) {
+      setResults(null);
+    }
   }
 
   @Override
@@ -1801,7 +1871,7 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  Object[] getRowData() {
+  DataRow getRowData() {
     return results.get(currentRowIndex);
   }
 
@@ -1896,20 +1966,26 @@ class ListScroller extends Scroller {
 
 }
 
+/**
+ * Forward-only scroller that operates on finite batches from the server.
+ *
+ * Implemented using PostgreSQL portals; specifically the "PortalSuspended" funcitonality.
+ */
 class CommandScroller extends ListScroller {
 
   PGResultSet resultSet;
   int resultsIndexOffset;
   QueryCommand command;
 
-  CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<?> results) {
-    super(resultFields, results);
+  CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) {
+    super(resultFields, results, true);
     this.resultSet = resultSet;
     this.command = command;
   }
 
   @Override
   void close() throws SQLException {
+    super.close();
     resultSet.statement.dispose(command);
   }
 
@@ -1997,8 +2073,8 @@ class CommandScroller extends ListScroller {
 
         QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
 
-        resultFields = resultBatch.fields;
-        results = (List<Object[]>) resultBatch.results;
+        resultFields = resultBatch.getFields();
+        setResults(resultBatch.getResults());
 
         resultsIndexOffset += currentRowIndex;
         currentRowIndex = -1;
@@ -2018,6 +2094,9 @@ class CommandScroller extends ListScroller {
 
 }
 
+/**
+ * A forward/backward scroller that uses SQL cursors. It only ever contains a single row at any one time.
+ */
 class CursorScroller extends Scroller {
 
   PGConnectionImpl connection;
@@ -2028,7 +2107,7 @@ class CursorScroller extends Scroller {
   int rowIndexValue;
   Integer rowCountCache;
   int rowIndexSign;
-  Object[] result;
+  DataRow result;
 
   CursorScroller(PGResultSet resultSet, String cursorName, int type, int holdability, List<ResultField> resultFields) {
     this.connection = resultSet.statement.connection;
@@ -2045,6 +2124,13 @@ class CursorScroller extends Scroller {
     rowIndexSign = sign ? 1 : -1;
   }
 
+  void setResult(DataRow result) {
+    if (this.result != null) {
+      this.result.release();
+    }
+    this.result = result;
+  }
+
   boolean fetch(String type, Object loc) throws SQLException {
 
     StringBuilder sb = new StringBuilder();
@@ -2055,14 +2141,14 @@ class CursorScroller extends Scroller {
     sb.append(" FROM ");
     sb.append(cursorName);
 
-    result = connection.executeForFirstResult(sb.toString(), true);
+    setResult(connection.executeForFirstResult(sb.toString(), true));
 
     return result != null;
   }
 
   int move(String type, Object loc) throws SQLException {
 
-    result = null;
+    setResult(null);
 
     StringBuilder sb = new StringBuilder();
     sb.append("MOVE ");
@@ -2086,6 +2172,8 @@ class CursorScroller extends Scroller {
 
   @Override
   void close() throws SQLException {
+
+    setResult(null);
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
 
@@ -2125,7 +2213,7 @@ class CursorScroller extends Scroller {
   }
 
   @Override
-  Object[] getRowData() {
+  DataRow getRowData() {
     return result;
   }
 
@@ -2292,11 +2380,11 @@ class CursorScroller extends Scroller {
       throw new SQLException("Invalid update row");
     }
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder("INSERT INTO ");
 
-    sb.append(relType.getName());
+    sb.append('"').append(relType.getName()).append('"');
 
     sb.append(" VALUES (");
 
@@ -2325,18 +2413,18 @@ class CursorScroller extends Scroller {
       throw new SQLException("Invalid update row");
     }
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder("UPDATE ");
 
-    sb.append(relType.getName());
+    sb.append('"').append(relType.getName()).append('"');
 
     sb.append(" SET ");
 
     Iterator<ResultField> fieldsIter = resultFields.iterator();
     int pid = 1;
     while (fieldsIter.hasNext()) {
-      sb.append(fieldsIter.next().name);
+      sb.append(fieldsIter.next().getName());
       sb.append(" = $");
       sb.append(pid++);
       sb.append(fieldsIter.hasNext() ? ", " : " ");
@@ -2347,7 +2435,7 @@ class CursorScroller extends Scroller {
 
     connection.executeForRowsAffected(sb.toString(), true, updatedRowValues);
 
-    result = updatedRowValues.clone();
+    setResult(new ParsedDataRow(updatedRowValues));
   }
 
   @Override
@@ -2356,10 +2444,10 @@ class CursorScroller extends Scroller {
     if (!isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).relationId);
+    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
 
     StringBuilder sb = new StringBuilder();
-    sb.append("DELETE FROM ").append(relType.getName()).append(" WHERE CURRENT OF ").append(cursorName);
+    sb.append("DELETE FROM ").append('"').append(relType.getName()).append('"').append(" WHERE CURRENT OF ").append(cursorName);
 
     long rows = connection.executeForRowsAffected(sb.toString(), true);
     if (rows != 0) {

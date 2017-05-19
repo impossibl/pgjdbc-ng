@@ -70,7 +70,7 @@ public enum GeometryParsers {
   /**
    * Parses a circle.
    * <pre>
-   * < ( x , y ) , r >
+   * &lt; ( x , y ) , r &gt;
    * ( ( x , y ) , r )
    * ( x , y ) , r
    * x , y   , r
@@ -207,7 +207,7 @@ public enum GeometryParsers {
    *  x1 , y1   ,   x2 , y2
    * </pre>
    * @param s The line to parse.
-   * @return An array of size 3 ([A,B,C] --> Ax+By+C=0.)
+   * @return An array of size 3 ([A,B,C] --&gt; Ax+By+C=0.)
    */
   public double[] parseLine(CharSequence s) {
     int pos = consummeSpace(s, 0, true);
@@ -234,7 +234,7 @@ public enum GeometryParsers {
   /**
    * Returns A,B and C as in Ax+By+C=0 given 2 points
    */
-  private double[] lineConstructPts(double[] pt1, double[] pt2) {
+  private static double[] lineConstructPts(double[] pt1, double[] pt2) {
     double[] lineabc = new double[3];
     if (pt1[0] == pt2[0]) { /* vertical */
       /* use "x = C" */
@@ -317,7 +317,6 @@ public enum GeometryParsers {
       if (s.charAt(pr.pos) != ')') {
         throw new IllegalArgumentException("near " + pr.pos + " in  " + s);
       }
-      ++pos;
     }
     pr.pos = consummeSpace(s, pr.pos, false);
     if (pr.pos < max) {
@@ -327,7 +326,7 @@ public enum GeometryParsers {
     return new Path(pr.p, !pr.isOpen);
   }
 
-  private int pairCount(CharSequence s, char delim) {
+  private static int pairCount(CharSequence s, char delim) {
     int ndelim = 0;
     int max = s.length() - 1;
     int pos = 0;
@@ -445,7 +444,7 @@ public enum GeometryParsers {
     }
   }
 
-  private int findLastDelim(CharSequence s, int pos, char delim) {
+  private static int findLastDelim(CharSequence s, int pos, char delim) {
     int found = -1;
     int max = s.length() - 1;
     while (pos < max) {
@@ -551,7 +550,7 @@ public enum GeometryParsers {
     return pos;
   }
 
-  private int parseExponent(CharSequence s, int pos) {
+  private static int parseExponent(CharSequence s, int pos) {
     int max = s.length() - 1;
     if (pos >= max) {
       return pos;
@@ -582,7 +581,7 @@ public enum GeometryParsers {
 
   private int parseNumber(CharSequence s, int pos) {
     int max = s.length() - 1;
-    boolean dot = false;
+    boolean dot;
     switch (s.charAt(pos)) {
       case '.':
       case '-':
@@ -599,7 +598,7 @@ public enum GeometryParsers {
       case '9':
         // looks like a number
         // eat a number
-        dot = (s.charAt(pos) == '.');
+        dot = s.charAt(pos) == '.';
         ++pos;
         while (pos <= max) {
           char c = s.charAt(pos);
@@ -621,7 +620,7 @@ public enum GeometryParsers {
     return pos;
   }
 
-  private int consummeSpace(CharSequence s, int pos, boolean checkEOS) {
+  private static int consummeSpace(CharSequence s, int pos, boolean checkEOS) {
     int max = s.length() - 1;
     while (pos <= max && Character.isSpaceChar(s.charAt(pos))) {
       ++pos;

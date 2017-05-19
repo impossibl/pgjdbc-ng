@@ -1106,6 +1106,8 @@ public class BlobTest {
     assertEquals(-1, in.read());
     assertEquals(-1, in.read(new byte[4], 0, 4));
 
+    in.close();
+    blob.free();
     rs.close();
     stmt.close();
   }
@@ -1126,6 +1128,8 @@ public class BlobTest {
     assertEquals(-1, in.read());
     assertEquals(-1, in.read(new char[4], 0, 4));
 
+    in.close();
+    clob.free();
     rs.close();
     stmt.close();
   }
@@ -1290,6 +1294,48 @@ public class BlobTest {
     stmt.close();
 
     conn.commit();
+  }
+
+  @Test
+  public void testBlobClose() throws Exception {
+    final Blob blob = conn.createBlob();
+    try {
+      OutputStream blobOutputStream = blob.setBinaryStream(1L);
+      try {
+        java.io.BufferedOutputStream bufferedOutputStream =
+            new java.io.BufferedOutputStream(blobOutputStream);
+        try {
+          bufferedOutputStream.write(100);
+        }
+        finally {
+          bufferedOutputStream.close();
+        }
+      }
+      finally {
+        blobOutputStream.close();
+      }
+    }
+    finally {
+      blob.free();
+    }
+  }
+
+  @Test
+  public void testBlobCloseWithResources() throws Exception {
+    final Blob blob = conn.createBlob();
+    try {
+      OutputStream blobOutputStream = blob.setBinaryStream(1L);
+      try (java.io.BufferedOutputStream bufferedOutputStream =
+               new java.io.BufferedOutputStream(blobOutputStream)) {
+        bufferedOutputStream.write(100);
+      }
+      finally {
+        blobOutputStream.close();
+      }
+    }
+    finally {
+      blob.free();
+    }
   }
 
 }

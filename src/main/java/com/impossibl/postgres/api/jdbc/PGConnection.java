@@ -102,4 +102,16 @@ public interface PGConnection extends Connection {
    * @return The value
    */
   boolean isStrictMode();
+
+  /**
+   * Set the default fetch size
+   * @param v The value
+   */
+  void setDefaultFetchSize(int v);
+
+  /**
+   * Get the default fetch size
+   * @return The value
+   */
+  int getDefaultFetchSize();
 }

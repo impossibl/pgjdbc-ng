@@ -28,10 +28,18 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import java.lang.reflect.Array;
+
 public class ArrayUtils {
 
   public static int getDimensions(Object array) {
-    return getDimensions(array.getClass());
+    if (array == null || !array.getClass().isArray()) {
+      return 0;
+    }
+    if (Array.getLength(array) == 0) {
+      return 1;
+    }
+    return getDimensions(Array.get(array, 0)) + 1;
   }
 
   public static int getDimensions(Class<?> cls) {

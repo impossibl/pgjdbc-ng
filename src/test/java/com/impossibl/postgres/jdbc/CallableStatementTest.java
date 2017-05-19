@@ -300,6 +300,10 @@ public class CallableStatementTest {
 
   @Test
   public void testRaiseNotice() throws SQLException {
+    // Ensure RAISE works in all environments
+    try (Statement statement = con.createStatement()) {
+      statement.execute("SET SESSION client_min_messages = 'NOTICE'");
+    }
     CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
     call.registerOutParameter(1, Types.INTEGER);
     call.execute();
@@ -604,12 +608,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function updatevarchar(text,text)");
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -653,13 +668,23 @@ public class CallableStatementTest {
       cstmt.close();
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function insert_bit(boolean, boolean, boolean)");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -713,13 +738,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function update_bit(boolean, boolean, boolean)");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -777,14 +812,24 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function longvarchar_proc()");
         dstmt.execute("drop function lvarchar_in_name(text)");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -832,13 +877,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function varbinary_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -914,13 +969,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute(dropUpdateReal);
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -962,13 +1027,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function updatefloat_proc(float, float)");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1017,13 +1092,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function longvarbinary_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1062,13 +1147,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute(dropFloatProc);
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1109,13 +1204,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function double_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1156,13 +1261,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function double_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1203,13 +1318,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement rstmt = null;
       try {
-        Statement rstmt = con.createStatement();
+        rstmt = con.createStatement();
         rstmt.execute("drop function real_proc()");
-        rstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (rstmt != null) {
+          try {
+            rstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
       ((PGConnectionImpl)con).setStrictMode(false);
     }
@@ -1251,13 +1376,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function short_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1298,13 +1433,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function int_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1345,13 +1490,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function bigint_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1392,13 +1547,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function bit_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1439,13 +1604,23 @@ public class CallableStatementTest {
       fail(ex.getMessage());
     }
     finally {
+      Statement dstmt = null;
       try {
-        Statement dstmt = con.createStatement();
+        dstmt = con.createStatement();
         dstmt.execute("drop function byte_proc()");
-        dstmt.close();
       }
       catch (Exception ex) {
         // Expected...
+      }
+      finally {
+        if (dstmt != null) {
+          try {
+            dstmt.close();
+          }
+          catch (SQLException se) {
+            // Ignore
+          }
+        }
       }
     }
   }
@@ -1468,7 +1643,6 @@ public class CallableStatementTest {
   @Test
   public void testCallFunctionWithoutParentheses() throws SQLException {
     CallableStatement cs = con.prepareCall("{?=call current_timestamp}");
-    cs = con.prepareCall("{?=call current_timestamp}");
     cs.registerOutParameter(1, Types.TIMESTAMP);
     cs.execute();
     assertNotNull(cs.getTimestamp(1));
