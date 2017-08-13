@@ -65,8 +65,8 @@ The 'password' parameter specifies the password.
 
 	housekeeper      (boolean) true
 
-The 'housekeeper' parameter specifies if the JDBC driver should keep track connections, statements and result sets
-and automatically close them if they can't no longer be reached.
+The 'housekeeper' parameter specifies if the JDBC driver should keep track of connections, statements and result sets
+and automatically close them if they can no longer be reached.
 
 	parsedSqlCacheSize   (int)   250
 
@@ -74,7 +74,7 @@ The 'parsedSqlCacheSize' parameter specifies how big the cache size for parsed S
 
 	preparedStatementCacheSize (int)     50
 
-The 'preparedStatementCacheSize' parameter specifies how big the cache size for PreparedStatement instaces should be.
+The 'preparedStatementCacheSize' parameter specifies how big the cache size for PreparedStatement instances should be.
 
 	applicationName          (String)  pgjdbc app
 
@@ -87,7 +87,7 @@ The 'clientEncoding' parameter specifies the client encoding for the database se
 	networkTimeout         (int)     0
 
 The 'networkTimeout' parameter specifies the default timeout in milliseconds for the connections.
-A value of 0 indicates that there isnt a timeout for database operations.
+A value of 0 indicates that there isn't a timeout for database operations.
 
 	strictMode          (boolean)  false
 
