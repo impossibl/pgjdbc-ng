@@ -243,7 +243,7 @@ class ConnectionUtil {
    *    3 = parameters            (optional)
    */
   private static final Pattern URL_PATTERN =
-      Pattern.compile("jdbc:pgsql:(?://((?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?)*)/)?((?:\\w|-|_)+)(?:[\\?\\&](.*))?");
+      Pattern.compile("jdbc:pgsql:(?://((?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(?:\\d+))?)*)/)?(([^?&])+)(?:[\\?\\&](.*))?");
 
   private static final Pattern ADDRESS_PATTERN = Pattern.compile("(?:([a-zA-Z0-9\\-\\.]+|\\[[0-9a-f\\:]+\\])(?:\\:(\\d+))?)");
 
