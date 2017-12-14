@@ -171,7 +171,7 @@ class ConnectionUtil {
     for (InetSocketAddress address : connSpec.getAddresses()) {
 
       if (address.isUnresolved()) {
-        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved");
+        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved", "8001");
         continue;
       }
 
@@ -186,7 +186,7 @@ class ConnectionUtil {
       }
       catch (IOException e) {
 
-        lastException = new SQLException("Connection Error: " + e.getMessage(), e);
+        lastException = new SQLException("Connection Error: " + e.getMessage(), "8001", e);
       }
       catch (NoticeException e) {
 
