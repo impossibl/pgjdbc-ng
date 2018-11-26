@@ -518,7 +518,7 @@ class SQLTypeUtils {
       return new String(new char[] {(Character) val});
     }
     else if (val instanceof Boolean) {
-      return val.toString();
+      return ((Boolean) val) ? "t" : "f";
     }
     else if (val instanceof URL) {
       return val.toString();

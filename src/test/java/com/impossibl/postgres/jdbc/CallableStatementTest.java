@@ -598,9 +598,9 @@ public class CallableStatementTest {
       Statement stmt = con.createStatement();
       ResultSet rs = stmt.executeQuery("select * from vartab");
       assertTrue(rs.next());
-      assertTrue(rs.getString(1).equals(Boolean.TRUE.toString()));
+      assertTrue(rs.getString(1).equals("t"));
 
-      assertTrue(rs.getString(2).equals(Boolean.FALSE.toString()));
+      assertTrue(rs.getString(2).equals("f"));
       rs.close();
       stmt.close();
     }
