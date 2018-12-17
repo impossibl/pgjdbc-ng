@@ -29,7 +29,7 @@
 package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.protocol.Protocol;
+import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
@@ -37,6 +37,8 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Map;
 import java.util.TimeZone;
+
+import io.netty.buffer.ByteBufAllocator;
 
 
 class DecoratorContext extends AbstractContext {
@@ -119,13 +121,13 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public Protocol getProtocol() {
-    return base.getProtocol();
+  public RequestExecutor getRequestExecutor() {
+    return base.getRequestExecutor();
   }
 
   @Override
-  public void reportNotification(int processId, String channelName, String payload) {
-    base.reportNotification(processId, channelName, payload);
+  public ByteBufAllocator getAllocator() {
+    return base.getAllocator();
   }
 
   @Override

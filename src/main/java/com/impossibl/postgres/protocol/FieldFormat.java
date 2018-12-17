@@ -28,7 +28,13 @@
  */
 package com.impossibl.postgres.protocol;
 
-public enum FieldFormat {
+public enum FieldFormat implements FieldFormatRef {
   Text,
-  Binary
+  Binary;
+
+  @Override
+  public FieldFormat getFormat() {
+    return this;
+  }
+
 }

@@ -277,7 +277,7 @@ public class Arrays extends SimpleProcProvider {
     @Override
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      ByteBufAllocator byteBufAllocator = context.getProtocol().getChannel().alloc();
+      ByteBufAllocator byteBufAllocator = context.getAllocator();
       ArrayType atype = (ArrayType) type;
 
       List<CharSequence> elementBuffers = new ArrayList<>();

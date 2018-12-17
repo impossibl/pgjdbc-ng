@@ -29,12 +29,9 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
-import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.CloseCommand;
-import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.PrepareExecCommand;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultBatch;
+import com.impossibl.postgres.protocol.ResultBatches;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerObjectType;
@@ -44,7 +41,6 @@ import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
 
@@ -131,8 +127,8 @@ abstract class PGStatement implements Statement {
   Integer maxRows;
   Integer fetchSize;
   Integer maxFieldSize;
-  QueryCommand command;
-  List<QueryCommand.ResultBatch> resultBatches;
+  Query query;
+  List<ResultBatch> resultBatches;
   boolean autoClose;
   List<WeakReference<PGResultSet>> activeResultSets;
   PGResultSet generatedKeysResultSet;
@@ -192,18 +188,7 @@ abstract class PGStatement implements Statement {
     if (objectName == null)
       return;
 
-    CloseCommand close = connection.getProtocol().createClose(objectType, objectName);
-
-    connection.execute(close);
-  }
-
-  void dispose(Command command) throws SQLException {
-
-    if (command instanceof BindExecCommand) {
-
-      dispose(connection, ServerObjectType.Portal, ((BindExecCommand)command).getPortalName());
-    }
-
+    connection.execute((long timeout) -> connection.getRequestExecutor().close(objectType, objectName));
   }
 
   /**
@@ -274,17 +259,6 @@ abstract class PGStatement implements Statement {
   }
 
   /**
-   * Determines whether or not the current statement state requires a named
-   * portal or could use the unnamed portal instead
-   *
-   * @return true when a named portal is required and false when it is not
-   */
-  boolean needsNamedPortal() {
-
-    return fetchSize != null;
-  }
-
-  /**
    * Cleans up all resources, including active result sets
    *
    * @throws SQLException
@@ -293,7 +267,7 @@ abstract class PGStatement implements Statement {
   void internalClose() throws SQLException {
 
     closeResultSets();
-    resultBatches = releaseResultBatches(resultBatches);
+    resultBatches = ResultBatches.releaseAll(resultBatches);
 
     if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
       dispose(connection, Statement, name);
@@ -303,46 +277,19 @@ abstract class PGStatement implements Statement {
       housekeeper.remove(cleanupKey);
 
     connection = null;
-    command = null;
+    query = null;
     resultFields = null;
     generatedKeysResultSet = null;
   }
 
   private boolean hasResults() {
     return !resultBatches.isEmpty() &&
-      resultBatches.get(0).getResults() != null;
+      !resultBatches.get(0).getResults().isEmpty();
   }
 
   private boolean hasUpdateCount() {
     return !resultBatches.isEmpty() &&
       resultBatches.get(0).getRowsAffected() != null;
-  }
-
-  /**
-   * Execute the given sql
-   *
-   * @param sql
-   *          SQL text to execute
-   * @return True if command returned results or false if not
-   * @throws SQLException
-   *           If an error occurred during statement execution
-   */
-  boolean executeSimple(String sql) throws SQLException {
-
-    closeResultSets();
-    resultBatches = releaseResultBatches(resultBatches);
-
-    command = connection.getProtocol().createQuery(sql);
-
-    //Set query timeout
-    long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
-    command.setQueryTimeout(queryTimeoutMS);
-
-    warningChain = connection.execute(command);
-
-    resultBatches = new ArrayList<>(command.getResultBatches());
-
-    return hasResults();
   }
 
   /**
@@ -353,33 +300,22 @@ abstract class PGStatement implements Statement {
    * @throws SQLException
    *          If an error occurred during statement execution
    */
-  boolean executeExtended(String sqlText) throws SQLException {
+  boolean executeDirect(String sqlText) throws SQLException {
 
     try {
 
       closeResultSets();
-      resultBatches = releaseResultBatches(resultBatches);
+      resultBatches = ResultBatches.releaseAll(resultBatches);
 
-      String portalName = null;
+      Query query = Query.create(sqlText);
 
-      if (needsNamedPortal()) {
-        portalName = connection.getNextPortalName();
-      }
+      query.setTimeout(SECONDS.toMillis(queryTimeout));
+      query.setMaxRows(fetchSize);
 
-      PrepareExecCommand command =
-          connection.getProtocol().createPrepareExec(sqlText, portalName, resultFields);
+      this.warningChain = query.execute(connection);
 
-      //Set query timeout
-      long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
-      command.setQueryTimeout(queryTimeoutMS);
-
-      if (fetchSize != null)
-        command.setMaxRows(fetchSize);
-
-      this.warningChain = connection.execute(command);
-
-      this.command = command;
-      this.resultBatches = new ArrayList<>(command.getResultBatches());
+      this.query = query;
+      this.resultBatches = query.getResultBatches();
 
       return hasResults();
     }
@@ -408,28 +344,17 @@ abstract class PGStatement implements Statement {
     try {
 
       closeResultSets();
-      resultBatches = releaseResultBatches(resultBatches);
+      resultBatches = ResultBatches.releaseAll(resultBatches);
 
-      String portalName = null;
+      Query query = Query.create(statementName, parameterFormats, parameterValues, resultFields);
 
-      if (needsNamedPortal()) {
-        portalName = connection.getNextPortalName();
-      }
+      query.setTimeout(SECONDS.toMillis(queryTimeout));
+      query.setMaxRows(fetchSize);
 
-      BindExecCommand command =
-          connection.getProtocol().createBindExec(portalName, statementName, parameterFormats, parameterValues, resultFields);
+      this.warningChain = query.execute(connection);
 
-      //Set query timeout
-      long queryTimeoutMS = SECONDS.toMillis(queryTimeout);
-      command.setQueryTimeout(queryTimeoutMS);
-
-      if (fetchSize != null)
-        command.setMaxRows(fetchSize);
-
-      this.warningChain = connection.execute(command);
-
-      this.command = command;
-      this.resultBatches = new ArrayList<>(command.getResultBatches());
+      this.query = query;
+      this.resultBatches = query.getResultBatches();
 
       return hasResults();
     }
@@ -449,9 +374,9 @@ abstract class PGStatement implements Statement {
     return resultSet;
   }
 
-  private PGResultSet createResultSet(QueryCommand command, ResultField[] resultFields, List<RowData> results) throws SQLException {
+  private PGResultSet createResultSet(Query query, ResultField[] resultFields, List<RowData> results) throws SQLException {
 
-    PGResultSet resultSet = new PGResultSet(this, command, resultFields, results);
+    PGResultSet resultSet = new PGResultSet(this, query, resultFields, results);
     activeResultSets.add(new WeakReference<>(resultSet));
     return resultSet;
   }
@@ -641,38 +566,38 @@ abstract class PGStatement implements Statement {
     checkClosed();
 
     if (generatedKeysResultSet != null ||
-        command == null ||
+        query == null ||
         !hasResults()) {
       return null;
     }
 
     if (cursorName != null) {
 
-      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+      ResultBatch resultBatch = resultBatches.get(0);
 
       //Shouldn't be any actual rows, but release it to any buffers
       resultBatch.release();
 
       return createResultSet(getCursorName(), resultSetType, resultSetHoldability, resultBatch.getFields());
     }
-    else if (command.getStatus() == QueryCommand.Status.Completed) {
+    else if (query.getStatus() == Query.Status.Completed) {
 
-      QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+      ResultBatch resultBatch = resultBatches.get(0);
 
       // This batch can be re-used so let "close" or "getMoreResults" release it
 
       return createResultSet(resultBatch.getFields(), resultBatch.getResults(), false, connection.getTypeMap());
     }
     else {
-      QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
+      ResultBatch resultBatch = resultBatches.remove(0);
 
       // The batch cannot be re-used, but the result set will clean it up when it's
       // done using it
 
-      PGResultSet rs = createResultSet(command, resultBatch.getFields(), resultBatch.getResults());
+      PGResultSet rs = createResultSet(query, resultBatch.getFields(), resultBatch.getResults());
 
       // Command cannot be re-used when portal'd batching is in progress
-      command = null;
+      query = null;
 
       return rs;
     }
@@ -682,7 +607,7 @@ abstract class PGStatement implements Statement {
   public int getUpdateCount() throws SQLException {
     checkClosed();
 
-    if (command == null || !hasUpdateCount()) {
+    if (query == null || !hasUpdateCount()) {
       return -1;
     }
 
@@ -702,7 +627,7 @@ abstract class PGStatement implements Statement {
       return false;
     }
 
-    QueryCommand.ResultBatch finishedBatch = resultBatches.remove(0);
+    ResultBatch finishedBatch = resultBatches.remove(0);
     finishedBatch.release();
 
     return hasResults();

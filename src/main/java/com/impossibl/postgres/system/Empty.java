@@ -29,8 +29,11 @@
 package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.types.Type;
+
+import static java.util.Collections.emptyList;
 
 import io.netty.buffer.ByteBuf;
 
@@ -40,5 +43,6 @@ public class Empty {
   public static final FieldFormat[] EMPTY_FORMATS = new FieldFormat[0];
   public static final ResultField[] EMPTY_FIELDS = new ResultField[0];
   public static final ByteBuf[] EMPTY_BUFFERS = new ByteBuf[0];
+  public static final ResultBatch EMPTY_RESULTS = new ResultBatch(null, null, null, EMPTY_FIELDS, emptyList());
 
 }

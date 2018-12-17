@@ -55,7 +55,7 @@ import io.netty.buffer.ByteBuf;
  * @author kdubb
  *
  */
-public abstract class Type {
+public abstract class Type implements TypeRef {
 
   public enum Category {
     Array('A'),
@@ -204,6 +204,11 @@ public abstract class Type {
     this.textCodec = textCodec;
     this.preferredParameterFormat = preferredParameterFormat;
     this.preferredResultFormat = preferredResultFormat;
+  }
+
+  @Override
+  public Type getType() {
+    return this;
   }
 
   public int getId() {

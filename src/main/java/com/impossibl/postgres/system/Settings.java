@@ -48,7 +48,10 @@ public class Settings {
   public static final int PREPARED_STATEMENT_CACHE_SIZE_DEFAULT = 50;
 
   public static final String CLIENT_ENCODING = "client_encoding";
+  public static final String CLIENT_ENCODING_DEFAULT = "UTF8";
+
   public static final String APPLICATION_NAME = "application_name";
+  public static final String APPLICATION_NAME_DEFAULT = "PG-JDBC (NG)";
 
   public static final String CREDENTIALS_USERNAME = "user";
   public static final String CREDENTIALS_PASSWORD = "password";
@@ -101,5 +104,8 @@ public class Settings {
 
   public static final String SEND_BUFFER_SIZE = "sendBufferSize";
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
+
+  public static final String ALLOCATOR = "allocator.pooled";
+  public static final String ALLOCATOR_DEFAULT = "true";
 
 }

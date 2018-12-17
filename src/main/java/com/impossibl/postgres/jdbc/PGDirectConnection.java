@@ -33,12 +33,11 @@ import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
-import com.impossibl.postgres.protocol.Command;
-import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.FieldFormatRef;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
@@ -47,10 +46,10 @@ import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
+import com.impossibl.postgres.utils.QueryTimeoutException;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
-import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_CONNECTION;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
@@ -70,7 +69,6 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionIsolationLev
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
 import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE;
@@ -83,6 +81,7 @@ import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SI
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -113,8 +112,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledFuture;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -123,8 +122,11 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 
 
 /**
@@ -142,13 +144,13 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   private static class Cleanup implements CleanupRunnable {
 
-    Protocol protocol;
+    ServerConnection serverConnection;
     List<WeakReference<PGStatement>> statements;
     StackTraceElement[] allocationStackTrace;
     String connectionInfo;
 
-    private Cleanup(Protocol protocol, List<WeakReference<PGStatement>> statements, String connectionInfo) {
-      this.protocol = protocol;
+    private Cleanup(ServerConnection serverConnection, List<WeakReference<PGStatement>> statements, String connectionInfo) {
+      this.serverConnection = serverConnection;
       this.statements = statements;
       this.allocationStackTrace = new Exception().getStackTrace();
       this.connectionInfo = connectionInfo;
@@ -167,7 +169,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     @Override
     public void run() {
 
-      protocol.shutdown();
+      serverConnection.shutdown();
 
       closeStatements(statements);
     }
@@ -245,7 +247,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = this.housekeeper.add(this, new Cleanup(protocol, activeStatements, settings.getProperty(Settings.DATABASE_URL)));
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(serverConnection, activeStatements, settings.getProperty(Settings.DATABASE_URL)));
     else
       this.cleanupKey = null;
   }
@@ -396,59 +398,133 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     }
   }
 
+
+
+  interface QueryFunction {
+    void query(long timeout) throws IOException, NoticeException;
+  }
+
   /**
-   * Executes the given command and throws a SQLException if an error was
-   * encountered and returns a chain of SQLWarnings if any were generated.
+   * Executes the given function, mapping exceptions/errors to their JDBC counterparts and
+   * initiating any necessary side effects (e.g. closing the connection).
    *
-   * @param cmd
-   *          Command to execute
-   * @return Chain of SQLWarning objects if any were encountered
-   * @throws SQLException
-   *           If an error was encountered
+   * @param function Query function to execute
+   * @throws SQLException If an error was encountered during execution
    */
-  SQLWarning execute(Command cmd) throws SQLException {
 
-    if (cmd instanceof QueryCommand) {
-      ((QueryCommand) cmd).setRequireActiveTransaction(!autoCommit);
+  void execute(QueryFunction function) throws SQLException {
+    execute((timeout) -> {
+      function.query(timeout);
+      return null;
+    });
+  }
+
+
+
+  interface QueryResultFunction<T> {
+
+    T query(long timeout) throws IOException, NoticeException;
+
+  }
+
+  /**
+   * Executes the given function, mapping exceptions/errors to their JDBC counterparts and
+   * initiating any necessary side effects (e.g. closing the connection).
+   *
+   * @param function Query function to execute
+   * @throws SQLException If an error was encountered during execution
+   */
+  <T> T execute(QueryResultFunction<T> function) throws SQLException {
+
+    if (!autoCommit && serverConnection.getTransactionStatus() == Idle) {
+      try {
+        serverConnection.getRequestExecutor().lazyExecute("TB");
+      }
+      catch (IOException e) {
+        throw new PGSQLSimpleException(e);
+      }
     }
-
-    //Enable network timeout
-    cmd.setNetworkTimeout(networkTimeout);
 
     try {
 
-      protocol.execute(cmd);
+      return function.query(networkTimeout);
 
-      if (cmd.getError() != null) {
+    }
+    catch (QueryTimeoutException e) {
 
-        throw makeSQLException(cmd.getError());
-      }
-
-      return makeSQLWarningChain(cmd.getWarnings());
+      throw new SQLTimeoutException(e);
 
     }
     catch (BlockingReadTimeoutException e) {
 
-      close();
+      internalClose();
 
       throw new SQLTimeoutException(e);
     }
     catch (InterruptedIOException e) {
 
-      close();
+      internalClose();
 
       throw CLOSED_CONNECTION;
     }
     catch (IOException e) {
 
-      if (!protocol.isConnected()) {
-        close();
+      if (!serverConnection.isConnected()) {
+        internalClose();
       }
 
       throw new SQLException(e);
     }
+    catch (NoticeException e) {
+
+      if (!serverConnection.isConnected()) {
+        internalClose();
+      }
+
+      throw makeSQLException(e.getNotice());
+    }
 
   }
+
+  <T> T executeTimed(Long executionTimeout, QueryResultFunction<T> function) throws SQLException {
+
+    if (executionTimeout == null || executionTimeout < 1 || (networkTimeout > 0 && networkTimeout < executionTimeout)) {
+      return execute(function);
+    }
+
+    // Lock the executor to ensure no asynchronous requests are
+    // started while we're operating under the execution timeout.
+    // This ensures we don't cancel a request _after_ this one
+    // by mistake.
+
+    synchronized (serverConnection.getRequestExecutor()) {
+
+      // Schedule task to run at execution timeout
+
+      ExecutionTimerTask task = new CancelRequestTask(serverConnection.getChannel().remoteAddress(), getKeyData());
+
+      ScheduledFuture<?> taskHandle = serverConnection.getChannel().eventLoop().schedule(task, executionTimeout, MILLISECONDS);
+
+      try {
+
+        return execute(function);
+
+      }
+      finally {
+
+        // Cancel the scheduled running (if it hasn't began to run)
+        taskHandle.cancel(true);
+
+        // Also, ensure any task that is currently running also gets
+        // completely cancelled, or finishes, before returning
+        task.cancel();
+
+      }
+
+    }
+
+  }
+
 
   /**
    * Executes the given SQL text ignoring all result values
@@ -460,53 +536,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   void execute(String sql) throws SQLException {
 
-    execute(sql, !autoCommit);
-  }
-
-  /**
-   * Executes the given SQL text ignoring all result values
-   *
-   * @param sql
-   *          SQL text to execute
-   * @throws SQLException
-   *           If an error was encountered during execution
-   */
-  void execute(String sql, boolean requireActiveTxn) throws SQLException {
-
-    try {
-
-      query(sql, requireActiveTxn);
-
-    }
-    catch (BlockingReadTimeoutException e) {
-
-      internalClose();
-
-      throw new SQLTimeoutException(e);
-    }
-    catch (InterruptedIOException e) {
-
-      internalClose();
-
-      throw CLOSED_CONNECTION;
-    }
-    catch (IOException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
-    }
-
+    execute((long timeout) -> query(sql, timeout));
   }
 
   /**
@@ -521,167 +551,61 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   String executeForString(String sql) throws SQLException {
 
-    try {
-
-      return queryString(sql, !autoCommit);
-
-    }
-    catch (BlockingReadTimeoutException e) {
-
-      internalClose();
-
-      throw new SQLTimeoutException(e);
-    }
-    catch (InterruptedIOException e) {
-
-      internalClose();
-
-      throw CLOSED_CONNECTION;
-    }
-    catch (IOException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
-    }
-
+    return execute((long timeout) -> queryString(sql, timeout));
   }
 
-  private QueryCommand.ResultBatch executeForResultBatch(String sql, Object... params) throws SQLException {
+  private ResultBatch executeForResultBatch(String sql) throws SQLException {
 
-    try {
-
-      return queryBatchPrepared(sql, !autoCommit, params);
-
-    }
-    catch (BlockingReadTimeoutException e) {
-
-      internalClose();
-
-      throw new SQLTimeoutException(e);
-    }
-    catch (InterruptedIOException e) {
-
-      internalClose();
-
-      throw CLOSED_CONNECTION;
-    }
-    catch (IOException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
-    }
-
+    return execute((long timeout) -> queryBatch(sql, timeout));
   }
 
-  private QueryCommand.ResultBatch executeForResultBatch(String sql, FieldFormat[] paramFormats, ByteBuf[] paramBuffers) throws SQLException {
+  private ResultBatch executeForResultBatch(String sql, Object[] params) throws SQLException {
 
-    try {
-
-      return queryBatchPrepared(sql, !autoCommit, paramFormats, paramBuffers);
-
-    }
-    catch (BlockingReadTimeoutException e) {
-
-      internalClose();
-
-      throw new SQLTimeoutException(e);
-    }
-    catch (InterruptedIOException e) {
-
-      internalClose();
-
-      throw CLOSED_CONNECTION;
-    }
-    catch (IOException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!protocol.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
-    }
-
+    return execute((long timeout) -> queryBatchPrepared(sql, params, timeout));
   }
 
-  RowData executeForResult(String sql, Object... params) throws SQLException {
+  private ResultBatch executeForResultBatch(String sql, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers) throws SQLException {
 
-    QueryCommand.ResultBatch resultBatch = executeForResultBatch(sql, params);
+    return execute((long timeout) -> queryBatchPrepared(sql, parameterFormats, parameterBuffers, timeout));
+  }
 
-    List<RowData> res = resultBatch.getResults();
-    if (res == null || res.isEmpty())
-      return null;
+  RowData executeForResult(String sql) throws SQLException {
 
-    RowData firstResult = res.remove(0);
+    try (ResultBatch resultBatch = executeForResultBatch(sql)) {
+      if (resultBatch.isEmpty()) {
+        return null;
+      }
 
-    resultBatch.release();
-
-    return firstResult;
+      return ReferenceCountUtil.retain(resultBatch.getResults().get(0));
+    }
   }
 
   <T> T executeForValue(String sql, Class<T> returnType, Object... params) throws SQLException {
 
-    RowData result = executeForResult(sql, params);
-    if (result == null)
-      return null;
+    try (ResultBatch resultBatch = executeForResultBatch(sql, params)) {
 
-    try {
-      return returnType.cast(result.getColumn(0, this, returnType, null));
-    }
-    catch (IOException e) {
-      throw new SQLException("Error decoding column", e);
-    }
-    finally {
-      result.release();
+      try {
+        return resultBatch.getRow(0).getField(0, this, returnType);
+      }
+      catch (IOException e) {
+        throw new SQLException("Error decoding column", e);
+      }
     }
 
   }
 
-  long executeForRowsAffected(String sql, Object... params) throws SQLException {
+  long executeForRowsAffected(String sql) throws SQLException {
 
-    QueryCommand.ResultBatch resultBatch = executeForResultBatch(sql, params);
-
-    resultBatch.release();
-
-    return resultBatch.getRowsAffected();
+    try (ResultBatch resultBatch = executeForResultBatch(sql)) {
+      return firstNonNull(resultBatch.getRowsAffected(), 0L);
+    }
   }
 
-  long executeForRowsAffected(String sql, FieldFormat[] paramFormats, ByteBuf[] paramBuffers) throws SQLException {
+  long executeForRowsAffected(String sql, FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers) throws SQLException {
 
-    QueryCommand.ResultBatch resultBatch = executeForResultBatch(sql, paramFormats, paramBuffers);
-
-    resultBatch.release();
-
-    return resultBatch.getRowsAffected();
+    try (ResultBatch resultBatch = executeForResultBatch(sql, paramFormats, paramBuffers)) {
+      return firstNonNull(resultBatch.getRowsAffected(), 0L);
+    }
   }
 
   /**
@@ -751,18 +675,11 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     boolean result;
     int origNetworkTimeout = networkTimeout;
     try {
-      networkTimeout = timeout * 1000;
-      QueryCommand cmd = protocol.createQuery("SELECT '1'::char");
-      try {
-        //noinspection ThrowableNotThrown
-        execute(cmd);
-        result = true;
-      }
-      finally {
-        releaseResultBatches(cmd.getResultBatches());
-      }
+      networkTimeout = (int) SECONDS.toMillis(timeout);
+      execute("SELECT '1'::char");
+      result = true;
     }
-    catch (SQLException se) {
+    catch (Exception se) {
       result = false;
     }
     networkTimeout = origNetworkTimeout;
@@ -826,7 +743,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     // Commit any in-flight transaction (cannot call commit as it will start a
     // new transaction since we would still be in manual commit mode)
-    if (!this.autoCommit && protocol.getTransactionStatus() != Idle) {
+    if (!this.autoCommit && serverConnection.getTransactionStatus() != Idle) {
       execute(getCommitText());
     }
 
@@ -846,7 +763,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
 
-    if (protocol.getTransactionStatus() != Idle) {
+    if (serverConnection.getTransactionStatus() != Idle) {
       throw new SQLException("cannot set read only during a transaction");
     }
 
@@ -884,8 +801,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     checkManualCommit();
 
     // Commit the current transaction
-    if (protocol.getTransactionStatus() != Idle) {
-      execute("@TC", false);
+    if (serverConnection.getTransactionStatus() != Idle) {
+      execute("@TC");
     }
 
   }
@@ -896,8 +813,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     checkManualCommit();
 
     // Roll back the current transaction
-    if (protocol.getTransactionStatus() != Idle) {
-      execute("@TR", false);
+    if (serverConnection.getTransactionStatus() != Idle) {
+      execute("@TR");
     }
 
   }
@@ -943,7 +860,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     try {
       // Rollback to save-point (if in transaction)
-      if (protocol.getTransactionStatus() != Idle) {
+      if (serverConnection.getTransactionStatus() != Idle) {
 
         execute(getRollbackToText(savepoint));
 
@@ -969,7 +886,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     try {
       // Release the save-point (if in a transaction)
-      if (!savepoint.getReleased() && protocol.getTransactionStatus() != Idle) {
+      if (!savepoint.getReleased() && serverConnection.getTransactionStatus() != Idle) {
         execute(getReleaseSavepointText(savepoint));
       }
     }
@@ -1290,7 +1207,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   @Override
   public boolean isClosed() {
-    return !protocol.isConnected();
+    return !serverConnection.isConnected();
   }
 
   @Override
@@ -1306,9 +1223,17 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   @Override
   public void abort(Executor executor) {
 
-    getProtocol().abort(executor);
+    if (isClosed())
+      return;
 
+    //Shutdown socket (also guarantees no more commands begin execution)
     shutdown();
+
+    //Issue cancel request from separate socket (per Postgres protocol). This
+    //is a convenience to the server as the abort does not depend on its
+    //success to complete properly
+
+    executor.execute(new CancelRequestTask(serverConnection.getChannel().remoteAddress(), getKeyData()));
 
     if (housekeeper != null)
       housekeeper.remove(cleanupKey);
@@ -1381,16 +1306,20 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     return preparedStatementCache != null;
   }
 
-  CachedStatement getCachedStatement(CachedStatementKey key, Callable<CachedStatement> loader) throws Exception {
+  interface CachedStatementLoader {
+    CachedStatement load() throws SQLException;
+  }
+
+  CachedStatement getCachedStatement(CachedStatementKey key, CachedStatementLoader loader) throws SQLException {
 
     if (preparedStatementCache == null) {
-      return loader.call();
+      return loader.load();
     }
 
     CachedStatement cached = preparedStatementCache.get(key);
     if (cached == null) {
 
-      cached = loader.call();
+      cached = loader.load();
 
       preparedStatementCache.put(key, cached);
     }

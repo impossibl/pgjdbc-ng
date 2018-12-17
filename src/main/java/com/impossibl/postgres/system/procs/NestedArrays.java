@@ -96,7 +96,7 @@ public class NestedArrays {
     @Override
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      ByteBufAllocator byteBufAllocator = context.getProtocol().getChannel().alloc();
+      ByteBufAllocator byteBufAllocator = context.getAllocator();
 
       NestedArrayType atype = (NestedArrayType) type;
       CompositeCharSequence compBuf = (CompositeCharSequence)buffer;

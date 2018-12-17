@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.tables;
 
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
@@ -51,9 +51,9 @@ public class PgProc implements Table<PgProc.Row> {
     public Row() {
     }
 
-    public void load(Context context, RowData rowData) throws IOException {
-      this.oid = rowData.getColumn(OID, context, Integer.class);
-      this.name = rowData.getColumn(NAME, context, String.class);
+    public void load(Context context, ResultBatch.Row row) throws IOException {
+      this.oid = row.getField(OID, context, Integer.class);
+      this.name = row.getField(NAME, context, String.class);
     }
 
     public int getOid() {
@@ -87,9 +87,9 @@ public class PgProc implements Table<PgProc.Row> {
   }
 
   @Override
-  public Row createRow(Context context, RowData rowData) throws IOException {
+  public Row createRow(Context context, ResultBatch.Row source) throws IOException {
     Row row = new Row();
-    row.load(context, rowData);
+    row.load(context, source);
     return row;
   }
 

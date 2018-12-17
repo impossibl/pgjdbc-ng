@@ -30,6 +30,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
 import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers;
 
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -120,7 +121,7 @@ public class ErrorUtils {
   public static SQLWarning makeSQLWarning(Notice notice) {
 
     if (!notice.isWarning()) {
-      throw new IllegalArgumentException("notice not an error");
+      throw new IllegalArgumentException("Notice not warning: " + notice.getCode() + ": " + notice.getMessage());
     }
 
     return new SQLWarning(notice.getMessage(), notice.getCode());
@@ -191,6 +192,13 @@ public class ErrorUtils {
     current.setNextWarning(add);
 
     return base;
+  }
+
+  public static SQLWarning chainWarnings(SQLWarning base, RequestExecutorHandlers.Result result) {
+    if (result.getNotices().isEmpty()) {
+      return base;
+    }
+    return chainWarnings(base, makeSQLWarningChain(result.getNotices()));
   }
 
 }

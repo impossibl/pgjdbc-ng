@@ -28,10 +28,11 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.PrepareResult;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerObjectType;
@@ -46,14 +47,10 @@ import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.jdbc.SQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
-import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
-import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.utils.ByteBufs.releaseAll;
 import static com.impossibl.postgres.utils.ByteBufs.retainedDuplicateAll;
 
@@ -78,7 +75,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLType;
-import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
@@ -88,11 +84,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
@@ -171,12 +167,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           case Text: {
             StringBuilder out = new StringBuilder();
             paramType.getTextCodec().getEncoder().encode(connection, paramType, source, sourceContext, out);
-            parameterBuffers[parameterIdx] = writeUtf8(connection.getProtocol().getChannel().alloc(), out);
+            parameterBuffers[parameterIdx] = writeUtf8(connection.getAllocator(), out);
           }
           break;
 
           case Binary: {
-            ByteBuf out = connection.getProtocol().getChannel().alloc().buffer();
+            ByteBuf out = connection.getAllocator().buffer();
             paramType.getBinaryCodec().getEncoder().encode(connection, paramType, source, sourceContext, out);
             parameterBuffers[parameterIdx] = out;
           }
@@ -225,45 +221,50 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   void parseIfNeeded() throws SQLException {
 
-    if (cursorName != null && command != null) {
-      super.executeSimple("CLOSE " + cursorName);
+    if (cursorName != null && query != null) {
+      super.executeDirect("CLOSE " + cursorName);
     }
 
     if (!parsed) {
 
       if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
-        //noinspection ThrowableNotThrown
-        connection.execute(connection.getProtocol().createClose(ServerObjectType.Statement, name));
+        try {
+          connection.getRequestExecutor().close(ServerObjectType.Statement, name);
+        }
+        catch (IOException ignored) {
+          // Close errors can be ignored
+        }
       }
 
       CachedStatement cachedStatement;
 
-      try {
+      final CachedStatementKey key = new CachedStatementKey(sqlText, parameterTypes);
 
-        final CachedStatementKey key = new CachedStatementKey(sqlText, parameterTypes);
+      cachedStatement = connection.getCachedStatement(key, () -> {
 
-        cachedStatement = connection.getCachedStatement(key, () -> {
+        String name = connection.isCacheEnabled() ?
+            CACHED_STATEMENT_PREFIX + toHexString(key.hashCode()) : NO_CACHE_STATEMENT_PREFIX + toHexString(key.hashCode());
 
-          String name = connection.isCacheEnabled() ?
-              CACHED_STATEMENT_PREFIX + toHexString(key.hashCode()) : NO_CACHE_STATEMENT_PREFIX + toHexString(key.hashCode());
-
-          PrepareCommand prep = connection.getProtocol().createPrepare(name, sqlText, parameterTypes);
-
-          warningChain = connection.execute(prep);
-
-          return new CachedStatement(name, prep.getDescribedParameterTypes(), prep.getDescribedResultFields());
+        PrepareResult prep = connection.execute((timeout) -> {
+          PrepareResult handler = new PrepareResult();
+          connection.getRequestExecutor().prepare(name, sqlText, parameterTypes, handler);
+          handler.await(timeout, MILLISECONDS);
+          return handler;
         });
 
-      }
-      catch (ExecutionException e) {
-        throw (SQLException) e.getCause();
-      }
-      catch (SQLException e) {
-        throw e;
-      }
-      catch (Exception e) {
-        throw new SQLException(e);
-      }
+        warningChain = chainWarnings(warningChain, prep);
+
+        // Results are always described as "Text"... update them to our preferred format.
+        ResultField[] describedResultFields = prep.getDescribedResultFields().clone();
+        for (int idx = 0; idx < describedResultFields.length; ++idx) {
+          Type type = describedResultFields[idx].getTypeRef().getType();
+          if (type != null) {
+            describedResultFields[idx].setFormat(type.getResultFormat());
+          }
+        }
+
+        return new CachedStatement(name, prep.getDescribedParameterTypes(), describedResultFields);
+      });
 
       name = cachedStatement.name;
       parameterTypesParsed = cachedStatement.parameterTypes;
@@ -291,7 +292,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     boolean res = super.executeStatement(name, parameterFormats, parameterBuffers);
 
     if (cursorName != null) {
-      res = super.executeSimple("FETCH ABSOLUTE 0 FROM " + cursorName);
+      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName);
     }
 
     if (wantsGeneratedKeys) {
@@ -367,12 +368,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
       List<RowData> generatedKeys = new ArrayList<>();
 
-      if (!connection.autoCommit && connection.getProtocol().getTransactionStatus() == TransactionStatus.Idle) {
-        connection.execute(getBeginText(), false);
+      if (!connection.autoCommit && connection.getServerConnection().getTransactionStatus() == TransactionStatus.Idle) {
+        connection.execute((long timeout) -> connection.getRequestExecutor().lazyExecute("@TC"));
       }
-
-      BindExecCommand command =
-          connection.getProtocol().createBindExec(null, null, EMPTY_FORMATS, EMPTY_BUFFERS, resultFields);
 
       Type[] lastParameterTypes = null;
       ResultField[] lastResultFields = null;
@@ -381,16 +379,22 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       int sz = batchParameterBuffers.size();
 
       try {
+        RequestExecutor requestExecutor = connection.getRequestExecutor();
+
         while (batchIdx < sz) {
 
-          Type[] parameterTypes = mergedTypes(batchParameterTypes.get(batchIdx), lastParameterTypes);
+          Type[] suggestedParameterTypes = mergedTypes(batchParameterTypes.get(batchIdx), lastParameterTypes);
 
           if (lastParameterTypes == null || !Arrays.equals(lastParameterTypes, parameterTypes)) {
 
-            PrepareCommand prep = connection.getProtocol().createPrepare(null, sqlText, parameterTypes);
+            PrepareResult prep = connection.execute((timeout) -> {
+              PrepareResult handler = new PrepareResult();
+              requestExecutor.prepare(null, sqlText, suggestedParameterTypes, handler);
+              handler.await(timeout, MILLISECONDS);
+              return handler;
+            });
 
-            SQLWarning warnings = connection.execute(prep);
-            warningChain = chainWarnings(warningChain, warnings);
+            warningChain = chainWarnings(warningChain, prep);
 
             parameterTypes = prep.getDescribedParameterTypes();
             lastParameterTypes = parameterTypes;
@@ -399,25 +403,23 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
           FieldFormat[] parameterFormats = batchParameterFormats.get(batchIdx);
           ByteBuf[] parameterBuffers = batchParameterBuffers.get(batchIdx);
+          ResultField[] resultFields = lastResultFields;
 
-          command.updateParameters(parameterFormats, parameterBuffers);
+          ExecuteResults exec = connection.execute((timeout) -> {
+            ExecuteResults handler = new ExecuteResults(resultFields);
+            requestExecutor.execute(null, null, parameterFormats, parameterBuffers, resultFields, null, handler);
+            handler.await(timeout, MILLISECONDS);
+            return handler;
+          });
 
-          SQLWarning warnings = connection.execute(command);
+          warningChain = chainWarnings(warningChain, exec);
 
-          warningChain = chainWarnings(warningChain, warnings);
-
-          List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
-          try {
-
-            if (resultBatches.size() != 1) {
-              throw new BatchUpdateException("Query generated multiple result sets", counts);
-            }
-
-            QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+          try (ResultBatch resultBatch = exec.getResultBatch()) {
 
             if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
               throw new SQLException("SELECT in executeBatch");
             }
+
             if (resultBatch.getRowsAffected() == null) {
               counts[batchIdx] = 0;
             }
@@ -428,9 +430,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
             if (wantsGeneratedKeys) {
               generatedKeys.add(resultBatch.getResults().remove(0));
             }
-          }
-          finally {
-            releaseResultBatches(resultBatches);
           }
 
           batchIdx++;

@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.tables;
 
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
@@ -60,18 +60,18 @@ public class PgAttribute implements Table<PgAttribute.Row> {
     public Row() {
     }
 
-    public void load(Context context, RowData rowData) throws IOException  {
-      this.relationTypeId = rowData.getColumn(RELATION_TYPE_ID, context, Integer.class);
-      this.relationId = rowData.getColumn(RELATION_ID, context, Integer.class);
-      this.name = rowData.getColumn(NAME, context, String.class);
-      this.typeId = rowData.getColumn(TYPE_ID, context, Integer.class);
-      this.typeModifier = rowData.getColumn(TYPE_MOD, context, Integer.class);
-      this.length = rowData.getColumn(LENGTH, context, Short.class);
-      this.number = rowData.getColumn(NUMBER, context, Short.class);
-      this.nullable = rowData.getColumn(NULLABLE, context, Boolean.class);
-      this.autoIncrement = rowData.getColumn(AUTOINCREMENT, context, Boolean.class);
-      this.numberOfDimensions = rowData.getColumn(NUMBER_OF_DIMS, context, Integer.class);
-      this.hasDefault = rowData.getColumn(HAS_DEFAULT, context, Boolean.class);
+    public void load(Context context, ResultBatch.Row row) throws IOException  {
+      this.relationTypeId = row.getField(RELATION_TYPE_ID, context, Integer.class);
+      this.relationId = row.getField(RELATION_ID, context, Integer.class);
+      this.name = row.getField(NAME, context, String.class);
+      this.typeId = row.getField(TYPE_ID, context, Integer.class);
+      this.typeModifier = row.getField(TYPE_MOD, context, Integer.class);
+      this.length = row.getField(LENGTH, context, Short.class);
+      this.number = row.getField(NUMBER, context, Short.class);
+      this.nullable = row.getField(NULLABLE, context, Boolean.class);
+      this.autoIncrement = row.getField(AUTOINCREMENT, context, Boolean.class);
+      this.numberOfDimensions = row.getField(NUMBER_OF_DIMS, context, Integer.class);
+      this.hasDefault = row.getField(HAS_DEFAULT, context, Boolean.class);
     }
 
     public int getRelationTypeId() {
@@ -216,9 +216,9 @@ public class PgAttribute implements Table<PgAttribute.Row> {
   }
 
   @Override
-  public Row createRow(Context context, RowData rowData) throws IOException {
+  public Row createRow(Context context, ResultBatch.Row source) throws IOException {
     Row row = new Row();
-    row.load(context, rowData);
+    row.load(context, source);
     return row;
   }
 

@@ -32,14 +32,16 @@ import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
-import com.impossibl.postgres.protocol.BindExecCommand;
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.PrepareCommand;
-import com.impossibl.postgres.protocol.Protocol;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.FieldFormatRef;
+import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.PrepareResult;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResults;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
-import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
+import com.impossibl.postgres.protocol.ServerConnection;
+import com.impossibl.postgres.protocol.ServerConnectionFactory;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
@@ -51,7 +53,6 @@ import com.impossibl.postgres.utils.ByteBufs;
 import com.impossibl.postgres.utils.Locales;
 import com.impossibl.postgres.utils.Timer;
 
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
@@ -77,13 +78,18 @@ import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.WARNING;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 
 
 public class BasicContext extends AbstractContext {
+
+  private static final long INTERNAL_QUERY_TIMEOUT = SECONDS.toMillis(60);
 
   private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 
@@ -130,7 +136,7 @@ public class BasicContext extends AbstractContext {
   protected Properties settings;
   private Version serverVersion;
   private KeyData keyData;
-  protected Protocol protocol;
+  protected ServerConnection serverConnection;
   protected Map<NotificationKey, NotificationListener> notificationListeners;
   private Map<String, PreparedQuery> utilQueries;
 
@@ -145,16 +151,24 @@ public class BasicContext extends AbstractContext {
     this.timestampFormatter = new ISOTimestampFormat();
     this.notificationListeners = new ConcurrentHashMap<>();
     this.registry = new Registry(this);
-    this.protocol = new ProtocolFactoryImpl().connect(address, this);
+    this.serverConnection = ServerConnectionFactory.getDefault().connect(address, this);
     this.utilQueries = new HashMap<>();
   }
 
   protected void shutdown() {
-    protocol.shutdown();
+    serverConnection.shutdown();
   }
 
   public Version getServerVersion() {
     return serverVersion;
+  }
+
+  public ByteBufAllocator getAllocator() {
+    return serverConnection.getChannel().alloc();
+  }
+
+  public ServerConnection getServerConnection() {
+    return serverConnection;
   }
 
   @Override
@@ -163,8 +177,8 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public Protocol getProtocol() {
-    return protocol;
+  public RequestExecutor getRequestExecutor() {
+    return serverConnection.getRequestExecutor();
   }
 
   @Override
@@ -244,17 +258,12 @@ public class BasicContext extends AbstractContext {
 
   private void loadLocale() throws IOException, NoticeException {
 
-    QueryCommand.ResultBatch resultBatch =
-        queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", false);
-    if (resultBatch == null) {
-      return;
-    }
+    try (ResultBatch resultBatch =
+        queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", INTERNAL_QUERY_TIMEOUT)) {
 
-    try {
+      for (ResultBatch.Row row : resultBatch) {
 
-      for (RowData row : resultBatch.getResults()) {
-
-        String localeSpec = (String) row.getColumn(1, this, String.class, null);
+        String localeSpec = row.getField(1, this, String.class);
 
         switch (localeSpec.toUpperCase(Locale.US)) {
           case "C":
@@ -267,7 +276,7 @@ public class BasicContext extends AbstractContext {
 
         String[] localeIds = localeSpec.split("[_.]");
 
-        switch ((String) row.getColumn(0, this, String.class, null)) {
+        switch (row.getField(0, this, String.class)) {
           case "lc_numeric":
 
             Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
@@ -291,9 +300,6 @@ public class BasicContext extends AbstractContext {
         }
 
       }
-    }
-    finally {
-      resultBatch.release();
     }
 
   }
@@ -322,7 +328,7 @@ public class BasicContext extends AbstractContext {
     logger.fine("load time: " + timer.getLap() + "ms");
   }
 
-  private void prepareRefreshTypeQueries() throws IOException {
+  private void prepareRefreshTypeQueries() throws IOException, NoticeException {
 
     prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1");
 
@@ -426,7 +432,7 @@ public class BasicContext extends AbstractContext {
     return utilQueries.containsKey(name);
   }
 
-  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
+  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException, NoticeException {
 
     Type[] parameterTypes = new Type[parameterTypeNames.length];
     for (int parameterIdx = 0; parameterIdx < parameterTypes.length; ++parameterIdx) {
@@ -436,16 +442,15 @@ public class BasicContext extends AbstractContext {
     prepareUtilQuery(name, sql, parameterTypes);
   }
 
-  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException {
+  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException, NoticeException {
 
-    PrepareCommand prep = protocol.createPrepare(name, sql, parameterTypes);
-    protocol.execute(prep);
+    PrepareResult handler = new PrepareResult();
 
-    if (prep.getError() != null) {
-      throw new IOException("unable to prepare query: " + prep.getError().getMessage());
-    }
+    serverConnection.getRequestExecutor().prepare(name, sql, parameterTypes, handler);
 
-    PreparedQuery pq = new PreparedQuery(name, prep.getDescribedParameterTypes(), prep.getDescribedResultFields());
+    handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
+
+    PreparedQuery pq = new PreparedQuery(name, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
     utilQueries.put(name, pq);
   }
 
@@ -459,75 +464,50 @@ public class BasicContext extends AbstractContext {
       return util;
     }
 
-    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, EMPTY_TYPES);
+    PrepareResult handler = new PrepareResult();
 
-    protocol.execute(prepare);
+    serverConnection.getRequestExecutor().prepare(null, queryTxt, EMPTY_TYPES, handler);
 
-    if (prepare.getError() != null) {
-      throw new NoticeException("Error preparing query", prepare.getError());
-    }
+    handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
+    return new PreparedQuery(null, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
   }
 
   private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {
 
-    QueryCommand.ResultBatch resultBatch = queryBatchPrepared(queryTxt, false, params);
-    if (resultBatch == null) {
-      return emptyList();
-    }
 
-    try {
-      return Tables.convertRows(this, table, resultBatch.getResults());
-    }
-    finally {
-      resultBatch.release();
+    try (ResultBatch resultBatch = queryBatchPrepared(queryTxt, params, INTERNAL_QUERY_TIMEOUT)) {
+      return Tables.convertRows(this, table, resultBatch);
     }
 
   }
 
-  public void query(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
+  public void query(String queryTxt, long timeout) throws IOException, NoticeException {
 
     if (queryTxt.charAt(0) == '@') {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      QueryCommand.ResultBatch resultBatch =
-          queryBatchPrepared(pq.name, requireActiveTxn, EMPTY_TYPES, EMPTY_BUFFERS, pq.resultFields);
-      if (resultBatch != null) {
-        resultBatch.release();
-      }
-
+      queryBatchPrepared(pq.name, EMPTY_FORMATS, EMPTY_BUFFERS, pq.resultFields, timeout).close();
     }
     else {
 
-      QueryCommand query = protocol.createQuery(queryTxt);
-      query.setRequireActiveTransaction(requireActiveTxn);
+      QueryResults handler = new QueryResults();
 
-      protocol.execute(query);
+      serverConnection.getRequestExecutor().query(queryTxt, handler);
 
-      if (query.getError() != null) {
-        throw new NoticeException("Error querying", query.getError());
-      }
+      handler.await(timeout, MILLISECONDS);
 
-      releaseResultBatches(query.getResultBatches());
+      handler.getResultBatch().close();
     }
 
   }
 
-  protected String queryString(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
+  protected String queryString(String queryTxt, long timeout) throws IOException, NoticeException {
 
-    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, requireActiveTxn);
-    if (resultBatch == null || resultBatch.getResults() == null || resultBatch.getResults().isEmpty()) {
-      return "";
-    }
-
-    try {
-      String val = resultBatch.getResults().get(0).getColumn(0, this, String.class);
+    try (ResultBatch resultBatch = queryBatch(queryTxt, timeout)) {
+      String val = resultBatch.getRow(0).getField(0, this, String.class);
       return nullToEmpty(val);
-    }
-    finally {
-      resultBatch.release();
     }
 
   }
@@ -535,36 +515,23 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries for a single (the first) result batch. The batch must be released.
    */
-  protected QueryCommand.ResultBatch queryBatch(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
+  protected ResultBatch queryBatch(String queryTxt, long timeout) throws IOException, NoticeException {
 
     if (queryTxt.charAt(0) == '@') {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      return queryBatchPrepared(pq.name, requireActiveTxn, EMPTY_TYPES, EMPTY_BUFFERS, pq.resultFields);
+      return queryBatchPrepared(pq.name, EMPTY_FORMATS, EMPTY_BUFFERS, pq.resultFields, timeout);
     }
     else {
 
-      QueryCommand query = protocol.createQuery(queryTxt);
-      query.setRequireActiveTransaction(requireActiveTxn);
+      QueryResults handler = new QueryResults();
 
-      protocol.execute(query);
+      serverConnection.getRequestExecutor().query(queryTxt, handler);
 
-      if (query.getError() != null) {
-        throw new NoticeException("Error querying", query.getError());
-      }
+      handler.await(timeout, MILLISECONDS);
 
-      List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
-
-      if (resultBatches.isEmpty()) {
-        return null;
-      }
-
-      QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
-
-      releaseResultBatches(resultBatches);
-
-      return resultBatch;
+      return handler.getResultBatch();
     }
 
   }
@@ -572,19 +539,9 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  protected QueryCommand.ResultBatch queryBatchPrepared(String queryTxt, boolean requireActiveTxn, Object... params) throws IOException, NoticeException {
+  protected ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
 
     PreparedQuery pq = prepareQuery(queryTxt);
-
-    return queryBatchPrepared(pq.name, requireActiveTxn, pq.parameterTypes, params, pq.resultFields);
-  }
-
-  /**
-   * Queries a single result batch (the first) via a parameterized query. The batch must be released.
-   */
-  private QueryCommand.ResultBatch queryBatchPrepared(String statementName, boolean requireActiveTxn,
-                                                      Type[] paramTypes, Object[] paramValues,
-                                                      ResultField[] resultFields) throws IOException, NoticeException {
 
     FieldFormat[] paramFormats = EMPTY_FORMATS;
     ByteBuf[] paramBuffers = EMPTY_BUFFERS;
@@ -596,7 +553,7 @@ public class BasicContext extends AbstractContext {
         paramBuffers = new ByteBuf[paramValues.length];
 
         for (int paramIdx = 0; paramIdx < paramValues.length; ++paramIdx) {
-          Type paramType = paramTypes[paramIdx];
+          Type paramType = pq.parameterTypes[paramIdx];
           Object paramValue = paramValues[paramIdx];
           if (paramValue == null) continue;
 
@@ -607,12 +564,12 @@ public class BasicContext extends AbstractContext {
             case Text: {
               StringBuilder out = new StringBuilder();
               paramType.getTextCodec().getEncoder().encode(this, paramType, paramValue, null, out);
-              paramBuffers[paramIdx] = ByteBufUtil.writeUtf8(getProtocol().getChannel().alloc(), out);
+              paramBuffers[paramIdx] = ByteBufUtil.writeUtf8(getAllocator(), out);
             }
             break;
 
             case Binary: {
-              ByteBuf out = getProtocol().getChannel().alloc().buffer();
+              ByteBuf out = getAllocator().buffer();
               paramType.getBinaryCodec().getEncoder().encode(this, paramType, paramValue, null, out);
               paramBuffers[paramIdx] = out;
             }
@@ -622,25 +579,7 @@ public class BasicContext extends AbstractContext {
 
       }
 
-      BindExecCommand query = protocol.createBindExec(null, statementName, paramFormats, paramBuffers, resultFields);
-      query.setRequireActiveTransaction(requireActiveTxn);
-
-      protocol.execute(query);
-
-      if (query.getError() != null) {
-        throw new NoticeException("Error executing query", query.getError());
-      }
-
-      List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
-      try {
-        if (resultBatches.isEmpty())
-          return null;
-
-        return resultBatches.remove(0);
-      }
-      finally {
-        releaseResultBatches(resultBatches);
-      }
+      return queryBatchPrepared(pq.name, paramFormats, paramBuffers, pq.resultFields, timeout);
     }
     finally {
       ByteBufs.releaseAll(paramBuffers);
@@ -650,35 +589,30 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  protected QueryCommand.ResultBatch queryBatchPrepared(String queryTxt, boolean requireActiveTxn,
-                                                        FieldFormat[] paramFormats, ByteBuf[] paramBuffers) throws IOException, NoticeException {
+  protected ResultBatch queryBatchPrepared(String queryTxt,
+                                           FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
+                                           long timeout) throws IOException, NoticeException {
 
     PreparedQuery pq = prepareQuery(queryTxt);
 
-    return queryBatchPrepared(pq.name, requireActiveTxn, paramFormats, paramBuffers, pq.resultFields);
+    return queryBatchPrepared(pq.name, paramFormats, paramBuffers, pq.resultFields, timeout);
   }
 
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  private QueryCommand.ResultBatch queryBatchPrepared(String statementName, boolean requireActiveTxn,
-                                                      FieldFormat[] paramFormats, ByteBuf[] paramBuffers,
-                                                      ResultField[] resultFields) throws IOException, NoticeException {
+  private ResultBatch queryBatchPrepared(String statementName,
+                                         FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
+                                         ResultField[] resultFields, long timeout) throws IOException, NoticeException {
 
-    BindExecCommand query = protocol.createBindExec(null, statementName, paramFormats, paramBuffers, resultFields);
-    query.setRequireActiveTransaction(requireActiveTxn);
+    ExecuteResults handler = new ExecuteResults(resultFields);
 
-    protocol.execute(query);
+    serverConnection.getRequestExecutor()
+        .execute(null, statementName, paramFormats, paramBuffers, resultFields, null, handler);
 
-    if (query.getError() != null) {
-      throw new NoticeException("Error executing query", query.getError());
-    }
+    handler.await(timeout, MILLISECONDS);
 
-    List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
-    if (resultBatches.isEmpty())
-      return null;
-
-    return resultBatches.get(0);
+    return handler.getResultBatch();
   }
 
   public void setKeyData(int processId, int secretKey) {
@@ -802,7 +736,6 @@ public class BasicContext extends AbstractContext {
     }
   }
 
-  @Override
   public synchronized void reportNotification(int processId, String channelName, String payload) {
 
     for (Map.Entry<NotificationKey, NotificationListener> entry : notificationListeners.entrySet()) {

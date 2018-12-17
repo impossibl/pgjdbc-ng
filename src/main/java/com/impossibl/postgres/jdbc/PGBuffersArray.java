@@ -113,7 +113,7 @@ public class PGBuffersArray extends PGArray {
     }
     else {
 
-      ByteBufAllocator byteBufAllocator = context.getProtocol().getChannel().alloc();
+      ByteBufAllocator byteBufAllocator = context.getAllocator();
 
       ByteBuf valueBuffer = null;
 
@@ -242,7 +242,7 @@ public class PGBuffersArray extends PGArray {
       throw new SQLException("Invalid array slice");
     }
 
-    ByteBufAllocator byteBufAllocator = context.getProtocol().getChannel().alloc();
+    ByteBufAllocator byteBufAllocator = context.getAllocator();
     Registry reg = context.getRegistry();
 
     int stride = strideOfDimensions(dimensions, 1);
@@ -280,7 +280,7 @@ public class PGBuffersArray extends PGArray {
         elementBuffer = elementBuffers[offset + c].retainedDuplicate();
       }
 
-      results.add(new FieldBuffersRowData(fields, new ByteBuf[] {indexBuffer, elementBuffer}));
+      results.add(new FieldBuffersRowData(new ByteBuf[] {indexBuffer, elementBuffer}, context.getAllocator()));
     }
 
     PGDirectConnection connection = (PGDirectConnection) context.unwrap();

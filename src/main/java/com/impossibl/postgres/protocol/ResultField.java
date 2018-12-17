@@ -29,8 +29,9 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.types.TypeRef;
 
-public class ResultField {
+public class ResultField implements FieldFormatRef {
 
   private String name;
   private int relationId;
@@ -44,7 +45,7 @@ public class ResultField {
     this.name = name;
     this.relationId = relationId;
     this.relationAttributeNumber = relationAttributeNumber;
-    this.typeRef = TypeRef.from(type);
+    this.typeRef = type;
     this.typeLength = typeLength;
     this.typeModifier = typeModifier;
     this.format = format;

@@ -29,7 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.ACLItem;
-import com.impossibl.postgres.protocol.BufferRowData;
+import com.impossibl.postgres.protocol.v30.BufferRowData;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;

@@ -30,8 +30,8 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.FieldBuffersRowData;
-import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResults;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.UpdatableRowData;
@@ -53,11 +53,11 @@ import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.ROW_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.RS_NOT_UPDATABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.jdbc.Query.Status.Completed;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
-import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.ByteArrayInputStream;
@@ -92,8 +92,10 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 
 
 class PGResultSet implements ResultSet {
@@ -107,12 +109,12 @@ class PGResultSet implements ResultSet {
   private static class Cleanup implements CleanupRunnable {
 
     PGStatement statement;
-    QueryCommand command;
+    Query query;
     StackTraceElement[] allocationStackTrace;
 
-    private Cleanup(PGStatement statement, QueryCommand command) {
+    private Cleanup(PGStatement statement, Query query) {
       this.statement = statement;
-      this.command = command;
+      this.query = query;
       this.allocationStackTrace = new Exception().getStackTrace();
     }
 
@@ -130,7 +132,7 @@ class PGResultSet implements ResultSet {
     public void run() {
 
       try {
-        statement.dispose(command);
+        query.dispose(statement.connection);
       }
       catch (SQLException e) {
         //Ignore...
@@ -161,9 +163,9 @@ class PGResultSet implements ResultSet {
 
   private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
 
-  PGResultSet(PGStatement statement, QueryCommand command, ResultField[] resultFields, List<RowData> results) throws SQLException {
-    this(statement, command, null);
-    this.scroller = new CommandScroller(this, command, resultFields, results);
+  PGResultSet(PGStatement statement, Query query, ResultField[] resultFields, List<RowData> results) throws SQLException {
+    this(statement, query, null);
+    this.scroller = new CommandScroller(this, query, resultFields, results);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
       if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
@@ -191,7 +193,7 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  private PGResultSet(PGStatement statement, QueryCommand command, Map<String, Class<?>> typeMap) {
+  private PGResultSet(PGStatement statement, Query query, Map<String, Class<?>> typeMap) {
     this.statement = statement;
     this.fetchDirection = statement.fetchDirection;
     this.fetchSize = statement.fetchSize;
@@ -201,7 +203,7 @@ class PGResultSet implements ResultSet {
 
     this.housekeeper = statement.housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = housekeeper.add(this, new Cleanup(statement, command));
+      this.cleanupKey = housekeeper.add(this, new Cleanup(statement, query));
     else
       this.cleanupKey = null;
   }
@@ -289,7 +291,7 @@ class PGResultSet implements ResultSet {
 
     Object val;
     try {
-      val = scroller.getRowData().getColumn(columnIndex - 1, context, targetClass, targetContext);
+      val = scroller.getRowField(columnIndex - 1, context, targetClass, targetContext);
     }
     catch (IOException e) {
       throw new PGSQLSimpleException("Error decoding column", e);
@@ -308,7 +310,8 @@ class PGResultSet implements ResultSet {
     }
 
     try {
-      rowData.updateColumn(columnIndex - 1, context, source, sourceContext);
+      ResultField field = scroller.getResultFields()[columnIndex - 1];
+      rowData.updateField(columnIndex - 1, field, context, source, sourceContext);
     }
     catch (IOException e) {
       throw new PGSQLSimpleException("Error decoding column", e);
@@ -1741,6 +1744,8 @@ abstract class Scroller {
 
   abstract int getRow() throws SQLException;
 
+  abstract Object getRowField(int fieldIndex, Context context, Class<?> targetType, Object targetContext) throws IOException;
+
   abstract RowData getRowData();
 
   abstract UpdatableRowData getUpdatableRowData();
@@ -1801,8 +1806,8 @@ class ListScroller extends Scroller {
 
   void setResults(List<RowData> results) {
     if (this.results != null) {
-      for (RowData dataRow : this.results) {
-        dataRow.release();
+      for (RowData row : this.results) {
+        ReferenceCountUtil.release(row);
       }
     }
     this.results = results;
@@ -1852,6 +1857,11 @@ class ListScroller extends Scroller {
       return 0;
 
     return currentRowIndex + 1;
+  }
+
+  @Override
+  Object getRowField(int fieldIndex, Context context, Class<?> targetType, Object targetContext) throws IOException {
+    return getRowData().getField(fieldIndex, resultFields[fieldIndex], context, targetType, targetContext);
   }
 
   @Override
@@ -1973,18 +1983,18 @@ class CommandScroller extends ListScroller {
 
   private PGResultSet resultSet;
   private int resultsIndexOffset;
-  private QueryCommand command;
+  private Query query;
 
-  CommandScroller(PGResultSet resultSet, QueryCommand command, ResultField[] resultFields, List<RowData> results) {
+  CommandScroller(PGResultSet resultSet, Query query, ResultField[] resultFields, List<RowData> results) {
     super(resultFields, results, true);
     this.resultSet = resultSet;
-    this.command = command;
+    this.query = query;
   }
 
   @Override
   void close() throws SQLException {
     super.close();
-    resultSet.statement.dispose(command);
+    query.dispose(resultSet.statement.connection);
   }
 
   @Override
@@ -2008,7 +2018,7 @@ class CommandScroller extends ListScroller {
 
   @Override
   public boolean isAfterLast() throws SQLException {
-    return super.isAfterLast() && command.getStatus() == Completed;
+    return super.isAfterLast() && query.getStatus() == Completed;
   }
 
   @Override
@@ -2018,7 +2028,7 @@ class CommandScroller extends ListScroller {
 
   @Override
   public boolean isLast() throws SQLException {
-    return super.isLast() && command.getStatus() == Completed;
+    return super.isLast() && query.getStatus() == Completed;
   }
 
   @Override
@@ -2056,21 +2066,21 @@ class CommandScroller extends ListScroller {
 
     if (min(++currentRowIndex, results.size()) == results.size()) {
 
-      if (command != null && command.getStatus() != Completed) {
+      if (query != null && query.getStatus() != Completed) {
 
         Integer fetchSize = resultSet.fetchSize();
         if (fetchSize != null)
-          command.setMaxRows(fetchSize);
+          query.setMaxRows(fetchSize);
 
-        SQLWarning warningChain = resultSet.statement.connection.execute(command);
+        SQLWarning warningChain = query.execute(resultSet.statement.connection);
         resultSet.addWarnings(warningChain);
 
-        List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
+        List<ResultBatch> resultBatches = query.getResultBatches();
         if (resultBatches.size() != 1) {
           throw new SQLException("Invalid result data");
         }
 
-        QueryCommand.ResultBatch resultBatch = resultBatches.get(0);
+        ResultBatch resultBatch = resultBatches.get(0);
 
         resultFields = resultBatch.getFields();
         setResults(resultBatch.getResults());
@@ -2125,10 +2135,7 @@ class CursorScroller extends Scroller {
   }
 
   void setResult(RowData result) {
-    if (this.result != null) {
-      this.result.release();
-    }
-
+    ReferenceCountUtil.release(this.result);
     this.result = result;
   }
 
@@ -2165,7 +2172,12 @@ class CursorScroller extends Scroller {
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
 
-      connection.execute(connection.getProtocol().createQuery("CLOSE " + cursorName));
+      connection.execute((timeout) -> {
+        QueryResults handler = new QueryResults();
+        connection.getRequestExecutor().query("CLOSE " + cursorName, handler);
+        handler.await(timeout, MILLISECONDS);
+        handler.getResultBatch().close();
+      });
     }
 
   }
@@ -2200,6 +2212,11 @@ class CursorScroller extends Scroller {
   }
 
   @Override
+  Object getRowField(int fieldIndex, Context context, Class<?> targetType, Object targetContext) throws IOException {
+    return getRowData().getField(fieldIndex, resultFields[fieldIndex], context, targetType, targetContext);
+  }
+
+  @Override
   RowData getRowData() {
     return result;
   }
@@ -2211,7 +2228,7 @@ class CursorScroller extends Scroller {
     }
 
     UpdatableRowData updatableResult = result.duplicateForUpdate();
-    result.release();
+    ReferenceCountUtil.release(result);
     result = updatableResult;
 
     return updatableResult;
@@ -2219,7 +2236,7 @@ class CursorScroller extends Scroller {
 
   @Override
   void createInsertRowData() {
-    setResult(new FieldBuffersRowData(resultFields));
+    setResult(new FieldBuffersRowData(resultFields, connection.getAllocator()));
     rowIndexValue = Integer.MAX_VALUE;
   }
 
@@ -2393,15 +2410,9 @@ class CursorScroller extends Scroller {
 
     sb.append(")");
 
-    ResultField[] rowColumns = rowData.getColumnFields();
-    FieldFormat[] paramFormats = new FieldFormat[rowData.getColumnCount()];
-    for (int columnIdx = 0; columnIdx < paramFormats.length; ++columnIdx) {
-      paramFormats[columnIdx] = rowColumns[columnIdx].getFormat();
-    }
+    ByteBuf[] paramBuffers = rowData.getFieldBuffers();
 
-    ByteBuf[] paramBuffers = rowData.getColumnBuffers();
-
-    connection.executeForRowsAffected(sb.toString(), paramFormats, paramBuffers);
+    connection.executeForRowsAffected(sb.toString(), resultFields, paramBuffers);
   }
 
   @Override
@@ -2433,15 +2444,9 @@ class CursorScroller extends Scroller {
     sb.append("WHERE CURRENT OF ");
     sb.append(cursorName);
 
-    ResultField[] rowColumns = rowData.getColumnFields();
-    FieldFormat[] paramFormats = new FieldFormat[rowData.getColumnCount()];
-    for (int columnIdx = 0; columnIdx < paramFormats.length; ++columnIdx) {
-      paramFormats[columnIdx] = rowColumns[columnIdx].getFormat();
-    }
+    ByteBuf[] paramBuffers = rowData.getFieldBuffers();
 
-    ByteBuf[] paramBuffers = rowData.getColumnBuffers();
-
-    connection.executeForRowsAffected(sb.toString(), paramFormats, paramBuffers);
+    connection.executeForRowsAffected(sb.toString(), resultFields, paramBuffers);
   }
 
   @Override
