@@ -1,12 +1,16 @@
 package com.impossibl.postgres.protocol;
 
+import java.net.SocketAddress;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 
-import io.netty.channel.Channel;
+import io.netty.buffer.ByteBufAllocator;
 
 public interface ServerConnection {
 
-  Channel getChannel();
+  ByteBufAllocator getAllocator();
+
+  SocketAddress getRemoteAddress();
 
   TransactionStatus getTransactionStatus();
 
@@ -17,5 +21,7 @@ public interface ServerConnection {
   Future<Void> kill();
 
   boolean isConnected();
+
+  ScheduledExecutorService getIOExecutor();
 
 }

@@ -18,13 +18,16 @@ import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.Boolean.parseBoolean;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -90,7 +93,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   }
 
-  EventLoop eventLoop() {
+  private EventLoop eventLoop() {
     return channel.eventLoop();
   }
 
@@ -134,6 +137,21 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
+  public ByteBufAllocator getAllocator() {
+    return channel.alloc();
+  }
+
+  @Override
+  public SocketAddress getRemoteAddress() {
+    return channel.remoteAddress();
+  }
+
+  @Override
+  public ScheduledExecutorService getIOExecutor() {
+    return channel.eventLoop();
+  }
+
+  @Override
   public TransactionStatus getTransactionStatus() {
     return state.transactionStatus;
   }
@@ -150,11 +168,6 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   @Override
   public RequestExecutor getRequestExecutor() {
     return this;
-  }
-
-  @Override
-  public Channel getChannel() {
-    return channel;
   }
 
   @Override

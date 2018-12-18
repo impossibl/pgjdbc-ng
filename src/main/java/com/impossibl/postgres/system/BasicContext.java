@@ -164,7 +164,7 @@ public class BasicContext extends AbstractContext {
   }
 
   public ByteBufAllocator getAllocator() {
-    return serverConnection.getChannel().alloc();
+    return serverConnection.getAllocator();
   }
 
   public ServerConnection getServerConnection() {

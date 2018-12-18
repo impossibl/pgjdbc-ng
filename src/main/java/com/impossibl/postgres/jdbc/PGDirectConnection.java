@@ -501,9 +501,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       // Schedule task to run at execution timeout
 
-      ExecutionTimerTask task = new CancelRequestTask(serverConnection.getChannel().remoteAddress(), getKeyData());
+      ExecutionTimerTask task = new CancelRequestTask(serverConnection.getRemoteAddress(), getKeyData());
 
-      ScheduledFuture<?> taskHandle = serverConnection.getChannel().eventLoop().schedule(task, executionTimeout, MILLISECONDS);
+      ScheduledFuture<?> taskHandle = serverConnection.getIOExecutor().schedule(task, executionTimeout, MILLISECONDS);
 
       try {
 
@@ -1233,7 +1233,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     //is a convenience to the server as the abort does not depend on its
     //success to complete properly
 
-    executor.execute(new CancelRequestTask(serverConnection.getChannel().remoteAddress(), getKeyData()));
+    executor.execute(new CancelRequestTask(serverConnection.getRemoteAddress(), getKeyData()));
 
     if (housekeeper != null)
       housekeeper.remove(cleanupKey);
