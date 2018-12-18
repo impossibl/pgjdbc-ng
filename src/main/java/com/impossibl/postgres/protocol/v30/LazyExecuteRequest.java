@@ -6,6 +6,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 
+import static com.impossibl.postgres.protocol.FieldFormats.REQUEST_ALL_TEXT;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 
@@ -66,7 +67,7 @@ public class LazyExecuteRequest implements ServerRequest {
   public void execute(ProtocolChannel channel) throws IOException {
 
     channel
-        .writeBind(null, txnStatementName, EMPTY_FORMATS, EMPTY_BUFFERS, null)
+        .writeBind(null, txnStatementName, EMPTY_FORMATS, EMPTY_BUFFERS, REQUEST_ALL_TEXT)
         .writeExecute(null, 0);
 
   }
