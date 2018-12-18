@@ -300,14 +300,14 @@ abstract class PGStatement implements Statement {
    * @throws SQLException
    *          If an error occurred during statement execution
    */
-  boolean executeDirect(String sqlText) throws SQLException {
+  boolean executeDirect(String sqlText, FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers) throws SQLException {
 
     try {
 
       closeResultSets();
       resultBatches = ResultBatches.releaseAll(resultBatches);
 
-      Query query = Query.create(sqlText);
+      Query query = Query.create(sqlText, parameterFormats, parameterBuffers);
 
       query.setTimeout(SECONDS.toMillis(queryTimeout));
       query.setMaxRows(fetchSize);

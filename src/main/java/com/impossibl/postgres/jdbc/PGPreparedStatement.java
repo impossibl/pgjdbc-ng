@@ -222,7 +222,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   void parseIfNeeded() throws SQLException {
 
     if (cursorName != null && query != null) {
-      super.executeDirect("CLOSE " + cursorName);
+      super.executeDirect("CLOSE " + cursorName, null, null);
     }
 
     if (!parsed) {
@@ -292,7 +292,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     boolean res = super.executeStatement(name, parameterFormats, parameterBuffers);
 
     if (cursorName != null) {
-      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName);
+      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null);
     }
 
     if (wantsGeneratedKeys) {

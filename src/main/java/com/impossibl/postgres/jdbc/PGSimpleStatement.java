@@ -92,10 +92,10 @@ class PGSimpleStatement extends PGStatement {
 
     setup(sqlText);
 
-    boolean result = executeDirect(sqlText.toString());
+    boolean result = executeDirect(sqlText.toString(), null, null);
 
     if (cursorName != null) {
-      result = executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName);
+      result = executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null);
     }
 
     return result;

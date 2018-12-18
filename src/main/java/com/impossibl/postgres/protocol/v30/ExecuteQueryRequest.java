@@ -29,6 +29,7 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.QueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
@@ -48,9 +49,7 @@ import com.impossibl.postgres.types.TypeRef;
 
 import static com.impossibl.postgres.protocol.FieldFormats.REQUEST_ALL_BINARY;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
-import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
-import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 
 import java.io.IOException;
@@ -67,7 +66,9 @@ class ExecuteQueryRequest implements ServerRequest {
 
   private String sql;
   private String portalName;
-  private FieldFormat[] resultFieldFormats;
+  private FieldFormatRef[] parameterFormatRefs;
+  private ByteBuf[] parameterBuffers;
+  private FieldFormatRef[] resultFieldFormatRefs;
   private int maxRows;
   private QueryHandler handler;
   private TypeRef[] describedParameterTypes;
@@ -76,11 +77,15 @@ class ExecuteQueryRequest implements ServerRequest {
   private List<Notice> notices;
 
   ExecuteQueryRequest(String sql, String portalName,
-                      FieldFormat[] resultFieldFormats,
+                      FieldFormatRef[] parameterFormatRefs,
+                      ByteBuf[] parameterBuffers,
+                      FieldFormatRef[] resultFieldFormatRefs,
                       QueryHandler handler) {
     this.sql = sql;
     this.portalName = portalName;
-    this.resultFieldFormats = resultFieldFormats;
+    this.parameterFormatRefs = parameterFormatRefs;
+    this.parameterBuffers = parameterBuffers;
+    this.resultFieldFormatRefs = resultFieldFormatRefs;
     this.maxRows = 0;
     this.handler = handler;
     this.describedParameterTypes = EMPTY_TYPES;
@@ -108,10 +113,11 @@ class ExecuteQueryRequest implements ServerRequest {
 
       // Fix formats to match what was sent in the execute request
 
-      FieldFormat[] effectiveFormats = resultFieldFormats.length == 0 ? REQUEST_ALL_BINARY : resultFieldFormats;
+      FieldFormatRef[] effectiveFormats =
+          resultFieldFormatRefs == null || resultFieldFormatRefs.length == 0 ? REQUEST_ALL_BINARY : resultFieldFormatRefs;
 
       for (int idx = 0; idx < describedResultFields.length; ++idx) {
-        FieldFormat format = effectiveFormats[min(idx, effectiveFormats.length - 1)];
+        FieldFormat format = effectiveFormats[min(idx, effectiveFormats.length - 1)].getFormat();
         describedResultFields[idx].setFormat(format);
       }
 
@@ -202,7 +208,7 @@ class ExecuteQueryRequest implements ServerRequest {
     channel
         .writeParse(null, sql, EMPTY_TYPES)
         .writeDescribe(Statement, null)
-        .writeBind(portalName, null, EMPTY_FORMATS, EMPTY_BUFFERS, resultFieldFormats)
+        .writeBind(portalName, null, parameterFormatRefs, parameterBuffers, resultFieldFormatRefs)
         .writeExecute(portalName, maxRows);
 
     if (maxRows > 0) {

@@ -22,15 +22,11 @@ public interface Query {
     Suspended,
   }
 
-  boolean hasPortal();
-  String getPortalName();
-
   Status getStatus();
 
   Long getTimeout();
   void setTimeout(Long timeout);
 
-  Integer getMaxRows();
   void setMaxRows(Integer maxRows);
 
   List<ResultBatch> getResultBatches();
@@ -40,7 +36,14 @@ public interface Query {
   void dispose(PGDirectConnection connection) throws SQLException;
 
   static Query create(String sqlText) {
-    return new DirectQuery(sqlText);
+    return new DirectQuery(sqlText, EMPTY_FORMATS, EMPTY_BUFFERS);
+  }
+
+  static Query create(String sqlText, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers) {
+    if (parameterFormats == null && parameterBuffers == null) {
+      return create(sqlText);
+    }
+    return new DirectQuery(sqlText, parameterFormats, parameterBuffers);
   }
 
   static Query create(String statement, ResultField[] resultFields) {

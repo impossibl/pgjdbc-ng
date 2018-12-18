@@ -163,8 +163,8 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, String portalName, RequestExecutor.QueryHandler handler) throws IOException {
-    submit(new ExecuteQueryRequest(sql, portalName, REQUEST_ALL_TEXT, handler));
+  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.QueryHandler handler) throws IOException {
+    submit(new ExecuteQueryRequest(sql, portalName, parameterFormats, parameterBuffers, REQUEST_ALL_TEXT, handler));
   }
 
   @Override

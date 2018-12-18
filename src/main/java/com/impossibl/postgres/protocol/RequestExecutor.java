@@ -58,7 +58,7 @@ public interface RequestExecutor {
 
 
   void query(String sql, QueryHandler handler) throws IOException;
-  void query(String sql, String portalName, QueryHandler handler) throws IOException;
+  void query(String sql, String portalName, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, QueryHandler handler) throws IOException;
 
 
   /*****

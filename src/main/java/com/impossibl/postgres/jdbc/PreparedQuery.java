@@ -40,16 +40,6 @@ public class PreparedQuery implements Query {
   }
 
   @Override
-  public boolean hasPortal() {
-    return portalName != null;
-  }
-
-  @Override
-  public String getPortalName() {
-    return portalName;
-  }
-
-  @Override
   public Status getStatus() {
     return status;
   }
@@ -62,11 +52,6 @@ public class PreparedQuery implements Query {
   @Override
   public void setTimeout(Long timeout) {
     this.timeout = timeout;
-  }
-
-  @Override
-  public Integer getMaxRows() {
-    return maxRows;
   }
 
   @Override
