@@ -93,13 +93,13 @@ public class BasicContext extends AbstractContext {
 
   private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 
-  private static class PreparedQuery {
+  private static class QueryDescription {
 
     String name;
     Type[] parameterTypes;
     ResultField[] resultFields;
 
-    PreparedQuery(String name, Type[] parameterTypes, ResultField[] resultFields) {
+    QueryDescription(String name, Type[] parameterTypes, ResultField[] resultFields) {
       this.name = name;
       this.parameterTypes = parameterTypes;
       this.resultFields = resultFields;
@@ -138,7 +138,7 @@ public class BasicContext extends AbstractContext {
   private KeyData keyData;
   protected ServerConnection serverConnection;
   protected Map<NotificationKey, NotificationListener> notificationListeners;
-  private Map<String, PreparedQuery> utilQueries;
+  private Map<String, QueryDescription> utilQueries;
 
 
   public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> typeMap) throws IOException, NoticeException {
@@ -450,14 +450,14 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    PreparedQuery pq = new PreparedQuery(name, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
-    utilQueries.put(name, pq);
+    QueryDescription desc = new QueryDescription(name, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
+    utilQueries.put(name, desc);
   }
 
-  private PreparedQuery prepareQuery(String queryTxt) throws NoticeException, IOException {
+  private QueryDescription prepareQuery(String queryTxt) throws NoticeException, IOException {
 
     if (queryTxt.charAt(0) == '@') {
-      PreparedQuery util = utilQueries.get(queryTxt.substring(1));
+      QueryDescription util = utilQueries.get(queryTxt.substring(1));
       if (util == null) {
         throw new IOException("invalid utility query");
       }
@@ -470,7 +470,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new PreparedQuery(null, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
+    return new QueryDescription(null, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
   }
 
   private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {
@@ -486,7 +486,7 @@ public class BasicContext extends AbstractContext {
 
     if (queryTxt.charAt(0) == '@') {
 
-      PreparedQuery pq = prepareQuery(queryTxt);
+      QueryDescription pq = prepareQuery(queryTxt);
 
       queryBatchPrepared(pq.name, EMPTY_FORMATS, EMPTY_BUFFERS, pq.resultFields, timeout).close();
     }
@@ -519,7 +519,7 @@ public class BasicContext extends AbstractContext {
 
     if (queryTxt.charAt(0) == '@') {
 
-      PreparedQuery pq = prepareQuery(queryTxt);
+      QueryDescription pq = prepareQuery(queryTxt);
 
       return queryBatchPrepared(pq.name, EMPTY_FORMATS, EMPTY_BUFFERS, pq.resultFields, timeout);
     }
@@ -541,7 +541,7 @@ public class BasicContext extends AbstractContext {
    */
   protected ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
 
-    PreparedQuery pq = prepareQuery(queryTxt);
+    QueryDescription pq = prepareQuery(queryTxt);
 
     FieldFormat[] paramFormats = EMPTY_FORMATS;
     ByteBuf[] paramBuffers = EMPTY_BUFFERS;
@@ -593,7 +593,7 @@ public class BasicContext extends AbstractContext {
                                            FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
                                            long timeout) throws IOException, NoticeException {
 
-    PreparedQuery pq = prepareQuery(queryTxt);
+    QueryDescription pq = prepareQuery(queryTxt);
 
     return queryBatchPrepared(pq.name, paramFormats, paramBuffers, pq.resultFields, timeout);
   }
