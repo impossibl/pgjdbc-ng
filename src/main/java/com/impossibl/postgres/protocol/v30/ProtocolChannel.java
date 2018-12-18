@@ -5,6 +5,7 @@ import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.protocol.FieldFormat.Text;
 import static com.impossibl.postgres.utils.ByteBufs.lengthEncode;
 import static com.impossibl.postgres.utils.ByteBufs.writeCString;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
@@ -159,6 +160,10 @@ public class ProtocolChannel {
     return this;
   }
 
+  private boolean isAllText(FieldFormatRef[] fieldFormats) {
+    return fieldFormats.length == 1 && fieldFormats[0].getFormat() == Text;
+  }
+
   ProtocolChannel writeBind(String portalName, String stmtName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs) throws IOException {
 
     if (LOGGER.isLoggable(FINEST))
@@ -182,7 +187,11 @@ public class ProtocolChannel {
       msg.writeShort(1);
       msg.writeShort(1);
     }
-    else {
+    else if (isAllText(resultFieldFormatRefs)) {
+      //Shortcut to all text
+      msg.writeShort(0);
+    }
+    else if (!isAllText(resultFieldFormatRefs)) {
       //Select result format for each
       msg.writeShort(resultFieldFormatRefs.length);
       for (FieldFormatRef formatRef : resultFieldFormatRefs) {
