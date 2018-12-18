@@ -369,7 +369,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       List<RowData> generatedKeys = new ArrayList<>();
 
       if (!connection.autoCommit && connection.getServerConnection().getTransactionStatus() == TransactionStatus.Idle) {
-        connection.execute((long timeout) -> connection.getRequestExecutor().lazyExecute("@TC"));
+        connection.execute((long timeout) -> connection.getRequestExecutor().lazyExecute("TC"));
       }
 
       Type[] lastParameterTypes = null;
