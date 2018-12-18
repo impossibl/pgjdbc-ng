@@ -88,6 +88,7 @@ import java.util.List;
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.fill;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
@@ -134,7 +135,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   void set(int parameterIdx, Object source, Object sourceContext, int targetSQLType) throws SQLException {
     checkClosed();
 
-    parseIfNeeded();
+    //parseIfNeeded();
+    if (parameterTypesParsed == null || parameterTypesParsed.length == 0) {
+      parameterTypesParsed = parameterTypes.clone();
+      fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
+    }
 
     if (parameterIdx < 1 || parameterIdx > parameterTypes.length) {
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
@@ -266,10 +271,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         return new CachedStatement(name, prep.getDescribedParameterTypes(), describedResultFields);
       });
 
-      name = cachedStatement.name;
-      parameterTypesParsed = cachedStatement.parameterTypes;
-      resultFields = cachedStatement.resultFields;
-      parsed = true;
+      if (cachedStatement != null) {
+        name = cachedStatement.name;
+        parameterTypesParsed = cachedStatement.parameterTypes;
+        resultFields = cachedStatement.resultFields;
+        parsed = true;
+      }
 
     }
 
@@ -283,13 +290,20 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public boolean execute() throws SQLException {
     checkClosed();
 
-    parsed = Arrays.equals(parameterTypes, parameterTypesParsed);
+    //parsed = Arrays.equals(parameterTypes, parameterTypesParsed);
 
     parseIfNeeded();
     closeResultSets();
     verifyParameterSet();
 
-    boolean res = super.executeStatement(name, parameterFormats, parameterBuffers);
+    boolean res;
+
+    if (name == null) {
+      res = super.executeDirect(sqlText, parameterFormats, parameterBuffers);
+    }
+    else {
+      res = super.executeStatement(name, parameterFormats, parameterBuffers);
+    }
 
     if (cursorName != null) {
       res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null);
@@ -364,7 +378,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       }
 
       int[] counts = new int[batchParameterBuffers.size()];
-      Arrays.fill(counts, SUCCESS_NO_INFO);
+      fill(counts, SUCCESS_NO_INFO);
 
       List<RowData> generatedKeys = new ArrayList<>();
 

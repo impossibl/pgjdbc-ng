@@ -112,6 +112,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 
@@ -187,6 +188,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private SQLWarning warningChain;
   private List<WeakReference<PGStatement>> activeStatements;
   private Map<CachedStatementKey, CachedStatement> preparedStatementCache;
+  private Map<CachedStatementKey, Integer> preparedStatementHeat;
   private int defaultFetchSize;
   final Housekeeper.Ref housekeeper;
   private final Object cleanupKey;
@@ -202,6 +204,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
     if (statementCacheSize > 0) {
+      preparedStatementHeat = new ConcurrentHashMap<>();
       preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
 
@@ -1317,12 +1320,21 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     }
 
     CachedStatement cached = preparedStatementCache.get(key);
-    if (cached == null) {
+    if (cached != null) return cached;
 
-      cached = loader.load();
 
-      preparedStatementCache.put(key, cached);
+    Integer heat = preparedStatementHeat.computeIfPresent(key, (k, h) -> h + 1);
+    if (heat == null) {
+      preparedStatementHeat.put(key, 1);
+      return null;
     }
+    else if (heat < 5) {
+      return null;
+    }
+
+    cached = loader.load();
+
+    preparedStatementCache.put(key, cached);
 
     return cached;
   }
