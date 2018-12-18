@@ -344,6 +344,10 @@ public abstract class Type implements TypeRef {
 
   public FieldFormat getParameterFormat() {
 
+    if (category == Category.String) {
+      return FieldFormat.Text;
+    }
+
     if (isParameterFormatSupported(preferredParameterFormat))
       return preferredParameterFormat;
 
@@ -360,6 +364,10 @@ public abstract class Type implements TypeRef {
   }
 
   public FieldFormat getResultFormat() {
+
+    if (category == Category.String) {
+      return FieldFormat.Text;
+    }
 
     if (isResultFormatSupported(preferredResultFormat))
       return preferredResultFormat;
