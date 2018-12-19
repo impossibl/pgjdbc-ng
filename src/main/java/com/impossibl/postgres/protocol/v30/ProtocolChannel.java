@@ -13,9 +13,6 @@ import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
-import java.util.logging.Logger;
-
-import static java.util.logging.Level.FINEST;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -23,8 +20,6 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPipeline;
 
 public class ProtocolChannel {
-
-  private static final Logger LOGGER = Logger.getLogger(ProtocolChannel.class.getName());
 
   // Frontend messages
   private static final byte PASSWORD_MSG_ID = 'p';
@@ -58,27 +53,19 @@ public class ProtocolChannel {
 
   ProtocolChannel writeSSLRequest() {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("SSL");
-
     ByteBuf msg = channel.alloc().buffer();
 
     msg.writeInt(8);
     msg.writeInt(80877103);
 
-    channel.write(msg);
+    channel.write(msg, channel.voidPromise());
 
     return this;
   }
 
   ProtocolChannel writeStartup(Map<String, Object> params) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("STARTUP: " + params);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, (byte) 0);
+    ByteBuf msg = beginMessage((byte) 0);
 
     // Version
     msg.writeShort(3);
@@ -94,55 +81,34 @@ public class ProtocolChannel {
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writePassword(String password) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("PASSWORD: " + password);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, PASSWORD_MSG_ID);
+    ByteBuf msg = beginMessage(PASSWORD_MSG_ID);
 
     writeCString(msg, password, charset);
 
     endMessage(msg);
-
-    channel.write(msg);
 
     return this;
   }
 
   ProtocolChannel writeQuery(String query) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("QUERY: " + query);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, QUERY_MSG_ID);
+    ByteBuf msg = beginMessage(QUERY_MSG_ID);
 
     writeCString(msg, query, charset);
 
     endMessage(msg);
-
-    channel.write(msg);
 
     return this;
   }
 
   ProtocolChannel writeParse(String stmtName, String query, Type[] paramTypes) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("PARSE (" + stmtName + "): " + query);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, PARSE_MSG_ID);
+    ByteBuf msg = beginMessage(PARSE_MSG_ID);
 
     writeCString(msg, stmtName != null ? stmtName : "", charset);
     writeCString(msg, query, charset);
@@ -155,8 +121,6 @@ public class ProtocolChannel {
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
@@ -166,15 +130,10 @@ public class ProtocolChannel {
 
   ProtocolChannel writeBind(String portalName, String stmtName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs) throws IOException {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("BIND (" + portalName + "): " + parameterBuffers.length);
-
     byte[] portalNameBytes = nullToEmpty(portalName).getBytes(charset);
     byte[] stmtNameBytes = nullToEmpty(stmtName).getBytes(charset);
 
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, BIND_MSG_ID);
+    ByteBuf msg = beginMessage(BIND_MSG_ID);
 
     writeCString(msg, portalNameBytes);
     writeCString(msg, stmtNameBytes);
@@ -201,54 +160,36 @@ public class ProtocolChannel {
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writeDescribe(ServerObjectType target, String targetName) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("DESCRIBE " + target + " (" + targetName + ")");
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, DESCRIBE_MSG_ID);
+    ByteBuf msg = beginMessage(DESCRIBE_MSG_ID);
 
     msg.writeByte(target.getId());
     writeCString(msg, targetName != null ? targetName : "", charset);
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writeExecute(String portalName, int maxRows) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("EXECUTE (" + portalName + "): " + maxRows);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, EXECUTE_MSG_ID);
+    ByteBuf msg = beginMessage(EXECUTE_MSG_ID);
 
     writeCString(msg, portalName != null ? portalName : "", charset);
     msg.writeInt(maxRows);
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writeFunctionCall(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers) throws IOException {
 
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, FUNCTION_CALL_MSG_ID);
+    ByteBuf msg = beginMessage(FUNCTION_CALL_MSG_ID);
 
     msg.writeInt(functionId);
 
@@ -258,77 +199,55 @@ public class ProtocolChannel {
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writeClose(ServerObjectType target, String targetName) {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("CLOSE " + target + ": " + targetName);
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    beginMessage(msg, CLOSE_MSG_ID);
+    ByteBuf msg = beginMessage(CLOSE_MSG_ID);
 
     msg.writeByte(target.getId());
     writeCString(msg, targetName != null ? targetName : "", charset);
 
     endMessage(msg);
 
-    channel.write(msg);
-
     return this;
   }
 
   ProtocolChannel writeFlush() {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("FLUSH");
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    writeMessage(msg, FLUSH_MSG_ID);
-
-    channel.write(msg);
+    writeMessage(FLUSH_MSG_ID);
 
     return this;
   }
 
   ProtocolChannel writeSync() {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("SYNC");
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    writeMessage(msg, SYNC_MSG_ID);
-
-    channel.write(msg);
+    writeMessage(SYNC_MSG_ID);
 
     return this;
   }
 
   ChannelFuture writeTerminate() {
 
-    if (LOGGER.isLoggable(FINEST))
-      LOGGER.finest("TERM");
-
-    ByteBuf msg = channel.alloc().buffer();
-
-    writeMessage(msg, TERMINATE_MSG_ID);
+    ByteBuf msg = beginMessage(TERMINATE_MSG_ID);
 
     return channel.writeAndFlush(msg);
   }
 
-  private void writeMessage(ByteBuf msg, byte msgId) {
+  private void writeMessage(byte msgId) {
+
+    ByteBuf msg = channel.alloc().buffer(5);
 
     msg.writeByte(msgId);
     msg.writeInt(4);
+
+    channel.write(msg, channel.voidPromise());
   }
 
-  private void beginMessage(ByteBuf msg, byte msgId) {
+  private ByteBuf beginMessage(byte msgId) {
+
+    ByteBuf msg = channel.alloc().buffer();
 
     if (msgId != 0)
       msg.writeByte(msgId);
@@ -336,6 +255,8 @@ public class ProtocolChannel {
     msg.markWriterIndex();
 
     msg.writeInt(-1);
+
+    return msg;
   }
 
   private void endMessage(ByteBuf msg) {
@@ -349,6 +270,8 @@ public class ProtocolChannel {
     msg.setInt(begPos, endPos - begPos);
 
     msg.writerIndex(endPos);
+
+    channel.write(msg, channel.voidPromise());
   }
 
   private void loadParams(ByteBuf msg, FieldFormatRef[] fieldFormatRefs, ByteBuf[] paramBuffers) throws IOException {
@@ -379,6 +302,7 @@ public class ProtocolChannel {
         });
       }
     }
+
   }
 
 }
