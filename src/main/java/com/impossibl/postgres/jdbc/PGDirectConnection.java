@@ -70,9 +70,12 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.getSetSessionReadabilityT
 import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
+import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
 import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE;
 import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.DESCRIPTION_CACHE_SIZE;
+import static com.impossibl.postgres.system.Settings.DESCRIPTION_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
 import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
@@ -188,9 +191,10 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private int networkTimeout;
   private SQLWarning warningChain;
   private List<WeakReference<PGStatement>> activeStatements;
-  private Map<CachedStatementKey, CachedStatement> preparedStatementCache;
+  private Map<StatementCacheKey, StatementDescription> descriptionCache;
+  private Map<StatementCacheKey, PreparedStatementDescription> preparedStatementCache;
   private int preparedStatementCacheThreshold;
-  private Map<CachedStatementKey, Integer> preparedStatementHeat;
+  private Map<StatementCacheKey, Integer> preparedStatementHeat;
   private int defaultFetchSize;
   final Housekeeper.Ref housekeeper;
   private final Object cleanupKey;
@@ -204,13 +208,25 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
     this.activeStatements = new ArrayList<>();
 
-    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
-    if (statementCacheSize > 0) {
-      preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
+    final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE, DESCRIPTION_CACHE_SIZE_DEFAULT);
+    if (descriptionCacheSize > 0) {
+      this.descriptionCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, StatementDescription>(descriptionCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
 
         @Override
-        protected boolean removeEldestEntry(Map.Entry<CachedStatementKey, CachedStatement> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<StatementCacheKey, StatementDescription> eldest) {
+          return size() > descriptionCacheSize;
+        }
+      });
+    }
+
+    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
+    if (statementCacheSize > 0) {
+      preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, PreparedStatementDescription>(statementCacheSize + 1, 1.1f, true) {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<StatementCacheKey, PreparedStatementDescription> eldest) {
           if (size() > statementCacheSize) {
             try {
               PGStatement.dispose(PGDirectConnection.this, ServerObjectType.Statement, eldest.getValue().name);
@@ -226,6 +242,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         }
       });
     }
+
     final int statementCacheThreshold = getSetting(PREPARED_STATEMENT_CACHE_THRESHOLD, PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT);
     if (statementCacheThreshold > 0) {
       preparedStatementCacheThreshold = statementCacheThreshold;
@@ -1305,27 +1322,50 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     super.removeNotificationListener(listener);
   }
 
+
+
+
   boolean isCacheEnabled() {
     return preparedStatementCache != null;
   }
 
-  interface CachedStatementLoader {
-    CachedStatement load() throws SQLException;
+  interface StatementDescriptionLoader {
+    StatementDescription load() throws SQLException;
   }
 
-  CachedStatement getCachedStatement(CachedStatementKey key) {
-    if (preparedStatementCache == null) return null;
+  StatementDescription getCachedStatementDescription(String sql, StatementDescriptionLoader loader) throws SQLException {
 
-    return preparedStatementCache.get(key);
+    StatementCacheKey key = new StatementCacheKey(sql, EMPTY_TYPES);
+
+    // Check prepared statement cache...
+    if (preparedStatementCache != null) {
+      PreparedStatementDescription cached = preparedStatementCache.get(key);
+      if (cached != null) return cached;
+    }
+
+    // Check description cache
+    StatementDescription cached = descriptionCache.get(key);
+    if (cached != null) return cached;
+
+    cached = loader.load();
+
+    descriptionCache.put(key, cached);
+
+    return cached;
   }
 
-  CachedStatement getCachedStatement(CachedStatementKey key, CachedStatementLoader loader) throws SQLException {
+
+  interface PreparedStatementDescriptionLoader {
+    PreparedStatementDescription load() throws SQLException;
+  }
+
+  PreparedStatementDescription getCachedPreparedStatement(StatementCacheKey key, PreparedStatementDescriptionLoader loader) throws SQLException {
 
     if (preparedStatementCache == null) {
       return loader.load();
     }
 
-    CachedStatement cached = preparedStatementCache.get(key);
+    PreparedStatementDescription cached = preparedStatementCache.get(key);
     if (cached != null) return cached;
 
 
@@ -1344,19 +1384,31 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     preparedStatementCache.put(key, cached);
 
+    // Save a copy in the description cache as well. This cache uses no parameter types for
+    // more general lookup capability.
+    descriptionCache.putIfAbsent(new StatementCacheKey(key.getSql(), EMPTY_TYPES), cached);
+
     return cached;
   }
 
 }
 
-class CachedStatementKey {
+class StatementCacheKey {
 
   private String sql;
   private Type[] parameterTypes;
 
-  CachedStatementKey(String sql, Type[] parameterTypes) {
+  StatementCacheKey(String sql, Type[] parameterTypes) {
     this.sql = sql;
     this.parameterTypes = parameterTypes.clone();
+  }
+
+  public String getSql() {
+    return sql;
+  }
+
+  public Type[] getParameterTypes() {
+    return parameterTypes;
   }
 
   @Override
@@ -1382,7 +1434,7 @@ class CachedStatementKey {
       return false;
     if (getClass() != obj.getClass())
       return false;
-    CachedStatementKey other = (CachedStatementKey) obj;
+    StatementCacheKey other = (StatementCacheKey) obj;
     if (parameterTypes == null) {
       if (other.parameterTypes != null)
         return false;
@@ -1397,16 +1449,25 @@ class CachedStatementKey {
 
 }
 
-class CachedStatement {
+class StatementDescription {
 
-  String name;
   Type[] parameterTypes;
   ResultField[] resultFields;
 
-  CachedStatement(String statementName, Type[] parameterTypes, ResultField[] resultFields) {
-    this.name = statementName;
+  StatementDescription(Type[] parameterTypes, ResultField[] resultFields) {
     this.parameterTypes = parameterTypes;
     this.resultFields = resultFields;
+  }
+
+}
+
+class PreparedStatementDescription extends StatementDescription {
+
+  String name;
+
+  PreparedStatementDescription(String statementName, Type[] parameterTypes, ResultField[] resultFields) {
+    super(parameterTypes, resultFields);
+    this.name = statementName;
   }
 
 }

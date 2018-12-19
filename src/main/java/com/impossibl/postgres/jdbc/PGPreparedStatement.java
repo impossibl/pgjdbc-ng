@@ -223,28 +223,29 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     }
   }
 
-  void describeIfNeeded() throws SQLException {
+  private void describeIfNeeded() throws SQLException {
 
     if (parameterTypesParsed != null) {
       return;
     }
 
     // First, check statement cache
-    final CachedStatementKey key = new CachedStatementKey(sqlText, EMPTY_TYPES);
-    CachedStatement cachedStatement = connection.getCachedStatement(key);
-    if (cachedStatement != null) {
-      parameterTypesParsed = cachedStatement.parameterTypes;
-    }
+    StatementDescription cachedDescription = connection.getCachedStatementDescription(sqlText, () -> {
 
-    // Else, have server describe it
-    PrepareResult result = connection.execute(timeout -> {
-      PrepareResult handler = new PrepareResult();
-      connection.getRequestExecutor().prepare(null, sqlText, EMPTY_TYPES, handler);
-      handler.await(timeout, MILLISECONDS);
-      return handler;
+      PrepareResult result = connection.execute(timeout -> {
+        PrepareResult handler = new PrepareResult();
+        connection.getRequestExecutor().prepare(null, sqlText, EMPTY_TYPES, handler);
+        handler.await(timeout, MILLISECONDS);
+        return handler;
+      });
+
+      return new StatementDescription(result.getDescribedParameterTypes(), result.getDescribedResultFields());
     });
 
-    parameterTypesParsed = result.getDescribedParameterTypes();
+    if (cachedDescription != null) {
+      parameterTypesParsed = cachedDescription.parameterTypes;
+    }
+
   }
 
   void parseIfNeeded() throws SQLException {
@@ -264,11 +265,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         }
       }
 
-      CachedStatement cachedStatement;
+      PreparedStatementDescription cachedStatement;
 
-      final CachedStatementKey key = new CachedStatementKey(sqlText, parameterTypes);
+      final StatementCacheKey key = new StatementCacheKey(sqlText, parameterTypes);
 
-      cachedStatement = connection.getCachedStatement(key, () -> {
+      cachedStatement = connection.getCachedPreparedStatement(key, () -> {
 
         String name = connection.isCacheEnabled() ?
             CACHED_STATEMENT_PREFIX + toHexString(key.hashCode()) : NO_CACHE_STATEMENT_PREFIX + toHexString(key.hashCode());
@@ -291,7 +292,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           }
         }
 
-        return new CachedStatement(name, prep.getDescribedParameterTypes(), describedResultFields);
+        return new PreparedStatementDescription(name, prep.getDescribedParameterTypes(), describedResultFields);
       });
 
       if (cachedStatement != null) {
@@ -312,8 +313,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public boolean execute() throws SQLException {
     checkClosed();
-
-    //parsed = Arrays.equals(parameterTypes, parameterTypesParsed);
 
     parseIfNeeded();
     closeResultSets();
