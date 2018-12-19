@@ -105,7 +105,7 @@ public class ThreadedHousekeeper implements Housekeeper {
     int id;
     CleanupRunnable cleanup;
 
-    public HousekeeperReference(CleanupRunnable cleanup, T referent, ReferenceQueue<? super T> q) {
+    HousekeeperReference(CleanupRunnable cleanup, T referent, ReferenceQueue<? super T> q) {
       super(referent, q);
 
       if (cleanup == referent) {

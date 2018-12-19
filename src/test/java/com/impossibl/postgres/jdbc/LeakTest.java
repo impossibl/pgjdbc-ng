@@ -37,6 +37,7 @@ import java.util.Properties;
 
 import static java.lang.Boolean.FALSE;
 
+import io.netty.util.ResourceLeakDetector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,23 +56,28 @@ public class LeakTest {
 
   WeakReference<Connection> connRef;
   Connection conn;
+  ResourceLeakDetector.Level savedLevel;
 
   @Before
   public void before() throws Exception {
     conn = TestUtil.openDB();
-    connRef = new WeakReference<Connection>(conn);
+    connRef = new WeakReference<>(conn);
+    savedLevel = ResourceLeakDetector.getLevel();
+    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
     getHousekeeper().setLogLeakedReferences(false);
   }
 
   @After
   public void after() throws Exception {
-    if (conn != null && getHousekeeper() != null)
+    if (conn != null && getHousekeeper() != null) {
       getHousekeeper().testClear();
+    }
+    ResourceLeakDetector.setLevel(savedLevel);
   }
 
   ThreadedHousekeeper getHousekeeper() {
-    if (((PGConnectionImpl) conn).housekeeper != null)
-      return (ThreadedHousekeeper)((PGConnectionImpl) conn).housekeeper.get();
+    if (((PGDirectConnection) conn).housekeeper != null)
+      return (ThreadedHousekeeper)((PGDirectConnection) conn).housekeeper.get();
     else
       return null;
   }
@@ -237,7 +243,7 @@ public class LeakTest {
       try (Statement stmt = conn.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
 
-          Housekeeper.Ref housekeeper = ((PGConnectionImpl) conn).housekeeper;
+          Housekeeper.Ref housekeeper = ((PGDirectConnection) conn).housekeeper;
           assertNull(housekeeper);
 
         }

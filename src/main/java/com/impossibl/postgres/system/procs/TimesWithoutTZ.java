@@ -28,139 +28,211 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.Instants;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.TimestampParts;
 
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.getCalendar;
+import static com.impossibl.postgres.system.procs.DatesTimes.timeFromParsed;
+import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
 import static com.impossibl.postgres.types.PrimitiveType.Time;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
 
 public class TimesWithoutTZ extends SettingSelectProcProvider {
 
+
   public TimesWithoutTZ() {
     super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
-        new TxtEncoder(), new TxtDecoder(), new BinIntegerEncoder(), new BinIntegerDecoder(),
-        null, null, new TxtEncoder(), new TxtDecoder(),
+        new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(),
+        new TxtEncoder(), new TxtDecoder(), null, null,
         "time_");
   }
 
-  static class BinIntegerDecoder extends BinaryDecoder {
+
+  private static long convertInput(Object object, TimeZone defaultTimeZone) throws ConversionException {
+
+    if (object instanceof java.sql.Time) {
+      return ((Time) object).getTime();
+    }
+
+    if (object instanceof Timestamp) {
+      return ((Timestamp) object).getTime();
+    }
+
+    if (object instanceof CharSequence) {
+      return parseTime(object.toString(), defaultTimeZone);
+    }
+
+    throw new ConversionException(object.getClass(), PrimitiveType.TimeTZ);
+  }
+
+  private static Object convertOutput(long millis, Class<?> targetClass) throws ConversionException {
+
+    if (targetClass == Timestamp.class) {
+      return new Timestamp(millis);
+    }
+
+    Time time = new Time(millis);
+
+    if (targetClass == Time.class) {
+      return time;
+    }
+
+    if (targetClass == LocalTime.class) {
+      return time.toLocalTime();
+    }
+
+    if (targetClass == java.time.Instant.class) {
+      return time.toInstant();
+    }
+
+    if (targetClass == String.class) {
+      return time.toString();
+    }
+
+    throw new ConversionException(PrimitiveType.TimeTZ, targetClass);
+  }
+
+  private static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(8);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Time;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public Class<?> getDefaultClass() {
+      return java.sql.Time.class;
     }
 
     @Override
-    public Instant decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 8) {
-        throw new IOException("invalid length");
-      }
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
       long micros = buffer.readLong();
 
-      return new AmbiguousInstant(Instant.Type.Time, micros);
+      long millis = MICROSECONDS.toMillis(micros);
+
+      millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
+
+      return convertOutput(millis, targetClass);
     }
 
   }
 
-  static class BinIntegerEncoder extends BinaryEncoder {
+  private static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
+    BinEncoder() {
+      super(8);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Time;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
-      }
-      else {
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-        Instant inst = (Instant) val;
+      long millis = convertInput(value, calendar.getTimeZone());
 
-        long micros = inst.getMicrosLocal() % DAYS.toMicros(1);
+      millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
 
-        buffer.writeInt(8);
-        buffer.writeLong(micros);
-      }
+      long micros = MILLISECONDS.toMicros(millis) % DAYS.toMicros(1);
 
+      buffer.writeLong(micros);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Time;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public Class<?> getDefaultClass() {
+      return java.sql.Time.class;
     }
 
     @Override
-    protected Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      Map<String, Object> pieces = new HashMap<>();
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
-      context.getTimeFormatter().getParser().parse(buffer.toString(), 0, pieces);
+      TemporalAccessor parsed = context.getTimeFormatter().getParser().parse(buffer);
 
-      return Instants.timeFromPieces(pieces, context.getTimeZone()).ambiguate();
+      long micros = timeFromParsed(parsed, calendar.getTimeZone());
+
+      return convertOutput(MICROSECONDS.toMillis(micros), targetClass);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Time;
     }
 
     @Override
-    public Class<?> getInputType() {
-      return Instant.class;
-    }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-    @Override
-    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      String strVal = context.getTimeFormatter().getPrinter().format((Instant) val);
+      long millis = convertInput(value, calendar.getTimeZone()) % DAYS.toMillis(1);
+
+      String strVal = context.getTimeFormatter().getPrinter().formatMillis(millis, calendar.getTimeZone(), false);
 
       buffer.append(strVal);
     }
 
+  }
+
+  private static long parseTime(String value, TimeZone defaultTimeZone) throws ConversionException {
+
+    TimestampParts ts = TimestampParts.parse(value);
+
+    // Translate parsed time into default time zone
+    Calendar cal = getCalendar(ts.getTz() != null ? ts.getTz() : defaultTimeZone);
+    cal.set(Calendar.ERA, GregorianCalendar.AD);
+    cal.set(Calendar.YEAR, 1970);
+    cal.set(Calendar.MONTH, 0);
+    cal.set(Calendar.DAY_OF_MONTH, 1);
+    cal.set(Calendar.HOUR_OF_DAY, ts.getHour());
+    cal.set(Calendar.MINUTE, ts.getMinute());
+    cal.set(Calendar.SECOND, ts.getSecond());
+    cal.set(Calendar.MILLISECOND, ts.getNanos() / 1000000);
+
+    return cal.getTimeInMillis();
   }
 
 }

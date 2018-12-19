@@ -38,8 +38,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 
 public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestCommand {
 
-  Boolean allowed;
-  boolean completed;
+  private Boolean allowed;
+  private boolean completed;
 
   @Override
   public boolean isAllowed() {
@@ -52,7 +52,7 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
     try {
 
       // Add special channel handler to intercept SSL request responses
-      protocol.channel.pipeline().addFirst("ssl-query", new SimpleChannelInboundHandler<ByteBuf>() {
+      protocol.getChannel().pipeline().addFirst("ssl-query", new SimpleChannelInboundHandler<ByteBuf>() {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
@@ -84,7 +84,7 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
 
       });
 
-      ByteBuf msg = protocol.channel.alloc().buffer();
+      ByteBuf msg = protocol.getChannel().alloc().buffer();
 
       protocol.writeSSLRequest(msg);
 
@@ -109,7 +109,7 @@ public class SSLRequestCommandImpl extends CommandImpl implements SSLRequestComm
 
     }
     finally {
-      protocol.channel.pipeline().remove("ssl-query");
+      protocol.getChannel().pipeline().remove("ssl-query");
     }
 
   }

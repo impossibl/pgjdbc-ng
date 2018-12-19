@@ -292,14 +292,14 @@ public class ResultSetMetaDataTest {
 
   @Test
   public void testAliasStrictMode() throws Exception {
-    ((PGConnectionImpl)conn).setStrictMode(true);
+    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a AS \"PK\" FROM rsmd1");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertEquals(1, rsmd.getColumnCount());
     assertEquals("PK", rsmd.getColumnName(1));
     assertEquals("PK", rsmd.getColumnLabel(1));
-    ((PGConnectionImpl)conn).setStrictMode(false);
+    ((PGDirectConnection)conn).setStrictMode(false);
     rs.close();
     stmt.close();
   }

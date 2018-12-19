@@ -39,6 +39,8 @@ import com.impossibl.postgres.utils.guava.Joiner;
 
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -48,10 +50,22 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.LogManager;
 
 import javax.sql.XAConnection;
 
 public class TestUtil {
+
+  static {
+
+    try (InputStream loggingPropertiesStream = new FileInputStream("src/test/resources/logging.properties")) {
+      LogManager.getLogManager().readConfiguration(loggingPropertiesStream);
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
 
   public static String getURL(Object... urlParams) {
 
@@ -113,6 +127,7 @@ public class TestUtil {
    * Helper - opens a connection.
    */
   public static Connection openDB() throws Exception {
+
     return openDB(new Properties());
   }
 

@@ -28,7 +28,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.utils.guava.CharStreams;
+
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -65,41 +68,38 @@ public class ServerDisconnectTest {
   }
 
   @After
-  public void tearDown() throws SQLException {
+  public void tearDown() {
   }
 
   @Test(expected = SQLException.class)
-  public void testServerDisconnect() throws SQLException, IOException {
+  public void testServerDisconnect() throws SQLException {
 
     try (Statement stmt = conn.createStatement()) {
 
       // Query connection pid
       final int pid;
       try (ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid();")) {
-        assertTrue(rs.next());
 
+        assertTrue(rs.next());
         pid = rs.getInt(1);
         assertTrue(pid != 0);
       }
 
       // Kill the postgres process for this connection after 1 second...
-      Thread killThread = new Thread() {
+      Thread killThread = new Thread(() -> {
+        try {
+          Thread.sleep(1000);
+          Process kill = Runtime.getRuntime().exec("kill -KILL " + pid);
 
-        @Override
-        public void run() {
-          try {
-            Thread.sleep(1000);
-            Runtime.getRuntime().exec("kill -KILL " + pid);
-          }
-          catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-          }
+          CharStreams.copy(new InputStreamReader(kill.getErrorStream()), System.err);
         }
-
-      };
+        catch (IOException | InterruptedException e) {
+          e.printStackTrace();
+        }
+      });
       killThread.start();
 
-      stmt.executeQuery("SELECT pg_sleep(5);");
+      stmt.executeQuery("SELECT pg_sleep(3);");
 
     }
 

@@ -720,7 +720,7 @@ public class XADataSourceTest {
      * Constructor
      * @param id The identifier
      */
-    public XidImpl(int id) {
+    XidImpl(int id) {
       this.id = id;
     }
 

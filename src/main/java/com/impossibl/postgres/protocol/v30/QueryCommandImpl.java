@@ -28,15 +28,15 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import com.impossibl.postgres.protocol.BufferedDataRow;
+import com.impossibl.postgres.protocol.BufferRowData;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.SettingsContext;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,14 +47,10 @@ import io.netty.util.ResourceLeakDetector;
 
 class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
-  private class Listener extends BaseProtocolListener {
+  private class TxnListener extends BaseProtocolListener {
+  }
 
-    Context context;
-
-    Listener(Context context) {
-      super();
-      this.context = context;
-    }
+  private class QueryListener extends BaseProtocolListener {
 
     @Override
     public boolean isComplete() {
@@ -62,14 +58,29 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
     }
 
     @Override
-    public void rowDescription(List<ResultField> resultFields) {
+    public void noData() {
+      resultBatch.setFields(EMPTY_FIELDS);
+      resultBatch.resetResults(false);
+    }
+
+    @Override
+    public void rowDescription(ResultField[] resultFields) {
       resultBatch.setFields(resultFields);
       resultBatch.resetResults(true);
     }
 
     @Override
-    public void rowData(ByteBuf buffer) throws IOException {
-      resultBatch.addResult(BufferedDataRow.parse(buffer, resultBatch.getFields(), parsingContext));
+    public void rowData(ByteBuf buffer) {
+      resultBatch.getResults().add(BufferRowData.parseFields(buffer.retain(), resultBatch.getFields()));
+    }
+
+    @Override
+    public void emptyQuery() {
+      resultBatch.setFields(EMPTY_FIELDS);
+      resultBatch.resetResults(false);
+
+      resultBatches.add(resultBatch);
+      resultBatch = new ResultBatch();
     }
 
     @Override
@@ -82,16 +93,29 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
       resultBatch = new ResultBatch();
     }
 
-    @Override
-    public synchronized void error(Notice error) {
-      QueryCommandImpl.this.error = error;
-      notifyAll();
+  }
+
+  class TxnQueryListener extends DelegatedProtocolListener {
+
+    QueryListener queryListener;
+
+    TxnQueryListener(TxnListener txnListener, QueryListener queryListener) {
+      super(txnListener);
+      this.queryListener = queryListener;
+    }
+
+    TxnQueryListener(QueryListener queryListener) {
+      super(queryListener);
+      this.queryListener = queryListener;
+    }
+
+    boolean isExpectingTransaction() {
+      return delegate != queryListener;
     }
 
     @Override
-    public synchronized void exception(Throwable cause) {
-      setException(cause);
-      notifyAll();
+    public boolean isComplete() {
+      return !resultBatches.isEmpty() || error != null || exception != null;
     }
 
     @Override
@@ -100,8 +124,27 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
     }
 
     @Override
-    public synchronized void ready(TransactionStatus txStatus) {
-      notifyAll();
+    public void commandComplete(String command, Long rowsAffected, Long oid) throws IOException {
+      super.commandComplete(command, rowsAffected, oid);
+      delegate = queryListener;
+    }
+
+    @Override
+    public void ready(TransactionStatus txStatus) throws IOException {
+      super.ready(txStatus);
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void error(Notice error) {
+      QueryCommandImpl.this.error = error;
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void exception(Throwable cause) {
+      setException(cause);
+      notifyPossibleCompletion();
     }
 
   }
@@ -111,13 +154,17 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
   private List<ResultBatch> resultBatches;
   private ResultBatch resultBatch;
   private long queryTimeout;
-  private SettingsContext parsingContext;
-  private int maxFieldLength;
+  private boolean requireActiveTransaction;
 
 
   QueryCommandImpl(String command) {
     this.command = command;
-    this.maxFieldLength = Integer.MAX_VALUE;
+    this.requireActiveTransaction = false;
+  }
+
+  @Override
+  public void setRequireActiveTransaction(boolean requireActiveTransaction) {
+    this.requireActiveTransaction = requireActiveTransaction;
   }
 
   @Override
@@ -136,20 +183,26 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
     resultBatch = new ResultBatch();
     resultBatches = new ArrayList<>();
 
-    // Setup context for parsing fields with customized parameters
-    //
-    parsingContext = new SettingsContext(protocol.getContext());
-    parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
-
-    Listener listener = new Listener(protocol.getContext());
+    TxnQueryListener listener;
+    if (requireActiveTransaction && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+      listener = new TxnQueryListener(new TxnListener(), new QueryListener());
+    }
+    else {
+      listener = new TxnQueryListener(new QueryListener());
+    }
 
     protocol.setListener(listener);
 
-    ByteBuf msg = protocol.channel.alloc().buffer();
+    ByteBuf msg = protocol.getChannel().alloc().buffer();
     try {
-      protocol.writeQuery(msg, command);
 
-      protocol.writeSync(msg);
+      if (listener.isExpectingTransaction()) {
+
+        protocol.writeBind(msg, null, "TB", EMPTY_FORMATS, EMPTY_BUFFERS, EMPTY_FORMATS);
+        protocol.writeExecute(msg, null, 0);
+      }
+
+      protocol.writeQuery(msg, command);
     }
     catch (Throwable t) {
       msg.release();
@@ -160,14 +213,14 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
 
     enableCancelTimer(protocol, queryTimeout);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
     if (ResourceLeakDetector.getLevel().compareTo(ResourceLeakDetector.Level.SIMPLE) > 0) {
       // Touch results batches (and therefore DataRows) in the
       // correct thread to make debugging leaks easier.
       if (resultBatches != null) {
         for (ResultBatch resultBatch : resultBatches) {
-          resultBatch.touch();
+          resultBatch.touch("Query Completed");
         }
       }
     }
@@ -176,10 +229,6 @@ class QueryCommandImpl extends CommandImpl implements QueryCommand {
   @Override
   public Status getStatus() {
     return Status.Completed;
-  }
-
-  @Override
-  public void setMaxFieldLength(int maxFieldLength) {
   }
 
   @Override

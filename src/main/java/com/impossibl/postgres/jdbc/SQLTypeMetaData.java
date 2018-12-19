@@ -28,6 +28,11 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.api.data.Interval;
+import com.impossibl.postgres.api.data.Range;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.PrimitiveType;
@@ -38,9 +43,18 @@ import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.Modifiers.PRECISION;
 import static com.impossibl.postgres.types.Modifiers.SCALE;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.BitSet;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.sql.ResultSetMetaData.columnNoNulls;
 import static java.sql.ResultSetMetaData.columnNullable;
@@ -55,7 +69,7 @@ import static java.sql.ResultSetMetaData.columnNullableUnknown;
  */
 class SQLTypeMetaData {
 
-  public static boolean requiresQuoting(Type type) {
+  static boolean requiresQuoting(Type type) {
 
     int sqlType = getSQLType(type);
     switch (sqlType) {
@@ -75,16 +89,12 @@ class SQLTypeMetaData {
     return true;
   }
 
-  public static boolean isCurrency(Type type) {
+  static boolean isCurrency(Type type) {
 
-    if (type.unwrap().getPrimitiveType() == PrimitiveType.Money) {
-      return true;
-    }
-
-    return false;
+    return type.unwrap().getPrimitiveType() == PrimitiveType.Money;
   }
 
-  public static boolean isCaseSensitive(Type type) throws SQLException {
+  static boolean isCaseSensitive(Type type) {
 
     switch (type.getCategory()) {
       case Enumeration:
@@ -96,13 +106,12 @@ class SQLTypeMetaData {
     }
   }
 
-  public static boolean isAutoIncrement(Type type, CompositeType relType, int relAttrNum) {
+  static boolean isAutoIncrement(Type type, CompositeType relType, int relAttrNum) {
 
     if (relType != null && relAttrNum > 0) {
 
       CompositeType.Attribute attr = relType.getAttribute(relAttrNum);
-      if (attr != null && attr.isAutoIncrement())
-        return true;
+      return attr != null && attr.isAutoIncrement();
     }
     else if (type instanceof DomainType) {
 
@@ -112,7 +121,7 @@ class SQLTypeMetaData {
     return false;
   }
 
-  public static int isNullable(Type type, CompositeType relType, int relAttrNum) {
+  static int isNullable(Type type, CompositeType relType, int relAttrNum) {
 
     int nullable = isNullable(type);
 
@@ -134,7 +143,7 @@ class SQLTypeMetaData {
     return nullable;
   }
 
-  public static int isNullable(Type type) {
+  static int isNullable(Type type) {
 
     //Check domain types for nullability
     if (type instanceof DomainType) {
@@ -145,17 +154,95 @@ class SQLTypeMetaData {
     return columnNullableUnknown;
   }
 
-  public static boolean isSigned(Type type) {
+  static boolean isSigned(Type type) {
 
     return type.unwrap().getCategory() == Type.Category.Numeric;
   }
 
-  public static Type getType(int sqlType, Registry reg) {
+  public static Type getType(Class<?> cls, Registry reg) {
+    if (cls == Boolean.class) {
+      return reg.loadType("bool");
+    }
+    if (cls == Byte.class) {
+      return reg.loadType("int2");
+    }
+    if (cls == Short.class) {
+      return reg.loadType("int2");
+    }
+    if (cls == Integer.class) {
+      return reg.loadType("int4");
+    }
+    if (cls == Long.class) {
+      return reg.loadType("int8");
+    }
+    if (cls == BigInteger.class) {
+      return reg.loadType("numeric");
+    }
+    if (cls == Float.class) {
+      return reg.loadType("float4");
+    }
+    if (cls == Double.class) {
+      return reg.loadType("float8");
+    }
+    if (cls == BigDecimal.class) {
+      return reg.loadType("numeric");
+    }
+    if (cls == Character.class) {
+      return reg.loadType("char");
+    }
+    if (cls == String.class) {
+      return reg.loadType("varchar");
+    }
+    if (cls == Date.class) {
+      return reg.loadType("date");
+    }
+    if (cls == Time.class) {
+      return reg.loadType("time");
+    }
+    if (cls == Timestamp.class) {
+      return reg.loadType("timestamp");
+    }
+    if (cls == Array.class) {
+      return reg.loadType("anyarray");
+    }
+    return getExtendedType(cls, reg);
+  }
+
+  public static Type getExtendedType(Class<?> cls, Registry reg) {
+    if (cls == Interval.class) {
+      return reg.loadType("interval");
+    }
+    else if (cls == UUID.class) {
+      return reg.loadType("uuid");
+    }
+    else if (cls == Map.class) {
+      return reg.loadType("hstore");
+    }
+    else if (cls == BitSet.class) {
+      return reg.loadType("bits");
+    }
+    else if (cls == Range.class) {
+      return reg.loadType("range");
+    }
+    else if (cls == ACLItem.class) {
+      return reg.loadType("aclitem");
+    }
+    else if (cls == CidrAddr.class) {
+      return reg.loadType("cidr");
+    }
+    else if (cls == InetAddr.class) {
+      return reg.loadType("inet");
+    }
+    return null;
+  }
+
+  public static Type getType(Object val, int sqlType, Registry reg) {
 
     switch (sqlType) {
-      case Types.BOOLEAN:
       case Types.BIT:
+      case Types.BOOLEAN:
         return reg.loadType("bool");
+      case Types.TINYINT:
       case Types.SMALLINT:
         return reg.loadType("int2");
       case Types.INTEGER:
@@ -163,7 +250,7 @@ class SQLTypeMetaData {
       case Types.BIGINT:
         return reg.loadType("int8");
       case Types.REAL:
-        return reg.loadType("float4");
+        return reg.loadType("real");
       case Types.FLOAT:
       case Types.DOUBLE:
         return reg.loadType("float8");
@@ -171,51 +258,74 @@ class SQLTypeMetaData {
       case Types.DECIMAL:
         return reg.loadType("numeric");
       case Types.CHAR:
+        return reg.loadType("char");
       case Types.VARCHAR:
       case Types.LONGVARCHAR:
-        return reg.loadType("text");
-      case Types.TIME:
-        return reg.loadType("time");
+        return reg.loadType("varchar");
       case Types.DATE:
         return reg.loadType("date");
+      case Types.TIME:
+        return reg.loadType("time");
+      case Types.TIME_WITH_TIMEZONE:
+        return reg.loadType("timetz");
       case Types.TIMESTAMP:
         return reg.loadType("timestamp");
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        return reg.loadType("timestamptz");
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
         return reg.loadType("bytea");
-      case Types.ARRAY:
-        return reg.loadType("anyarray");
       case Types.BLOB:
       case Types.CLOB:
         return reg.loadType("oid");
-      case Types.DISTINCT:
+      case Types.ARRAY:
+        if (val instanceof PGArray) {
+          return ((PGArray) val).getType();
+        }
+        else if (val != null && val.getClass().isArray()) {
+          Type elementType = getType(val.getClass().getComponentType(), reg);
+          if (elementType != null) {
+            return reg.loadType(elementType.getArrayTypeId());
+          }
+        }
         return null;
       case Types.STRUCT:
-        return reg.loadType("oid");
+        return reg.loadType("record");
       case Types.ROWID:
         return reg.loadType("tid");
-      case Types.TINYINT:
-      case Types.REF:
-      case Types.OTHER:
-      case Types.DATALINK:
+      case Types.SQLXML:
+        return reg.loadType("xml");
+      case Types.DISTINCT:
+        return reg.loadType("domain");
       case Types.JAVA_OBJECT:
+      case Types.OTHER:
+        if (val instanceof SQLData) {
+          String typeName;
+          try {
+            typeName = ((SQLData) val).getSQLTypeName();
+          }
+          catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          return reg.loadType(typeName);
+        }
+        if (val != null) {
+          return getExtendedType(val.getClass(), reg);
+        }
+        return null;
+      case Types.REF:
+      case Types.DATALINK:
       case Types.NCHAR:
       case Types.NVARCHAR:
       case Types.LONGNVARCHAR:
       case Types.NCLOB:
-      case Types.SQLXML:
       default:
         return null;
     }
 
   }
 
-  public static int getSQLTypeIndex(int sqlType) {
-    return (sqlType % 255 + 255) % 255;
-  }
-
-  private static PrimitiveType[][] sqlToPrimitiveMatrix;
   private static int[] primitiveToSQLTypeMatrix;
   static {
     primitiveToSQLTypeMatrix = new int[255];
@@ -230,9 +340,9 @@ class SQLTypeMetaData {
     primitiveToSQLTypeMatrix[PrimitiveType.String.ordinal()] = Types.VARCHAR;
     primitiveToSQLTypeMatrix[PrimitiveType.Date.ordinal()] = Types.DATE;
     primitiveToSQLTypeMatrix[PrimitiveType.Time.ordinal()] = Types.TIME;
-    primitiveToSQLTypeMatrix[PrimitiveType.TimeTZ.ordinal()] = Types.TIME;
+    primitiveToSQLTypeMatrix[PrimitiveType.TimeTZ.ordinal()] = Types.TIME_WITH_TIMEZONE;
     primitiveToSQLTypeMatrix[PrimitiveType.Timestamp.ordinal()] = Types.TIMESTAMP;
-    primitiveToSQLTypeMatrix[PrimitiveType.TimestampTZ.ordinal()] = Types.TIMESTAMP;
+    primitiveToSQLTypeMatrix[PrimitiveType.TimestampTZ.ordinal()] = Types.TIMESTAMP_WITH_TIMEZONE;
     primitiveToSQLTypeMatrix[PrimitiveType.Oid.ordinal()] = Types.INTEGER;
     primitiveToSQLTypeMatrix[PrimitiveType.Tid.ordinal()] = Types.ROWID;
     primitiveToSQLTypeMatrix[PrimitiveType.Array.ordinal()] = Types.ARRAY;
@@ -244,53 +354,21 @@ class SQLTypeMetaData {
     primitiveToSQLTypeMatrix[PrimitiveType.UUID.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Interval.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Unknown.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Box.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Circle.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Line.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.LineSegment.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Path.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Point.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Box.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.LineSegment.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Line.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Path.ordinal()] = Types.OTHER;
     primitiveToSQLTypeMatrix[PrimitiveType.Polygon.ordinal()] = Types.OTHER;
-
-    sqlToPrimitiveMatrix = new PrimitiveType[255][];
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NULL)]           = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BOOLEAN)]        = new PrimitiveType[] {PrimitiveType.Bool};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BIT)]            = new PrimitiveType[] {PrimitiveType.Bool};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TINYINT)]        = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.SMALLINT)]       = new PrimitiveType[] {PrimitiveType.Int2};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.INTEGER)]        = new PrimitiveType[] {PrimitiveType.Int4};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BIGINT)]         = new PrimitiveType[] {PrimitiveType.Int8};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.REAL)]           = new PrimitiveType[] {PrimitiveType.Float};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.FLOAT)]          = new PrimitiveType[] {PrimitiveType.Float};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DOUBLE)]         = new PrimitiveType[] {PrimitiveType.Double};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NUMERIC)]        = new PrimitiveType[] {PrimitiveType.Numeric};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DECIMAL)]        = new PrimitiveType[] {PrimitiveType.Numeric};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.CHAR)]           = new PrimitiveType[] {PrimitiveType.String};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.VARCHAR)]        = new PrimitiveType[] {PrimitiveType.String};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGNVARCHAR)]   = new PrimitiveType[] {PrimitiveType.String};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DATE)]           = new PrimitiveType[] {PrimitiveType.Date};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TIME)]           = new PrimitiveType[] {PrimitiveType.Time, PrimitiveType.TimeTZ};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.TIMESTAMP)]      = new PrimitiveType[] {PrimitiveType.Timestamp, PrimitiveType.TimestampTZ};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BINARY)]         = new PrimitiveType[] {PrimitiveType.Binary};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.VARBINARY)]      = new PrimitiveType[] {PrimitiveType.Binary};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGVARBINARY)]  = new PrimitiveType[] {PrimitiveType.Binary};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.BLOB)]           = new PrimitiveType[] {PrimitiveType.Int4};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.CLOB)]           = new PrimitiveType[] {PrimitiveType.Int4};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.SQLXML)]         = new PrimitiveType[] {PrimitiveType.String};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ARRAY)]          = new PrimitiveType[] {PrimitiveType.Array};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.STRUCT)]         = new PrimitiveType[] {PrimitiveType.Record};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DISTINCT)]       = new PrimitiveType[] {PrimitiveType.Domain};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.DATALINK)]       = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.JAVA_OBJECT)]    = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NCHAR)]          = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.NVARCHAR)]       = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.LONGNVARCHAR)]   = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.REF)]            = new PrimitiveType[] {};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.ROWID)]          = new PrimitiveType[] {PrimitiveType.Tid};
-    sqlToPrimitiveMatrix[getSQLTypeIndex(Types.OTHER)]          = new PrimitiveType[] {};
+    primitiveToSQLTypeMatrix[PrimitiveType.Circle.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Inet.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.Cidr.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.MacAddr.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.HStore.ordinal()] = Types.OTHER;
+    primitiveToSQLTypeMatrix[PrimitiveType.ACLItem.ordinal()] = Types.OTHER;
   }
 
-  public static int getSQLType(Type type) {
+  static int getSQLType(Type type) {
 
     PrimitiveType ptype = type.getPrimitiveType();
     if (ptype == null) {
@@ -300,32 +378,7 @@ class SQLTypeMetaData {
     return primitiveToSQLTypeMatrix[ptype.ordinal()];
   }
 
-  public static int getSQLTypeAlias(int sqlType) {
-
-    switch (sqlType) {
-      case Types.BIT:
-        return Types.BOOLEAN;
-
-      case Types.CHAR:
-      case Types.VARCHAR:
-      case Types.LONGVARCHAR:
-        return Types.VARCHAR;
-
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
-        return Types.VARBINARY;
-
-      case Types.NCHAR:
-      case Types.NVARCHAR:
-      case Types.LONGNVARCHAR:
-        return Types.NVARCHAR;
-    }
-
-    return sqlType;
-  }
-
-  public static String getTypeName(Type type, CompositeType relType, int relAttrNum) {
+  static String getTypeName(Type type, CompositeType relType, int relAttrNum) {
 
     //int4/int8 auto-increment fields -> serial/bigserial
     if (isAutoIncrement(type, relType, relAttrNum)) {
@@ -345,7 +398,7 @@ class SQLTypeMetaData {
     return type.getName();
   }
 
-  public static int getPrecisionRadix(Type type) {
+  static int getPrecisionRadix(Type type) {
 
     switch (type.unwrap().getCategory()) {
       case Numeric:
@@ -360,11 +413,7 @@ class SQLTypeMetaData {
 
   }
 
-  public static int getMinPrecision(Type type) {
-    return 0;
-  }
-
-  public static int getMaxPrecision(Type type) {
+  static int getMaxPrecision(Type type) {
 
     type = type.unwrap();
 
@@ -392,7 +441,7 @@ class SQLTypeMetaData {
 
   }
 
-  public static int getPrecision(Type type, int typeLength, int typeModifier) {
+  static int getPrecision(Type type, int typeLength, int typeModifier) {
 
     type = type.unwrap();
     Map<String, Object> mods = type.getModifierParser().parse(typeModifier);
@@ -487,7 +536,7 @@ class SQLTypeMetaData {
     return prec;
   }
 
-  public static int getMinScale(Type type) {
+  static int getMinScale(Type type) {
 
     type = type.unwrap();
     PrimitiveType ptype = type.getPrimitiveType();
@@ -495,16 +544,14 @@ class SQLTypeMetaData {
       return 0;
     }
 
-    switch (ptype) {
-      case Money:
-        return 2;
-      default:
-        return 0;
+    if (ptype == PrimitiveType.Money) {
+      return 2;
     }
 
+    return 0;
   }
 
-  public static int getMaxScale(Type type) {
+  static int getMaxScale(Type type) {
 
     type = type.unwrap();
 
@@ -513,16 +560,14 @@ class SQLTypeMetaData {
       return 0;
     }
 
-    switch (ptype) {
-      case Numeric:
-        return 1000;
-      default:
-        return 0;
+    if (ptype == PrimitiveType.Numeric) {
+      return 1000;
     }
 
+    return 0;
   }
 
-  public static int getScale(Type type, int typeLength, int typeModifier) {
+  static int getScale(Type type, int typeModifier) {
 
     type = type.unwrap();
 
@@ -545,12 +590,7 @@ class SQLTypeMetaData {
         break;
 
       case Numeric:
-        if (scale == -1) {
-          scale = 0;
-        }
-        else {
-          scale = scaleMod;
-        }
+        scale = scaleMod;
         break;
 
       case Time:
@@ -578,15 +618,12 @@ class SQLTypeMetaData {
           scale = scaleMod;
         }
         break;
-
-      default:
-        scale = 0;
     }
 
     return scale;
   }
 
-  public static int getDisplaySize(Type type, int typeLength, int typeModifier) {
+  static int getDisplaySize(Type type, int typeLength, int typeModifier) {
 
     type = type.unwrap();
     Map<String, Object> mods = type.getModifierParser().parse(typeModifier);
@@ -613,7 +650,7 @@ class SQLTypeMetaData {
         }
         else {
           int prec = getPrecision(type, typeLength, typeModifier);
-          int scale = getScale(type, typeLength, typeModifier);
+          int scale = getScale(type, typeModifier);
           size = prec + (scale != 0 ? 1 : 0) + 1;
         }
         break;
@@ -652,7 +689,7 @@ class SQLTypeMetaData {
    *
    * NOTE: Values unceremoniously copied from previous JDBC driver
    *
-   * @param javaType Type to determine the display size of
+   * @param primType Type to determine the display size of
    * @param precision Precision modifier of type
    * @return Suggested display size
    */

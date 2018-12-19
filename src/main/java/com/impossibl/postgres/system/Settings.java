@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.system;
 
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 
@@ -55,6 +56,11 @@ public class Settings {
   public static final String FIELD_VARYING_LENGTH_MAX       = "field.varying.length.max";
   public static final String FIELD_MONEY_FRACTIONAL_DIGITS  = "field.money.fractionalDigits";
   public static final String FIELD_DATETIME_FORMAT_CLASS    = "field.datetime.format";
+
+  public static final String FIELD_FORMAT_PREF              = "field.format.preference";
+  public static final String FIELD_FORMAT_PREF_DEFAULT      = FieldFormat.Binary.name();
+  public static final String PARAM_FORMAT_PREF              = "param.format.preference";
+  public static final String PARAM_FORMAT_PREF_DEFAULT      = FieldFormat.Binary.name();
 
   public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
 
@@ -95,4 +101,5 @@ public class Settings {
 
   public static final String SEND_BUFFER_SIZE = "sendBufferSize";
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
+
 }

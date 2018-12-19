@@ -597,7 +597,7 @@ public class StatementTest {
 
   @Test
   public void testDefaultFetchSize() throws SQLException {
-    int oldValue = ((PGConnection)con).getDefaultFetchSize();
+    int oldValue = ((PGConnection) con).getDefaultFetchSize();
 
     ((PGConnection)con).setDefaultFetchSize(10);
     assertEquals(10, ((PGConnection)con).getDefaultFetchSize());

@@ -38,155 +38,239 @@ import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URL;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
-
-import static java.lang.Math.min;
 
 import io.netty.buffer.ByteBuf;
 
 public class Strings extends SimpleProcProvider {
 
-  public static final BinDecoder BINARY_DECODER = new BinDecoder();
-  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
-  public static final TxtDecoder TEXT_DECODER = new TxtDecoder();
-  public static final TxtEncoder TEXT_ENCODER = new TxtEncoder();
+  static final BinDecoder BINARY_DECODER = new BinDecoder();
+  static final BinEncoder BINARY_ENCODER = new BinEncoder();
+  static final TxtDecoder TEXT_DECODER = new TxtDecoder();
+  static final TxtEncoder TEXT_ENCODER = new TxtEncoder();
 
   public Strings() {
-    super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(), "text", "varchar",
-            "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
+    super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(),
+        "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
   }
 
-  public static class BinDecoder extends BinaryDecoder {
+  private static Bools.TxtDecoder boolDecoder = new Bools.TxtDecoder();
+  private static Bools.TxtEncoder boolEncoder = new Bools.TxtEncoder();
+  private static Int2s.TxtDecoder shortDecoder = new Int2s.TxtDecoder();
+  private static Int2s.TxtEncoder shortEncoder = new Int2s.TxtEncoder();
+  private static Int4s.TxtDecoder intDecoder = new Int4s.TxtDecoder();
+  private static Int4s.TxtEncoder intEncoder = new Int4s.TxtEncoder();
+  private static Int8s.TxtDecoder longDecoder = new Int8s.TxtDecoder();
+  private static Int8s.TxtEncoder longEncoder = new Int8s.TxtEncoder();
+  private static Float4s.TxtDecoder floatDecoder = new Float4s.TxtDecoder();
+  private static Float4s.TxtEncoder floatEncoder = new Float4s.TxtEncoder();
+  private static Float8s.TxtDecoder doubleDecoder = new Float8s.TxtDecoder();
+  private static Float8s.TxtEncoder doubleEncoder = new Float8s.TxtEncoder();
+  private static Numerics.TxtDecoder decimalDecoder = new Numerics.TxtDecoder();
+  private static Numerics.TxtEncoder decimalEncoder = new Numerics.TxtEncoder();
+  private static Bytes.TxtEncoder bytesEncoder = new Bytes.TxtEncoder();
+
+  private static String convertInput(Context context, Object value, Object sourceContext) throws IOException {
+
+    if (value instanceof CharSequence) {
+      return value.toString();
+    }
+
+    StringBuilder out = new StringBuilder();
+
+    if (value instanceof Character) {
+      out.append(value);
+    }
+    else if (value instanceof Boolean) {
+      boolEncoder.encodeNativeValue(context, null, (Boolean) value, sourceContext, out);
+    }
+    else if (value instanceof Short) {
+      shortEncoder.encodeNativeValue(context, null, (Short) value, sourceContext, out);
+    }
+    else if (value instanceof Integer) {
+      intEncoder.encodeNativeValue(context, null, (Integer) value, sourceContext, out);
+    }
+    else if (value instanceof Long) {
+      longEncoder.encodeNativeValue(context, null, (Long) value, sourceContext, out);
+    }
+    else if (value instanceof Float) {
+      floatEncoder.encodeNativeValue(context, null, (Float) value, sourceContext, out);
+    }
+    else if (value instanceof Double) {
+      doubleEncoder.encodeNativeValue(context, null, (Double) value, sourceContext, out);
+    }
+    else if (value instanceof BigDecimal) {
+      decimalEncoder.encodeNativeValue(context, null, (BigDecimal) value, sourceContext, out);
+    }
+    else if (value instanceof byte[]) {
+      bytesEncoder.encodeValue(context, null, value, sourceContext, out);
+    }
+    else {
+      out.append(value);
+    }
+
+    return out.toString();
+  }
+
+  private static Object convertOutput(Context context, String decoded, Class<?> targetClass, Object targetContext) throws IOException {
+
+    try {
+
+      if (targetClass == String.class) {
+        return decoded;
+      }
+
+      if (targetClass == Boolean.class || targetClass == boolean.class) {
+        return boolDecoder.decodeNativeValue(context, null, null, null, decoded, Boolean.class, targetContext);
+      }
+
+      if (targetClass == Byte.class || targetClass == byte.class) {
+        return Byte.valueOf(decoded);
+      }
+
+      if (targetClass == Short.class || targetClass == short.class) {
+        return shortDecoder.decodeNativeValue(context, null, null, null, decoded, Short.class, targetContext);
+      }
+
+      if (targetClass == Integer.class || targetClass == int.class) {
+        return intDecoder.decodeNativeValue(context, null, null, null, decoded, Integer.class, targetContext);
+      }
+
+      if (targetClass == Long.class || targetClass == long.class) {
+        return longDecoder.decodeNativeValue(context, null, null, null, decoded, Long.class, targetContext);
+      }
+
+      if (targetClass == BigInteger.class) {
+        return new BigInteger(decoded);
+      }
+
+      if (targetClass == Float.class || targetClass == float.class) {
+        return floatDecoder.decodeNativeValue(context, null, null, null, decoded, Float.class, targetContext);
+      }
+
+      if (targetClass == Double.class || targetClass == double.class) {
+        return doubleDecoder.decodeNativeValue(context, null, null, null, decoded, Double.class, targetContext);
+      }
+
+      if (targetClass == BigDecimal.class) {
+        return decimalDecoder.decodeNativeValue(context, null, null, null, decoded, BigDecimal.class, targetContext);
+      }
+
+      if (targetClass == URL.class) {
+        return new URL(decoded);
+      }
+
+      return null;
+    }
+    catch (ParseException e) {
+      throw new IOException(e);
+    }
+  }
+
+  public static class BinDecoder extends AutoConvertingBinaryDecoder<String> {
+
+    public BinDecoder() {
+      super(null, Strings::convertOutput);
+      enableRespectMaxLength();
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<String> getDefaultClass() {
       return String.class;
     }
 
     @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected String decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-
-      byte[] bytes;
-
-      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
-      if (maxLength != null) {
-        bytes = new byte[min(maxLength, length)];
-      }
-      else {
-        bytes = new byte[length];
-      }
+      int length = buffer.readableBytes();
+      byte[] bytes = new byte[length];
 
       buffer.readBytes(bytes);
       buffer.skipBytes(length - bytes.length);
 
-      return new String(bytes, context.getCharset());
-    }
-
-  }
-
-  public static class BinEncoder extends BinaryEncoder {
-
-    @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return String;
-    }
-
-    byte[] toBytes(Object val, Context context) {
-      return val.toString().getBytes(context.getCharset());
-    }
-
-    @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        byte[] bytes = toBytes(val, context);
-
-        buffer.writeInt(bytes.length);
-
-        buffer.writeBytes(bytes);
-      }
-
-    }
-
-  }
-
-  public static class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return String;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return String.class;
-    }
-
-    @Override
-    public String decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      CharSequence value = new String(bytes, context.getCharset());
+      Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX, Integer.class);
       if (maxLength != null) {
-        return buffer.subSequence(0, min(buffer.length(), maxLength)).toString();
-      }
-      else {
-        return buffer.toString();
+        value = value.subSequence(0, maxLength);
       }
 
+      return value.toString();
     }
 
   }
 
-  public static class TxtEncoder extends TextEncoder {
+  public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return String.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return String;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val instanceof String) {
-        buffer.append((String)val);
-      }
-      else if (val.getClass() == byte[].class) {
-        buffer.append(new String((byte[]) val, context.getCharset()));
-      }
-      else {
-        throw new IOException(val.getClass() + " cannot be encoded as a String");
-      }
+      buffer.writeCharSequence(convertInput(context, value, sourceContext), context.getCharset());
     }
 
   }
 
-  static class ModParser implements Modifiers.Parser {
+  public static class TxtDecoder extends AutoConvertingTextDecoder<String> {
+
+    TxtDecoder() {
+      super(Strings::convertOutput);
+      enableRespectMaxLength();
+    }
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return String;
+    }
+
+    @Override
+    public Class<String> getDefaultClass() {
+      return String.class;
+    }
+
+    @Override
+    protected String decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+
+      CharSequence value = buffer;
+
+      Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX, Integer.class);
+      if (maxLength != null) {
+        value = value.subSequence(0, maxLength);
+      }
+
+      return value.toString();
+    }
+
+  }
+
+  public static class TxtEncoder extends BaseTextEncoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return String;
+    }
+
+    @Override
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(convertInput(context, value, sourceContext));
+    }
+
+  }
+
+  private static class ModParser implements Modifiers.Parser {
 
     @Override
     public Map<String, Object> parse(long mod) {
@@ -194,7 +278,7 @@ public class Strings extends SimpleProcProvider {
       Map<String, Object> mods = new HashMap<>();
 
       if (mod > 4) {
-        mods.put(LENGTH, (int)(mod - 4));
+        mods.put(LENGTH, (int) (mod - 4));
       }
 
       return mods;

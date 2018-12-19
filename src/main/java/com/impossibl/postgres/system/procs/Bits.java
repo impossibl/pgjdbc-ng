@@ -29,13 +29,14 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.types.PrimitiveType.Bits;
-
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.BitSet;
 
 import io.netty.buffer.ByteBuf;
@@ -46,25 +47,124 @@ public class Bits extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bit_", "varbit_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static boolean[] convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
 
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return Bits;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return BitSet.class;
-    }
-
-    @Override
-    public BitSet decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
+    if (source instanceof BitSet) {
+      BitSet val = (BitSet) source;
+      boolean[] res = new boolean[val.size()];
+      for (int bitIdx = 0; bitIdx < res.length; ++bitIdx) {
+        res[bitIdx] = val.get(bitIdx);
       }
+      return res;
+    }
+
+    if (source instanceof Boolean) {
+      return new boolean[] {(Boolean) source};
+    }
+
+    if (source instanceof Byte) {
+      Byte val = (Byte) source;
+      return new boolean[] {val != 0};
+    }
+
+    if (source instanceof Short) {
+      Short val = (Short) source;
+      return new boolean[] {val != 0};
+    }
+
+    if (source instanceof Integer) {
+      Integer val = (Integer) source;
+      return new boolean[] {val != 0};
+    }
+
+    if (source instanceof Long) {
+      Long val = (Long) source;
+      return new boolean[] {val != 0};
+    }
+
+    if (source instanceof Float) {
+      Float val = (Float) source;
+      return new boolean[] {val != 0.0};
+    }
+
+    if (source instanceof Double) {
+      Double val = (Double) source;
+      return new boolean[] {val != 0.0};
+    }
+
+    if (source instanceof BigDecimal) {
+      BigDecimal val = (BigDecimal) source;
+      return new boolean[] {val.compareTo(BigDecimal.ZERO) != 0};
+    }
+
+    if (source instanceof String) {
+      return bitStringToBools((String) source);
+    }
+
+    return null;
+  }
+
+  static Object convertOutput(Context context, boolean[] decoded, Class<?> targetClass, Object targetContext) throws ConversionException {
+
+    if (targetClass == Boolean.class || targetClass == boolean.class) {
+      return decoded[0];
+    }
+
+    if (targetClass == Byte.class || targetClass == byte.class) {
+      return decoded[0] ? (byte) 1 : (byte) 0;
+    }
+
+    if (targetClass == Short.class || targetClass == short.class) {
+      return decoded[0] ? (short) 1 : (short) 0;
+    }
+
+    if (targetClass == Integer.class || targetClass == int.class) {
+      return decoded[0] ? 1 : 0;
+    }
+
+    if (targetClass == Long.class || targetClass == long.class) {
+      return decoded[0] ? (long) 1 : (long) 0;
+    }
+
+    if (targetClass == BigInteger.class) {
+      return decoded[0] ? BigInteger.ONE : BigInteger.ZERO;
+    }
+
+    if (targetClass == Float.class || targetClass == float.class) {
+      return decoded[0] ? (float) 1.0 : (float) 0.0;
+    }
+
+    if (targetClass == Double.class || targetClass == double.class) {
+      return decoded[0] ? 1.0 : 0.0;
+    }
+
+    if (targetClass == String.class) {
+      StringBuilder val = new StringBuilder();
+      boolsToBitString(decoded, val);
+      return val.toString();
+    }
+
+    return null;
+  }
+
+  static class BinDecoder extends AutoConvertingBinaryDecoder<boolean[]> {
+
+    BinDecoder() {
+      super(Bits::convertOutput);
+    }
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Bits;
+    }
+
+    @Override
+    public Class<boolean[]> getDefaultClass() {
+      return boolean[].class;
+    }
+
+    @Override
+    protected boolean[] decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       int bitCount = buffer.readInt();
 
@@ -82,90 +182,85 @@ public class Bits extends SimpleProcProvider {
 
       // Set equivalent bits in bit set (they use reversed encodings so
       // they cannot be just copied in
-      BitSet bs = new BitSet(bitCount);
+      boolean[] bits = new boolean[bitCount];
       for (int c = 0; c < bitCount; ++c) {
-        bs.set(c, (bytes[c / 8] & (0x80 >> (c % 8))) != 0);
+        bits[c] = (bytes[c / 8] & (0x80 >> (c % 8))) != 0;
       }
 
-      return bs;
+      return bits;
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<boolean[]> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BitSet.class;
+    BinEncoder() {
+      super(Bits::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Bits;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Bits;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected Class<boolean[]> getDefaultClass() {
+      return boolean[].class;
+    }
 
-      if (val == null) {
+    @Override
+    protected void encodeNativeValue(Context context, Type type, boolean[] value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
+      int bitCount = value.length;
+      int byteCount = (bitCount + 7) / 8;
 
-      }
-      else {
-
-        BitSet bs = (BitSet) val;
-
-        int bitCount = bs.length();
-        int byteCount = (bitCount + 7) / 8;
-
-        // Set equivalent bits in byte array (they use reversed encodings so
-        // they cannot be just copied in
-        byte[] bytes = new byte[byteCount];
-        for (int c = 0; c < bitCount; ++c) {
-          bytes[c / 8] |= ((0x80 >> (c % 8)) & (bs.get(c) ? 0xff : 0x00));
-        }
-
-        buffer.writeInt(4 + byteCount);
-        buffer.writeInt(bitCount);
-        buffer.writeBytes(bytes);
-
+      // Set equivalent bits in byte array (they use reversed encodings so
+      // they cannot be just copied in
+      byte[] bytes = new byte[byteCount];
+      for (int c = 0; c < bitCount; ++c) {
+        bytes[c / 8] |= ((0x80 >> (c % 8)) & (value[c] ? 0xff : 0x00));
       }
 
+      buffer.writeInt(bitCount);
+      buffer.writeBytes(bytes);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<boolean[]> {
 
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return Bits;
+    TxtDecoder() {
+      super(Bits::convertOutput);
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return BitSet.class;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Bits;
     }
 
     @Override
-    public BitSet decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    public Class<boolean[]> getDefaultClass() {
+      return boolean[].class;
+    }
 
-      BitSet bits = new BitSet();
+    @Override
+    protected boolean[] decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      boolean[] bits = new boolean[buffer.length()];
 
       for (int c = 0, sz = buffer.length(); c < sz; ++c) {
 
         switch (buffer.charAt(c)) {
           case '0':
-            bits.clear(c);
+            bits[c] = false;
             break;
 
           case '1':
-            bits.set(c);
+            bits[c] = true;
             break;
 
           default:
-            throw new IOException("Invalid bits format");
+            throw new ConversionException("'" + buffer.charAt(c) + "' is not a valid binary digit");
         }
       }
 
@@ -174,30 +269,83 @@ public class Bits extends SimpleProcProvider {
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<boolean[]> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BitSet.class;
+    TxtEncoder() {
+      super(Bits::convertInput);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Bits;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Bits;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected Class<boolean[]> getDefaultClass() {
+      return boolean[].class;
+    }
 
-      BitSet bits = (BitSet) val;
+    @Override
+    protected void encodeNativeValue(Context context, Type type, boolean[] value, Object sourceContext, StringBuilder buffer) throws IOException {
+      boolsToBitString(value, buffer);
+    }
 
-      for (int c = 0, sz = bits.length(); c < sz; ++c) {
+  }
 
-        buffer.append(bits.get(c) ? '1' : '0');
+  private static void boolsToBitString(boolean[] bits, Appendable out) throws ConversionException {
+    try {
+      for (boolean bit : bits) {
+        out.append(bit ? '1' : '0');
       }
+    }
+    catch (IOException e) {
+      throw new ConversionException("Error converting bits");
+    }
+  }
 
+  private static boolean[] bitStringToBools(String val) throws ConversionException {
+
+    if (val.length() == 0) {
+      return new boolean[0];
     }
 
+    switch (val.charAt(0)) {
+      case 'B':
+      case 'b':
+        return binaryBitStringToBools(val.substring(1));
+
+      case 'X':
+      case 'x':
+        return bytesToBools(Bytes.decodeHex(val.substring(1)));
+
+      default:
+        return binaryBitStringToBools(val);
+    }
+
+  }
+
+  private static boolean[] bytesToBools(byte[] bytes) {
+    BitSet bitSet = BitSet.valueOf(bytes);
+    boolean[] bits = new boolean[bytes.length * 8];
+    for (int c = 0; c < bits.length; ++c) {
+      bits[bits.length - c - 1] = bitSet.get(c);
+    }
+    return bits;
+  }
+
+  private static boolean[] binaryBitStringToBools(String val) throws ConversionException {
+
+    boolean[] bits = new boolean[val.length()];
+
+    for (int c = 0; c < val.length(); ++c) {
+      char cur = val.charAt(c);
+      if (cur != '1' && cur != '0') {
+        throw new ConversionException("'" + cur + "' is not a valid binary digit");
+      }
+      bits[c] = cur == '1';
+    }
+
+    return bits;
   }
 
 }

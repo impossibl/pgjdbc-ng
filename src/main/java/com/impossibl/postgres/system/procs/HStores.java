@@ -31,10 +31,14 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.TypeLiteral;
+
+import static com.impossibl.postgres.utils.ByteBufs.lengthDecodeBinary;
+import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import io.netty.buffer.ByteBuf;
@@ -45,93 +49,109 @@ public class HStores extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "hstore_");
   }
 
-  // TODO Map implementation to be used should be configurable
   private static Map<String, String> newMap(int size) {
     return new HashMap<>(Math.max(2, size));
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends AutoConvertingBinaryDecoder<Map<String, String>> {
 
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+    BinDecoder() {
+      super(Map::toString);
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Map.class;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.HStore;
     }
 
     @Override
-    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      // length
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
+    public Class<Map<String, String>> getDefaultClass() {
+      return new TypeLiteral<Map<String, String>>() { }.getRawType();
+    }
+
+    @Override
+    protected Map<String, String> decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      Type textType = context.getRegistry().loadType("text");
+
       int numElements = buffer.readInt();
       Map<String, String> m = newMap(numElements);
       for (int i = 0; i < numElements; ++i) {
-        String key = Strings.BINARY_DECODER.decode(type, null, null, buffer, context);
-        String val = Strings.BINARY_DECODER.decode(type, null, null, buffer, context);
+        String key = (String) lengthDecodeBinary(Strings.BINARY_DECODER, context, textType, textType.getLength(), null, buffer, String.class, null);
+        String val = (String) lengthDecodeBinary(Strings.BINARY_DECODER, context, textType, textType.getLength(), null, buffer, String.class, null);
         m.put(key, val);
       }
+
       return m;
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<Map<String, String>> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Map.class;
+    BinEncoder() {
+      super(TxtDecoder::parse);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.HStore;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      // length
-      buffer.writeInt(-1);
-      if (val != null) {
-        int start = buffer.writerIndex();
-        @SuppressWarnings("unchecked")
-        Map<String, String> map = (Map<String, String>) val;
-        // nb elements
-        buffer.writeInt(map.size());
-        for (Map.Entry<String, String> e : map.entrySet()) {
-          Strings.BINARY_ENCODER.encode(type, buffer, e.getKey(), context);
-          Strings.BINARY_ENCODER.encode(type, buffer, e.getValue(), context);
-        }
-        // Set length
-        buffer.setInt(start - 4, buffer.writerIndex() - start);
+    public Class<Map<String, String>> getDefaultClass() {
+      return new TypeLiteral<Map<String, String>>() { }.getRawType();
+    }
+
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Map<String, String> value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      Type textType = context.getRegistry().loadType("text");
+
+      // nb elements
+      buffer.writeInt(value.size());
+
+      for (Map.Entry<String, String> e : value.entrySet()) {
+        lengthEncodeBinary(Strings.BINARY_ENCODER, context, textType, e.getKey(), null, buffer);
+        lengthEncodeBinary(Strings.BINARY_ENCODER, context, textType, e.getValue(), null, buffer);
       }
+
     }
+
   }
 
-  // https://github.com/pgjdbc/pgjdbc/blob/master/org/postgresql/util/HStoreConverter.java
-  static class TxtDecoder extends TextDecoder {
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Binary;
+  static class TxtDecoder extends AutoConvertingTextDecoder<Map<String, String>> {
+
+    TxtDecoder() {
+      super(Map::toString);
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Map.class;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.HStore;
     }
 
     @Override
-    public Map<String, String> decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    public Class<Map<String, String>> getDefaultClass() {
+      return new TypeLiteral<Map<String, String>>() { }.getRawType();
+    }
+
+    @Override
+    protected Map<String, String> decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+
+      return parse(buffer);
+    }
+
+    private static Map<String, String> parse(CharSequence buffer) {
+
       Map<String, String> m = newMap(10);
+
       String s = buffer.toString();
       int pos = 0;
       StringBuilder sb = new StringBuilder();
+
       while (pos < buffer.length()) {
+
         sb.setLength(0);
         int start = s.indexOf('"', pos);
         int end = appendUntilQuote(sb, s, start);
@@ -149,9 +169,12 @@ public class HStores extends SimpleProcProvider {
           val = sb.toString();
           pos = end;
         }
+
         pos++;
+
         m.put(key, val);
       }
+
       return m;
     }
 
@@ -172,32 +195,40 @@ public class HStores extends SimpleProcProvider {
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<Map<String, String>> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Map.class;
+    protected TxtEncoder() {
+      super(TxtDecoder::parse);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Binary;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.HStore;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      @SuppressWarnings("unchecked")
-      Map<String, String> map = (Map<String, String>) val;
-      if (map.isEmpty()) {
+    public Class<Map<String, String>> getDefaultClass() {
+      return new TypeLiteral<Map<String, String>>() { }.getRawType();
+    }
+
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Map<String, String> value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      if (value.isEmpty()) {
         return;
       }
-      for (Iterator<Map.Entry<String, String>> i = map.entrySet().iterator(); i.hasNext();) {
-        Map.Entry<String, String> e = i.next();
+
+      for (Map.Entry<String, String> e : value.entrySet()) {
+
         appendEscaped(buffer, e.getKey());
+
         buffer.append("=>");
+
         appendEscaped(buffer, e.getValue());
+
         buffer.append(", ");
       }
+
       buffer.setLength(buffer.length() - 2);
     }
 
@@ -218,6 +249,7 @@ public class HStores extends SimpleProcProvider {
         sb.append("NULL");
       }
     }
+
   }
 
 }

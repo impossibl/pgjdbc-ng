@@ -128,20 +128,18 @@ class ConnectionUtil {
      */
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder();
-      sb = sb.append("ConnectionSpecifier[");
-      sb = sb.append("hosts=").append(getHosts());
-      sb = sb.append(",");
-      sb = sb.append("database=").append(getDatabase());
-      sb = sb.append(",");
-      sb = sb.append("parameters=").append(getParameters());
-      sb = sb.append("]");
-
-      return sb.toString();
+      return new StringBuilder("ConnectionSpecifier[")
+          .append("hosts=").append(getHosts())
+          .append(",")
+          .append("database=").append(getDatabase())
+          .append(",")
+          .append("parameters=").append(getParameters())
+          .append("]")
+          .toString();
     }
   }
 
-  static PGConnectionImpl createConnection(String url, Properties info, boolean allowHousekeeper) throws SQLException {
+  static PGDirectConnection createConnection(String url, Properties info, boolean allowHousekeeper) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -177,7 +175,7 @@ class ConnectionUtil {
 
       try {
 
-        PGConnectionImpl conn = new PGConnectionImpl(address, settings, housekeeper);
+        PGDirectConnection conn = new PGDirectConnection(address, settings, housekeeper);
 
         conn.init();
 

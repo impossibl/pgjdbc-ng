@@ -33,7 +33,7 @@ import com.impossibl.postgres.types.Type;
 
 public class TypeRef {
 
-  Object val;
+  private Object val;
 
   public Type get() {
     if (val instanceof Locator) {
@@ -54,6 +54,14 @@ public class TypeRef {
     return new TypeRef(type);
   }
 
+  @Override
+  public String toString() {
+    if (val instanceof Locator) {
+      return "->" + val.toString();
+    }
+    return val.toString();
+  }
+
 }
 
 
@@ -62,12 +70,12 @@ class Locator {
   private int typeId;
   private Registry registry;
 
-  public Locator(int typeId, Registry registry) {
+  Locator(int typeId, Registry registry) {
     this.typeId = typeId;
     this.registry = registry;
   }
 
-  public Type locate() {
+  Type locate() {
     return registry.loadType(typeId);
   }
 

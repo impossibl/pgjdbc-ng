@@ -48,105 +48,93 @@ public class Circles extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "circle_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(24);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Circle;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 24) {
-        throw new IOException("invalid length " + length);
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       // p.x, p.y, radius
       return new double[] {buffer.readDouble(), buffer.readDouble(), buffer.readDouble()};
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return double[].class;
+    BinEncoder() {
+      super(24);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Circle;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      double[] circle = (double[]) value;
+      if (circle.length != 3) {
+        throw new IOException("invalid length");
       }
-      else {
-        double[] circle = (double[]) val;
-        if (circle.length != 3) {
-          throw new IOException("invalid length");
-        }
-        buffer.writeInt(24);
-        buffer.writeDouble(circle[0]); // p.x
-        buffer.writeDouble(circle[1]); // p.y
-        buffer.writeDouble(circle[2]); // radius
-      }
+
+      buffer.writeDouble(circle[0]); // p.x
+      buffer.writeDouble(circle[1]); // p.y
+      buffer.writeDouble(circle[2]); // radius
     }
+
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Circle;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[].class;
     }
 
     @Override
-    public double[] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return GeometryParsers.INSTANCE.parseCircle(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return double[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Circle;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        return;
-      }
-      double[] point = (double[]) val;
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      double[] point = (double[]) value;
       if (point.length != 3) {
         throw new IOException("invalid length");
       }
-      buffer.append("<(").append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append("),").append(Double.toString(point[2])).append('>');
+
+      buffer.append("<(").append(point[0]).append(',').append(point[1]).append("),").append(point[2]).append('>');
     }
 
   }
+
 }

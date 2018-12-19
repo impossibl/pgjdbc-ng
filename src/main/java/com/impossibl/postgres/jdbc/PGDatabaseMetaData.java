@@ -29,10 +29,10 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.ACLItem;
-import com.impossibl.postgres.protocol.DataRow;
-import com.impossibl.postgres.protocol.ParsedDataRow;
+import com.impossibl.postgres.protocol.BufferRowData;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Registry;
@@ -46,6 +46,7 @@ import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PseudoColumnUsage;
@@ -60,8 +61,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Arrays.asList;
-
 class PGDatabaseMetaData implements DatabaseMetaData {
 
   private static final String EXTRA_KEYWORDS =
@@ -74,17 +73,17 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       "returns,rule,recipe,setof,stdin,stdout,store," +
       "vacuum,verbose,version";
 
-  PGConnectionImpl connection;
+  PGDirectConnection connection;
   int maxNameLength;
   int maxIndexKeys;
 
-  PGDatabaseMetaData(PGConnectionImpl connection) {
+  PGDatabaseMetaData(PGDirectConnection connection) {
     this.connection = connection;
   }
 
   private int execForInteger(String query) throws SQLException {
 
-    String res = connection.executeForString(query, false);
+    String res = connection.executeForString(query);
     if (res == null) {
       throw SERVER_VERSION_NOT_SUPPORTED;
     }
@@ -115,17 +114,21 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return ps.executeQuery();
   }
 
-  private PGResultSet createResultSet(List<ResultField> resultFields, List<Object[]> results) throws SQLException {
+  private PGResultSet createResultSet(ResultField[] resultFields, List<Object[]> results) throws SQLException {
 
-    List<DataRow> dataRows = new ArrayList<>();
-
-    for (Object[] row : results) {
-      dataRows.add(new ParsedDataRow(row));
+    List<RowData> rows = new ArrayList<>(results.size());
+    for (Object[] resultValues : results) {
+      try {
+        rows.add(BufferRowData.encode(connection, resultFields, resultValues));
+      }
+      catch (IOException e) {
+        throw new PGSQLSimpleException("Error encoding row value", e);
+      }
     }
 
     PGStatement stmt = connection.createStatement();
     stmt.closeOnCompletion();
-    return stmt.createResultSet(resultFields, dataRows, false);
+    return stmt.createResultSet(resultFields, rows, true, connection.getTypeMap());
   }
 
   private int getMaxNameLength() throws SQLException {
@@ -810,26 +813,26 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     ResultField[] resultFields = new ResultField[20];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] =   new ResultField("PROCEDURE_CAT",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[1] =   new ResultField("PROCEDURE_SCHEM",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[2] =   new ResultField("PROCEDURE_NAME",     0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[3] =   new ResultField("COLUMN_NAME",        0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[4] =   new ResultField("COLUMN_TYPE",        0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[5] =   new ResultField("DATA_TYPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[6] =   new ResultField("TYPE_NAME",          0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[7] =   new ResultField("PRECISION",          0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[8] =   new ResultField("LENGTH",             0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[9] =   new ResultField("SCALE",              0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[10] =  new ResultField("RADIX",              0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[11] =  new ResultField("NULLABLE",           0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[12] =  new ResultField("REMARKS",            0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[13] =  new ResultField("COLUMN_DEF",         0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[14] =  new ResultField("SQL_DATA_TYPE",      0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[15] =  new ResultField("SQL_DATETIME_SUB",   0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[16] =  new ResultField("CHAR_OCTECT_LENGTH", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[17] =  new ResultField("ORDINAL_POSITION",   0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[18] =  new ResultField("IS_NULLABLE",        0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[19] =  new ResultField("SPECIFIC_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[0] =   new ResultField("PROCEDURE_CAT",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[1] =   new ResultField("PROCEDURE_SCHEM",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[2] =   new ResultField("PROCEDURE_NAME",     0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[3] =   new ResultField("COLUMN_NAME",        0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[4] =   new ResultField("COLUMN_TYPE",        0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[5] =   new ResultField("DATA_TYPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[6] =   new ResultField("TYPE_NAME",          0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[7] =   new ResultField("PRECISION",          0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[8] =   new ResultField("LENGTH",             0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[9] =   new ResultField("SCALE",              0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[10] =  new ResultField("RADIX",              0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[11] =  new ResultField("NULLABLE",           0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[12] =  new ResultField("REMARKS",            0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[13] =  new ResultField("COLUMN_DEF",         0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[14] =  new ResultField("SQL_DATA_TYPE",      0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[15] =  new ResultField("SQL_DATETIME_SUB",   0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[16] =  new ResultField("CHAR_OCTECT_LENGTH", 0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[17] =  new ResultField("ORDINAL_POSITION",   0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[18] =  new ResultField("IS_NULLABLE",        0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[19] =  new ResultField("SPECIFIC_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     StringBuilder sql = new StringBuilder();
     List<Object> params = new ArrayList<>();
@@ -931,7 +934,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           }
 
           row[5] = SQLTypeMetaData.getSQLType(argType);
-          row[6] = argType.getJavaType(argType.getPreferredFormat(), connection.getTypeMap()).getName();
+          row[6] = argType.getCodec(argType.getResultFormat()).getDecoder().getDefaultClass().getName();
           row[7] = null;
           row[8] = null;
           row[9] = null;
@@ -962,7 +965,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
                 row[3] = columnrs.getString("attname");
                 row[4] = DatabaseMetaData.procedureColumnResult;
                 row[5] = SQLTypeMetaData.getSQLType(columnType);
-                row[6] = columnType.getJavaType(columnType.getPreferredFormat(), connection.getTypeMap()).getName();
+                row[6] = columnType.getCodec(columnType.getResultFormat()).getDecoder().getDefaultClass().getName();
                 row[7] = null;
                 row[8] = null;
                 row[9] = null;
@@ -982,7 +985,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       }
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -1117,19 +1120,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getCatalogs() throws SQLException {
 
     ResultField[] resultFields = new ResultField[1];
-    resultFields[0] = new ResultField("TABLE_CAT", 0, (short)0, connection.getRegistry().loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("TABLE_CAT", 0, (short)0, connection.getRegistry().loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
     results.add(new Object[] {connection.getCatalog()});
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
   public ResultSet getTableTypes() throws SQLException {
 
     ResultField[] resultFields = new ResultField[1];
-    resultFields[0] = new ResultField("TABLE_TYPE", 0, (short)0, connection.getRegistry().loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("TABLE_TYPE", 0, (short)0, connection.getRegistry().loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
@@ -1138,7 +1141,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     }
 
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   static class ColumnData {
@@ -1228,36 +1231,34 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //Build result set (manually)
 
     ResultField[] resultFields = new ResultField[24];
-    resultFields[0] = new ResultField("TABLE_CAT",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("TABLE_SCHEM",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[2] = new ResultField("TABLE_NAME",         0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[3] = new ResultField("COLUMN_NAME",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[5] = new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[6] = new ResultField("COLUMN_SIZE",        0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[7] = new ResultField("BUFFER_LENGTH",      0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[8] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[9] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[10] = new ResultField("NULLABLE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[11] = new ResultField("REMARKS",           0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[12] = new ResultField("COLUMN_DEF",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[13] = new ResultField("SQL_DATA_TYPE",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[14] = new ResultField("SQL_DATETIME_SUB",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[15] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[16] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[17] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[18] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[19] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[20] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[21] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, Format.Binary);
-    resultFields[22] = new ResultField("IS_AUTOINCREMENT",  0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN", 0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("TABLE_CAT",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[1] = new ResultField("TABLE_SCHEM",        0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[2] = new ResultField("TABLE_NAME",         0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[3] = new ResultField("COLUMN_NAME",        0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[5] = new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[6] = new ResultField("COLUMN_SIZE",        0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[7] = new ResultField("BUFFER_LENGTH",      0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[8] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[9] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[10] = new ResultField("NULLABLE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[11] = new ResultField("REMARKS",           0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[12] = new ResultField("COLUMN_DEF",        0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[13] = new ResultField("SQL_DATA_TYPE",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[14] = new ResultField("SQL_DATETIME_SUB",  0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[15] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[16] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[17] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[18] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[19] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[20] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[21] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[22] = new ResultField("IS_AUTOINCREMENT",  0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[23] = new ResultField("IS_GENERATEDCOLUMN", 0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
-    for (int c = 0; c < columnsData.size(); ++c) {
-
-      ColumnData columnData = columnsData.get(c);
+    for (ColumnData columnData : columnsData) {
 
       Object[] row = new Object[resultFields.length];
 
@@ -1275,7 +1276,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
       row[6] = size;
       row[7] = null;
-      row[8] = SQLTypeMetaData.getScale(columnData.type, columnData.typeLength, columnData.typeModifier);
+      row[8] = SQLTypeMetaData.getScale(columnData.type, columnData.typeModifier);
 
       row[9] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
       row[10] = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
@@ -1287,7 +1288,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[16] = columnData.relationAttrNum;
 
       String nullable;
-      switch ((int)row[10]) {
+      switch ((int) row[10]) {
         case columnNoNulls:
           nullable = "NO";
           break;
@@ -1310,7 +1311,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       results.add(row);
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -1354,14 +1355,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 
     ResultField[] fields = new ResultField[8];
-    fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[3] = new ResultField("COLUMN_NAME",  0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[4] = new ResultField("GRANTOR",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[5] = new ResultField("GRANTEE",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[6] = new ResultField("PRIVILEGE",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[7] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[3] = new ResultField("COLUMN_NAME",  0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[4] = new ResultField("GRANTOR",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[5] = new ResultField("GRANTEE",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[6] = new ResultField("PRIVILEGE",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[7] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
@@ -1435,7 +1436,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     }
 
-    return createResultSet(Arrays.asList(fields), results);
+    return createResultSet(fields, results);
   }
 
   @Override
@@ -1468,13 +1469,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
 
     ResultField[] fields = new ResultField[7];
-    fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[3] = new ResultField("GRANTOR",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[4] = new ResultField("GRANTEE",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[5] = new ResultField("PRIVILEGE",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    fields[6] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
+    fields[0] = new ResultField("TABLE_CAT",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[1] = new ResultField("TABLE_SCHEM",  0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[2] = new ResultField("TABLE_NAME",   0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[3] = new ResultField("GRANTOR",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[4] = new ResultField("GRANTEE",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[5] = new ResultField("PRIVILEGE",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    fields[6] = new ResultField("IS_GRANTABLE", 0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
@@ -1539,7 +1540,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       }
     }
 
-    return createResultSet(Arrays.asList(fields), results);
+    return createResultSet(fields, results);
   }
 
   private static void mapACLPrivileges(String owner, ACLItem[] aclItems, Map<String, Map<String, List<String[]>>> privileges) {
@@ -1659,14 +1660,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     ResultField[] resultFields = new ResultField[8];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] = new ResultField("SCOPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("COLUMN_NAME",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[2] = new ResultField("DATA_TYPE",      0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[3] = new ResultField("TYPE_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[4] = new ResultField("COLUMN_SIZE",    0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[5] = new ResultField("BUFFER_LENGTH",  0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[6] = new ResultField("DECIMAL_DIGITS", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[7] = new ResultField("PSEUDO_COLUMN",  0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("SCOPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[1] = new ResultField("COLUMN_NAME",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[2] = new ResultField("DATA_TYPE",      0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[3] = new ResultField("TYPE_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[4] = new ResultField("COLUMN_SIZE",    0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[5] = new ResultField("BUFFER_LENGTH",  0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS", 0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[7] = new ResultField("PSEUDO_COLUMN",  0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
 
     try (ResultSet rs = execForResultSet(sql.toString(), params)) {
       while (rs.next()) {
@@ -1675,7 +1676,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         Type type = reg.loadType(rs.getInt("atttypid"));
         int typeLen = rs.getInt("attlen");
         int typeMod = rs.getInt("atttypmod");
-        int decimalDigits = SQLTypeMetaData.getScale(type, typeLen, typeMod);
+        int decimalDigits = SQLTypeMetaData.getScale(type, typeMod);
         int columnSize = SQLTypeMetaData.getPrecision(type, typeLen, typeMod);
         if (columnSize == 0) {
           columnSize = SQLTypeMetaData.getDisplaySize(type, typeLen, typeMod);
@@ -1693,7 +1694,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       }
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -1704,14 +1705,14 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     ResultField[] resultFields = new ResultField[8];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] = new ResultField("SCOPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("COLUMN_NAME",    0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[2] = new ResultField("DATA_TYPE",      0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[3] = new ResultField("TYPE_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[4] = new ResultField("COLUMN_SIZE",    0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[5] = new ResultField("BUFFER_LENGTH",  0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[6] = new ResultField("DECIMAL_DIGITS", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[7] = new ResultField("PSEUDO_COLUMN",  0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("SCOPE",          0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[1] = new ResultField("COLUMN_NAME",    0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[2] = new ResultField("DATA_TYPE",      0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[3] = new ResultField("TYPE_NAME",      0, (short)0, reg.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[4] = new ResultField("COLUMN_SIZE",    0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[5] = new ResultField("BUFFER_LENGTH",  0, (short)0, reg.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS", 0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[7] = new ResultField("PSEUDO_COLUMN",  0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
 
     Object[] row = new Object[8];
 
@@ -1738,7 +1739,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     results.add(row);
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -1773,8 +1774,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return execForResultSet(sql.toString(), params);
   }
 
-  protected ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema, String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException
-  {
+  protected ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema, String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException {
     StringBuilder sql = new StringBuilder();
     List<Object> params = new ArrayList<>();
 
@@ -1862,24 +1862,24 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     ResultField[] resultFields = new ResultField[18];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] =   new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[1] =   new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[2] =   new ResultField("PRECISION",          0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[3] =   new ResultField("LITERAL_PREFIX",     0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[4] =   new ResultField("LITERAL_SUFFIX",     0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[5] =   new ResultField("CREATE_PARAMS",      0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[6] =   new ResultField("NULLABLE",           0, (short)0, registry.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[7] =   new ResultField("CASE_SENSITIVE",     0, (short)0, registry.loadType("bool"), (short)0, 0, Format.Binary);
-    resultFields[8] =   new ResultField("SEARCHABLE",         0, (short)0, registry.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[9] =   new ResultField("UNSIGNED_ATTRIBUTE", 0, (short)0, registry.loadType("bool"), (short)0, 0, Format.Binary);
-    resultFields[10] =  new ResultField("FIXED_PREC_SCALE",   0, (short)0, registry.loadType("bool"), (short)0, 0, Format.Binary);
-    resultFields[11] =  new ResultField("AUTO_INCREMENT",     0, (short)0, registry.loadType("bool"), (short)0, 0, Format.Binary);
-    resultFields[12] =  new ResultField("LOCAL_TYPE_NAME",    0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[13] =  new ResultField("MINIMUM_SCALE",      0, (short)0, registry.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[14] =  new ResultField("MAXIMUM_SCALE",      0, (short)0, registry.loadType("int2"), (short)0, 0, Format.Binary);
-    resultFields[15] =  new ResultField("SQL_DATA_TYPE",      0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[16] =  new ResultField("SQL_DATETIME_SUB",   0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[17] =  new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
+    resultFields[0] =   new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[1] =   new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[2] =   new ResultField("PRECISION",          0, (short)0, registry.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[3] =   new ResultField("LITERAL_PREFIX",     0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[4] =   new ResultField("LITERAL_SUFFIX",     0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[5] =   new ResultField("CREATE_PARAMS",      0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[6] =   new ResultField("NULLABLE",           0, (short)0, registry.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[7] =   new ResultField("CASE_SENSITIVE",     0, (short)0, registry.loadType("bool"), (short)0, 0, FieldFormat.Binary);
+    resultFields[8] =   new ResultField("SEARCHABLE",         0, (short)0, registry.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[9] =   new ResultField("UNSIGNED_ATTRIBUTE", 0, (short)0, registry.loadType("bool"), (short)0, 0, FieldFormat.Binary);
+    resultFields[10] =  new ResultField("FIXED_PREC_SCALE",   0, (short)0, registry.loadType("bool"), (short)0, 0, FieldFormat.Binary);
+    resultFields[11] =  new ResultField("AUTO_INCREMENT",     0, (short)0, registry.loadType("bool"), (short)0, 0, FieldFormat.Binary);
+    resultFields[12] =  new ResultField("LOCAL_TYPE_NAME",    0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[13] =  new ResultField("MINIMUM_SCALE",      0, (short)0, registry.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[14] =  new ResultField("MAXIMUM_SCALE",      0, (short)0, registry.loadType("int2"), (short)0, 0, FieldFormat.Binary);
+    resultFields[15] =  new ResultField("SQL_DATA_TYPE",      0, (short)0, registry.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[16] =  new ResultField("SQL_DATETIME_SUB",   0, (short)0, registry.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[17] =  new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"), (short)0, 0, FieldFormat.Binary);
 
     String sql =
         "SELECT t.typname,t.oid FROM pg_catalog.pg_type t" +
@@ -1919,7 +1919,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       }
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -2237,25 +2237,25 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     PGResultSet rs = execForResultSet(sql.toString(), params);
 
     ResultField[] fields = new ResultField[7];
-    fields[0] = rs.getResultFields().get(0);
-    fields[1] = rs.getResultFields().get(1);
-    fields[2] = rs.getResultFields().get(2);
-    fields[3] = rs.getResultFields().get(3);
-    fields[4] = rs.getResultFields().get(4);
-    fields[5] = rs.getResultFields().get(5);
-    fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadType("int2"), (short)0, 0, Format.Binary);
+    fields[0] = rs.getResultFields()[0];
+    fields[1] = rs.getResultFields()[1];
+    fields[2] = rs.getResultFields()[2];
+    fields[3] = rs.getResultFields()[3];
+    fields[4] = rs.getResultFields()[4];
+    fields[5] = rs.getResultFields()[5];
+    fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadType("int2"), (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
     while (rs.next()) {
 
       Object[] row = new Object[7];
 
-      row[0] = rs.get(1);
-      row[1] = rs.get(2);
-      row[2] = rs.get(3);
-      row[3] = rs.get(4);
-      row[4] = rs.get(5);
-      row[5] = rs.get(6);
+      row[0] = rs.getObject(1);
+      row[1] = rs.getObject(2);
+      row[2] = rs.getObject(3);
+      row[3] = rs.getObject(4);
+      row[4] = rs.getObject(5);
+      row[5] = rs.getObject(6);
 
       Type type = reg.loadType(rs.getInt(7));
       if (type != null) {
@@ -2270,7 +2270,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     rs.close();
 
-    return createResultSet(Arrays.asList(fields), results);
+    return createResultSet(fields, results);
   }
 
   static class AttributeData {
@@ -2354,27 +2354,27 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     //Build result set (manually)
 
     ResultField[] resultFields = new ResultField[21];
-    resultFields[0] = new ResultField("TYPE_CAT",           0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("TYPE_SCHEM",         0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[2] = new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[3] = new ResultField("ATTR_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[5] = new ResultField("ATTR_TYPE_NAME",     0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[6] = new ResultField("ATTR_SIZE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[7] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[8] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[9] = new ResultField("NULLABLE",           0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[10] = new ResultField("REMARKS",           0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[11] = new ResultField("ATTR_DEF",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[12] = new ResultField("SQL_DATA_TYPE",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[13] = new ResultField("SQL_DATETIME_SUB",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[14] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[15] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[16] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[17] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[18] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[19] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[20] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, Format.Binary);
+    resultFields[0] = new ResultField("TYPE_CAT",           0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[1] = new ResultField("TYPE_SCHEM",         0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[2] = new ResultField("TYPE_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[3] = new ResultField("ATTR_NAME",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[5] = new ResultField("ATTR_TYPE_NAME",     0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[6] = new ResultField("ATTR_SIZE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[7] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[8] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[9] = new ResultField("NULLABLE",           0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[10] = new ResultField("REMARKS",           0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[11] = new ResultField("ATTR_DEF",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[12] = new ResultField("SQL_DATA_TYPE",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[13] = new ResultField("SQL_DATETIME_SUB",  0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[14] = new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[15] = new ResultField("ORDINAL_POSITION",  0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[16] = new ResultField("IS_NULLABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[17] = new ResultField("SCOPE_CATALOG",     0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[18] = new ResultField("SCOPE_SCHEMA",      0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[19] = new ResultField("SCOPE_TABLE",       0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[20] = new ResultField("SOURCE_DATA_TYPE",  0, (short)0, registry.loadType("int2"),   (short)0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
@@ -2398,7 +2398,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
       row[6] = size;
 
-      row[7] = SQLTypeMetaData.getScale(attrData.type, attrData.typeLength, attrData.typeModifier);
+      row[7] = SQLTypeMetaData.getScale(attrData.type, attrData.typeModifier);
       row[8] = SQLTypeMetaData.getPrecisionRadix(attrData.type);
       row[9] = SQLTypeMetaData.isNullable(attrData.type, attrData.relationType, attrData.relationAttrNum);
       row[10] = attrData.description;
@@ -2430,7 +2430,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       results.add(row);
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -2542,13 +2542,13 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     Registry registry = connection.getRegistry();
 
-    ResultField[] resultFields = new ResultField[18];
+    ResultField[] resultFields = new ResultField[4];
     List<Object[]> results = new ArrayList<>();
 
-    resultFields[0] =   new ResultField("NAME",               0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[1] =   new ResultField("MAX_LEN",            0, (short)0, registry.loadType("int4"), (short)0, 0, Format.Binary);
-    resultFields[2] =   new ResultField("DEFAULT_VALUE",      0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
-    resultFields[3] =   new ResultField("DESCRIPTION",        0, (short)0, registry.loadType("text"), (short)0, 0, Format.Binary);
+    resultFields[0] =   new ResultField("NAME",               0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[1] =   new ResultField("MAX_LEN",            0, (short)0, registry.loadType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[2] =   new ResultField("DEFAULT_VALUE",      0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
+    resultFields[3] =   new ResultField("DESCRIPTION",        0, (short)0, registry.loadType("text"), (short)0, 0, FieldFormat.Binary);
 
     Object[] row = new Object[4];
 
@@ -2559,7 +2559,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     row[3] = "Name of application using the connection";
     results.add(row);
 
-    return createResultSet(asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
@@ -2643,19 +2643,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     //Build result set (manually)
 
-    ResultField[] resultFields = new ResultField[24];
-    resultFields[0] = new ResultField("TABLE_CAT",          0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[1] = new ResultField("TABLE_SCHEM",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[2] = new ResultField("TABLE_NAME",         0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[3] = new ResultField("COLUMN_NAME",        0, (short)0, registry.loadType("text"),   (short)0, 0, Format.Binary);
-    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[5] = new ResultField("COLUMN_SIZE",        0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[6] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[7] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[8] = new ResultField("COLUMN_USAGE",      0, (short)0, registry.loadType("int4"),   (short)0, 0, Format.Binary);
-    resultFields[9] = new ResultField("REMARKS", 0, (short) 0, registry.loadType("text"), (short) 0, 0, Format.Binary);
-    resultFields[10] = new ResultField("CHAR_OCTET_LENGTH", 0, (short) 0, registry.loadType("int4"), (short) 0, 0, Format.Binary);
-    resultFields[11] = new ResultField("IS_NULLABLE", 0, (short) 0, registry.loadType("text"), (short) 0, 0, Format.Binary);
+    ResultField[] resultFields = new ResultField[12];
+    resultFields[0] = new ResultField("TABLE_CAT",          0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[1] = new ResultField("TABLE_SCHEM",        0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[2] = new ResultField("TABLE_NAME",         0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[3] = new ResultField("COLUMN_NAME",        0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[4] = new ResultField("DATA_TYPE",          0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[5] = new ResultField("COLUMN_SIZE",        0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[6] = new ResultField("DECIMAL_DIGITS",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[7] = new ResultField("NUM_PREC_RADIX",     0, (short)0, registry.loadType("int4"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[8] = new ResultField("COLUMN_USAGE",      0, (short)0, registry.loadType("text"),   (short)0, 0, FieldFormat.Binary);
+    resultFields[9] = new ResultField("REMARKS", 0, (short) 0, registry.loadType("text"), (short) 0, 0, FieldFormat.Binary);
+    resultFields[10] = new ResultField("CHAR_OCTET_LENGTH", 0, (short) 0, registry.loadType("int4"), (short) 0, 0, FieldFormat.Binary);
+    resultFields[11] = new ResultField("IS_NULLABLE", 0, (short) 0, registry.loadType("text"), (short) 0, 0, FieldFormat.Binary);
 
     List<Object[]> results = new ArrayList<>();
 
@@ -2677,7 +2677,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       }
 
       row[5] = size;
-      row[6] = SQLTypeMetaData.getScale(columnData.type, columnData.typeLength, columnData.typeModifier);
+      row[6] = SQLTypeMetaData.getScale(columnData.type, columnData.typeModifier);
 
       row[7] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
       row[8] = PseudoColumnUsage.NO_USAGE_RESTRICTIONS.name();
@@ -2703,11 +2703,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       results.add(row);
     }
 
-    return createResultSet(Arrays.asList(resultFields), results);
+    return createResultSet(resultFields, results);
   }
 
   @Override
-  public boolean generatedKeyAlwaysReturned() throws SQLException {
+  public boolean generatedKeyAlwaysReturned() {
     return false;
   }
 

@@ -28,24 +28,30 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.datetime.instants.AmbiguousInstant;
-import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.Instants;
-import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.types.PrimitiveType.Date;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
+import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
+import static com.impossibl.postgres.system.procs.DatesTimes.dateFromParsed;
+import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.timeJavaToPg;
+import static com.impossibl.postgres.system.procs.DatesTimes.timePgToJava;
+import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAccessor;
+import java.util.Calendar;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
 
@@ -55,179 +61,201 @@ public class Dates extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "date_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  private static long convertInput(Object object, Calendar calendar) throws ConversionException {
 
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return Date;
+    if (object instanceof java.sql.Timestamp) {
+      Timestamp ts = (Timestamp) object;
+
+      long millis = ts.getTime();
+      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS || millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
+        return millis;
+      }
+
+      calendar.setTimeInMillis(millis);
+      calendar.set(Calendar.HOUR_OF_DAY, 0);
+      calendar.set(Calendar.MINUTE, 0);
+      calendar.set(Calendar.SECOND, 0);
+      calendar.set(Calendar.MILLISECOND, 0);
+      return calendar.getTimeInMillis();
+    }
+
+    if (object instanceof java.util.Date) {
+      return ((java.util.Date) object).getTime();
+    }
+
+    if (object instanceof CharSequence) {
+      return Date.valueOf(object.toString()).getTime();
+    }
+
+    throw new ConversionException(object.getClass(), PrimitiveType.Date);
+  }
+
+  private static Object convertOutput(long millis, Class<?> targetClass, Calendar calendar) throws ConversionException {
+
+
+    if (targetClass == Timestamp.class) {
+      return new Timestamp(millis);
+    }
+
+    if (targetClass == String.class) {
+      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
+        return "infinity";
+      }
+      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
+        return "-infinity";
+      }
+    }
+
+    Date date = new Date(millis);
+
+    if (targetClass == Date.class) {
+      return date;
+    }
+
+    if (targetClass == LocalDate.class) {
+      return date.toLocalDate();
+    }
+
+    if (targetClass == String.class) {
+      return date.toString();
+    }
+
+    throw new ConversionException(PrimitiveType.Date, targetClass);
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      super(4);
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Date;
     }
 
     @Override
-    public Instant decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    public Class<?> getDefaultClass() {
+      return Date.class;
+    }
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 4) {
-        throw new IOException("invalid length");
-      }
+    @Override
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
       int daysPg = buffer.readInt();
 
-      if (daysPg == Integer.MAX_VALUE) {
-        return FutureInfiniteInstant.INSTANCE;
-      }
-      else if (daysPg == Integer.MIN_VALUE) {
-        return PastInfiniteInstant.INSTANCE;
+      long millis;
+
+      switch (daysPg) {
+        case Integer.MAX_VALUE:
+          millis = JAVA_DATE_POSITIVE_INFINITY_MSECS;
+          break;
+        case Integer.MIN_VALUE:
+          millis = JAVA_DATE_NEGATIVE_INFINITY_MSECS;
+          break;
+        default:
+          millis = timePgToJava(DAYS.toMillis(daysPg), MILLISECONDS);
+          millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
       }
 
-      long micros = toJavaMicros(daysPg);
-
-      return new AmbiguousInstant(Instant.Type.Date, micros);
+      return convertOutput(millis, targetClass, calendar);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
+    BinEncoder() {
+      super(4);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Date;
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Date;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
+
+      long millis = convertInput(value, calendar);
+
+      int daysPg;
+      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
+        daysPg = Integer.MAX_VALUE;
+      }
+      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
+        daysPg = Integer.MIN_VALUE;
+      }
+      else {
+        millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
+        daysPg = (int) MILLISECONDS.toDays(timeJavaToPg(millis, MILLISECONDS));
+      }
+
+      buffer.writeInt(daysPg);
+    }
+
+  }
+
+  static class TxtDecoder extends BaseTextDecoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Date;
+    }
+
+    @Override
+    public Class<?> getDefaultClass() {
+      return Date.class;
+    }
+
+    @Override
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
+      Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
+
+      if (buffer.equals(POS_INFINITY)) {
+        return convertOutput(JAVA_DATE_POSITIVE_INFINITY_MSECS, targetClass, calendar);
+      }
+      else if (buffer.equals(NEG_INFINITY)) {
+        return convertOutput(JAVA_DATE_NEGATIVE_INFINITY_MSECS, targetClass, calendar);
+      }
+
+      TemporalAccessor parsed = context.getDateFormatter().getParser().parse(buffer);
+
+      return convertOutput(dateFromParsed(parsed, calendar.getTimeZone()), targetClass, calendar);
+    }
+
+  }
+
+  static class TxtEncoder extends BaseTextEncoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Date;
+    }
+
+    @Override
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
+
+      long millis = convertInput(value, calendar);
+      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
+        buffer.append(POS_INFINITY);
+      }
+      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
+        buffer.append(NEG_INFINITY);
       }
       else {
 
-        Instant inst = (Instant) val;
+        String strVal = context.getDateFormatter().getPrinter().formatMillis(millis, calendar.getTimeZone(), false);
 
-        int daysPg;
-
-        if (inst.getType() == Instant.Type.Infinity) {
-          daysPg = inst.getMicrosLocal() < 0 ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-        }
-        else {
-          daysPg = toPgDays(inst);
-        }
-
-        buffer.writeInt(4);
-        buffer.writeInt(daysPg);
+        buffer.append(strVal);
       }
-
-    }
-
-  }
-
-  private static final long PG_EPOCH_SECS = 946684800L;
-
-  static final long DAY_SECS = DAYS.toSeconds(1);
-
-  static final long CUTOFF_1_START_SECS = -13165977600L;  // October 15, 1582 -> October 4, 1582
-  static final long CUTOFF_1_END_SECS   = -12219292800L;
-  static final long CUTOFF_2_START_SECS = -15773356800L;  // 1500-03-01 -> 1500-02-28
-  static final long CUTOFF_2_END_SECS   = -14825808000L;
-  static final long APPROX_YEAR_SECS1   = -3155823050L;
-  static final long APPROX_YEAR_SECS2   =  3155760000L;
-
-  private static int toPgDays(Instant a) {
-
-    long secs = MICROSECONDS.toSeconds(a.getMicrosLocal());
-
-    secs -= PG_EPOCH_SECS;
-
-    // Julian/Greagorian calendar cutoff point
-
-    if (secs < CUTOFF_1_START_SECS) {
-      secs -= DAY_SECS * 10;
-      if (secs < CUTOFF_2_START_SECS) {
-        int years = (int) ((secs - CUTOFF_2_START_SECS) / APPROX_YEAR_SECS1);
-        years++;
-        years -= years / 4;
-        secs += years * DAY_SECS;
-      }
-    }
-
-    return (int) Math.floor((double)secs / (double)DAY_SECS);
-  }
-
-  private static long toJavaMicros(long days) {
-
-    long secs = DAYS.toSeconds(days);
-
-    secs += PG_EPOCH_SECS;
-
-    // Julian/Gregorian calendar cutoff point
-
-    if (secs < CUTOFF_1_END_SECS) {
-      secs += DAY_SECS * 10;
-      if (secs < CUTOFF_2_END_SECS) {
-        int extraLeaps = (int) ((secs - CUTOFF_2_END_SECS) / APPROX_YEAR_SECS2);
-        extraLeaps--;
-        extraLeaps -= extraLeaps / 4;
-        secs += extraLeaps * DAY_SECS;
-      }
-    }
-
-    return SECONDS.toMicros(secs);
-  }
-
-  static class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Date;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return Instant.class;
-    }
-
-    @Override
-    protected Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      Map<String, Object> pieces = new HashMap<>();
-
-      context.getDateFormatter().getParser().parse(buffer.toString(), 0, pieces);
-
-      return Instants.dateFromPieces(pieces, context.getTimeZone()).ambiguate();
-    }
-
-  }
-
-  static class TxtEncoder extends TextEncoder {
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Date;
-    }
-
-    @Override
-    public Class<?> getInputType() {
-      return Instant.class;
-    }
-
-    @Override
-    protected void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      String strVal = context.getDateFormatter().getPrinter().format((Instant) val);
-
-      buffer.append(strVal);
     }
 
   }

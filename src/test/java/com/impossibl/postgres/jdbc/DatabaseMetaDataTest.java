@@ -44,6 +44,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.TIMESTAMP_WITH_TIMEZONE;
+import static java.sql.Types.VARCHAR;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,17 +146,17 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.INTEGER, rs.getInt("DATA_TYPE"));
+    assertEquals(INTEGER, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("name", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.VARCHAR, rs.getInt("DATA_TYPE"));
+    assertEquals(VARCHAR, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    assertEquals(TIMESTAMP_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
     rs.close();
   }
 
@@ -560,7 +564,7 @@ public class DatabaseMetaDataTest {
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
     assertEquals("nndom", rs.getString("TYPE_NAME"));
-    assertEquals(Types.INTEGER, rs.getInt("SOURCE_DATA_TYPE"));
+    assertEquals(INTEGER, rs.getInt("SOURCE_DATA_TYPE"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertTrue(!rs.next());
     rs.close();
@@ -629,12 +633,12 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("$1", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
-    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals(INTEGER, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("$2", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals(VARCHAR, rs.getInt(6));
 
     assertTrue(!rs.next());
 
@@ -667,17 +671,17 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("a", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
-    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals(INTEGER, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("b", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnInOut, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals(VARCHAR, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("c", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
 
     rs.close();
   }
@@ -690,32 +694,32 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("$1", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
-    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals(INTEGER, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("id", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.INTEGER, rs.getInt(6));
+    assertEquals(INTEGER, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("name", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals(VARCHAR, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("colour", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals(VARCHAR, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("quest", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
+    assertEquals(VARCHAR, rs.getInt(6));
 
     assertTrue(!rs.next());
     rs.close();
@@ -1069,7 +1073,7 @@ public class DatabaseMetaDataTest {
     assertEquals("public", rs.getString("TYPE_SCHEM"));
     assertEquals("attr_test", rs.getString("TYPE_NAME"));
     assertEquals("val1", rs.getString("ATTR_NAME"));
-    assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
+    assertEquals(VARCHAR, rs.getInt("DATA_TYPE"));
     assertEquals("text", rs.getString("ATTR_TYPE_NAME"));
     assertEquals(-1, rs.getInt("ATTR_SIZE"));
     assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
@@ -1114,7 +1118,7 @@ public class DatabaseMetaDataTest {
     assertEquals(4, rs.getInt("CHAR_OCTET_LENGTH"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
-    assertEquals(Types.INTEGER, rs.getShort("SOURCE_DATA_TYPE"));
+    assertEquals(INTEGER, rs.getShort("SOURCE_DATA_TYPE"));
 
     rs.close();
   }

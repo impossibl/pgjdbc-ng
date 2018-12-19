@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -49,33 +50,27 @@ public class Paths extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "path_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Path;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Path.class;
     }
 
     @Override
-    public Path decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length < 21) {
-        // at least one point
-        throw new IOException("invalid length " + length);
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
       boolean closed = buffer.readByte() != 0;
       int npts = buffer.readInt();
       if (npts <= 0 || npts >= Integer.MAX_VALUE) {
         throw new IOException("invalid number of points in external \"path\" value");
       }
+
       double[][] points = new double[npts][];
       for (int i = 0; i < npts; ++i) {
         double[] point = new double[2];
@@ -83,84 +78,66 @@ public class Paths extends SimpleProcProvider {
         point[1] = buffer.readDouble();
         points[i] = point;
       }
+
       return new Path(points, closed);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Path.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Path;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
-      }
-      else {
-        Path path = (Path) val;
-        double[][] points = path.getPoints();
-        // byte + int + npts * 2 points
-        int size = 1 + 4 + (points == null ? 0 : points.length * 8 * 2);
-        buffer.writeInt(size);
-        buffer.writeByte(path.isClosed() ? 1 : 0);
-        buffer.writeInt(points == null ? 0 : points.length);
-        if (points != null) {
-          for (int i = 0; i < points.length; ++i) {
-            double[] point = points[i];
-            buffer.writeDouble(point[0]);
-            buffer.writeDouble(point[1]);
-          }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      Path path = (Path) value;
+      double[][] points = path.getPoints();
+
+      buffer.writeByte(path.isClosed() ? 1 : 0);
+      buffer.writeInt(points == null ? 0 : points.length);
+      if (points != null) {
+        for (double[] point : points) {
+          buffer.writeDouble(point[0]);
+          buffer.writeDouble(point[1]);
         }
       }
     }
+
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Path;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Path.class;
     }
 
     @Override
-    public Path decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return GeometryParsers.INSTANCE.parsePath(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Path.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Path;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        return;
-      }
-      buffer.append(((Path) val).toString());
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value.toString());
     }
 
   }

@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
@@ -36,12 +35,18 @@ import com.impossibl.postgres.types.Type.Codec;
 
 import java.util.ServiceLoader;
 
+import io.netty.buffer.ByteBuf;
+
 
 public class Procs {
 
-  private static final Type.Codec.Decoder[] DEFAULT_DECODERS = {new Unknowns.TxtDecoder(), new Unknowns.BinDecoder()};
-  private static final Type.Codec.Encoder[] DEFAULT_ENCODERS = {new Unknowns.TxtEncoder(), new Unknowns.BinEncoder()};
-  private static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
+  public static final Type.Codec.Decoder<CharSequence> DEFAULT_TEXT_DECODER = new Unknowns.TxtDecoder();
+  public static final Type.Codec.Decoder<ByteBuf> DEFAULT_BINARY_DECODER = new Unknowns.BinDecoder();
+
+  public static final Type.Codec.Encoder<StringBuilder> DEFAULT_TEXT_ENCODER = new Unknowns.TxtEncoder();
+  public static final Type.Codec.Encoder<ByteBuf> DEFAULT_BINARY_ENCODER = new Unknowns.BinEncoder();
+
+  public static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
 
   private ServiceLoader<ProcProvider> providers;
 
@@ -54,40 +59,27 @@ public class Procs {
     }
   }
 
-  public Type.Codec.Decoder getDefaultDecoder(Format format) {
-    return DEFAULT_DECODERS[format.ordinal()];
+  public Type.TextCodec loadNamedTextCodec(String baseName, Context context) {
+    return new Type.TextCodec(
+        loadDecoderProc(baseName + "out", context, DEFAULT_TEXT_DECODER, CharSequence.class),
+        loadEncoderProc(baseName + "in",  context, DEFAULT_TEXT_ENCODER, StringBuilder.class)
+    );
   }
 
-  public Type.Codec.Encoder getDefaultEncoder(Format format) {
-    return DEFAULT_ENCODERS[format.ordinal()];
+  public Type.BinaryCodec loadNamedBinaryCodec(String baseName, Context context) {
+    return new Type.BinaryCodec(
+        loadDecoderProc(baseName + "send", context, DEFAULT_BINARY_DECODER, ByteBuf.class),
+        loadEncoderProc(baseName + "recv", context, DEFAULT_BINARY_ENCODER, ByteBuf.class)
+    );
   }
 
-  public Modifiers.Parser getDefaultModParser() {
-    return DEFAULT_MOD_PARSER;
-  }
-
-
-  public Codec loadNamedTextCodec(String baseName, Context context) {
-    Codec codec = new Codec();
-    codec.setEncoder(loadEncoderProc(baseName + "in",  context, DEFAULT_ENCODERS[Format.Text.ordinal()]));
-    codec.setDecoder(loadDecoderProc(baseName + "out", context, DEFAULT_DECODERS[Format.Text.ordinal()]));
-    return codec;
-  }
-
-  public Codec loadNamedBinaryCodec(String baseName, Context context) {
-    Codec codec = new Codec();
-    codec.setEncoder(loadEncoderProc(baseName + "recv", context, DEFAULT_ENCODERS[Format.Binary.ordinal()]));
-    codec.setDecoder(loadDecoderProc(baseName + "send", context, DEFAULT_DECODERS[Format.Binary.ordinal()]));
-    return codec;
-  }
-
-  public Codec.Encoder loadEncoderProc(String name, Context context, Type.Codec.Encoder defaultEncoder) {
+  public <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String name, Context context, Type.Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
 
     if (!name.isEmpty()) {
-      Codec.Encoder h;
+      Codec.Encoder<Buffer> h;
 
       for (ProcProvider pp : providers) {
-        if ((h = pp.findEncoder(name, context)) != null)
+        if ((h = pp.findEncoder(name, context, bufferType)) != null)
           return h;
       }
     }
@@ -95,12 +87,12 @@ public class Procs {
     return defaultEncoder;
   }
 
-  public Codec.Decoder loadDecoderProc(String name, Context context, Type.Codec.Decoder defaultDecoder) {
+  public <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String name, Context context, Type.Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
     if (!name.isEmpty()) {
-      Codec.Decoder h;
+      Codec.Decoder<Buffer> h;
 
       for (ProcProvider pp : providers) {
-        if ((h = pp.findDecoder(name, context)) != null)
+        if ((h = pp.findDecoder(name, context, bufferType)) != null)
           return h;
       }
     }

@@ -37,6 +37,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.utils.guava.CharStreams;
 
+import static com.impossibl.postgres.jdbc.util.Asserts.assertThrows;
 import static com.impossibl.postgres.utils.guava.ByteStreams.toByteArray;
 
 import java.io.IOException;
@@ -61,6 +62,7 @@ import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -97,7 +99,7 @@ public class ResultSetTest {
 
     TestUtil.createTable(con, "testbool", "a boolean");
 
-    // TestUtil.createTable(con, "testbit", "a bit");
+    TestUtil.createTable(con, "testbit", "a bit");
 
     TestUtil.createTable(con, "testboolstring", "a varchar(30)");
 
@@ -105,10 +107,14 @@ public class ResultSetTest {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('false')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('t')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('f')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('on')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('off')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('1')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('0')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('this is not true')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('this is not false')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('TRUE')");
-    stmt.executeUpdate("INSERT INTO testboolstring VALUES('this is not true')");
 
     TestUtil.createTable(con, "testnumeric", "a numeric");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0')");
@@ -234,65 +240,82 @@ public class ResultSetTest {
 
   @Test
   public void testBoolean() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
+    {
+      PreparedStatement pstmt = con.prepareStatement("INSERT INTO testbool VALUES (?)");
 
-    pstmt.setObject(1, new Float(0), Types.BIT);
-    pstmt.executeUpdate();
+      pstmt.setObject(1, 0f, Types.BIT);
+      pstmt.executeUpdate();
 
-    pstmt.setObject(1, new Float(1), Types.BIT);
-    pstmt.executeUpdate();
+      pstmt.setObject(1, 1f, Types.BIT);
+      pstmt.executeUpdate();
 
-    pstmt.setObject(1, "False", Types.BIT);
-    pstmt.executeUpdate();
+      pstmt.setObject(1, "False", Types.BIT);
+      pstmt.executeUpdate();
 
-    pstmt.setObject(1, "True", Types.BIT);
-    pstmt.executeUpdate();
+      pstmt.setObject(1, "True", Types.BIT);
+      pstmt.executeUpdate();
 
-    pstmt.close();
-
-    Statement st = con.createStatement();
-    ResultSet rs = st.executeQuery("select * from testbool");
-    for (int i = 0; i < 2; i++) {
-      assertTrue(rs.next());
-      assertEquals(false, rs.getBoolean(1));
-      assertTrue(rs.next());
-      assertEquals(true, rs.getBoolean(1));
-    }
-    rs.close();
-    st.close();
-
-    /*
-     * pstmt = con.prepareStatement("insert into testbit values (?)");
-     *
-     * pstmt.setObject(1, new Float(0), Types.BIT);
-     * pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, new Float(1), Types.BIT);
-     * pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, "false", Types.BIT); pstmt.executeUpdate();
-     *
-     * pstmt.setObject(1, "true", Types.BIT); pstmt.executeUpdate();
-     *
-     * rs = con.createStatement().executeQuery("select * from testbit");
-     *
-     * for (int i = 0;i<2; i++) { assertTrue(rs.next()); assertEquals(false,
-     * rs.getBoolean(1)); assertTrue(rs.next()); assertEquals(true,
-     * rs.getBoolean(1)); }
-     */
-
-    st = con.createStatement();
-    rs = st.executeQuery("select * from testboolstring");
-
-    for (int i = 0; i < 4; i++) {
-      assertTrue(rs.next());
-      assertEquals(true, rs.getBoolean(1));
-      assertTrue(rs.next());
-      assertEquals(false, rs.getBoolean(1));
+      pstmt.close();
     }
 
-    rs.close();
-    st.close();
+    {
+      Statement st = con.createStatement();
+      ResultSet rs = st.executeQuery("SELECT * FROM testbool");
+
+      for (int i = 0; i < 2; i++) {
+        assertTrue(rs.next());
+        assertFalse(rs.getBoolean(1));
+        assertTrue(rs.next());
+        assertTrue(rs.getBoolean(1));
+      }
+
+      rs.close();
+      st.close();
+    }
+
+    {
+      PreparedStatement pstmt = con.prepareStatement("INSERT INTO testbit VALUES (?)");
+
+      pstmt.setObject(1, 0f, Types.BIT);
+      pstmt.executeUpdate();
+
+      pstmt.setObject(1, 1f, Types.BIT);
+      pstmt.executeUpdate();
+      pstmt.setObject(1, "0", Types.BIT);
+      pstmt.executeUpdate();
+      pstmt.setObject(1, "1", Types.BIT);
+      pstmt.executeUpdate();
+      assertThrows(SQLException.class, () -> pstmt.setObject(1, "false", Types.BIT));
+      assertThrows(SQLException.class, () -> pstmt.setObject(1, "true", Types.BIT));
+
+      ResultSet rs = con.createStatement().executeQuery("SELECT * FROM testbit");
+
+      for (int i = 0; i < 2; i++) {
+        assertTrue(rs.next());
+        assertFalse(rs.getBoolean(1));
+        assertTrue(rs.next());
+        assertTrue(rs.getBoolean(1));
+      }
+    }
+
+    {
+      Statement st = con.createStatement();
+      ResultSet rs = st.executeQuery("SELECT * FROM testboolstring");
+
+      for (int i = 0; i < 4; i++) {
+        assertTrue(rs.next());
+        assertTrue(rs.getBoolean(1));
+        assertTrue(rs.next());
+        assertFalse(rs.getBoolean(1));
+      }
+      for (int i = 0; i < 2; i++) {
+        assertTrue(rs.next());
+        assertThrows(Exception.class, () -> rs.getBoolean(1));
+      }
+
+      rs.close();
+      st.close();
+    }
   }
 
   @Test

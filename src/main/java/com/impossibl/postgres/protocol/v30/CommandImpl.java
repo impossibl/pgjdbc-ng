@@ -31,13 +31,11 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Command;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.v30.ProtocolImpl.ExecutionTimerTask;
-import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.emptyList;
 
 public abstract class CommandImpl implements Command {
@@ -46,11 +44,6 @@ public abstract class CommandImpl implements Command {
   protected Throwable exception;
   protected Notice error;
   protected List<Notice> notices;
-
-  @Override
-  public long getNetworkTimeout() {
-    return networkTimeout;
-  }
 
   @Override
   public void setNetworkTimeout(long timeout) {
@@ -75,7 +68,7 @@ public abstract class CommandImpl implements Command {
     this.exception = cause;
   }
 
-  public void addNotice(Notice notice) {
+  void addNotice(Notice notice) {
 
     if (notices == null)
       notices = new ArrayList<>();
@@ -100,46 +93,11 @@ public abstract class CommandImpl implements Command {
     return warnings;
   }
 
-  public void waitFor(ProtocolListener listener) throws IOException {
-
-    long networkTimeout = this.networkTimeout;
-
-    if (networkTimeout < 1) {
-      networkTimeout = MAX_VALUE;
-    }
-
-    synchronized (listener) {
-
-      while (!listener.isComplete() && !listener.isAborted() && networkTimeout > 0) {
-
-        long start = System.currentTimeMillis();
-
-        try {
-
-          listener.wait(networkTimeout);
-
-        }
-        catch (InterruptedException e) {
-          // Ignore
-        }
-
-        networkTimeout -= (System.currentTimeMillis() - start);
-
-        if (networkTimeout < 1) {
-          throw new BlockingReadTimeoutException("network timeout reached");
-        }
-
-      }
-
-    }
-
-  }
-
   static class CancelExecutionTimerTask extends ExecutionTimerTask {
 
     ProtocolImpl protocol;
 
-    public CancelExecutionTimerTask(ProtocolImpl protocol) {
+    CancelExecutionTimerTask(ProtocolImpl protocol) {
       this.protocol = protocol;
     }
 
@@ -152,7 +110,7 @@ public abstract class CommandImpl implements Command {
 
   }
 
-  public void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
+  void enableCancelTimer(final ProtocolImpl protocol, long timeout) {
 
     if (timeout < 1)
       return;

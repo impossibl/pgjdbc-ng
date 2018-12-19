@@ -34,8 +34,8 @@ import com.impossibl.postgres.types.Type.Codec;
 
 public interface ProcProvider {
 
-  Codec.Encoder findEncoder(String name, Context context);
-  Codec.Decoder findDecoder(String name, Context context);
+  <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType);
+  <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType);
   Modifiers.Parser findModifierParser(String name, Context context);
 
 }

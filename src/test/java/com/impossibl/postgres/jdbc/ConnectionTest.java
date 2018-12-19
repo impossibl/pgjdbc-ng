@@ -103,7 +103,7 @@ public class ConnectionTest {
     assertNotNull(stat);
     stat.close();
 
-    // Ask for Updateable ResultSets
+    // Ask for Updatable ResultSets
     stat = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     assertNotNull(stat);
     stat.close();
@@ -123,7 +123,7 @@ public class ConnectionTest {
     assertNotNull(stat);
     stat.close();
 
-    // Ask for Updateable ResultSets
+    // Ask for Updatable ResultSets
     stat = con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     assertNotNull(stat);
     stat.close();
@@ -213,13 +213,13 @@ public class ConnectionTest {
     String testStr = "This Is OuR TeSt message";
 
     // The connection must be ours!
-    assertTrue(con instanceof PGConnectionImpl);
+    assertTrue(con instanceof PGDirectConnection);
 
     // Clear any existing warnings
     con.clearWarnings();
 
     // Set the test warning
-    ((PGConnectionImpl)con).addWarning(new SQLWarning(testStr));
+    ((PGDirectConnection)con).addWarning(new SQLWarning(testStr));
 
     // Retrieve it
     SQLWarning warning = con.getWarnings();
@@ -368,7 +368,7 @@ public class ConnectionTest {
   @Test
   public void testKillConnection() throws Exception {
 
-    con = TestUtil.openDB();
+    Connection con = TestUtil.openDB();
     con.setNetworkTimeout(null, 1000);
     con.setAutoCommit(false);
 

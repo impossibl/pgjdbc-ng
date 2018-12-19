@@ -30,11 +30,13 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -49,32 +51,52 @@ public class Polygons extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "poly_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  private static double[][] convertInput(Object value) throws ConversionException {
+
+    if (value instanceof double[][]) {
+      return (double[][]) value;
+    }
+
+    if (value instanceof Path) {
+      return ((Path) value).getPoints();
+    }
+
+    throw new ConversionException(value.getClass(), PrimitiveType.Polygon);
+  }
+
+  private static Object convertOutput(double[][] value, Class<?> targetClass) throws ConversionException {
+
+    if (targetClass == double[][].class) {
+      return value;
+    }
+
+    if (targetClass == Path.class) {
+      return new Path(value, true);
+    }
+
+    throw new ConversionException(PrimitiveType.Polygon, targetClass);
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Polygon;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[][].class;
     }
 
     @Override
-    public  double[][] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length < 20) {
-        // at least one point
-        throw new IOException("invalid length " + length);
-      }
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
+
       int npts = buffer.readInt();
       if (npts <= 0 || npts >= Integer.MAX_VALUE) {
         throw new IOException("invalid number of points in external \"polygon\" value");
       }
+
       double[][] points = new double[npts][];
       for (int i = 0; i < npts; ++i) {
         double[] point = new double[2];
@@ -82,80 +104,63 @@ public class Polygons extends SimpleProcProvider {
         point[1] = buffer.readDouble();
         points[i] = point;
       }
-      return points;
+
+      return convertOutput(points, targetClass);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return double[][].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Polygon;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        buffer.writeInt(-1);
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+
+      double[][] points = convertInput(value);
+
+      buffer.writeInt(points.length);
+      for (double[] point : points) {
+        buffer.writeDouble(point[0]);
+        buffer.writeDouble(point[1]);
       }
-      else {
-        double[][] points = (double[][]) val;
-        // int + npts * 2 points
-        int size = 4 + (points.length * 8 * 2);
-        buffer.writeInt(size);
-        buffer.writeInt(points.length);
-        for (int i = 0; i < points.length; ++i) {
-          double[] point = points[i];
-          buffer.writeDouble(point[0]);
-          buffer.writeDouble(point[1]);
-        }
-      }
+
     }
+
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Polygon;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return double[][].class;
     }
 
     @Override
-    public double[][] decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return GeometryParsers.INSTANCE.parsePolygon(buffer);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Path.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Polygon;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      if (val == null) {
-        return;
-      }
-      buffer.append(new Path((double[][]) val, true));
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(new Path((double[][]) value, true));
     }
 
   }

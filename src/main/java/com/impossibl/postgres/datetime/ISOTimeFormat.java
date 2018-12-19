@@ -28,22 +28,28 @@
  */
 package com.impossibl.postgres.datetime;
 
-import com.impossibl.postgres.datetime.instants.Instant;
-
-import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
-import static com.impossibl.postgres.datetime.FormatUtils.parseInt;
-
-import java.util.Calendar;
-import java.util.Map;
+import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
+import java.time.chrono.IsoChronology;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.TemporalAccessor;
 import java.util.TimeZone;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class ISOTimeFormat implements DateTimeFormat {
 
-  Parser parser = new Parser();
-  Printer printer = new Printer();
+  private Parser parser = new Parser();
+  private Printer printer = new Printer();
 
   @Override
   public Parser getParser() {
@@ -56,163 +62,74 @@ public class ISOTimeFormat implements DateTimeFormat {
   }
 
 
-  static final String GMT_ID = "GMT";
-
   static class Parser implements DateTimeFormat.Parser {
 
+    private static final DateTimeFormatter PARSER =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendValue(HOUR_OF_DAY, 2)
+            .appendLiteral(':')
+            .appendValue(MINUTE_OF_HOUR, 2)
+            .optionalStart()
+            .appendLiteral(':')
+            .appendValue(SECOND_OF_MINUTE, 2)
+            .optionalStart()
+            .appendFraction(NANO_OF_SECOND, 0, 9, true)
+            .optionalEnd()
+            .optionalEnd()
+            .optionalStart()
+            .appendOffset("+HH:mm", "+00")
+            .optionalEnd()
+            .optionalStart()
+            .appendLiteral(' ')
+            .appendPattern("GG")
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
     @Override
-    public int parse(String date, int offset, Map<String, Object> pieces) {
-
-      try {
-
-        int[] parseResult = new int[1];
-
-        // extract hours, minutes, seconds and milliseconds
-        offset = parseInt(date, offset, parseResult);
-        checkOffset(date, offset, ':');
-        pieces.put(HOUR_PIECE, parseResult[0]);
-
-        offset = parseInt(date, offset + 1, parseResult);
-        checkOffset(date, offset, '\0');
-        pieces.put(MINUTE_PIECE, parseResult[0]);
-
-        //Optional seconds
-        if (offset < date.length()) {
-          checkOffset(date, offset, ':');
-
-          offset = parseInt(date, offset + 1, parseResult);
-          checkOffset(date, offset, '\0');
-          pieces.put(SECOND_PIECE, parseResult[0]);
-
-          //Optional fraction
-          if (offset < date.length()) {
-
-            if (date.charAt(offset) == '.') {
-
-              checkOffset(date, offset, '.');
-
-              int nanosStart = offset + 1;
-              offset = parseInt(date, nanosStart, parseResult);
-              checkOffset(date, offset, '\0');
-
-              int nanoDigits = offset - nanosStart;
-              if (nanoDigits > 9) {
-                return ~nanosStart;
-              }
-
-              int nanos = parseResult[0] * (int)Math.pow(10, 9 - nanoDigits);
-              pieces.put(NANOSECOND_PIECE, nanos);
-
-            }
-          }
-        }
-
-        // extract timezone
-        if (offset < date.length()) {
-          String timeZoneId = null;
-          char timeZoneIndicator = date.charAt(offset);
-          if (timeZoneIndicator == '+' || timeZoneIndicator == '-') {
-            timeZoneId = GMT_ID + date.substring(offset);
-          }
-          else if (timeZoneIndicator == 'Z') {
-            timeZoneId = GMT_ID;
-          }
-
-          if (timeZoneId != null) {
-            pieces.put(ZONE_PIECE, timeZoneId);
-          }
-        }
-
-      }
-      catch (IndexOutOfBoundsException | IllegalArgumentException e) {
-        // Ignore
-      }
-
-      return offset;
+    public TemporalAccessor parse(CharSequence time) {
+      return PARSER.parse(time);
     }
 
   }
 
   static class Printer implements DateTimeFormat.Printer {
 
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+
+    private static final DateTimeFormatter PRINTER_WITH_TZ =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(ISO_LOCAL_TIME)
+            .optionalStart()
+            .appendOffset("+HH:mm", "+00")
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
+    private static final DateTimeFormatter PRINTER_WITHOUT_TZ =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(ISO_LOCAL_TIME)
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
     @Override
-    public String format(Instant instant) {
+    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
+      return formatMicros(MILLISECONDS.toMicros(millis), timeZone, displayTimeZone);
+    }
 
-      TimeZone zone = instant.getZone();
-      if (zone == null) {
-        zone = TimeZone.getTimeZone("UTC");
-      }
+    @Override
+    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
 
-      Calendar cal = Calendar.getInstance(zone);
-      cal.setTimeInMillis(MICROSECONDS.toMillis(instant.getMicrosUTC()));
+      timeZone = timeZone != null ? timeZone : UTC;
 
-      int hour = cal.get(Calendar.HOUR_OF_DAY);
-      int minute = cal.get(Calendar.MINUTE);
-      int second = cal.get(Calendar.SECOND);
-      int micros = (int) (instant.getMicrosLocal() - MILLISECONDS.toMicros(MICROSECONDS.toMillis(instant.getMicrosLocal())));
+      ZoneOffset offset = ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(timeZone.getRawOffset()));
+      OffsetTime time = OffsetTime.of(LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(micros)), ZoneOffset.UTC).withOffsetSameInstant(offset);
 
-      String hourString;
-      String minuteString;
-      String secondString;
-      String microsString;
-      String zeros = "000000000";
-
-      if (hour < 10) {
-        hourString = "0" + hour;
-      }
-      else {
-        hourString = Integer.toString(hour);
-      }
-      if (minute < 10) {
-        minuteString = "0" + minute;
-      }
-      else {
-        minuteString = Integer.toString(minute);
-      }
-      if (second < 10) {
-        secondString = "0" + second;
-      }
-      else {
-        secondString = Integer.toString(second);
-      }
-      if (micros == 0) {
-        microsString = "0";
-      }
-      else {
-        microsString = Integer.toString(micros);
-
-        // Add leading zeros
-        microsString = zeros.substring(0, 6 - microsString.length()) + microsString;
-
-        // Truncate trailing zeros
-        char[] microsChar = new char[microsString.length()];
-        microsString.getChars(0, microsString.length(), microsChar, 0);
-        int truncIndex = 5;
-        while (microsChar[truncIndex] == '0') {
-          truncIndex--;
-        }
-
-        microsString = new String(microsChar, 0, truncIndex + 1);
-      }
-
-      // do a string builder here instead.
-      StringBuilder timestampBuf = new StringBuilder(20 + microsString.length());
-      timestampBuf.append(hourString);
-      timestampBuf.append(":");
-      timestampBuf.append(minuteString);
-      timestampBuf.append(":");
-      timestampBuf.append(secondString);
-      timestampBuf.append(".");
-      timestampBuf.append(microsString);
-
-      if (instant.getZone() != null) {
-        long zoneOff = MILLISECONDS.toHours(instant.getZoneOffsetMillis());
-        if (zoneOff > 0)
-          timestampBuf.append("+");
-        timestampBuf.append(zoneOff);
-      }
-
-      return timestampBuf.toString();
+      return (displayTimeZone ? PRINTER_WITH_TZ : PRINTER_WITHOUT_TZ).format(time);
     }
 
   }

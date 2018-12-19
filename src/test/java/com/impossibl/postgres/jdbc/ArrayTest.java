@@ -99,10 +99,10 @@ public class ArrayTest {
   public void testGetNull() throws SQLException {
     Statement stmt = conn.createStatement();
 
-    ResultSet rs = stmt.executeQuery("SELECT null::int[]");
+    ResultSet rs = stmt.executeQuery("SELECT null");
     assertTrue(rs.next());
-    assertEquals(null, rs.getArray(1));
-    assertEquals(null, rs.getObject(1));
+    assertNull(rs.getArray(1));
+    assertNull(rs.getObject(1));
     assertArrayEquals(null, rs.getObject(1, Integer[].class));
 
     rs.close();
@@ -112,9 +112,9 @@ public class ArrayTest {
   @Test
   public void testSendRecvMultiple() throws SQLException {
 
-    PreparedStatement ps = conn.prepareStatement("SELECT ?::int[], ?::decimal(2,1)[], ?::text[]");
-    ps.setObject(1, new Integer[]{1, 2, 3});
-    ps.setObject(2, new Float[]{3.1f, 1.4f});
+    PreparedStatement ps = conn.prepareStatement("SELECT ?::int[], ?::real[], ?::varchar[]");
+    ps.setObject(1, new Integer[] {1, 2, 3});
+    ps.setObject(2, new Float[] {3.1f, 1.4f});
     ps.setObject(3, new String[] {"abc", "def"});
 
     ResultSet rs = ps.executeQuery();
@@ -127,19 +127,22 @@ public class ArrayTest {
     assertEquals(1, intarr[0].intValue());
     assertEquals(2, intarr[1].intValue());
     assertEquals(3, intarr[2].intValue());
+    arr.free();
 
     arr = rs.getArray(2);
-    assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    assertEquals(Types.REAL, arr.getBaseType());
+    Float[] decarr = (Float[]) arr.getArray();
     assertEquals(2, decarr.length);
-    assertEquals(new BigDecimal("3.1"), decarr[0]);
-    assertEquals(new BigDecimal("1.4"), decarr[1]);
+    assertEquals(new Float("3.1"), decarr[0]);
+    assertEquals(new Float("1.4"), decarr[1]);
+    arr.free();
 
     arr = rs.getArray(3);
     assertEquals(Types.VARCHAR, arr.getBaseType());
     String[] strarr = (String[]) arr.getArray();
     assertEquals("abc", strarr[0]);
     assertEquals("def", strarr[1]);
+    arr.free();
 
     rs.close();
     ps.close();
@@ -162,13 +165,15 @@ public class ArrayTest {
     assertEquals(1, intarr[0].intValue());
     assertEquals(2, intarr[1].intValue());
     assertEquals(3, intarr[2].intValue());
+    arr.free();
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Number[] decarr = (Number[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
+    arr.free();
 
     arr = rs.getArray(3);
     assertEquals(Types.VARCHAR, arr.getBaseType());
@@ -176,6 +181,7 @@ public class ArrayTest {
     assertEquals(2, strarr.length);
     assertEquals("f'a", strarr[0]);
     assertEquals("fa\"b", strarr[1]);
+    arr.free();
 
     rs.close();
     stmt.close();
@@ -183,56 +189,66 @@ public class ArrayTest {
 
   @Test
   public void testRetrieveResultSets() throws SQLException {
-    Statement stmt = conn.createStatement();
+    try (Statement stmt = conn.createStatement()) {
 
-    // you need a lot of backslashes to get a double quote in.
-    stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,fa\\\"b,def}')");
+      // you need a lot of backslashes to get a double quote in.
+      stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,fa\\\"b,def}')");
 
-    ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
-    assertTrue(rs.next());
+      try (ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest")) {
+        assertTrue(rs.next());
 
-    Array arr = rs.getArray(1);
-    assertEquals(Types.INTEGER, arr.getBaseType());
-    ResultSet arrrs = arr.getResultSet();
-    assertTrue(arrrs.next());
-    assertEquals(1, arrrs.getInt(1));
-    assertEquals(1, arrrs.getInt(2));
-    assertTrue(arrrs.next());
-    assertEquals(2, arrrs.getInt(1));
-    assertEquals(2, arrrs.getInt(2));
-    assertTrue(arrrs.next());
-    assertEquals(3, arrrs.getInt(1));
-    assertEquals(3, arrrs.getInt(2));
-    assertTrue(!arrrs.next());
-    assertTrue(arrrs.previous());
-    assertEquals(3, arrrs.getInt(2));
-    arrrs.first();
-    assertEquals(1, arrrs.getInt(2));
-    arrrs.close();
+        {
+          Array arr = rs.getArray(1);
+          assertEquals(Types.INTEGER, arr.getBaseType());
+          try (ResultSet arrrs = arr.getResultSet()) {
+            assertTrue(arrrs.next());
+            assertEquals(1, arrrs.getInt(1));
+            assertEquals(1, arrrs.getInt(2));
+            assertTrue(arrrs.next());
+            assertEquals(2, arrrs.getInt(1));
+            assertEquals(2, arrrs.getInt(2));
+            assertTrue(arrrs.next());
+            assertEquals(3, arrrs.getInt(1));
+            assertEquals(3, arrrs.getInt(2));
+            assertTrue(!arrrs.next());
+            assertTrue(arrrs.previous());
+            assertEquals(3, arrrs.getInt(2));
+            arrrs.first();
+            assertEquals(1, arrrs.getInt(2));
+          }
+          arr.free();
+        }
 
-    arr = rs.getArray(2);
-    assertEquals(Types.NUMERIC, arr.getBaseType());
-    arrrs = arr.getResultSet();
-    assertTrue(arrrs.next());
-    assertEquals(new BigDecimal("3.1"), arrrs.getBigDecimal(2));
-    assertTrue(arrrs.next());
-    assertEquals(new BigDecimal("1.4"), arrrs.getBigDecimal(2));
-    arrrs.close();
+        {
+          Array arr = rs.getArray(2);
+          assertEquals(Types.NUMERIC, arr.getBaseType());
+          try (ResultSet arrrs = arr.getResultSet()) {
+            assertTrue(arrrs.next());
+            assertEquals(new BigDecimal("3.1"), arrrs.getBigDecimal(2));
+            assertTrue(arrrs.next());
+            assertEquals(new BigDecimal("1.4"), arrrs.getBigDecimal(2));
+          }
+          arr.free();
+        }
 
-    arr = rs.getArray(3);
-    assertEquals(Types.VARCHAR, arr.getBaseType());
-    arrrs = arr.getResultSet(2, 2);
-    assertTrue(arrrs.next());
-    assertEquals(2, arrrs.getInt(1));
-    assertEquals("f'a", arrrs.getString(2));
-    assertTrue(arrrs.next());
-    assertEquals(3, arrrs.getInt(1));
-    assertEquals("fa\"b", arrrs.getString(2));
-    assertTrue(!arrrs.next());
-    arrrs.close();
+        {
+          Array arr = rs.getArray(3);
+          assertEquals(Types.VARCHAR, arr.getBaseType());
+          try (ResultSet arrrs = arr.getResultSet(2, 2)) {
+            assertTrue(arrrs.next());
+            assertEquals(2, arrrs.getInt(1));
+            assertEquals("f'a", arrrs.getString(2));
+            assertTrue(arrrs.next());
+            assertEquals(3, arrrs.getInt(1));
+            assertEquals("fa\"b", arrrs.getString(2));
+            assertTrue(!arrrs.next());
+          }
+          arr.free();
+        }
 
-    rs.close();
-    stmt.close();
+      }
+
+    }
   }
 
   @Test
@@ -254,6 +270,7 @@ public class ArrayTest {
     pstmt.setObject(1, arr);
     pstmt.executeUpdate();
 
+    arr.free();
     pstmt.close();
 
     Statement select = conn.createStatement();
@@ -270,6 +287,7 @@ public class ArrayTest {
       assertEquals(1, intarr[0].intValue());
       assertEquals(2, intarr[1].intValue());
       assertEquals(3, intarr[2].intValue());
+      result.free();
     }
     assertEquals(3, resultCount);
     rs.close();
@@ -295,6 +313,7 @@ public class ArrayTest {
     for (int i = 0; i < intarr.length; i++) {
       assertEquals(i, intarr[i].intValue());
     }
+    result.free();
     rs.close();
     stmt.close();
   }
@@ -315,6 +334,7 @@ public class ArrayTest {
     assertEquals(2, i1.length);
     assertEquals(3, i1[0].intValue());
     assertEquals(4, i1[1].intValue());
+    arr.free();
     rs.close();
     stmt.close();
   }
@@ -331,6 +351,7 @@ public class ArrayTest {
     assertEquals(1, i[0].intValue());
     assertNull(i[1]);
     assertEquals(3, i[2].intValue());
+    arr.free();
     rs.close();
     stmt.close();
   }
@@ -351,6 +372,7 @@ public class ArrayTest {
     assertEquals("aclitem", arrRSMD.getColumnTypeName(2));
     arrRS.close();
 
+    arr.free();
     rs.close();
     stmt.close();
   }
@@ -381,6 +403,7 @@ public class ArrayTest {
     assertEquals(2, a1RS.getInt(2));
     assertTrue(!a1RS.next());
     a1RS.close();
+    a1.free();
 
     assertTrue(arrRS.next());
     assertEquals(2, arrRS.getInt(1));
@@ -393,8 +416,10 @@ public class ArrayTest {
     assertEquals(4, a2RS.getInt(2));
     assertTrue(!a2RS.next());
     a2RS.close();
+    a2.free();
 
     arrRS.close();
+    arr.free();
     rs.close();
     stmt.close();
   }
@@ -411,6 +436,7 @@ public class ArrayTest {
     assertEquals("a", s[0]);
     assertNull(s[1]);
 
+    arr.free();
     rs.close();
     stmt.close();
   }
@@ -440,6 +466,8 @@ public class ArrayTest {
     assertTrue(rs1.next());
     assertEquals("'", rs1.getString(2));
     assertTrue(!rs1.next());
+    rs1.close();
+    a1.free();
 
     assertTrue(arrRS.next());
     Array a2 = arrRS.getArray(2);
@@ -449,10 +477,12 @@ public class ArrayTest {
     assertTrue(rs2.next());
     assertEquals("'", rs2.getString(2));
     assertTrue(!rs2.next());
-
     rs2.close();
-    rs1.close();
+    a2.free();
+
     arrRS.close();
+    arr.free();
+
     rs.close();
     stmt.close();
   }
@@ -471,6 +501,8 @@ public class ArrayTest {
     PreparedStatement pstmt = conn.prepareStatement(sql);
     pstmt.setArray(1, arr);
     rs = pstmt.executeQuery();
+    arr.free();
+
     assertTrue(rs.next());
     arr = rs.getArray(1);
 
@@ -480,6 +512,7 @@ public class ArrayTest {
     assertEquals(3, i[1][0].intValue());
     assertEquals(4, i[1][1].intValue());
 
+    arr.free();
     rs.close();
     pstmt.close();
   }
@@ -491,9 +524,12 @@ public class ArrayTest {
     in[0] = 0;
     in[1] = -1;
     in[2] = 2;
-    pstmt.setArray(1, conn.createArrayOf("int4", in));
+    Array inArr = conn.createArrayOf("int4", in);
+    pstmt.setArray(1, inArr);
 
     ResultSet rs = pstmt.executeQuery();
+    inArr.free();
+
     assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Integer[] out = (Integer[]) arr.getArray();
@@ -503,6 +539,7 @@ public class ArrayTest {
     assertEquals(-1, out[1].intValue());
     assertEquals(2, out[2].intValue());
 
+    arr.free();
     rs.close();
     pstmt.close();
   }
@@ -515,11 +552,13 @@ public class ArrayTest {
     in[0][1] = "";
     in[1][0] = "\\";
     in[1][1] = "\"\\'z";
-    pstmt.setArray(1, conn.createArrayOf("text", in));
+    Array arr = conn.createArrayOf("text", in);
+    pstmt.setArray(1, arr);
+    arr.free();
 
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    Array arr = rs.getArray(1);
+    arr = rs.getArray(1);
     String[][] out = (String[][]) arr.getArray();
 
     assertEquals(2, out.length);
@@ -529,6 +568,7 @@ public class ArrayTest {
     assertEquals("\\", out[1][0]);
     assertEquals("\"\\'z", out[1][1]);
 
+    arr.free();
     rs.close();
     pstmt.close();
   }
@@ -553,6 +593,7 @@ public class ArrayTest {
     assertNull(out[0]);
     assertNull(out[1]);
 
+    arr.free();
     rs.close();
     pstmt.close();
   }
@@ -575,6 +616,7 @@ public class ArrayTest {
     assertFalse(arrRs.next());
     arrRs.close();
 
+    arr.free();
     rs.close();
     pstmt.close();
   }
@@ -588,14 +630,19 @@ public class ArrayTest {
     in[1][1] = "\"\\'z";
 
     Array arr = conn.createArrayOf("varchar", in);
-    String[][] out = (String[][]) arr.getArray();
+    try {
+      String[][] out = (String[][]) arr.getArray();
 
-    assertEquals(2, out.length);
-    assertEquals(2, out[0].length);
-    assertEquals("a", out[0][0]);
-    assertEquals("", out[0][1]);
-    assertEquals("\\", out[1][0]);
-    assertEquals("\"\\'z", out[1][1]);
+      assertEquals(2, out.length);
+      assertEquals(2, out[0].length);
+      assertEquals("a", out[0][0]);
+      assertEquals("", out[0][1]);
+      assertEquals("\\", out[1][0]);
+      assertEquals("\"\\'z", out[1][1]);
+    }
+    finally {
+      arr.free();
+    }
   }
 
   @Test
@@ -607,14 +654,19 @@ public class ArrayTest {
     in[1][1] = 77;
 
     Array arr = conn.createArrayOf("float8", in);
-    Double[][] out = (Double[][]) arr.getArray();
+    try {
+      double[][] out = (double[][]) arr.getArray();
 
-    assertEquals(2, out.length);
-    assertEquals(2, out[0].length);
-    assertEquals(3.5, out[0][0], 0.00001);
-    assertEquals(-4.5, out[0][1], 0.00001);
-    assertEquals(10.0 / 3, out[1][0], 0.00001);
-    assertEquals(77, out[1][1], 0.00001);
+      assertEquals(2, out.length);
+      assertEquals(2, out[0].length);
+      assertEquals(3.5, out[0][0], 0.00001);
+      assertEquals(-4.5, out[0][1], 0.00001);
+      assertEquals(10.0 / 3, out[1][0], 0.00001);
+      assertEquals(77, out[1][1], 0.00001);
+    }
+    finally {
+      arr.free();
+    }
   }
 
   @Test
@@ -627,7 +679,10 @@ public class ArrayTest {
     // Only supported for JDK 1.6 and JDBC4
     Array sqlArray = conn.createArrayOf("text", strArray);
     pstmt.setArray(1, sqlArray);
+
     pstmt.executeUpdate();
+
+    sqlArray.free();
 
     /*
      * The original driver reasons these 2 tests should fail but we support

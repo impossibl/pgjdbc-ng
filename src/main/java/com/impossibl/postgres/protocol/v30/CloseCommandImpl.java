@@ -39,9 +39,9 @@ import io.netty.buffer.ByteBuf;
 
 public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
-  ServerObjectType objectType;
-  String objectName;
-  boolean complete;
+  private ServerObjectType objectType;
+  private String objectName;
+  private boolean complete;
 
   private ProtocolListener listener = new BaseProtocolListener() {
 
@@ -79,7 +79,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
   };
 
-  public CloseCommandImpl(ServerObjectType objectType, String objectName) {
+  CloseCommandImpl(ServerObjectType objectType, String objectName) {
     this.objectType = objectType;
     this.objectName = objectName;
   }
@@ -99,7 +99,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
     protocol.setListener(listener);
 
-    ByteBuf msg = protocol.channel.alloc().buffer();
+    ByteBuf msg = protocol.getChannel().alloc().buffer();
 
     protocol.writeClose(msg, objectType, objectName);
 
@@ -107,7 +107,7 @@ public class CloseCommandImpl extends CommandImpl implements CloseCommand {
 
     protocol.send(msg);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
   }
 

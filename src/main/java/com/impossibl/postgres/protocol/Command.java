@@ -32,7 +32,6 @@ import java.util.List;
 
 public interface Command {
 
-  long getNetworkTimeout();
   void setNetworkTimeout(long timeout);
 
   Throwable getException();

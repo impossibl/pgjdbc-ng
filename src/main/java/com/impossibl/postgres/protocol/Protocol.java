@@ -31,9 +31,11 @@ package com.impossibl.postgres.protocol;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 
 public interface Protocol {
 
@@ -43,10 +45,11 @@ public interface Protocol {
 
   SSLRequestCommand createSSLRequest();
   StartupCommand createStartup(Map<String, Object> parameters);
-  PrepareCommand createPrepare(String statementName, String sqlText, List<Type> parameterTypes);
-  BindExecCommand createBindExec(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues, List<ResultField> resultFields);
+  PrepareExecCommand createPrepareExec(String sql, String portalName, ResultField[] resultFields);
+  PrepareCommand createPrepare(String statementName, String sqlText, Type[] parameterTypes);
+  BindExecCommand createBindExec(String portalName, String statementName, FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers, ResultField[] resultFields);
   QueryCommand createQuery(String sqlText);
-  FunctionCallCommand createFunctionCall(String functionName, List<Type> parameterTypes, List<Object> parameterValues);
+  FunctionCallCommand createFunctionCall(String functionName, FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers);
 
   CloseCommand createClose(ServerObjectType objectType, String objectName);
 
@@ -55,5 +58,7 @@ public interface Protocol {
   void shutdown();
 
   void abort(Executor executor);
+
+  Channel getChannel();
 
 }

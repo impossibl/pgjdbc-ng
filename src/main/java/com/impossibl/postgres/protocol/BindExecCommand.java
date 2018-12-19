@@ -28,17 +28,12 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.types.Type;
-
-import java.util.List;
+import io.netty.buffer.ByteBuf;
 
 public interface BindExecCommand extends QueryCommand {
 
   String getPortalName();
 
-  List<Type> getParameterTypes();
-  void setParameterTypes(List<Type> parameterTypes);
-
-  void setParameterValues(List<Object> values);
+  void updateParameters(FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers);
 
 }

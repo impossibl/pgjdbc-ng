@@ -33,6 +33,8 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -42,99 +44,94 @@ public class Float8s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float8");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends NumericBinaryDecoder<Double> {
+
+    BinDecoder() {
+      super(8, Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Double;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Double> getDefaultClass() {
       return Double.class;
     }
 
     @Override
-    public Double decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 8) {
-        throw new IOException("invalid length");
-      }
-
+    protected Double decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readDouble();
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Double> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Double.class;
+    BinEncoder() {
+      super(8, Double::valueOf, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Double;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Double> getDefaultClass() {
+      return Double.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(8);
-        buffer.writeDouble((Double) val);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Double value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeDouble(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Double> {
+
+    TxtDecoder() {
+      super(Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Double;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Double> getDefaultClass() {
       return Double.class;
     }
 
     @Override
-    public Double decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return Double.valueOf(buffer.toString());
+    protected Double decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return new BigDecimal(buffer.toString()).doubleValue();
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Double> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Double.class;
+    TxtEncoder() {
+      super(Double::valueOf, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Double;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Double> getDefaultClass() {
+      return Double.class;
+    }
 
-      buffer.append((double)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Double value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

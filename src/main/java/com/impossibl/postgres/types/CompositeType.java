@@ -28,17 +28,17 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
-import com.impossibl.postgres.system.procs.Procs;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Collections.emptyMap;
 
 /**
  * A database composite type.
@@ -110,17 +110,6 @@ public class CompositeType extends Type {
 
   private List<Attribute> attributes;
 
-  public CompositeType(int id, String name, int arrayTypeId, String procName, Procs procs) {
-    super(id, name, null, null, Category.Composite, ',', arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null));
-  }
-
-  public CompositeType(int id, String name, int arrayTypeId, Procs procs) {
-    this(id, name, arrayTypeId, "record_", procs);
-  }
-
-  public CompositeType() {
-  }
-
   public Attribute getAttribute(int number) {
 
     //First try the obvious
@@ -129,8 +118,7 @@ public class CompositeType extends Type {
     }
 
     //Now search all
-    for (int c = 0, sz = attributes.size(); c < sz; ++c) {
-      Attribute attr = attributes.get(c);
+    for (Attribute attr : attributes) {
       if (attr.number == number) {
         return attr;
       }
@@ -143,10 +131,6 @@ public class CompositeType extends Type {
     return attributes;
   }
 
-  public void setAttributes(List<Attribute> attributes) {
-    this.attributes = attributes;
-  }
-
   public Type[] getAttributesTypes() {
     Type[] attributeTypes = new Type[attributes.size()];
     for (int c = 0; c < attributes.size(); ++c) {
@@ -156,7 +140,7 @@ public class CompositeType extends Type {
   }
 
   @Override
-  public boolean isParameterFormatSupported(Format format) {
+  public boolean isParameterFormatSupported(FieldFormat format) {
 
     boolean allSupported = super.isParameterFormatSupported(format);
     for (Attribute attr : attributes) {
@@ -167,7 +151,7 @@ public class CompositeType extends Type {
   }
 
   @Override
-  public boolean isResultFormatSupported(Format format) {
+  public boolean isResultFormatSupported(FieldFormat format) {
 
     boolean allSupported = super.isResultFormatSupported(format);
     for (Attribute attr : attributes) {
@@ -175,20 +159,6 @@ public class CompositeType extends Type {
     }
 
     return allSupported;
-  }
-
-  @Override
-  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
-
-    Class<?> type = (customizations != null) ? customizations.get(getNamespace() + "." + getName()) : null;
-    if (type == null) {
-      type = (customizations != null) ? customizations.get(getName()) : null;
-      if (type == null) {
-        type = super.getJavaType(format, customizations);
-      }
-    }
-
-    return type;
   }
 
   @Override
@@ -212,20 +182,15 @@ public class CompositeType extends Type {
                                        pgAttr.isNullable(),
                                        pgAttr.isAutoIncrement(),
                                        pgAttr.isHasDefault(),
-                                       type != null ? type.getModifierParser().parse(pgAttr.getTypeModifier()) : Collections.<String, Object>emptyMap());
+                                       type != null ? type.getModifierParser().parse(pgAttr.getTypeModifier()) : emptyMap());
 
         attributes.add(attr);
       }
 
-      Collections.sort(attributes, new Comparator<Attribute>() {
-
-        @Override
-        public int compare(Attribute o1, Attribute o2) {
-          int o1n = o1.number < 0 ? o1.number + Integer.MAX_VALUE : o1.number;
-          int o2n = o2.number < 0 ? o2.number + Integer.MAX_VALUE : o2.number;
-          return o1n - o2n;
-        }
-
+      attributes.sort((o1, o2) -> {
+        int o1n = o1.number < 0 ? o1.number + Integer.MAX_VALUE : o1.number;
+        int o2n = o2.number < 0 ? o2.number + Integer.MAX_VALUE : o2.number;
+        return o1n - o2n;
       });
 
     }

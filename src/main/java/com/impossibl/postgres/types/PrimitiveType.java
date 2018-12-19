@@ -48,6 +48,7 @@ public enum PrimitiveType {
   Interval,
   String,
   XML,
+  HStore,
   Bits,
   Binary,
   Array,
@@ -62,5 +63,8 @@ public enum PrimitiveType {
   Line,
   Path,
   Polygon,
-  Circle
+  Circle,
+  Inet,
+  Cidr,
+  MacAddr
 }

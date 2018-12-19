@@ -29,11 +29,16 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
-import com.impossibl.postgres.protocol.DataRow;
-import com.impossibl.postgres.protocol.ParsedDataRow;
+import com.impossibl.postgres.protocol.FieldBuffersRowData;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.UpdatableRowData;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.system.SettingsContext;
+import com.impossibl.postgres.system.TypeMapContext;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
@@ -48,31 +53,12 @@ import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.ROW_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.RS_NOT_UPDATABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerce;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBigDecimal;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBlob;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToBoolean;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByte;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToByteStream;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToClob;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDate;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToDouble;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToFloat;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToInt;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToLong;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToRowId;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToShort;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToString;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTime;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToTimestamp;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToURL;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToXML;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.mapGetType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
 import static com.impossibl.postgres.protocol.QueryCommand.Status.Completed;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -99,16 +85,16 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static java.math.RoundingMode.HALF_UP;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.netty.buffer.ByteBuf;
+
 
 class PGResultSet implements ResultSet {
 
@@ -118,13 +104,13 @@ class PGResultSet implements ResultSet {
    * @author kdubb
    *
    */
-  static class Cleanup implements CleanupRunnable {
+  private static class Cleanup implements CleanupRunnable {
 
     PGStatement statement;
     QueryCommand command;
     StackTraceElement[] allocationStackTrace;
 
-    public Cleanup(PGStatement statement, QueryCommand command) {
+    private Cleanup(PGStatement statement, QueryCommand command) {
       this.statement = statement;
       this.command = command;
       this.allocationStackTrace = new Exception().getStackTrace();
@@ -164,19 +150,19 @@ class PGResultSet implements ResultSet {
 
 
   PGStatement statement;
-  Scroller scroller;
-  int fetchDirection;
-  Integer fetchSize;
-  SQLWarning warningChain;
-  Object[] updatedRowValues;
-  Boolean nullFlag;
-  Map<String, Class<?>> typeMap;
-  final Housekeeper.Ref housekeeper;
-  final Object cleanupKey;
+  private Scroller scroller;
+  private int fetchDirection;
+  private Integer fetchSize;
+  private SQLWarning warningChain;
+  private Boolean nullFlag;
+  private final SettingsContext context;
+  private final Housekeeper.Ref housekeeper;
+  private final Object cleanupKey;
 
+  private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
 
-  PGResultSet(PGStatement statement, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) throws SQLException {
-    this(statement, command);
+  PGResultSet(PGStatement statement, QueryCommand command, ResultField[] resultFields, List<RowData> results) throws SQLException {
+    this(statement, command, null);
     this.scroller = new CommandScroller(this, command, resultFields, results);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
@@ -185,8 +171,8 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) throws SQLException {
-    this(statement, null);
+  PGResultSet(PGStatement statement, ResultField[] resultFields, List<RowData> results, boolean releaseResults, Map<String, Class<?>> typeMap) throws SQLException {
+    this(statement, null, typeMap);
     this.scroller = new ListScroller(resultFields, results, releaseResults);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
@@ -195,8 +181,8 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, String cursorName, int type, int holdability, List<ResultField> resultFields) throws SQLException {
-    this(statement, null);
+  PGResultSet(PGStatement statement, String cursorName, int type, int holdability, ResultField[] resultFields) throws SQLException {
+    this(statement, null, null);
     this.scroller = new CursorScroller(this, cursorName, type, holdability, resultFields);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
@@ -205,17 +191,23 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  private PGResultSet(PGStatement statement, QueryCommand command) throws SQLException {
+  private PGResultSet(PGStatement statement, QueryCommand command, Map<String, Class<?>> typeMap) {
     this.statement = statement;
     this.fetchDirection = statement.fetchDirection;
     this.fetchSize = statement.fetchSize;
-    this.typeMap = statement.getConnection().getTypeMap();
+
+    this.context = new SettingsContext(statement.connection, typeMap);
+    updateMaxFieldSize(statement.maxFieldSize);
 
     this.housekeeper = statement.housekeeper;
     if (this.housekeeper != null)
       this.cleanupKey = housekeeper.add(this, new Cleanup(statement, command));
     else
       this.cleanupKey = null;
+  }
+
+  void updateMaxFieldSize(Integer maxFieldSize) {
+    this.context.setSetting(Settings.FIELD_VARYING_LENGTH_MAX, maxFieldSize);
   }
 
   /**
@@ -239,9 +231,9 @@ class PGResultSet implements ResultSet {
    * @throws SQLException
    *           If the provided index is out of the range
    */
-  void checkColumnIndex(int columnIndex) throws SQLException {
+  private void checkColumnIndex(int columnIndex) throws SQLException {
 
-    if (columnIndex < 1 || columnIndex > scroller.getResultFields().size())
+    if (columnIndex < 1 || columnIndex > scroller.getResultFields().length)
       throw COLUMN_INDEX_OUT_OF_BOUNDS;
 
   }
@@ -252,7 +244,7 @@ class PGResultSet implements ResultSet {
    * @throws SQLException
    *           If the current row index is out of the range
    */
-  void checkRow() throws SQLException {
+  private void checkRow() throws SQLException {
 
     if (!scroller.isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
@@ -263,9 +255,9 @@ class PGResultSet implements ResultSet {
    * Ensure the result set is updatable
    *
    * @throws SQLException
-   *           If the connection is not updatable
+   *           If the result set is not updatable
    */
-  void checkUpdatable() throws SQLException {
+  private void checkUpdatable() throws SQLException {
 
     if (scroller.getConcurrency() == CONCUR_READ_ONLY)
       throw RS_NOT_UPDATABLE;
@@ -275,8 +267,9 @@ class PGResultSet implements ResultSet {
    * Ensure the result set is ready to be updated
    *
    * @throws SQLException
+   *           If the result set is not updatable
    */
-  void checkUpdate() throws SQLException {
+  private void checkUpdate() throws SQLException {
     checkUpdatable();
   }
 
@@ -288,10 +281,15 @@ class PGResultSet implements ResultSet {
    *          Column index to retrieve
    * @return Column value as Object
    */
-  Object get(int columnIndex) throws PGSQLSimpleException {
-    Object val = null;
+  private <R> R getVal(int columnIndex, Context context, Class<R> targetClass, Object targetContext) throws PGSQLSimpleException {
+    return targetClass.cast(getObj(columnIndex, context, targetClass, targetContext));
+  }
+
+  private Object getObj(int columnIndex, Context context, Class<?> targetClass, Object targetContext) throws PGSQLSimpleException {
+
+    Object val;
     try {
-      val = scroller.getRowData().getColumn(columnIndex - 1);
+      val = scroller.getRowData().getColumn(columnIndex - 1, context, targetClass, targetContext);
     }
     catch (IOException e) {
       throw new PGSQLSimpleException("Error decoding column", e);
@@ -300,45 +298,26 @@ class PGResultSet implements ResultSet {
     return val;
   }
 
-  void set(int columnIdx, Object val) throws SQLException {
+  void set(int columnIndex, Object source, Object sourceContext) throws SQLException {
     checkClosed();
-    checkColumnIndex(columnIdx);
+    checkColumnIndex(columnIndex);
 
-    if (updatedRowValues == null) {
-
-      DataRow dataRow = scroller.getRowData();
-      if (dataRow == null) {
-        throw RS_NOT_UPDATABLE;
-      }
-
-      Object[] rowData = new Object[scroller.getResultFields().size()];
-      for (int c = 0, len = rowData.length; c < len; ++c) {
-        try {
-          rowData[c] = dataRow.getColumn(c);
-        }
-        catch (IOException e) {
-          throw new SQLException("Error decoding column", e);
-        }
-      }
-
-      updatedRowValues = rowData;
+    UpdatableRowData rowData = scroller.getUpdatableRowData();
+    if (rowData == null) {
+      throw RS_NOT_UPDATABLE;
     }
 
-    Type colType = getType(columnIdx);
+    try {
+      rowData.updateColumn(columnIndex - 1, context, source, sourceContext);
+    }
+    catch (IOException e) {
+      throw new PGSQLSimpleException("Error decoding column", e);
+    }
 
-    Class<?> targetType = SQLTypeUtils.mapSetType(colType);
-
-    val = coerce(val, colType, targetType, typeMap, statement.connection);
-
-    updatedRowValues[columnIdx - 1] = val;
   }
 
-  List<ResultField> getResultFields() {
+  ResultField[] getResultFields() {
     return scroller.getResultFields();
-  }
-
-  Type getType(int columnIndex) {
-    return scroller.getResultFields().get(columnIndex - 1).getTypeRef().get();
   }
 
   @Override
@@ -352,6 +331,7 @@ class PGResultSet implements ResultSet {
   public int getType() throws SQLException {
     checkClosed();
 
+    //noinspection MagicConstant
     return scroller.getType();
   }
 
@@ -366,6 +346,7 @@ class PGResultSet implements ResultSet {
   public int getHoldability() throws SQLException {
     checkClosed();
 
+    //noinspection MagicConstant
     return scroller.getHoldability();
   }
 
@@ -383,6 +364,10 @@ class PGResultSet implements ResultSet {
         throw CURSOR_NOT_SCROLLABLE;
     }
     fetchDirection = direction;
+  }
+
+  Integer fetchSize() {
+    return fetchSize;
   }
 
   @Override
@@ -511,6 +496,8 @@ class PGResultSet implements ResultSet {
   public boolean rowDeleted() throws SQLException {
     checkClosed();
 
+    // TODO should be SQLFeatureNotSupportedException?
+
     return false;
   }
 
@@ -518,19 +505,21 @@ class PGResultSet implements ResultSet {
   public void insertRow() throws SQLException {
     checkClosed();
 
-    scroller.insert(updatedRowValues);
+    scroller.insert();
   }
 
   @Override
   public void updateRow() throws SQLException {
     checkClosed();
+    checkRow();
 
-    scroller.update(updatedRowValues);
+    scroller.update();
   }
 
   @Override
   public void deleteRow() throws SQLException {
     checkClosed();
+    checkRow();
 
     scroller.delete();
   }
@@ -538,6 +527,7 @@ class PGResultSet implements ResultSet {
   @Override
   public void refreshRow() throws SQLException {
     checkClosed();
+    checkRow();
 
     scroller.refresh();
   }
@@ -547,7 +537,7 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkRow();
 
-    updatedRowValues = null;
+    scroller.cancel();
   }
 
   @Override
@@ -555,18 +545,19 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkUpdatable();
 
-    updatedRowValues = new Object[scroller.getResultFields().size()];
+    scroller.createInsertRowData();
   }
 
   @Override
   public void moveToCurrentRow() throws SQLException {
     checkClosed();
+    checkUpdatable();
 
-    updatedRowValues = null;
+    scroller.cancel();
   }
 
   @Override
-  public boolean isClosed() throws SQLException {
+  public boolean isClosed() {
     return statement == null;
   }
 
@@ -607,7 +598,7 @@ class PGResultSet implements ResultSet {
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
     checkClosed();
-    return new PGResultSetMetaData(statement.connection, scroller.getResultFields(), typeMap);
+    return new PGResultSetMetaData(statement.connection, scroller.getResultFields(), context.getCustomTypeMap());
   }
 
   @Override
@@ -626,7 +617,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToString(get(columnIndex), getType(columnIndex), statement.connection);
+    return getVal(columnIndex, context, String.class, null);
   }
 
   @Override
@@ -635,7 +626,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBoolean(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Boolean.class, null), false);
   }
 
   @Override
@@ -644,7 +635,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToByte(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Byte.class, null), (byte)0);
   }
 
   @Override
@@ -653,7 +644,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToShort(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Short.class, null), (short)0);
   }
 
   @Override
@@ -662,7 +653,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToInt(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Integer.class, null), 0);
   }
 
   @Override
@@ -671,7 +662,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToLong(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Long.class, null), 0L);
   }
 
   @Override
@@ -680,7 +671,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToFloat(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Float.class, null), 0.0f);
   }
 
   @Override
@@ -689,19 +680,17 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToDouble(get(columnIndex));
+    return firstNonNull(getVal(columnIndex, context, Double.class, null), 0.0);
   }
 
   @Override
   @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
 
-    BigDecimal val = coerceToBigDecimal(columnIndex);
-    if (val == null) {
-      return null;
-    }
-
-    return val.setScale(scale, HALF_UP);
+    return getVal(columnIndex, context, BigDecimal.class, scale);
   }
 
   @Override
@@ -710,7 +699,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBigDecimal(get(columnIndex));
+    return getVal(columnIndex, context, BigDecimal.class, null);
   }
 
   @Override
@@ -719,7 +708,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    try (InputStream data = coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection)) {
+    try (InputStream data = getVal(columnIndex, context, InputStream.class, null)) {
 
       if (data == null) {
         return null;
@@ -735,19 +724,19 @@ class PGResultSet implements ResultSet {
   @Override
   public Date getDate(int columnIndex) throws SQLException {
 
-    return getDate(columnIndex, Calendar.getInstance());
+    return getDate(columnIndex, null);
   }
 
   @Override
   public Time getTime(int columnIndex) throws SQLException {
 
-    return getTime(columnIndex, Calendar.getInstance());
+    return getTime(columnIndex, null);
   }
 
   @Override
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
 
-    return getTimestamp(columnIndex, Calendar.getInstance());
+    return getTimestamp(columnIndex, null);
   }
 
   @Override
@@ -756,9 +745,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToDate(get(columnIndex), zone, statement.connection);
+    return getVal(columnIndex, context, Date.class, cal);
   }
 
   @Override
@@ -767,9 +754,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToTime(get(columnIndex), zone, statement.connection);
+    return getVal(columnIndex, context, Time.class, cal);
   }
 
   @Override
@@ -778,9 +763,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    TimeZone zone = cal.getTimeZone();
-
-    return coerceToTimestamp(get(columnIndex), zone, statement.connection);
+    return getVal(columnIndex, context, Timestamp.class, cal);
   }
 
   @Override
@@ -789,17 +772,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    Object value = get(columnIndex);
-    if (value == null)
-      return null;
-
-    Type type = getType(columnIndex);
-
-    if (!(type instanceof ArrayType)) {
-      throw SQLTypeUtils.createCoercionException(value.getClass(), Array.class);
-    }
-
-    return new PGArray(statement.connection, (ArrayType) type, (Object[]) value);
+    return getVal(columnIndex, context, Array.class, null);
   }
 
   @Override
@@ -808,7 +781,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToURL(get(columnIndex));
+    return getVal(columnIndex, context, URL.class, null);
   }
 
   @Override
@@ -848,7 +821,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToByteStream(get(columnIndex), getType(columnIndex), statement.connection);
+    return getVal(columnIndex, context, InputStream.class, null);
   }
 
   @Override
@@ -857,7 +830,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToBlob(get(columnIndex), statement.connection);
+    return getVal(columnIndex, context, Blob.class, null);
   }
 
   @Override
@@ -866,7 +839,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToClob(get(columnIndex), statement.connection);
+    return getVal(columnIndex, context, Clob.class, null);
   }
 
   @Override
@@ -875,28 +848,28 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToXML(get(columnIndex), statement.connection);
+    return getVal(columnIndex, context, SQLXML.class, null);
   }
 
   @Override
   public Object getObject(int columnIndex) throws SQLException {
-    return getObject(columnIndex, typeMap);
-  }
-
-  @Override
-  public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     checkClosed();
     checkRow();
     checkColumnIndex(columnIndex);
 
-    Type type = getType(columnIndex);
+    return getObj(columnIndex, context, null, null);
+  }
 
-    Class<?> targetType = mapGetType(type, map, statement.connection);
+  @Override
+  public Object getObject(int columnIndex, Map<String, Class<?>> typeMap) throws SQLException {
+    checkClosed();
+    checkRow();
+    checkColumnIndex(columnIndex);
 
-    if (statement.connection.isStrictMode() && InputStream.class.equals(targetType))
-      targetType = byte[].class;
+    TypeMapContext typeMapContext = TYPE_MAP_CONTEXTS.get();
+    typeMapContext.reset(context, typeMap);
 
-    return coerce(get(columnIndex), type, targetType, map, statement.connection);
+    return getObj(columnIndex, typeMapContext, null, null);
   }
 
   @Override
@@ -905,7 +878,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return type.cast(coerce(get(columnIndex), getType(columnIndex), type, typeMap, statement.connection));
+    return getVal(columnIndex, context, type, null);
   }
 
   @Override
@@ -914,7 +887,7 @@ class PGResultSet implements ResultSet {
     checkRow();
     checkColumnIndex(columnIndex);
 
-    return coerceToRowId(get(columnIndex), getType(columnIndex));
+    return getVal(columnIndex, context, RowId.class, null);
   }
 
   @Override
@@ -945,12 +918,13 @@ class PGResultSet implements ResultSet {
   public int findColumn(String columnLabel) throws SQLException {
     checkClosed();
 
-    List<ResultField> resultFields = scroller.getResultFields();
+    ResultField[] resultFields = scroller.getResultFields();
 
-    for (int c = 0; c < resultFields.size(); ++c) {
+    for (int c = 0; c < resultFields.length; ++c) {
 
-      if (resultFields.get(c).getName().equalsIgnoreCase(columnLabel))
+      if (resultFields[c].getName().equalsIgnoreCase(columnLabel)) {
         return c + 1;
+      }
     }
 
     throw INVALID_COLUMN_NAME;
@@ -1054,8 +1028,8 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
-  public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-    return getObject(findColumn(columnLabel), map);
+  public Object getObject(String columnLabel, Map<String, Class<?>> typeMap) throws SQLException {
+    return getObject(findColumn(columnLabel), typeMap);
   }
 
   @Override
@@ -1132,119 +1106,119 @@ class PGResultSet implements ResultSet {
   public void updateNull(int columnIndex) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, null);
+    set(columnIndex, null, null);
   }
 
   @Override
   public void updateBoolean(int columnIndex, boolean x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateByte(int columnIndex, byte x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateShort(int columnIndex, short x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateInt(int columnIndex, int x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateLong(int columnIndex, long x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateFloat(int columnIndex, float x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateDouble(int columnIndex, double x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateString(int columnIndex, String x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateBytes(int columnIndex, byte[] x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateDate(int columnIndex, Date x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateTime(int columnIndex, Time x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateArray(int columnIndex, Array x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateSQLXML(int columnIndex, SQLXML x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
   public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
@@ -1260,7 +1234,7 @@ class PGResultSet implements ResultSet {
       throw new SQLException("Invalid length");
     }
 
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
@@ -1276,7 +1250,7 @@ class PGResultSet implements ResultSet {
       throw new SQLException("Invalid length");
     }
 
-    set(columnIndex, x);
+    set(columnIndex, x, null);
   }
 
   @Override
@@ -1298,7 +1272,7 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkUpdate();
     try {
-      set(columnIndex, x != null ? new String(ByteStreams.toByteArray(x), US_ASCII) : null);
+      set(columnIndex, x != null ? new String(ByteStreams.toByteArray(x), US_ASCII) : null, null);
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -1324,7 +1298,7 @@ class PGResultSet implements ResultSet {
     checkClosed();
     checkUpdate();
     try {
-      set(columnIndex, x != null ? CharStreams.toString(x) : null);
+      set(columnIndex, x != null ? CharStreams.toString(x) : null, null);
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -1335,7 +1309,7 @@ class PGResultSet implements ResultSet {
   public void updateBlob(int columnIndex, Blob x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, unwrapBlob(statement.connection, x));
+    set(columnIndex, unwrapBlob(statement.connection, x), null);
   }
 
   @Override
@@ -1352,7 +1326,7 @@ class PGResultSet implements ResultSet {
       throw new SQLException(e);
     }
 
-    set(columnIndex, blob);
+    set(columnIndex, blob, null);
   }
 
   @Override
@@ -1366,7 +1340,7 @@ class PGResultSet implements ResultSet {
   public void updateClob(int columnIndex, Clob x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, unwrapClob(statement.connection, x));
+    set(columnIndex, unwrapClob(statement.connection, x), null);
   }
 
   @Override
@@ -1383,7 +1357,7 @@ class PGResultSet implements ResultSet {
       throw new SQLException(e);
     }
 
-    set(columnIndex, clob);
+    set(columnIndex, clob, null);
   }
 
   @Override
@@ -1404,14 +1378,14 @@ class PGResultSet implements ResultSet {
   public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, unwrapObject(statement.connection, x));
+    set(columnIndex, unwrapObject(statement.connection, x), scaleOrLength);
   }
 
   @Override
   public void updateRowId(int columnIndex, RowId x) throws SQLException {
     checkClosed();
     checkUpdate();
-    set(columnIndex, unwrapRowId(statement.connection, x));
+    set(columnIndex, unwrapRowId(x), null);
   }
 
   @Override
@@ -1687,6 +1661,11 @@ class PGResultSet implements ResultSet {
     return warningChain;
   }
 
+  void addWarnings(SQLWarning warningChain) {
+
+    this.warningChain = ErrorUtils.chainWarnings(this.warningChain, warningChain);
+  }
+
   @Override
   public void clearWarnings() throws SQLException {
     checkClosed();
@@ -1704,7 +1683,7 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isAssignableFrom(getClass());
   }
 
@@ -1756,13 +1735,17 @@ abstract class Scroller {
 
   abstract int getHoldability();
 
-  abstract List<ResultField> getResultFields();
+  abstract ResultField[] getResultFields();
 
   abstract boolean isValidRow();
 
   abstract int getRow() throws SQLException;
 
-  abstract DataRow getRowData();
+  abstract RowData getRowData();
+
+  abstract UpdatableRowData getUpdatableRowData();
+
+  abstract void createInsertRowData() throws SQLException;
 
   abstract boolean isBeforeFirst() throws SQLException;
 
@@ -1788,13 +1771,15 @@ abstract class Scroller {
 
   abstract boolean previous() throws SQLException;
 
-  abstract void insert(Object[] updatedRowValues) throws SQLException;
+  abstract void insert() throws SQLException;
 
-  abstract void update(Object[] updatedRowValues) throws SQLException;
+  abstract void update() throws SQLException;
 
   abstract void delete() throws SQLException;
 
   abstract void refresh() throws SQLException;
+
+  abstract void cancel() throws SQLException;
 
 }
 
@@ -1804,20 +1789,19 @@ abstract class Scroller {
 class ListScroller extends Scroller {
 
   int currentRowIndex = -1;
-  List<DataRow> results;
-  List<ResultField> resultFields;
-  boolean releaseResults;
+  List<RowData> results;
+  ResultField[] resultFields;
+  private boolean releaseResults;
 
-  @SuppressWarnings("unchecked")
-  ListScroller(List<ResultField> resultFields, List<DataRow> results, boolean releaseResults) {
+  ListScroller(ResultField[] resultFields, List<RowData> results, boolean releaseResults) {
     this.resultFields = resultFields;
     this.results = results;
     this.releaseResults = releaseResults;
   }
 
-  void setResults(List<DataRow> results) {
+  void setResults(List<RowData> results) {
     if (this.results != null) {
-      for (DataRow dataRow : this.results) {
+      for (RowData dataRow : this.results) {
         dataRow.release();
       }
     }
@@ -1832,7 +1816,7 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  List<ResultField> getResultFields() {
+  ResultField[] getResultFields() {
     return resultFields;
   }
 
@@ -1862,7 +1846,7 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  int getRow() throws SQLException {
+  int getRow() {
 
     if (!isValidRow())
       return 0;
@@ -1871,8 +1855,18 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  DataRow getRowData() {
+  RowData getRowData() {
     return results.get(currentRowIndex);
+  }
+
+  @Override
+  UpdatableRowData getUpdatableRowData() {
+    return null;
+  }
+
+  @Override
+  void createInsertRowData() throws SQLException {
+    throw RS_NOT_UPDATABLE;
   }
 
   @Override
@@ -1946,12 +1940,12 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  void insert(Object[] updatedRowValues) throws SQLException {
+  void insert() throws SQLException {
     throw RS_NOT_UPDATABLE;
   }
 
   @Override
-  void update(Object[] updatedRowValues) throws SQLException {
+  void update() throws SQLException {
     throw RS_NOT_UPDATABLE;
   }
 
@@ -1961,7 +1955,11 @@ class ListScroller extends Scroller {
   }
 
   @Override
-  void refresh() throws SQLException {
+  void refresh() {
+  }
+
+  @Override
+  void cancel() {
   }
 
 }
@@ -1973,11 +1971,11 @@ class ListScroller extends Scroller {
  */
 class CommandScroller extends ListScroller {
 
-  PGResultSet resultSet;
-  int resultsIndexOffset;
-  QueryCommand command;
+  private PGResultSet resultSet;
+  private int resultsIndexOffset;
+  private QueryCommand command;
 
-  CommandScroller(PGResultSet resultSet, QueryCommand command, List<ResultField> resultFields, List<DataRow> results) {
+  CommandScroller(PGResultSet resultSet, QueryCommand command, ResultField[] resultFields, List<RowData> results) {
     super(resultFields, results, true);
     this.resultSet = resultSet;
     this.command = command;
@@ -1995,7 +1993,7 @@ class CommandScroller extends ListScroller {
   }
 
   @Override
-  public int getRow() throws SQLException {
+  public int getRow() {
 
     if (!isValidRow())
       return 0;
@@ -2053,7 +2051,6 @@ class CommandScroller extends ListScroller {
     throw CURSOR_NOT_SCROLLABLE;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public boolean next() throws SQLException {
 
@@ -2061,10 +2058,12 @@ class CommandScroller extends ListScroller {
 
       if (command != null && command.getStatus() != Completed) {
 
-        if (resultSet.fetchSize != null)
-          command.setMaxRows(resultSet.fetchSize);
+        Integer fetchSize = resultSet.fetchSize();
+        if (fetchSize != null)
+          command.setMaxRows(fetchSize);
 
-        resultSet.warningChain = resultSet.statement.connection.execute(command, true);
+        SQLWarning warningChain = resultSet.statement.connection.execute(command);
+        resultSet.addWarnings(warningChain);
 
         List<QueryCommand.ResultBatch> resultBatches = command.getResultBatches();
         if (resultBatches.size() != 1) {
@@ -2099,69 +2098,57 @@ class CommandScroller extends ListScroller {
  */
 class CursorScroller extends Scroller {
 
-  PGConnectionImpl connection;
-  String cursorName;
-  int type;
-  int holdability;
-  List<ResultField> resultFields;
-  int rowIndexValue;
-  Integer rowCountCache;
-  int rowIndexSign;
-  DataRow result;
+  private PGDirectConnection connection;
+  private String cursorName;
+  private int type;
+  private int holdability;
+  private ResultField[] resultFields;
+  private int rowIndexValue;
+  private int lastRowIndexValue;
+  private Integer rowCountCache;
+  private int rowIndexSign;
+  private RowData result;
 
-  CursorScroller(PGResultSet resultSet, String cursorName, int type, int holdability, List<ResultField> resultFields) {
+  CursorScroller(PGResultSet resultSet, String cursorName, int type, int holdability, ResultField[] resultFields) {
     this.connection = resultSet.statement.connection;
     this.cursorName = cursorName;
     this.type = type;
     this.holdability = holdability;
     this.resultFields = resultFields;
-    this.rowIndexValue = 0;
-    this.rowIndexSign = 1;
+    setRowIndex(0, true);
   }
 
-  void setRowIndex(int value, boolean sign) {
+  private void setRowIndex(int value, boolean sign) {
     rowIndexValue = value;
+    lastRowIndexValue = rowIndexValue;
     rowIndexSign = sign ? 1 : -1;
   }
 
-  void setResult(DataRow result) {
+  void setResult(RowData result) {
     if (this.result != null) {
       this.result.release();
     }
+
     this.result = result;
   }
 
-  boolean fetch(String type, Object loc) throws SQLException {
+  private boolean fetch(String type, Object loc) throws SQLException {
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("FETCH ");
-    sb.append(type);
-    sb.append(" ");
-    sb.append(loc);
-    sb.append(" FROM ");
-    sb.append(cursorName);
-
-    setResult(connection.executeForFirstResult(sb.toString(), true));
+    String sb = "FETCH " + type + " " + loc + " FROM " + cursorName;
+    setResult(connection.executeForResult(sb));
 
     return result != null;
   }
 
-  int move(String type, Object loc) throws SQLException {
+  private int move(String type, Object loc) throws SQLException {
 
     setResult(null);
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("MOVE ");
-    sb.append(type);
-    sb.append(" ");
-    sb.append(loc);
-    sb.append(" IN ");
-    sb.append(cursorName);
-
-    return (int) connection.executeForRowsAffected(sb.toString(), true);
+    String sb = "MOVE " + type + " " + loc + " IN " + cursorName;
+    return (int) connection.executeForRowsAffected(sb);
   }
 
-  int getRealRowCount() throws SQLException {
+  private int getRealRowCount() throws SQLException {
     if (rowCountCache == null) {
       move("ABSOLUTE", 0);
       rowCountCache = move("FORWARD", "ALL");
@@ -2173,24 +2160,24 @@ class CursorScroller extends Scroller {
   @Override
   void close() throws SQLException {
 
+    cancel();
     setResult(null);
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
 
-      connection.execute("CLOSE " + cursorName, true);
-
+      connection.execute(connection.getProtocol().createQuery("CLOSE " + cursorName));
     }
 
   }
 
   @Override
-  List<ResultField> getResultFields() {
+  ResultField[] getResultFields() {
     return resultFields;
   }
 
   @Override
   boolean isValidRow() {
-    return result != null;
+    return result != null && rowIndexValue != Integer.MAX_VALUE;
   }
 
   @Override
@@ -2213,8 +2200,27 @@ class CursorScroller extends Scroller {
   }
 
   @Override
-  DataRow getRowData() {
+  RowData getRowData() {
     return result;
+  }
+
+  @Override
+  UpdatableRowData getUpdatableRowData() {
+    if (result == null || result instanceof UpdatableRowData) {
+      return (UpdatableRowData) result;
+    }
+
+    UpdatableRowData updatableResult = result.duplicateForUpdate();
+    result.release();
+    result = updatableResult;
+
+    return updatableResult;
+  }
+
+  @Override
+  void createInsertRowData() {
+    setResult(new FieldBuffersRowData(resultFields));
+    rowIndexValue = Integer.MAX_VALUE;
   }
 
   @Override
@@ -2233,17 +2239,13 @@ class CursorScroller extends Scroller {
   }
 
   @Override
-  public boolean isBeforeFirst() throws SQLException {
-    if (rowCountCache != null && rowCountCache == 0)
-      return false;
-    return rowIndexValue == 0 && rowIndexSign == 1;
+  public boolean isBeforeFirst() {
+    return (rowCountCache == null || rowCountCache != 0) && rowIndexValue == 0 && rowIndexSign == 1;
   }
 
   @Override
-  public boolean isAfterLast() throws SQLException {
-    if (rowCountCache != null && rowCountCache == 0)
-      return false;
-    return rowIndexValue == 0 && rowIndexSign == -1;
+  public boolean isAfterLast() {
+    return (rowCountCache == null || rowCountCache != 0) && rowIndexValue == 0 && rowIndexSign == -1;
   }
 
   @Override
@@ -2329,12 +2331,7 @@ class CursorScroller extends Scroller {
       setRowIndex(Math.abs(row), row > 0);
       return true;
     }
-    else if (row == 0) {
-      setRowIndex(0, true);
-    }
-    else {
-      setRowIndex(0, row < 0);
-    }
+    setRowIndex(0, row == 0 || row < 0);
     return false;
   }
 
@@ -2370,17 +2367,15 @@ class CursorScroller extends Scroller {
   }
 
   @Override
-  void insert(Object[] updatedRowValues) throws SQLException {
+  void insert() throws SQLException {
 
-    if (updatedRowValues == null) {
-      throw new SQLException("not on update row");
+    if (!(result instanceof UpdatableRowData) || rowIndexValue != Integer.MAX_VALUE) {
+      throw new PGSQLSimpleException("not on insert row");
     }
 
-    if (resultFields.isEmpty() || resultFields.size() != updatedRowValues.length) {
-      throw new SQLException("Invalid update row");
-    }
+    UpdatableRowData rowData = (UpdatableRowData) result;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
+    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
 
     StringBuilder sb = new StringBuilder("INSERT INTO ");
 
@@ -2388,32 +2383,37 @@ class CursorScroller extends Scroller {
 
     sb.append(" VALUES (");
 
-    Iterator<ResultField> fieldsIter = resultFields.iterator();
-    int pid = 1;
-    while (fieldsIter.hasNext()) {
-      fieldsIter.next();
+    for (int pid = 0; pid < resultFields.length; ++pid) {
       sb.append("$");
-      sb.append(pid++);
-      sb.append(fieldsIter.hasNext() ? ", " : " ");
+      sb.append(pid + 1);
+      if (pid < resultFields.length - 1) {
+        sb.append(", ");
+      }
     }
 
     sb.append(")");
 
-    connection.executeForRowsAffected(sb.toString(), true, updatedRowValues);
+    ResultField[] rowColumns = rowData.getColumnFields();
+    FieldFormat[] paramFormats = new FieldFormat[rowData.getColumnCount()];
+    for (int columnIdx = 0; columnIdx < paramFormats.length; ++columnIdx) {
+      paramFormats[columnIdx] = rowColumns[columnIdx].getFormat();
+    }
+
+    ByteBuf[] paramBuffers = rowData.getColumnBuffers();
+
+    connection.executeForRowsAffected(sb.toString(), paramFormats, paramBuffers);
   }
 
   @Override
-  void update(Object[] updatedRowValues) throws SQLException {
+  void update() throws SQLException {
 
-    if (updatedRowValues == null) {
+    if (!(result instanceof UpdatableRowData) || rowIndexValue == Integer.MAX_VALUE) {
       throw new SQLException("not on update row");
     }
 
-    if (resultFields.size() != updatedRowValues.length) {
-      throw new SQLException("Invalid update row");
-    }
+    UpdatableRowData rowData = (UpdatableRowData) result;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
+    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
 
     StringBuilder sb = new StringBuilder("UPDATE ");
 
@@ -2421,21 +2421,27 @@ class CursorScroller extends Scroller {
 
     sb.append(" SET ");
 
-    Iterator<ResultField> fieldsIter = resultFields.iterator();
-    int pid = 1;
-    while (fieldsIter.hasNext()) {
-      sb.append(fieldsIter.next().getName());
+    for (int pid = 0; pid < resultFields.length; ++pid) {
+      sb.append(resultFields[pid].getName());
       sb.append(" = $");
-      sb.append(pid++);
-      sb.append(fieldsIter.hasNext() ? ", " : " ");
+      sb.append(pid + 1);
+      if (pid < resultFields.length - 1) {
+        sb.append(", ");
+      }
     }
 
     sb.append("WHERE CURRENT OF ");
     sb.append(cursorName);
 
-    connection.executeForRowsAffected(sb.toString(), true, updatedRowValues);
+    ResultField[] rowColumns = rowData.getColumnFields();
+    FieldFormat[] paramFormats = new FieldFormat[rowData.getColumnCount()];
+    for (int columnIdx = 0; columnIdx < paramFormats.length; ++columnIdx) {
+      paramFormats[columnIdx] = rowColumns[columnIdx].getFormat();
+    }
 
-    setResult(new ParsedDataRow(updatedRowValues));
+    ByteBuf[] paramBuffers = rowData.getColumnBuffers();
+
+    connection.executeForRowsAffected(sb.toString(), paramFormats, paramBuffers);
   }
 
   @Override
@@ -2444,12 +2450,10 @@ class CursorScroller extends Scroller {
     if (!isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields.get(0).getRelationId());
+    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("DELETE FROM ").append('"').append(relType.getName()).append('"').append(" WHERE CURRENT OF ").append(cursorName);
-
-    long rows = connection.executeForRowsAffected(sb.toString(), true);
+    String sql = "DELETE FROM " + '"' + relType.getName() + '"' + " WHERE CURRENT OF " + cursorName;
+    long rows = connection.executeForRowsAffected(sql);
     if (rows != 0) {
       if (rowCountCache != null) {
         rowCountCache--;
@@ -2462,6 +2466,14 @@ class CursorScroller extends Scroller {
   @Override
   void refresh() throws SQLException {
     relative(0);
+  }
+
+  @Override
+  void cancel() throws SQLException {
+    rowIndexValue = lastRowIndexValue;
+    if (result instanceof UpdatableRowData) {
+      refresh();
+    }
   }
 
 }

@@ -68,11 +68,6 @@ public class PgAttributeTest {
   }
 
   @Test
-  public void testRow() throws Exception {
-    assertEquals(new PgAttribute.Row(), PgAttribute.INSTANCE.createRow());
-  }
-
-  @Test
   public void testHashCode() throws Exception {
     PgAttribute.Row pgAttrOne = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrOneAgain = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
@@ -167,7 +162,8 @@ public class PgAttributeTest {
       " left join pg_catalog.pg_class c" +
       "   on (a.attrelid = c.oid)" +
       " where " +
-      "   not a.attisdropped"
+      "   not a.attisdropped" +
+      "     AND (c.relpersistence <> 't' OR c.relpersistence IS NULL)"
   };
 
 }

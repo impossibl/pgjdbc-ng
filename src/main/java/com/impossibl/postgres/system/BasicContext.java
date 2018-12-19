@@ -32,26 +32,29 @@ import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
-import com.impossibl.postgres.mapper.Mapper;
-import com.impossibl.postgres.mapper.PropertySetter;
 import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.DataRow;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.PrepareCommand;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.protocol.QueryCommand;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.v30.ProtocolFactoryImpl;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.Table;
+import com.impossibl.postgres.system.tables.Tables;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.Type.Category;
-import com.impossibl.postgres.utils.Converter;
-import com.impossibl.postgres.utils.Factory;
+import com.impossibl.postgres.utils.ByteBufs;
 import com.impossibl.postgres.utils.Locales;
 import com.impossibl.postgres.utils.Timer;
 
+import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
+import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
+import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
@@ -61,8 +64,6 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -75,21 +76,24 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.logging.Level.WARNING;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 
-public class BasicContext implements Context {
+
+public class BasicContext extends AbstractContext {
 
   private static final Logger logger = Logger.getLogger(BasicContext.class.getName());
 
   private static class PreparedQuery {
 
     String name;
-    List<Type> parameterTypes;
-    List<ResultField> resultFields;
+    Type[] parameterTypes;
+    ResultField[] resultFields;
 
-    PreparedQuery(String name, List<Type> parameterTypes, List<ResultField> resultFields) {
+    PreparedQuery(String name, Type[] parameterTypes, ResultField[] resultFields) {
       this.name = name;
       this.parameterTypes = parameterTypes;
       this.resultFields = resultFields;
@@ -110,31 +114,29 @@ public class BasicContext implements Context {
       return name;
     }
 
-    Pattern getChannelNameFilter() {
-      return channelNameFilter;
-    }
   }
 
 
   protected Registry registry;
-  protected Map<String, Class<?>> targetTypeMap;
+  protected Map<String, Class<?>> typeMap;
   protected Charset charset;
-  protected TimeZone timeZone;
-  protected DateTimeFormat dateFormatter;
-  protected DateTimeFormat timeFormatter;
-  protected DateTimeFormat timestampFormatter;
-  protected DecimalFormat decimalFormatter;
-  protected DecimalFormat currencyFormatter;
+  private TimeZone timeZone;
+  private DateTimeFormat dateFormatter;
+  private DateTimeFormat timeFormatter;
+  private DateTimeFormat timestampFormatter;
+  private NumberFormat integerFormatter;
+  private DecimalFormat decimalFormatter;
+  private DecimalFormat currencyFormatter;
   protected Properties settings;
-  protected Version serverVersion;
-  protected KeyData keyData;
+  private Version serverVersion;
+  private KeyData keyData;
   protected Protocol protocol;
   protected Map<NotificationKey, NotificationListener> notificationListeners;
-  protected Map<String, PreparedQuery> utilQueries;
+  private Map<String, PreparedQuery> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> targetTypeMap) throws IOException, NoticeException {
-    this.targetTypeMap = new HashMap<>(targetTypeMap);
+  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> typeMap) throws IOException, NoticeException {
+    this.typeMap = new HashMap<>(typeMap);
     this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
@@ -155,10 +157,6 @@ public class BasicContext implements Context {
     return serverVersion;
   }
 
-  public void setServerVersion(Version serverVersion) {
-    this.serverVersion = serverVersion;
-  }
-
   @Override
   public Registry getRegistry() {
     return registry;
@@ -171,57 +169,15 @@ public class BasicContext implements Context {
 
   @Override
   public Object getSetting(String name) {
-    return settings.get(name);
+    Object value = settings.get(name);
+    if (value != null)
+      return value;
+    return super.getSetting(name);
   }
 
   @Override
-  public <T> T getSetting(String name, Class<T> type) {
-    return type.cast(settings.get(name));
-  }
-
-  public <T> T getSetting(String name, Converter<T> converter) {
-    return converter.apply(settings.get(name));
-  }
-
-  @Override
-  public <T> T getSetting(String name, T defaultValue) {
-    Object val = settings.get(name);
-    if (val == null)
-      return defaultValue;
-    if ((defaultValue.getClass() == int.class || defaultValue.getClass() == Integer.class) && val instanceof String) {
-      return (T) defaultValue.getClass().cast(Integer.valueOf((String) val));
-    }
-    if ((defaultValue.getClass() == long.class || defaultValue.getClass() == Long.class) && val instanceof String) {
-      return (T) defaultValue.getClass().cast(Long.valueOf((String) val));
-    }
-    if ((defaultValue.getClass() == boolean.class || defaultValue.getClass() == Boolean.class) && val instanceof String) {
-      return (T) defaultValue.getClass().cast(Boolean.valueOf((String) val));
-    }
-    return (T) defaultValue.getClass().cast(val);
-  }
-
-  @Override
-  public boolean isSettingEnabled(String name) {
-    Object val = getSetting(name);
-    if (val instanceof String)
-      return ((String) val).equalsIgnoreCase("on");
-    if (val instanceof Boolean)
-      return (Boolean) val;
-    return false;
-  }
-
-  @Override
-  public Class<?> lookupInstanceType(Type type) {
-
-    Class<?> cls = targetTypeMap.get(type.getName());
-    if (cls == null) {
-      if (type.getCategory() == Category.Array)
-        return Object[].class;
-      else
-        cls = HashMap.class;
-    }
-
-    return cls;
+  public Map<String, Class<?>> getCustomTypeMap() {
+    return typeMap;
   }
 
   @Override
@@ -254,6 +210,10 @@ public class BasicContext implements Context {
     return timestampFormatter;
   }
 
+  public NumberFormat getIntegerFormatter() {
+    return integerFormatter;
+  }
+
   @Override
   public DecimalFormat getDecimalFormatter() {
     return decimalFormatter;
@@ -266,6 +226,15 @@ public class BasicContext implements Context {
 
   protected void init() throws IOException, NoticeException {
 
+    integerFormatter = NumberFormat.getIntegerInstance();
+    integerFormatter.setGroupingUsed(false);
+
+    decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance();
+    decimalFormatter.setGroupingUsed(false);
+
+    currencyFormatter = (DecimalFormat) DecimalFormat.getCurrencyInstance();
+    currencyFormatter.setGroupingUsed(false);
+
     loadTypes();
 
     prepareRefreshTypeQueries();
@@ -275,39 +244,58 @@ public class BasicContext implements Context {
 
   private void loadLocale() throws IOException, NoticeException {
 
-    for (DataRow row : queryResults("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')")) {
-
-      String localeSpec = row.getColumn(1).toString();
-
-      switch (localeSpec.toUpperCase(Locale.US)) {
-        case "C":
-        case "POSIX":
-          localeSpec = "en_US";
-          break;
-      }
-
-      // Check if locale matches a win32 type locale (e.g. "English_United States.1252")
-      String windowsLocale = localeSpec.split("\\.")[0];
-      if (Locales.getJavaCompatibleLocale(windowsLocale) != null) {
-        localeSpec = Locales.getJavaCompatibleLocale(windowsLocale);
-      }
-
-      String[] localeIds = localeSpec.split("_|\\.");
-
-      switch (row.getColumn(0).toString()) {
-        case "lc_numeric":
-          Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
-          decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
-          decimalFormatter.setParseBigDecimal(true);
-          currencyFormatter = (DecimalFormat) NumberFormat.getCurrencyInstance(numLocale);
-          currencyFormatter.setParseBigDecimal(true);
-          break;
-        case "lc_time":
-          Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
-      }
-
-      row.release();
+    QueryCommand.ResultBatch resultBatch =
+        queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", false);
+    if (resultBatch == null) {
+      return;
     }
+
+    try {
+
+      for (RowData row : resultBatch.getResults()) {
+
+        String localeSpec = (String) row.getColumn(1, this, String.class, null);
+
+        switch (localeSpec.toUpperCase(Locale.US)) {
+          case "C":
+          case "POSIX":
+            localeSpec = "en_US";
+            break;
+        }
+
+        localeSpec = Locales.getJavaCompatibleLocale(localeSpec);
+
+        String[] localeIds = localeSpec.split("[_.]");
+
+        switch ((String) row.getColumn(0, this, String.class, null)) {
+          case "lc_numeric":
+
+            Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+
+            integerFormatter = NumberFormat.getIntegerInstance(numLocale);
+            integerFormatter.setParseIntegerOnly(true);
+            integerFormatter.setGroupingUsed(false);
+
+            decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
+            decimalFormatter.setParseBigDecimal(true);
+            decimalFormatter.setGroupingUsed(false);
+
+            currencyFormatter = (DecimalFormat) NumberFormat.getCurrencyInstance(numLocale);
+            currencyFormatter.setParseBigDecimal(true);
+            currencyFormatter.setGroupingUsed(false);
+            break;
+
+          case "lc_time":
+            // TODO setup time locale
+            // Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+        }
+
+      }
+    }
+    finally {
+      resultBatch.release();
+    }
+
   }
 
   private void loadTypes() throws IOException, NoticeException {
@@ -316,15 +304,15 @@ public class BasicContext implements Context {
 
     //Load types
     String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-    List<PgType.Row> pgTypes = queryResults(typeSQL, PgType.Row.class);
+    List<PgType.Row> pgTypes = queryTable(typeSQL, PgType.INSTANCE);
 
     //Load attributes
     String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-    List<PgAttribute.Row> pgAttrs = queryResults(attrsSQL, PgAttribute.Row.class);
+    List<PgAttribute.Row> pgAttrs = queryTable(attrsSQL, PgAttribute.INSTANCE);
 
     //Load procs
     String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-    List<PgProc.Row> pgProcs = queryResults(procsSQL, PgProc.Row.class);
+    List<PgProc.Row> pgProcs = queryTable(procsSQL, PgProc.INSTANCE);
 
     logger.fine("query time: " + timer.getLap() + "ms");
 
@@ -357,27 +345,27 @@ public class BasicContext implements Context {
       refreshSpecificType(typeId);
     }
     else {
-      //Load all new types we haven't seent
+      //Load all new types we haven't seen
       refreshTypes(latestKnownTypeId);
     }
 
   }
 
-  void refreshSpecificType(int typeId) {
+  private void refreshSpecificType(int typeId) {
 
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryResults("@refresh-type", PgType.Row.class, typeId);
+      List<PgType.Row> pgTypes = queryTable("@refresh-type", PgType.INSTANCE, typeId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, pgTypes.get(0).getRelationId());
+      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgTypes.get(0).getRelationId());
 
-      registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+      registry.update(pgTypes, pgAttrs, emptyList());
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
@@ -385,12 +373,12 @@ public class BasicContext implements Context {
 
   }
 
-  void refreshTypes(int latestTypeId) {
+  private void refreshTypes(int latestTypeId) {
 
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryResults("@refresh-types", PgType.Row.class, latestTypeId);
+      List<PgType.Row> pgTypes = queryTable("@refresh-types", PgType.INSTANCE, latestTypeId);
 
       if (pgTypes.isEmpty()) {
         return;
@@ -401,9 +389,9 @@ public class BasicContext implements Context {
         typeIds[c] = pgTypes.get(c).getRelationId();
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-types-attrs", PgAttribute.Row.class, (Object) typeIds);
+      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-types-attrs", PgAttribute.INSTANCE, (Object) typeIds);
 
-      registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+      registry.update(pgTypes, pgAttrs, emptyList());
     }
     catch (IOException | NoticeException e) {
       logger.log(WARNING, "Error refreshing types", e);
@@ -417,16 +405,16 @@ public class BasicContext implements Context {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryResults("@refresh-reltype", PgType.Row.class, relationId);
+      List<PgType.Row> pgTypes = queryTable("@refresh-reltype", PgType.INSTANCE, relationId);
 
       if (pgTypes.isEmpty()) {
         return;
       }
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryResults("@refresh-type-attrs", PgAttribute.Row.class, relationId);
+      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, relationId);
 
-      registry.update(pgTypes, pgAttrs, Collections.<PgProc.Row>emptyList());
+      registry.update(pgTypes, pgAttrs, emptyList());
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
@@ -438,17 +426,17 @@ public class BasicContext implements Context {
     return utilQueries.containsKey(name);
   }
 
-  public PreparedQuery prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
+  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
 
-    List<Type> parameterTypes = new ArrayList<>(parameterTypeNames.length);
-    for (String parameterTypeName : parameterTypeNames) {
-      parameterTypes.add(registry.loadType(parameterTypeName));
+    Type[] parameterTypes = new Type[parameterTypeNames.length];
+    for (int parameterIdx = 0; parameterIdx < parameterTypes.length; ++parameterIdx) {
+      parameterTypes[parameterIdx] = registry.loadType(parameterTypeNames[parameterIdx]);
     }
 
-    return prepareUtilQuery(name, sql, parameterTypes);
+    prepareUtilQuery(name, sql, parameterTypes);
   }
 
-  public PreparedQuery prepareUtilQuery(String name, String sql, List<Type> parameterTypes) throws IOException {
+  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException {
 
     PrepareCommand prep = protocol.createPrepare(name, sql, parameterTypes);
     protocol.execute(prep);
@@ -459,7 +447,6 @@ public class BasicContext implements Context {
 
     PreparedQuery pq = new PreparedQuery(name, prep.getDescribedParameterTypes(), prep.getDescribedResultFields());
     utilQueries.put(name, pq);
-    return pq;
   }
 
   private PreparedQuery prepareQuery(String queryTxt) throws NoticeException, IOException {
@@ -472,7 +459,7 @@ public class BasicContext implements Context {
       return util;
     }
 
-    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, Collections.<Type>emptyList());
+    PrepareCommand prepare = protocol.createPrepare(null, queryTxt, EMPTY_TYPES);
 
     protocol.execute(prepare);
 
@@ -483,51 +470,83 @@ public class BasicContext implements Context {
     return new PreparedQuery(null, prepare.getDescribedParameterTypes(), prepare.getDescribedResultFields());
   }
 
-  private <T> List<T> convertResults(Class<T> rowType, List<ResultField> columnFields, List<DataRow> dataRows) throws IOException {
+  private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {
 
-    List<PropertySetter> columnSetters = Mapper.buildMapping(rowType, columnFields);
-
-    List<T> results = new ArrayList<>(dataRows.size());
-    for (int r = 0; r < dataRows.size(); ++r) {
-
-      DataRow dataRow = dataRows.get(r);
-      T row = Factory.createInstance(rowType, columnFields.size());
-
-      for (int c = 0; c < columnSetters.size(); ++c) {
-
-        Object columnValue = dataRow.getColumn(c);
-
-        columnSetters.get(c).set(row, columnValue);
-      }
-
-      dataRow.release();
-
-      results.add(row);
+    QueryCommand.ResultBatch resultBatch = queryBatchPrepared(queryTxt, false, params);
+    if (resultBatch == null) {
+      return emptyList();
     }
 
-    return results;
+    try {
+      return Tables.convertRows(this, table, resultBatch.getResults());
+    }
+    finally {
+      resultBatch.release();
+    }
+
   }
 
-  public <T> List<T> queryResults(String queryTxt, Class<T> rowType, Object... params) throws IOException, NoticeException {
-
-    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, params);
-
-    return convertResults(rowType, resultBatch.getFields(), resultBatch.getResults());
-  }
-
-  public List<DataRow> queryResults(String queryTxt) throws IOException, NoticeException {
-
-    QueryCommand.ResultBatch resultBatch;
+  public void query(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
 
     if (queryTxt.charAt(0) == '@') {
 
       PreparedQuery pq = prepareQuery(queryTxt);
 
-      resultBatch = preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
+      QueryCommand.ResultBatch resultBatch =
+          queryBatchPrepared(pq.name, requireActiveTxn, EMPTY_TYPES, EMPTY_BUFFERS, pq.resultFields);
+      if (resultBatch != null) {
+        resultBatch.release();
+      }
+
     }
     else {
 
       QueryCommand query = protocol.createQuery(queryTxt);
+      query.setRequireActiveTransaction(requireActiveTxn);
+
+      protocol.execute(query);
+
+      if (query.getError() != null) {
+        throw new NoticeException("Error querying", query.getError());
+      }
+
+      releaseResultBatches(query.getResultBatches());
+    }
+
+  }
+
+  protected String queryString(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
+
+    QueryCommand.ResultBatch resultBatch = queryBatch(queryTxt, requireActiveTxn);
+    if (resultBatch == null || resultBatch.getResults() == null || resultBatch.getResults().isEmpty()) {
+      return "";
+    }
+
+    try {
+      String val = resultBatch.getResults().get(0).getColumn(0, this, String.class);
+      return nullToEmpty(val);
+    }
+    finally {
+      resultBatch.release();
+    }
+
+  }
+
+  /**
+   * Queries for a single (the first) result batch. The batch must be released.
+   */
+  protected QueryCommand.ResultBatch queryBatch(String queryTxt, boolean requireActiveTxn) throws IOException, NoticeException {
+
+    if (queryTxt.charAt(0) == '@') {
+
+      PreparedQuery pq = prepareQuery(queryTxt);
+
+      return queryBatchPrepared(pq.name, requireActiveTxn, EMPTY_TYPES, EMPTY_BUFFERS, pq.resultFields);
+    }
+    else {
+
+      QueryCommand query = protocol.createQuery(queryTxt);
+      query.setRequireActiveTransaction(requireActiveTxn);
 
       protocol.execute(query);
 
@@ -538,70 +557,116 @@ public class BasicContext implements Context {
       List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
 
       if (resultBatches.isEmpty()) {
-        resultBatch = null;
-      }
-      else {
-        resultBatch = query.getResultBatches().get(0);
+        return null;
       }
 
-    }
+      QueryCommand.ResultBatch resultBatch = resultBatches.remove(0);
 
-    if (resultBatch == null) {
-      return Collections.emptyList();
-    }
+      releaseResultBatches(resultBatches);
 
-    return resultBatch.getResults();
-  }
-
-  public void query(String queryTxt) throws IOException, NoticeException {
-
-    if (queryTxt.charAt(0) == '@') {
-
-      PreparedQuery pq = prepareQuery(queryTxt);
-
-      preparedQuery(null, pq.name, Collections.<Type>emptyList(), Collections.emptyList(), pq.resultFields);
-    }
-
-    QueryCommand query = protocol.createQuery(queryTxt);
-
-    protocol.execute(query);
-
-    if (query.getError() != null) {
-      throw new NoticeException("Error querying", query.getError());
+      return resultBatch;
     }
 
   }
 
-  public String queryFirstResultString(String queryTxt) throws IOException, NoticeException {
-
-    List<DataRow> res = queryResults(queryTxt);
-    if (res.isEmpty()) {
-      return "";
-    }
-
-    Object val = res.get(0).getColumn(0);
-
-    for (DataRow row : res) {
-      row.release();
-    }
-
-    if (val == null)
-      return "";
-
-    return val.toString();
-  }
-
-  public QueryCommand.ResultBatch queryBatch(String queryTxt, Object... params) throws IOException, NoticeException {
+  /**
+   * Queries a single result batch (the first) via a parameterized query. The batch must be released.
+   */
+  protected QueryCommand.ResultBatch queryBatchPrepared(String queryTxt, boolean requireActiveTxn, Object... params) throws IOException, NoticeException {
 
     PreparedQuery pq = prepareQuery(queryTxt);
 
-    return preparedQuery(null, pq.name, pq.parameterTypes, asList(params), pq.resultFields);
+    return queryBatchPrepared(pq.name, requireActiveTxn, pq.parameterTypes, params, pq.resultFields);
   }
 
-  private QueryCommand.ResultBatch preparedQuery(String portalName, String statementName, List<Type> paramTypes, List<Object> paramValues,
-                                                 List<ResultField> resultFields) throws IOException, NoticeException {
+  /**
+   * Queries a single result batch (the first) via a parameterized query. The batch must be released.
+   */
+  private QueryCommand.ResultBatch queryBatchPrepared(String statementName, boolean requireActiveTxn,
+                                                      Type[] paramTypes, Object[] paramValues,
+                                                      ResultField[] resultFields) throws IOException, NoticeException {
 
-    BindExecCommand query = protocol.createBindExec(portalName, statementName, paramTypes, paramValues, resultFields);
+    FieldFormat[] paramFormats = EMPTY_FORMATS;
+    ByteBuf[] paramBuffers = EMPTY_BUFFERS;
+    try {
+
+      if (paramValues.length != 0) {
+
+        paramFormats = new FieldFormat[paramValues.length];
+        paramBuffers = new ByteBuf[paramValues.length];
+
+        for (int paramIdx = 0; paramIdx < paramValues.length; ++paramIdx) {
+          Type paramType = paramTypes[paramIdx];
+          Object paramValue = paramValues[paramIdx];
+          if (paramValue == null) continue;
+
+          FieldFormat paramFormat = paramType.getParameterFormat();
+          paramFormats[paramIdx] = paramFormat;
+
+          switch (paramFormat) {
+            case Text: {
+              StringBuilder out = new StringBuilder();
+              paramType.getTextCodec().getEncoder().encode(this, paramType, paramValue, null, out);
+              paramBuffers[paramIdx] = ByteBufUtil.writeUtf8(getProtocol().getChannel().alloc(), out);
+            }
+            break;
+
+            case Binary: {
+              ByteBuf out = getProtocol().getChannel().alloc().buffer();
+              paramType.getBinaryCodec().getEncoder().encode(this, paramType, paramValue, null, out);
+              paramBuffers[paramIdx] = out;
+            }
+            break;
+          }
+        }
+
+      }
+
+      BindExecCommand query = protocol.createBindExec(null, statementName, paramFormats, paramBuffers, resultFields);
+      query.setRequireActiveTransaction(requireActiveTxn);
+
+      protocol.execute(query);
+
+      if (query.getError() != null) {
+        throw new NoticeException("Error executing query", query.getError());
+      }
+
+      List<QueryCommand.ResultBatch> resultBatches = query.getResultBatches();
+      try {
+        if (resultBatches.isEmpty())
+          return null;
+
+        return resultBatches.remove(0);
+      }
+      finally {
+        releaseResultBatches(resultBatches);
+      }
+    }
+    finally {
+      ByteBufs.releaseAll(paramBuffers);
+    }
+  }
+
+  /**
+   * Queries a single result batch (the first) via a parameterized query. The batch must be released.
+   */
+  protected QueryCommand.ResultBatch queryBatchPrepared(String queryTxt, boolean requireActiveTxn,
+                                                        FieldFormat[] paramFormats, ByteBuf[] paramBuffers) throws IOException, NoticeException {
+
+    PreparedQuery pq = prepareQuery(queryTxt);
+
+    return queryBatchPrepared(pq.name, requireActiveTxn, paramFormats, paramBuffers, pq.resultFields);
+  }
+
+  /**
+   * Queries a single result batch (the first) via a parameterized query. The batch must be released.
+   */
+  private QueryCommand.ResultBatch queryBatchPrepared(String statementName, boolean requireActiveTxn,
+                                                      FieldFormat[] paramFormats, ByteBuf[] paramBuffers,
+                                                      ResultField[] resultFields) throws IOException, NoticeException {
+
+    BindExecCommand query = protocol.createBindExec(null, statementName, paramFormats, paramBuffers, resultFields);
+    query.setRequireActiveTransaction(requireActiveTxn);
 
     protocol.execute(query);
 
@@ -661,6 +726,12 @@ public class BasicContext implements Context {
         break;
 
       case "TimeZone":
+        if (value.contains("+")) {
+          value = value.replace('+', '-');
+        }
+        else {
+          value = value.replace('-', '+');
+        }
 
         timeZone = TimeZone.getTimeZone(value);
         break;
@@ -686,7 +757,7 @@ public class BasicContext implements Context {
 
   }
 
-  public void addNotificationListener(String name, String channelNameFilter, NotificationListener listener) {
+  protected void addNotificationListener(String name, String channelNameFilter, NotificationListener listener) {
 
     name = nullToEmpty(name);
     channelNameFilter = channelNameFilter != null ? channelNameFilter : ".*";
@@ -698,7 +769,7 @@ public class BasicContext implements Context {
     notificationListeners.put(key, listener);
   }
 
-  public synchronized void removeNotificationListener(NotificationListener listener) {
+  protected synchronized void removeNotificationListener(NotificationListener listener) {
 
     Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
     while (iter.hasNext()) {
@@ -734,10 +805,7 @@ public class BasicContext implements Context {
   @Override
   public synchronized void reportNotification(int processId, String channelName, String payload) {
 
-    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
-    while (iter.hasNext()) {
-
-      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
+    for (Map.Entry<NotificationKey, NotificationListener> entry : notificationListeners.entrySet()) {
 
       NotificationListener listener = entry.getValue();
       if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {

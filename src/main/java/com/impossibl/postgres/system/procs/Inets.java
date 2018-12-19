@@ -30,6 +30,7 @@ package com.impossibl.postgres.system.procs;
 
 
 import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.types.PrimitiveType;
 
 public class Inets extends Networks {
 
@@ -37,7 +38,7 @@ public class Inets extends Networks {
     super("inet_", new InetObjectFactory());
   }
 
-  static class InetObjectFactory implements NetworkObjectFactory<InetAddr> {
+  private static class InetObjectFactory implements NetworkObjectFactory<InetAddr> {
 
     @Override
     public InetAddr newNetworkObject(byte[] addr, short netmask) {
@@ -50,7 +51,12 @@ public class Inets extends Networks {
     }
 
     @Override
-    public Class<? extends InetAddr> getObjectClass() {
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Inet;
+    }
+
+    @Override
+    public Class<InetAddr> getObjectType() {
       return InetAddr.class;
     }
 

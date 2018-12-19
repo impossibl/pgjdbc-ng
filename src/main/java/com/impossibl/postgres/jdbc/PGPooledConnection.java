@@ -54,7 +54,7 @@ import javax.sql.StatementEventListener;
 public class PGPooledConnection implements PooledConnection {
   private List<ConnectionEventListener> connectionListeners;
   private List<StatementEventListener> statementListeners;
-  private PGConnectionImpl con;
+  private PGDirectConnection con;
   private PGPooledConnectionDelegator last;
   private final boolean autoCommit;
   private final boolean isXA;
@@ -63,7 +63,7 @@ public class PGPooledConnection implements PooledConnection {
    * Creates a new PooledConnection representing the specified physical
    * connection.
    */
-  public PGPooledConnection(PGConnectionImpl con, boolean autoCommit, boolean isXA) {
+  public PGPooledConnection(PGDirectConnection con, boolean autoCommit, boolean isXA) {
     this.connectionListeners = new ArrayList<>();
     this.statementListeners = new ArrayList<>();
     this.con = con;

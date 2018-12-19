@@ -32,20 +32,15 @@ import com.impossibl.postgres.types.Type;
 
 public class ResultField {
 
-  public enum Format {
-    Text,
-    Binary
-  }
-
   private String name;
   private int relationId;
   private int relationAttributeNumber;
   private TypeRef typeRef;
   private short typeLength;
   private int typeModifier;
-  private Format format;
+  private FieldFormat format;
 
-  public ResultField(String name, int relationId, short relationAttributeNumber, Type type, short typeLength, int typeModifier, Format format) {
+  public ResultField(String name, int relationId, short relationAttributeNumber, Type type, short typeLength, int typeModifier, FieldFormat format) {
     this.name = name;
     this.relationId = relationId;
     this.relationAttributeNumber = relationAttributeNumber;
@@ -55,7 +50,7 @@ public class ResultField {
     this.format = format;
   }
 
-  public ResultField(String name, int relationId, short relationAttributeNumber, TypeRef typeRef, short typeLength, int typeModifier, Format format) {
+  public ResultField(String name, int relationId, short relationAttributeNumber, TypeRef typeRef, short typeLength, int typeModifier, FieldFormat format) {
     this.name = name;
     this.relationId = relationId;
     this.relationAttributeNumber = relationAttributeNumber;
@@ -89,11 +84,11 @@ public class ResultField {
     return typeModifier;
   }
 
-  public void setFormat(Format v) {
+  public void setFormat(FieldFormat v) {
     format = v;
   }
 
-  public Format getFormat() {
+  public FieldFormat getFormat() {
     return format;
   }
 

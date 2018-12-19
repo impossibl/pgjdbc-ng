@@ -28,10 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.api.jdbc.PGSQLInput;
-import com.impossibl.postgres.api.jdbc.PGSQLOutput;
-
 import java.sql.Connection;
+import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLData;
@@ -55,7 +53,7 @@ import static org.junit.Assert.assertTrue;
 
 public class StructTest {
 
-  static class TestStruct implements SQLData {
+  public static class TestStruct implements SQLData {
 
     String str;
     String str2;
@@ -63,13 +61,12 @@ public class StructTest {
     Double num;
 
     @Override
-    public String getSQLTypeName() throws SQLException {
+    public String getSQLTypeName() {
       return "teststruct";
     }
 
     @Override
-    public void readSQL(SQLInput stream, String typeName) throws SQLException {
-      PGSQLInput in = (PGSQLInput) stream;
+    public void readSQL(SQLInput in, String typeName) throws SQLException {
       str = in.readString();
       str2 = in.readString();
       id = (UUID) in.readObject();
@@ -77,11 +74,10 @@ public class StructTest {
     }
 
     @Override
-    public void writeSQL(SQLOutput stream) throws SQLException {
-      PGSQLOutput out = (PGSQLOutput) stream;
+    public void writeSQL(SQLOutput out) throws SQLException {
       out.writeString(str);
       out.writeString(str2);
-      out.writeObject(id);
+      out.writeObject(id, JDBCType.OTHER);
       out.writeDouble(num);
     }
 
@@ -93,7 +89,7 @@ public class StructTest {
   @Before
   public void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createType(conn, "teststruct" , "str text, str2 text, id uuid, num float");
+    TestUtil.createType(conn, "teststruct", "str varchar, str2 varchar, id uuid, num float");
     TestUtil.createTable(conn, "struct_test", "val teststruct");
   }
 
@@ -133,7 +129,7 @@ public class StructTest {
   @Test
   public void testResultSetTypeMap() throws SQLException {
 
-    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("teststruct", TestStruct.class);
 
     TestStruct ts = new TestStruct(), ts2;
@@ -148,7 +144,7 @@ public class StructTest {
     pst.close();
 
     Statement st = conn.createStatement();
-    ResultSet rs = st.executeQuery("SELECT * FROM struct_test; SELECT 1;");
+    ResultSet rs = st.executeQuery("SELECT * FROM struct_test");
     assertTrue(rs.next());
     assertNotNull(ts2 = (TestStruct) rs.getObject(1, typeMap));
     assertEquals(ts.str, ts2.str);
@@ -162,7 +158,7 @@ public class StructTest {
   @Test
   public void testConnectionTypeMap() throws SQLException {
 
-    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("teststruct", TestStruct.class);
 
     conn.setTypeMap(typeMap);
@@ -193,8 +189,7 @@ public class StructTest {
   @Test
   public void testConnectionTypeMapFail() throws SQLException {
 
-    @SuppressWarnings("unused")
-    TestStruct ts = new TestStruct(), ts2;
+    TestStruct ts = new TestStruct();
     ts.id = UUID.randomUUID();
     ts.num = new Random().nextDouble();
     ts.str = "!}({%*}{%}{(%&}{%^}{&";
@@ -210,7 +205,7 @@ public class StructTest {
     assertTrue(rs.next());
 
     try {
-      ts2 = (TestStruct) rs.getObject(1);
+      TestStruct ts2 = (TestStruct) rs.getObject(1);
       Assert.fail("Cast should have failed");
     }
     catch (ClassCastException e) {

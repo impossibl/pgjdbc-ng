@@ -42,8 +42,8 @@ public interface QueryCommand extends Command {
     private String command;
     private Long rowsAffected;
     private Long insertedOid;
-    private List<ResultField> fields;
-    private List<DataRow> results;
+    private ResultField[] fields;
+    private List<RowData> results;
 
     public ResultBatch() {
       command = null;
@@ -77,15 +77,15 @@ public interface QueryCommand extends Command {
       return insertedOid;
     }
 
-    public void setFields(List<ResultField> v) {
+    public void setFields(ResultField[] v) {
       fields = v;
     }
 
-    public List<ResultField> getFields() {
+    public ResultField[] getFields() {
       return fields;
     }
 
-    public void addResult(DataRow v) {
+    public void addResult(RowData v) {
       if (results == null)
         results = new ArrayList<>();
 
@@ -94,15 +94,15 @@ public interface QueryCommand extends Command {
 
     public void resetResults(boolean allowEmpty) {
       if (results != null) {
-        for (DataRow dataRow : results) {
+        for (RowData dataRow : results) {
           dataRow.release();
         }
       }
 
-      results = (allowEmpty && fields != null && !fields.isEmpty()) ? new ArrayList<DataRow>() : null;
+      results = (allowEmpty && fields != null) ? new ArrayList<>() : null;
     }
 
-    public List<DataRow> getResults() {
+    public List<RowData> getResults() {
       return results;
     }
 
@@ -110,10 +110,10 @@ public interface QueryCommand extends Command {
       resetResults(false);
     }
 
-    public void touch() {
+    public void touch(Object hint) {
       if (results != null) {
-        for (DataRow row : results) {
-          row.touch();
+        for (RowData row : results) {
+          row.touch(hint);
         }
       }
     }
@@ -128,11 +128,11 @@ public interface QueryCommand extends Command {
     }
   }
 
+  void setRequireActiveTransaction(boolean requireActiveTransaction);
+
   void setQueryTimeout(long timeout);
 
   void setMaxRows(int maxRows);
-
-  void setMaxFieldLength(int maxFieldLength);
 
   List<ResultBatch> getResultBatches();
 

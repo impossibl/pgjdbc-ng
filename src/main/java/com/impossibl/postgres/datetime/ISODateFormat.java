@@ -28,23 +28,24 @@
  */
 package com.impossibl.postgres.datetime;
 
-import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
-
-import static com.impossibl.postgres.datetime.FormatUtils.checkOffset;
-import static com.impossibl.postgres.datetime.FormatUtils.parseInt;
-
+import java.time.chrono.IsoChronology;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.format.SignStyle;
+import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
-import java.util.Map;
 import java.util.TimeZone;
 
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.YEAR_OF_ERA;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 public class ISODateFormat implements DateTimeFormat {
 
-  Parser parser = new Parser();
-  Printer printer = new Printer();
+  private Parser parser = new Parser();
+  private Printer printer = new Printer();
 
   @Override
   public Parser getParser() {
@@ -59,64 +60,51 @@ public class ISODateFormat implements DateTimeFormat {
 
   static class Parser implements DateTimeFormat.Parser {
 
+    private static final DateTimeFormatter PARSER =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
+            .appendLiteral('-')
+            .appendValue(MONTH_OF_YEAR, 2)
+            .appendLiteral('-')
+            .appendValue(DAY_OF_MONTH, 2)
+            .optionalStart()
+            .appendOffset("+HH:mm", "+00")
+            .optionalEnd()
+            .optionalStart()
+            .appendLiteral(' ')
+            .appendPattern("GG")
+            .toFormatter()
+            .withResolverStyle(ResolverStyle.LENIENT)
+            .withChronology(IsoChronology.INSTANCE);
+
     @Override
-    public int parse(String date, int offset, Map<String, Object> pieces) {
-
-      try {
-
-        if (date.equals("infinity")) {
-          pieces.put(INFINITY_PIECE, FutureInfiniteInstant.INSTANCE);
-          offset = date.length();
-        }
-        else if (date.equals("-infinity")) {
-          pieces.put(INFINITY_PIECE, PastInfiniteInstant.INSTANCE);
-          offset = date.length();
-        }
-        else {
-
-          int[] parsedValue = new int[1];
-
-          // extract year
-          offset = parseInt(date, offset, parsedValue);
-          checkOffset(date, offset, '-');
-          pieces.put(YEAR_PIECE, parsedValue[0]);
-
-          // extract month
-          offset = parseInt(date, offset + 1, parsedValue);
-          checkOffset(date, offset, '-');
-          pieces.put(MONTH_PIECE, parsedValue[0]);
-
-          // extract day
-          offset = parseInt(date, offset += 1, parsedValue);
-          checkOffset(date, offset, '\0');
-          pieces.put(DAY_PIECE, parsedValue[0]);
-
-        }
-
-      }
-      catch (IndexOutOfBoundsException | IllegalArgumentException e) {
-        // Ignore
-      }
-
-      return offset;
+    public TemporalAccessor parse(CharSequence date) {
+      return PARSER.parse(date);
     }
 
   }
 
-
   static class Printer implements DateTimeFormat.Printer {
 
-    @Override
-    public String format(Instant instant) {
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 
-      TimeZone zone = instant.getZone();
-      if (zone == null) {
-        zone = TimeZone.getTimeZone("UTC");
+    @Override
+    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
+      return formatMillis(MICROSECONDS.toMillis(micros), timeZone, displayTimeZone);
+    }
+
+    @Override
+    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
+
+      if (timeZone == null) {
+        timeZone = UTC;
       }
 
-      Calendar cal = Calendar.getInstance(zone);
-      cal.setTimeInMillis(MICROSECONDS.toMillis(instant.getMicrosUTC()));
+      Calendar cal = Calendar.getInstance(timeZone);
+      cal.setTimeInMillis(millis);
 
+      int era = cal.get(Calendar.ERA);
       int year = cal.get(Calendar.YEAR);
       int month = cal.get(Calendar.MONTH) + 1;
       int day = cal.get(Calendar.DAY_OF_MONTH);
@@ -124,6 +112,7 @@ public class ISODateFormat implements DateTimeFormat {
       String yearString;
       String monthString;
       String dayString;
+      String eraString;
       String yearZeros = "0000";
 
       if (year < 1000) {
@@ -146,17 +135,16 @@ public class ISODateFormat implements DateTimeFormat {
       else {
         dayString = Integer.toString(day);
       }
+      if (era < 1) {
+        eraString = " BC";
+      }
+      else {
+        eraString = "";
+      }
 
       // do a string builder here instead.
-      StringBuilder timestampBuf = new StringBuilder(20);
-      timestampBuf.append(yearString);
-      timestampBuf.append("-");
-      timestampBuf.append(monthString);
-      timestampBuf.append("-");
-      timestampBuf.append(dayString);
-      timestampBuf.append(" ");
 
-      return timestampBuf.toString();
+      return yearString + "-" + monthString + "-" + dayString + eraString;
     }
 
   }

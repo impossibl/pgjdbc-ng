@@ -28,10 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
-
-import java.lang.reflect.Array;
-import java.util.Map;
+import com.impossibl.postgres.protocol.FieldFormat;
 
 /**
  * A database array type.
@@ -43,12 +40,12 @@ public class ArrayType extends Type {
 
   private Type elementType;
 
-  public Type getElementType() {
-    return elementType;
+  public ArrayType(Type elementType) {
+    this.elementType = elementType;
   }
 
-  public void setElementType(Type elementType) {
-    this.elementType = elementType;
+  public Type getElementType() {
+    return elementType;
   }
 
   @Override
@@ -57,30 +54,17 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
-
-    return Array.newInstance(elementType.getJavaType(format, customizations), 0).getClass();
-
-  }
-
-  @Override
-  public boolean isParameterFormatSupported(Format format) {
+  public boolean isParameterFormatSupported(FieldFormat format) {
     return elementType.isParameterFormatSupported(format);
   }
 
   @Override
-  public boolean isResultFormatSupported(Format format) {
+  public boolean isResultFormatSupported(FieldFormat format) {
     return elementType.isResultFormatSupported(format);
   }
 
   @Override
   public Type unwrap() {
-    return elementType;
-  }
-
-  public Type unwrapAll() {
-    if (elementType instanceof ArrayType)
-      return ((ArrayType) elementType).unwrapAll();
     return elementType;
   }
 

@@ -43,9 +43,9 @@ import java.sql.SQLException;
 
 
 
-public class Unwrapping {
+class Unwrapping {
 
-  static Object unwrapObject(PGConnectionImpl connection, Object x) throws SQLException {
+  static Object unwrapObject(PGDirectConnection connection, Object x) throws SQLException {
 
     if (x instanceof Blob) {
       return unwrapBlob(connection, (Blob) x);
@@ -56,13 +56,13 @@ public class Unwrapping {
     }
 
     if (x instanceof RowId) {
-      return unwrapRowId(connection, (RowId) x);
+      return unwrapRowId((RowId) x);
     }
 
     return x;
   }
 
-  static PGRowId unwrapRowId(PGConnectionImpl connection, RowId x) throws SQLException {
+  static PGRowId unwrapRowId(RowId x) throws SQLException {
 
     if (x == null) {
       return null;
@@ -75,7 +75,7 @@ public class Unwrapping {
     throw new SQLException("RowId is from a different provider");
   }
 
-  static PGBlob unwrapBlob(PGConnectionImpl connection, Blob x) throws SQLException {
+  static PGBlob unwrapBlob(PGDirectConnection connection, Blob x) throws SQLException {
 
     if (x == null) {
       return null;
@@ -107,7 +107,7 @@ public class Unwrapping {
     return nx;
   }
 
-  static PGClob unwrapClob(PGConnectionImpl connection, Clob x) throws SQLException {
+  static PGClob unwrapClob(PGDirectConnection connection, Clob x) throws SQLException {
 
     if (x == null) {
       return null;

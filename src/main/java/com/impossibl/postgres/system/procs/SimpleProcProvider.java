@@ -32,21 +32,26 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
+import io.netty.buffer.ByteBuf;
 
 
 public class SimpleProcProvider extends BaseProcProvider {
 
-  Codec.Encoder txtEncoder;
-  Codec.Decoder txtDecoder;
-  Codec.Encoder binEncoder;
-  Codec.Decoder binDecoder;
-  Modifiers.Parser modParser;
+  private Codec.Encoder<StringBuilder> txtEncoder;
+  private Codec.Decoder<CharSequence> txtDecoder;
+  private Codec.Encoder<ByteBuf> binEncoder;
+  private Codec.Decoder<ByteBuf> binDecoder;
+  private Modifiers.Parser modParser;
 
-  public SimpleProcProvider(Codec.Encoder txtEncoder, Codec.Decoder txtDecoder, Codec.Encoder binEncoder, Codec.Decoder binDecoder, String... baseNames) {
+  public SimpleProcProvider(Codec.Encoder<StringBuilder> txtEncoder, Codec.Decoder<CharSequence> txtDecoder,
+                            Codec.Encoder<ByteBuf> binEncoder, Codec.Decoder<ByteBuf> binDecoder,
+                            String... baseNames) {
     this(txtEncoder, txtDecoder, binEncoder, binDecoder, null, baseNames);
   }
 
-  public SimpleProcProvider(Codec.Encoder txtEncoder, Codec.Decoder txtDecoder, Codec.Encoder binEncoder, Codec.Decoder binDecoder, Modifiers.Parser modParser, String... baseNames) {
+  public SimpleProcProvider(Codec.Encoder<StringBuilder> txtEncoder, Codec.Decoder<CharSequence> txtDecoder,
+                            Codec.Encoder<ByteBuf> binEncoder, Codec.Decoder<ByteBuf> binDecoder,
+                            Modifiers.Parser modParser, String... baseNames) {
     super(baseNames);
     this.txtEncoder = txtEncoder;
     this.txtDecoder = txtDecoder;
@@ -60,24 +65,26 @@ public class SimpleProcProvider extends BaseProcProvider {
     this.modParser = modParser;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Codec.Encoder findEncoder(String name, Context context) {
-    if (name.endsWith("recv") && hasName(name, "recv", context)) {
-      return binEncoder;
+  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", context)) {
+      return (Codec.Encoder<Buffer>) binEncoder;
     }
-    else if (name.endsWith("in") && hasName(name, "in", context)) {
-      return txtEncoder;
+    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", context)) {
+      return (Codec.Encoder<Buffer>) txtEncoder;
     }
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Codec.Decoder findDecoder(String name, Context context) {
-    if (name.endsWith("send") && hasName(name, "send", context)) {
-      return binDecoder;
+  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", context)) {
+      return (Codec.Decoder<Buffer>) binDecoder;
     }
-    else if (name.endsWith("out") && hasName(name, "out", context)) {
-      return txtDecoder;
+    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", context)) {
+      return (Codec.Decoder<Buffer>) txtDecoder;
     }
     return null;
   }

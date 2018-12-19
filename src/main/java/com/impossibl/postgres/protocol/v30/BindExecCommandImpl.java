@@ -29,21 +29,18 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.BindExecCommand;
-import com.impossibl.postgres.protocol.BufferedDataRow;
+import com.impossibl.postgres.protocol.BufferRowData;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.SettingsContext;
-import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.protocol.ServerObjectType.Portal;
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
+import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
@@ -56,13 +53,10 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
   private static final int DEFAULT_MESSAGE_SIZE = 8192;
 
-  private class Listener extends BaseProtocolListener {
+  private class TxnListener extends BaseProtocolListener {
+  }
 
-    Context context;
-
-    Listener(Context context) {
-      this.context = context;
-    }
+  private class QueryListener extends BaseProtocolListener {
 
     @Override
     public boolean isComplete() {
@@ -70,11 +64,7 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     }
 
     @Override
-    public void bindComplete() {
-    }
-
-    @Override
-    public void rowDescription(List<ResultField> newResultFields) {
+    public void rowDescription(ResultField[] newResultFields) {
       resultFields = newResultFields;
       resultFieldFormats = getResultFieldFormats(newResultFields);
       resultBatch.setFields(newResultFields);
@@ -83,50 +73,58 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
     @Override
     public void noData() {
-      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.setFields(EMPTY_FIELDS);
       resultBatch.resetResults(false);
     }
 
     @Override
-    public void rowData(ByteBuf buffer) throws IOException {
-      resultBatch.addResult(BufferedDataRow.parse(buffer, resultFields, parsingContext));
+    public void rowData(ByteBuf buffer) {
+      resultBatch.addResult(BufferRowData.parseFields(buffer.retain(), resultFields));
     }
 
     @Override
     public void emptyQuery() {
-      resultBatch.setFields(Collections.<ResultField>emptyList());
+      resultBatch.setFields(EMPTY_FIELDS);
       resultBatch.resetResults(false);
       status = Status.Completed;
     }
 
     @Override
-    public synchronized void portalSuspended() {
+    public void portalSuspended() {
       status = Status.Suspended;
-      notifyAll();
     }
 
     @Override
-    public synchronized void commandComplete(String command, Long rowsAffected, Long oid) {
+    public void commandComplete(String command, Long rowsAffected, Long oid) {
       status = Status.Completed;
       resultBatch.setCommand(command);
       resultBatch.setRowsAffected(rowsAffected);
       resultBatch.setInsertedOid(oid);
+    }
 
-      if (maxRows > 0) {
-        notifyAll();
-      }
+  }
+
+  class TxnQueryListener extends DelegatedProtocolListener {
+
+    QueryListener queryListener;
+
+    TxnQueryListener(TxnListener txnListener, QueryListener queryListener) {
+      super(txnListener);
+      this.queryListener = queryListener;
+    }
+
+    TxnQueryListener(QueryListener queryListener) {
+      super(queryListener);
+      this.queryListener = queryListener;
+    }
+
+    boolean isExpectingTransaction() {
+      return delegate != queryListener;
     }
 
     @Override
-    public synchronized void error(Notice error) {
-      BindExecCommandImpl.this.error = error;
-      notifyAll();
-    }
-
-    @Override
-    public synchronized void exception(Throwable cause) {
-      setException(cause);
-      notifyAll();
+    public boolean isComplete() {
+      return status != null || error != null || exception != null;
     }
 
     @Override
@@ -135,8 +133,34 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     }
 
     @Override
-    public synchronized void ready(TransactionStatus txStatus) {
-      notifyAll();
+    public void commandComplete(String command, Long rowsAffected, Long oid) throws IOException {
+      super.commandComplete(command, rowsAffected, oid);
+      delegate = queryListener;
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void portalSuspended() throws IOException {
+      super.portalSuspended();
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void ready(TransactionStatus txStatus) throws IOException {
+      super.ready(txStatus);
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void error(Notice error) {
+      BindExecCommandImpl.this.error = error;
+      notifyPossibleCompletion();
+    }
+
+    @Override
+    public void exception(Throwable cause) {
+      setException(cause);
+      notifyPossibleCompletion();
     }
 
   }
@@ -144,36 +168,34 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
   private String statementName;
   private String portalName;
-  private List<Type> parameterTypes;
-  private List<Object> parameterValues;
-  private List<ResultField> resultFields;
+  private FieldFormat[] parameterFormats;
+  private ByteBuf[] parameterBuffers;
+  private ResultField[] resultFields;
   private int maxRows;
-  private int maxFieldLength;
   private Status status;
   private ResultBatch resultBatch;
-  private List<Format> resultFieldFormats;
-  private SettingsContext parsingContext;
+  private FieldFormat[] resultFieldFormats;
   private long queryTimeout;
+  private boolean requireActiveTransaction;
 
 
-  BindExecCommandImpl(String portalName, String statementName, List<Type> parameterTypes, List<Object> parameterValues,
-                      List<ResultField> resultFields) {
+  BindExecCommandImpl(String portalName, String statementName, FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers, ResultField[] resultFields) {
 
     this.statementName = statementName;
     this.portalName = portalName;
-    this.parameterTypes = parameterTypes;
-    this.parameterValues = parameterValues;
+    this.parameterFormats = parameterFormats;
+    this.parameterBuffers = parameterBuffers;
     this.resultFields = resultFields;
     this.maxRows = 0;
-    this.maxFieldLength = Integer.MAX_VALUE;
 
     if (resultFields != null) {
       this.resultFieldFormats = getResultFieldFormats(resultFields);
     }
     else {
-      this.resultFieldFormats = Collections.emptyList();
+      this.resultFieldFormats = EMPTY_FORMATS;
     }
 
+    this.requireActiveTransaction = false;
   }
 
   private void reset() {
@@ -181,6 +203,12 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
     resultBatch = new ResultBatch();
     resultBatch.setFields(resultFields);
     resultBatch.resetResults(true);
+    requireActiveTransaction = false;
+  }
+
+  @Override
+  public void setRequireActiveTransaction(boolean transactionRequired) {
+    this.requireActiveTransaction = transactionRequired;
   }
 
   @Override
@@ -199,18 +227,9 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
   }
 
   @Override
-  public List<Type> getParameterTypes() {
-    return parameterTypes;
-  }
-
-  @Override
-  public void setParameterTypes(List<Type> parameterTypes) {
-    this.parameterTypes = parameterTypes;
-  }
-
-  @Override
-  public void setParameterValues(List<Object> parameterValues) {
-    this.parameterValues = parameterValues;
+  public void updateParameters(FieldFormat[] formats, ByteBuf[] buffers) {
+    this.parameterFormats = formats;
+    this.parameterBuffers = buffers;
   }
 
   @Override
@@ -219,13 +238,8 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
   }
 
   @Override
-  public void setMaxFieldLength(int maxFieldLength) {
-    this.maxFieldLength = maxFieldLength;
-  }
-
-  @Override
   public List<ResultBatch> getResultBatches() {
-    return singletonList(resultBatch);
+    return new ArrayList<>(singletonList(resultBatch));
   }
 
   @Override
@@ -233,29 +247,34 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
     // Setup context for parsing fields with customized parameters
     //
-    parsingContext = new SettingsContext(protocol.getContext());
-    parsingContext.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldLength);
 
-    Listener listener = new Listener(parsingContext);
+    TxnQueryListener listener;
+    if (requireActiveTransaction && status != Status.Suspended && protocol.getTransactionStatus() == TransactionStatus.Idle) {
+      listener = new TxnQueryListener(new TxnListener(), new QueryListener());
+    }
+    else {
+      listener = new TxnQueryListener(new QueryListener());
+    }
 
     protocol.setListener(listener);
 
-    ByteBuf msg = protocol.channel.alloc().buffer(DEFAULT_MESSAGE_SIZE);
+    ByteBuf msg = protocol.getChannel().alloc().buffer(DEFAULT_MESSAGE_SIZE);
     try {
+
+      if (listener.isExpectingTransaction()) {
+
+        protocol.writeBind(msg, null, "TB", EMPTY_FORMATS, EMPTY_BUFFERS, null);
+        protocol.writeExecute(msg, null, 0);
+
+      }
 
       if (status != Status.Suspended) {
 
-        protocol.writeBind(msg, portalName, statementName, parameterTypes, parameterValues, resultFieldFormats);
+        protocol.writeBind(msg, portalName, statementName, parameterFormats, parameterBuffers, resultFieldFormats);
 
       }
 
       reset();
-
-      if (resultFields == null) {
-
-        protocol.writeDescribe(msg, Portal, portalName);
-
-      }
 
       protocol.writeExecute(msg, portalName, maxRows);
 
@@ -276,24 +295,25 @@ class BindExecCommandImpl extends CommandImpl implements BindExecCommand {
 
     enableCancelTimer(protocol, queryTimeout);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
     if (ResourceLeakDetector.getLevel().compareTo(ResourceLeakDetector.Level.SIMPLE) > 0) {
       // Touch results batches (and therefore DataRows) in the
       // correct thread to make debugging leaks easier.
       if (resultBatch != null) {
-        resultBatch.touch();
+        resultBatch.touch("Bind/Exec Completed");
       }
     }
   }
 
-  private static List<Format> getResultFieldFormats(List<ResultField> resultFields) {
+  private static FieldFormat[] getResultFieldFormats(ResultField[] resultFields) {
 
-    List<Format> resultFieldFormats = new ArrayList<>();
+    FieldFormat[] resultFieldFormats = new FieldFormat[resultFields.length];
 
-    for (ResultField resultField : resultFields) {
+    for (int idx = 0; idx < resultFieldFormats.length; ++idx) {
+      ResultField resultField = resultFields[idx];
       resultField.setFormat(resultField.getTypeRef().get().getResultFormat());
-      resultFieldFormats.add(resultField.getFormat());
+      resultFieldFormats[idx] = resultField.getFormat();
     }
 
     return resultFieldFormats;

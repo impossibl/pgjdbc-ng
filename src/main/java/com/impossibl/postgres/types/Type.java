@@ -28,14 +28,20 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
+import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
+import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF;
+import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF_DEFAULT;
+
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
+
+import io.netty.buffer.ByteBuf;
 
 /**
  *
@@ -52,21 +58,21 @@ import java.util.Map;
 public abstract class Type {
 
   public enum Category {
-    Array           ('A'),
-    Boolean         ('B'),
-    Composite       ('C'),
-    DateTime        ('D'),
-    Enumeration     ('E'),
-    Geometry        ('G'),
-    NetworkAddress  ('I'),
-    Numeric         ('N'),
-    Psuedo          ('P'),
-    Range           ('R'),
-    String          ('S'),
-    Timespan        ('T'),
-    User            ('U'),
-    BitString       ('V'),
-    Unknown         ('X');
+    Array('A'),
+    Boolean('B'),
+    Composite('C'),
+    DateTime('D'),
+    Enumeration('E'),
+    Geometry('G'),
+    NetworkAddress('I'),
+    Numeric('N'),
+    Psuedo('P'),
+    Range('R'),
+    String('S'),
+    Timespan('T'),
+    User('U'),
+    BitString('V'),
+    Unknown('X');
 
     private char id;
 
@@ -81,7 +87,7 @@ public abstract class Type {
     /**
      * Lookup Category by its associated "id".
      *
-     * @param id
+     * @param id Category id
      * @return Associated category or null if none
      */
     public static Category findValue(String id) {
@@ -104,59 +110,66 @@ public abstract class Type {
    * specific format.  The are mapped to their equivalent procedures
    * in the database.
    */
-  public static class Codec {
+  public static class Codec<InBuffer, OutBuffer> {
 
     /**
      *  Decodes the given data into a Java language object
      */
-    public interface Decoder {
-      PrimitiveType getInputPrimitiveType();
-      Class<?> getOutputType();
-      Object decode(Type type, Short typeLength, Integer typeModifier, Object buffer, Context context) throws IOException;
+    public interface Decoder<InBuffer> {
+
+      PrimitiveType getPrimitiveType();
+
+      Class<?> getDefaultClass();
+
+      Object decode(Context context, Type type, Short typeLength, Integer typeModifier, InBuffer buffer, Class<?> targetClass, Object targetContext) throws IOException;
+
     }
 
     /**
-     * Encodes the given Java language as data the server expects.
+     * Encodes the given Java language object as data the server expects.
      */
-    public interface Encoder {
-      Class<?> getInputType();
-      PrimitiveType getOutputPrimitiveType();
-      void encode(Type type, Object buffer, Object value, Context context) throws IOException;
+    public interface Encoder<OutBuffer> {
+
+      PrimitiveType getPrimitiveType();
+
+      void encode(Context context, Type type, Object value, Object sourceContext, OutBuffer buffer) throws IOException;
+
     }
 
-    private Decoder decoder;
-    private Encoder encoder;
+    private Decoder<InBuffer> decoder;
+    private Encoder<OutBuffer> encoder;
 
-    /**
-     * Set the encoder
-     * @param v The value
-     */
-    public void setEncoder(Encoder v) {
-      encoder = v;
+    public Codec(Decoder<InBuffer> decoder, Encoder<OutBuffer> encoder) {
+      this.decoder = decoder;
+      this.encoder = encoder;
     }
 
     /**
      * Get the encoder
      * @return The value
      */
-    public Encoder getEncoder() {
+    public Encoder<OutBuffer> getEncoder() {
       return encoder;
-    }
-
-    /**
-     * Set the decoder
-     * @param v The value
-     */
-    public void setDecoder(Decoder v) {
-      decoder = v;
     }
 
     /**
      * Get the decoder
      * @return The value
      */
-    public Decoder getDecoder() {
+    public Decoder<InBuffer> getDecoder() {
       return decoder;
+    }
+  }
+
+  public static class BinaryCodec extends Codec<ByteBuf, ByteBuf> {
+    public BinaryCodec(Decoder<ByteBuf> decoder, Encoder<ByteBuf> encoder) {
+      super(decoder, encoder);
+    }
+  }
+
+  public static class TextCodec extends Codec<CharSequence, StringBuilder> {
+    public TextCodec(Decoder<CharSequence> decoder, Encoder<StringBuilder> encoder) {
+      super(decoder, encoder);
     }
   }
 
@@ -169,13 +182,16 @@ public abstract class Type {
   private Character delimeter;
   private int arrayTypeId;
   private int relationId;
-  private Codec[] codecs;
+  private TextCodec textCodec;
+  private BinaryCodec binaryCodec;
   private Modifiers.Parser modifierParser;
+  private FieldFormat preferredParameterFormat;
+  private FieldFormat preferredResultFormat;
 
   public Type() {
   }
 
-  public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Codec binaryCodec, Codec textCodec) {
+  public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     super();
     this.id = id;
     this.name = name;
@@ -184,7 +200,10 @@ public abstract class Type {
     this.category = category;
     this.delimeter = delimeter;
     this.arrayTypeId = arrayTypeId;
-    this.codecs = new Codec[]{textCodec, binaryCodec};
+    this.binaryCodec = binaryCodec;
+    this.textCodec = textCodec;
+    this.preferredParameterFormat = preferredParameterFormat;
+    this.preferredResultFormat = preferredResultFormat;
   }
 
   public int getId() {
@@ -251,24 +270,29 @@ public abstract class Type {
     this.arrayTypeId = arrayTypeId;
   }
 
-  public Codec getBinaryCodec() {
-    return codecs[Format.Binary.ordinal()];
+  public BinaryCodec getBinaryCodec() {
+    return binaryCodec;
   }
 
-  public void setBinaryCodec(Codec binaryCodec) {
-    this.codecs[Format.Binary.ordinal()] = binaryCodec;
+  public void setBinaryCodec(BinaryCodec binaryCodec) {
+    this.binaryCodec = binaryCodec;
   }
 
-  public Codec getTextCodec() {
-    return codecs[Format.Text.ordinal()];
+  public TextCodec getTextCodec() {
+    return textCodec;
   }
 
-  public void setTextCodec(Codec textCodec) {
-    codecs[Format.Text.ordinal()] = textCodec;
+  public void setTextCodec(TextCodec textCodec) {
+    this.textCodec = textCodec;
   }
 
-  public Codec getCodec(Format format) {
-    return codecs[format.ordinal()];
+  public Codec<?, ?> getCodec(FieldFormat format) {
+    switch (format) {
+      case Text: return textCodec;
+      case Binary: return binaryCodec;
+      default:
+        throw new IllegalArgumentException();
+    }
   }
 
   public Modifiers.Parser getModifierParser() {
@@ -299,55 +323,43 @@ public abstract class Type {
 
   public PrimitiveType getPrimitiveType() {
     Codec binCodec = getBinaryCodec();
-    if (binCodec.decoder.getInputPrimitiveType() != null) {
-      return binCodec.decoder.getInputPrimitiveType();
+    if (binCodec.decoder.getPrimitiveType() != null) {
+      return binCodec.decoder.getPrimitiveType();
     }
     Codec txtCodec = getTextCodec();
-    if (txtCodec.decoder.getInputPrimitiveType() != null) {
-      return txtCodec.decoder.getInputPrimitiveType();
+    if (txtCodec.decoder.getPrimitiveType() != null) {
+      return txtCodec.decoder.getPrimitiveType();
     }
     return PrimitiveType.Unknown;
   }
 
-  public Class<?> getJavaType(Format format, Map<String, Class<?>> customizations) {
-    Codec codec = getCodec(format);
-    if (codec.decoder.getInputPrimitiveType() != PrimitiveType.Unknown) {
-      return codec.decoder.getOutputType();
-    }
-    return String.class;
+  public boolean isParameterFormatSupported(FieldFormat format) {
+    return getCodec(format).encoder.getPrimitiveType() != PrimitiveType.Unknown;
   }
 
-  public Format getPreferredFormat() {
-    if (isParameterFormatSupported(Format.Binary) && isResultFormatSupported(Format.Binary))
-      return Format.Binary;
-    return Format.Text;
-  }
+  public FieldFormat getParameterFormat() {
 
-  public boolean isParameterFormatSupported(Format format) {
-    return getCodec(format).getEncoder().getOutputPrimitiveType() != PrimitiveType.Unknown;
-  }
+    if (isParameterFormatSupported(preferredParameterFormat))
+      return preferredParameterFormat;
 
-  public Format getParameterFormat() {
+    FieldFormat other = preferredParameterFormat == FieldFormat.Binary ? FieldFormat.Text : FieldFormat.Binary;
 
-    if (isParameterFormatSupported(Format.Binary))
-      return Format.Binary;
-
-    if (isParameterFormatSupported(Format.Text))
-      return Format.Text;
+    if (isParameterFormatSupported(other))
+      return other;
 
     throw new IllegalStateException("type has no supported parameter format: " + toString());
   }
 
-  public boolean isResultFormatSupported(Format format) {
-    return getCodec(format).decoder.getInputPrimitiveType() != PrimitiveType.Unknown;
+  public boolean isResultFormatSupported(FieldFormat format) {
+    return getCodec(format).decoder.getPrimitiveType() != PrimitiveType.Unknown;
   }
 
-  public Format getResultFormat() {
+  public FieldFormat getResultFormat() {
 
-    if (isResultFormatSupported(Format.Binary))
-      return Format.Binary;
+    if (isResultFormatSupported(preferredResultFormat))
+      return preferredResultFormat;
 
-    return Format.Text;
+    return preferredResultFormat == FieldFormat.Binary ? FieldFormat.Text : FieldFormat.Binary;
   }
 
   /**
@@ -369,11 +381,11 @@ public abstract class Type {
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    codecs = new Codec[] {
-      registry.loadCodec(source.getInputId(), source.getOutputId(), Format.Text),
-      registry.loadCodec(source.getReceiveId(), source.getSendId(), Format.Binary),
-    };
-    modifierParser = registry.loadModifierParser(source.getModInId(), source.getModOutId());
+    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId());
+    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId());
+    modifierParser = registry.loadModifierParser(source.getModInId());
+    preferredParameterFormat = FieldFormat.valueOf(registry.getContext().getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
+    preferredResultFormat = FieldFormat.valueOf(registry.getContext().getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
   }
 
   /**
@@ -382,7 +394,7 @@ public abstract class Type {
    * @param align Alignment ID
    * @return # of bytes to align on
    */
-  public static Byte getAlignment(Character align) {
+  private static Byte getAlignment(Character align) {
 
     if (align == null)
       return null;
@@ -423,9 +435,7 @@ public abstract class Type {
     if (getClass() != obj.getClass())
       return false;
     Type other = (Type) obj;
-    if (id != other.id)
-      return false;
-    return true;
+    return id == other.id;
   }
 
 }

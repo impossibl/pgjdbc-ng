@@ -32,36 +32,36 @@ import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
 
 public class PGParameterMetaData implements ParameterMetaData {
 
 
-  List<Type> parameterTypes;
-  Map<String, Class<?>> typeMap;
+  private Type[] parameterTypes;
+  private Map<String, Class<?>> typeMap;
 
 
-  public PGParameterMetaData(List<Type> parameterTypes, Map<String, Class<?>> typeMap) {
+  PGParameterMetaData(Type[] parameterTypes, Map<String, Class<?>> typeMap) {
     super();
     this.parameterTypes = parameterTypes;
     this.typeMap = typeMap;
   }
 
-  void checkParamIndex(int paramIndex) throws SQLException {
+  private void checkParamIndex(int paramIndex) throws SQLException {
 
-    if (paramIndex < 1 || paramIndex > parameterTypes.size())
+    if (paramIndex < 1 || paramIndex > parameterTypes.length)
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
 
   }
 
-  Type getType(int paramIndex) throws SQLException {
+  private Type getType(int paramIndex) throws SQLException {
     checkParamIndex(paramIndex);
 
-    return parameterTypes.get(paramIndex - 1);
+    return parameterTypes[paramIndex - 1];
   }
 
   @Override
@@ -74,13 +74,13 @@ public class PGParameterMetaData implements ParameterMetaData {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isAssignableFrom(getClass());
   }
 
   @Override
-  public int getParameterCount() throws SQLException {
-    return parameterTypes.size();
+  public int getParameterCount() {
+    return parameterTypes.length;
   }
 
   @Override
@@ -116,7 +116,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return SQLTypeMetaData.getScale(paramType, 0, 0);
+    return SQLTypeMetaData.getScale(paramType, 0);
   }
 
   @Override
@@ -140,11 +140,13 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return paramType.getJavaType(paramType.getPreferredFormat(), typeMap).getName();
+    Class<?> defaultClass = paramType.getCodec(paramType.getParameterFormat()).getDecoder().getDefaultClass();
+    Class<?> paramClass = lookupCustomType(paramType, typeMap, defaultClass);
+    return paramClass.getName();
   }
 
   @Override
-  public int getParameterMode(int param) throws SQLException {
+  public int getParameterMode(int param) {
 
     return ParameterMetaData.parameterModeIn;
   }

@@ -179,7 +179,7 @@ public class DateTest {
 
   @Test
   public void testSetNull() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
+    try (Statement ignored = con.createStatement()) {
       try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"))) {
         ps.setDate(1, null);
         ps.execute();

@@ -31,17 +31,19 @@ package com.impossibl.postgres.system;
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.Protocol;
 import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Map;
 import java.util.TimeZone;
 
-public class DecoratorContext implements Context {
+
+class DecoratorContext extends AbstractContext {
 
   Context base;
 
-  public DecoratorContext(Context base) {
+  DecoratorContext(Context base) {
     super();
     this.base = base;
   }
@@ -77,6 +79,11 @@ public class DecoratorContext implements Context {
   }
 
   @Override
+  public NumberFormat getIntegerFormatter() {
+    return base.getIntegerFormatter();
+  }
+
+  @Override
   public DateTimeFormat getTimestampFormatter() {
     return base.getTimestampFormatter();
   }
@@ -92,8 +99,8 @@ public class DecoratorContext implements Context {
   }
 
   @Override
-  public Class<?> lookupInstanceType(Type type) {
-    return base.lookupInstanceType(type);
+  public Map<String, Class<?>> getCustomTypeMap() {
+    return base.getCustomTypeMap();
   }
 
   @Override
@@ -109,21 +116,6 @@ public class DecoratorContext implements Context {
   @Override
   public Object getSetting(String name) {
     return base.getSetting(name);
-  }
-
-  @Override
-  public <T> T getSetting(String name, Class<T> type) {
-    return base.getSetting(name, type);
-  }
-
-  @Override
-  public <T> T getSetting(String name, T defaultValue) {
-    return base.getSetting(name, defaultValue);
-  }
-
-  @Override
-  public boolean isSettingEnabled(String name) {
-    return base.isSettingEnabled(name);
   }
 
   @Override

@@ -28,15 +28,21 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.jdbc.PGBlob;
+import com.impossibl.postgres.jdbc.PGClob;
+import com.impossibl.postgres.jdbc.PGDirectConnection;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
-import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
+import static com.impossibl.postgres.system.Settings.CLOB_TYPE;
 import static com.impossibl.postgres.types.PrimitiveType.Oid;
 
 import java.io.IOException;
-
-import io.netty.buffer.ByteBuf;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.SQLException;
 
 public class Oids extends SimpleProcProvider {
 
@@ -46,103 +52,116 @@ public class Oids extends SimpleProcProvider {
 
   @Override
   protected boolean hasName(String name, String suffix, Context context) {
-    if (context != null && name.equals(context.getSetting("blob.type", String.class) + suffix))
-      return true;
-    return super.hasName(name, suffix, context);
+    return (context != null && (name.equals(context.getSetting(BLOB_TYPE, String.class) + suffix) || name.equals(context.getSetting(CLOB_TYPE, String.class) + suffix))) || super.hasName(name, suffix, context);
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends Int4s.BinDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Oid;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Integer.class;
-    }
+    protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
 
-    @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 4) {
-        throw new IOException("invalid length");
+      if (Blob.class.isAssignableFrom(targetClass)) {
+        try {
+          return new PGBlob((PGDirectConnection) context.unwrap(), decoded);
+        }
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
       }
 
-      return buffer.readInt();
+      if (Clob.class.isAssignableFrom(targetClass)) {
+        try {
+          return new PGClob((PGDirectConnection) context.unwrap(), decoded);
+        }
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
+      }
+
+      return super.convertOutput(context, decoded, targetClass, targetContext);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends Int4s.BinEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Integer.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Oid;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-      if (val == null) {
+    protected Integer convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
 
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(4);
-        buffer.writeInt((Integer) val);
+      if (source instanceof PGBlob) {
+        return ((PGBlob) source).getOid();
       }
 
+      if (source instanceof PGClob) {
+        return ((PGClob) source).getOid();
+      }
+
+      return super.convertInput(context, source, sourceContext);
+    }
+  }
+
+  static class TxtDecoder extends Int4s.TxtDecoder {
+
+    @Override
+    public PrimitiveType getPrimitiveType() {
+      return Oid;
+    }
+
+    @Override
+    protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
+
+      if (Blob.class.isAssignableFrom(targetClass)) {
+        try {
+          return new PGBlob((PGDirectConnection) context.unwrap(), decoded);
+        }
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
+      }
+
+      if (Clob.class.isAssignableFrom(targetClass)) {
+        try {
+          return new PGClob((PGDirectConnection) context.unwrap(), decoded);
+        }
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
+      }
+
+      return super.convertOutput(context, decoded, targetClass, targetContext);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtEncoder extends Int4s.TxtEncoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Oid;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Integer.class;
-    }
+    protected Integer convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
 
-    @Override
-    public Integer decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+      if (source instanceof PGBlob) {
+        return ((PGBlob) source).getOid();
+      }
 
-      return Integer.valueOf(buffer.toString());
-    }
+      if (source instanceof PGClob) {
+        return ((PGClob) source).getOid();
+      }
 
-  }
-
-  static class TxtEncoder extends TextEncoder {
-
-    @Override
-    public Class<?> getInputType() {
-      return Integer.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Oid;
-    }
-
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      buffer.append((int)val);
+      return super.convertInput(context, source, sourceContext);
     }
 
   }

@@ -35,9 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.datetime.instants.FutureInfiniteInstant;
-import com.impossibl.postgres.datetime.instants.Instant;
-import com.impossibl.postgres.datetime.instants.PastInfiniteInstant;
+import static com.impossibl.postgres.jdbc.TimestampUtils.DATE_NEGATIVE_INFINITY;
+import static com.impossibl.postgres.jdbc.TimestampUtils.DATE_POSITIVE_INFINITY;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -129,30 +128,36 @@ public class TimestampTest {
 
   @Test
   public void testInfinity() throws SQLException {
-    runInfinityTests(TSWTZ_TABLE, FutureInfiniteInstant.INSTANCE);
-    runInfinityTests(TSWTZ_TABLE, PastInfiniteInstant.INSTANCE);
-    runInfinityTests(TSWOTZ_TABLE, FutureInfiniteInstant.INSTANCE);
-    runInfinityTests(TSWOTZ_TABLE, PastInfiniteInstant.INSTANCE);
-    runInfinityTests(DATE_TABLE, FutureInfiniteInstant.INSTANCE);
-    runInfinityTests(DATE_TABLE, PastInfiniteInstant.INSTANCE);
+    runInfinityTests(TSWTZ_TABLE, DATE_POSITIVE_INFINITY);
+    runInfinityTests(TSWTZ_TABLE, DATE_NEGATIVE_INFINITY);
+    runInfinityTests(TSWOTZ_TABLE, DATE_POSITIVE_INFINITY);
+    runInfinityTests(TSWOTZ_TABLE, DATE_NEGATIVE_INFINITY);
+    runInfinityTests(DATE_TABLE, DATE_POSITIVE_INFINITY);
+    runInfinityTests(DATE_TABLE, DATE_NEGATIVE_INFINITY);
   }
 
-  private void runInfinityTests(String table, Instant value) throws SQLException {
+  private void runInfinityTests(String table, long value) throws SQLException {
     GregorianCalendar cal = new GregorianCalendar();
     // Pick some random timezone that is hopefully different than ours
     // and exists in this JVM.
     cal.setTimeZone(TimeZone.getTimeZone("Europe/Warsaw"));
 
-    String strValue = value.print(null);
+    String strValue;
+    if (value == DATE_POSITIVE_INFINITY) {
+      strValue = "infinity";
+    }
+    else {
+      strValue = "-infinity";
+    }
 
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL(table, "'" + strValue + "'"));
     stmt.close();
 
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL(table, "?"));
-    ps.setTimestamp(1, value.toTimestamp());
+    ps.setTimestamp(1, new Timestamp(value));
     ps.executeUpdate();
-    ps.setTimestamp(1, value.toTimestamp(), cal);
+    ps.setTimestamp(1, new Timestamp(value), cal);
     ps.executeUpdate();
     ps.close();
 
@@ -162,13 +167,13 @@ public class TimestampTest {
       assertEquals(strValue, rs.getString(1));
 
       Timestamp ts = rs.getTimestamp(1);
-      assertEquals(value.toTimestamp(), ts);
+      assertEquals(value, ts.getTime());
 
       Date d = rs.getDate(1);
-      assertEquals(value.toDate(), d);
+      assertEquals(value, d.getTime());
 
       Timestamp tscal = rs.getTimestamp(1, cal);
-      assertEquals(value.toTimestamp(), tscal);
+      assertEquals(value, tscal.getTime());
     }
     rs.close();
 
@@ -446,22 +451,22 @@ public class TimestampTest {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS1WTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS1WTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS2WTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS2WTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS3WTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS3WTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS4WTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS4WTZ, t);
     }
 
     // Testing for Date
@@ -520,40 +525,39 @@ public class TimestampTest {
     ResultSet rs;
     java.sql.Timestamp t;
 
-    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the
-                                                              // order by ts
+    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE);   // removed the order by ts
     assertNotNull(rs);
 
     for (int i = 0; i < 3; i++) {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS1WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS1WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS2WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS2WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS3WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS3WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS4WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS4WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS5WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS5WOTZ, t);
 
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals(TS6WOTZ, t);
+      assertEquals("Failed iteration " + (i + 1), TS6WOTZ, t);
     }
 
     // Testing for Date
@@ -585,12 +589,12 @@ public class TimestampTest {
     assertTrue(rs.next());
     t = rs.getTimestamp(1);
     assertNotNull(t);
-//    assertEquals(tmpDate5WOTZ.getTime(), t.getTime());
+    assertEquals(tmpDate5WOTZ.getTime(), t.getTime());
 
     assertTrue(rs.next());
     t = rs.getTimestamp(1);
     assertNotNull(t);
-//    assertEquals(tmpDate6WOTZ.getTime(), t.getTime());
+    assertEquals(tmpDate6WOTZ.getTime(), t.getTime());
 
     // Testing for Time
     assertTrue(rs.next());
@@ -621,12 +625,12 @@ public class TimestampTest {
     assertTrue(rs.next());
     t = rs.getTimestamp(1);
     assertNotNull(t);
-//    assertEquals(tmpTime5WOTZ.getTime(), t.getTime());
+    assertEquals(tmpTime5WOTZ.getTime(), t.getTime());
 
     assertTrue(rs.next());
     t = rs.getTimestamp(1);
     assertNotNull(t);
-//    assertEquals(tmpTime6WOTZ.getTime(), t.getTime());
+    assertEquals(tmpTime6WOTZ.getTime(), t.getTime());
 
     assertTrue(!rs.next()); // end of table. Fail if more entries exist.
 
@@ -701,10 +705,10 @@ public class TimestampTest {
   private static final java.sql.Timestamp TS4WOTZ = getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, null);
   private static final String TS4WOTZ_PGFORMAT = "2000-07-07 15:00:00.123456";
 
-  private static final java.sql.Timestamp TS5WOTZ = PastInfiniteInstant.INSTANCE.toTimestamp();
+  private static final java.sql.Timestamp TS5WOTZ = new Timestamp(DATE_NEGATIVE_INFINITY);
   private static final String TS5WOTZ_PGFORMAT = "-infinity";
 
-  private static final java.sql.Timestamp TS6WOTZ = FutureInfiniteInstant.INSTANCE.toTimestamp();
+  private static final java.sql.Timestamp TS6WOTZ = new Timestamp(DATE_POSITIVE_INFINITY);
   private static final String TS6WOTZ_PGFORMAT = "infinity";
 
   private static final String TSWTZ_TABLE = "testtimestampwtz";
@@ -728,9 +732,9 @@ public class TimestampTest {
   private static final java.sql.Time tmpTime3WOTZ = new java.sql.Time(TS3WOTZ.getTime());
   private static final java.sql.Date tmpDate4WOTZ = new java.sql.Date(TS4WOTZ.getTime());
   private static final java.sql.Time tmpTime4WOTZ = new java.sql.Time(TS4WOTZ.getTime());
-  private static final java.sql.Date tmpDate5WOTZ = PastInfiniteInstant.INSTANCE.toDate();
-  private static final java.sql.Date tmpTime5WOTZ = PastInfiniteInstant.INSTANCE.toDate();
-  private static final java.sql.Date tmpDate6WOTZ = FutureInfiniteInstant.INSTANCE.toDate();
-  private static final java.sql.Date tmpTime6WOTZ = FutureInfiniteInstant.INSTANCE.toDate();
+  private static final java.sql.Date tmpDate5WOTZ = new java.sql.Date(TS5WOTZ.getTime());
+  private static final java.sql.Date tmpTime5WOTZ = new java.sql.Date(TS5WOTZ.getTime());
+  private static final java.sql.Date tmpDate6WOTZ = new java.sql.Date(TS6WOTZ.getTime());
+  private static final java.sql.Date tmpTime6WOTZ = new java.sql.Date(TS6WOTZ.getTime());
 
 }

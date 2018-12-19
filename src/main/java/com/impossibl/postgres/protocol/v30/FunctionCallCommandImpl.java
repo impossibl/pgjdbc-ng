@@ -28,21 +28,20 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FunctionCallCommand;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.netty.buffer.ByteBuf;
 
 public class FunctionCallCommandImpl extends CommandImpl implements FunctionCallCommand {
 
   private String functionName;
-  private List<Type> parameterTypes;
-  private List<Object> parameterValues;
+  private FieldFormat[] parameterFormats;
+  private ByteBuf[] parameterBuffers;
   private Object result;
   private ProtocolListener listener = new BaseProtocolListener() {
 
@@ -81,11 +80,11 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
 
   };
 
-  public FunctionCallCommandImpl(String functionName, List<Type> parameterTypes, List<Object> parameterValues) {
+  FunctionCallCommandImpl(String functionName, FieldFormat[] parameterFormats, ByteBuf[] parameterBuffers) {
 
     this.functionName = functionName;
-    this.parameterTypes = parameterTypes;
-    this.parameterValues = parameterValues;
+    this.parameterFormats = parameterFormats;
+    this.parameterBuffers = parameterBuffers;
   }
 
   @Override
@@ -94,13 +93,13 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
   }
 
   @Override
-  public List<Type> getParameterTypes() {
-    return parameterTypes;
+  public FieldFormat[] getParameterTypes() {
+    return parameterFormats;
   }
 
   @Override
-  public List<Object> getParameterValues() {
-    return parameterValues;
+  public ByteBuf[] getParameterBuffers() {
+    return parameterBuffers;
   }
 
   @Override
@@ -117,15 +116,15 @@ public class FunctionCallCommandImpl extends CommandImpl implements FunctionCall
     if (procId == 0)
       throw new IOException("invalid function name");
 
-    ByteBuf msg = protocol.channel.alloc().buffer();
+    ByteBuf msg = protocol.getChannel().alloc().buffer();
 
-    protocol.writeFunctionCall(msg, procId, parameterTypes, parameterValues);
+    protocol.writeFunctionCall(msg, procId, parameterFormats, parameterBuffers);
 
     protocol.writeSync(msg);
 
     protocol.send(msg);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
   }
 

@@ -29,11 +29,15 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
 
+import static com.impossibl.postgres.types.PrimitiveType.Array;
+
 import java.io.IOException;
+import java.text.ParseException;
 
 
 public class Int2Vectors extends SimpleProcProvider {
@@ -42,63 +46,65 @@ public class Int2Vectors extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "int2vector");
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return PrimitiveType.Array;
+    public PrimitiveType getPrimitiveType() {
+      return Array;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Short[].class;
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
       int length = buffer.length();
 
-      Object instance = null;
+      Short[] values = null;
 
       if (length != 0) {
         String[] items = buffer.toString().split(" ");
-        Short[] shorts = new Short[items.length];
+        values = new Short[items.length];
         for (int c = 0; c < items.length; ++c) {
-          shorts[c] = Short.parseShort(items[c]);
+          values[c] = Short.parseShort(items[c]);
         }
-        instance = shorts;
       }
 
-      return instance;
+      return values;
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Short[].class;
+    public PrimitiveType getPrimitiveType() {
+      return Array;
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return PrimitiveType.Array;
-    }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-
-      if (val == null) {
-        buffer.append("");
-        return;
+      String[] items;
+      if (value instanceof short[]) {
+        short[] values = (short[]) value;
+        items = new String[values.length];
+        for (int c = 0; c < values.length; ++c) {
+          items[c] = Short.toString(values[c]);
+        }
       }
-
-      Short[] shorts = (Short[]) val;
-      String[] items = new String[shorts.length];
-      for (int c = 0; c < shorts.length; ++c) {
-        items[c] = Short.toString(shorts[c]);
+      else if (value instanceof Short[]) {
+        Short[] values = (Short[]) value;
+        items = new String[values.length];
+        for (int c = 0; c < values.length; ++c) {
+          items[c] = Short.toString(values[c]);
+        }
+      }
+      else {
+        throw new ConversionException(value.getClass(), Array);
       }
 
       Joiner.on(' ').appendTo(buffer, items);

@@ -33,40 +33,35 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.types.PrimitiveType.Interval;
-
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
 public class Intervals extends SimpleProcProvider {
 
   public Intervals() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "interval_");
+    super(new TxtEncoder(), new TxtDecoder(), null, new BinDecoder(), "interval_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends AutoConvertingBinaryDecoder<Interval> {
 
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return Interval;
+    BinDecoder() {
+      super(16, Interval::toString);
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Interval;
+    }
+
+    @Override
+    public Class<Interval> getDefaultClass() {
       return Interval.class;
     }
 
     @Override
-    public Interval decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 16) {
-        throw new IOException("invalid length");
-      }
+    protected Interval decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       long timeMicros = buffer.readLong();
       int days = buffer.readInt();
@@ -77,74 +72,48 @@ public class Intervals extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<Interval> {
+
+    TxtDecoder() {
+      super(Interval::toString);
+    }
 
     @Override
-    public Class<?> getInputType() {
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Interval;
+    }
+
+    @Override
+    public Class<Interval> getDefaultClass() {
       return Interval.class;
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Interval;
-    }
-
-    @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
-
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        Interval interval = (Interval) val;
-
-        buffer.writeInt(16);
-        buffer.writeLong(interval.getRawTime());
-        buffer.writeInt(interval.getRawDays());
-        buffer.writeInt(interval.getRawMonths());
-      }
-
-    }
-
-  }
-
-  static class TxtDecoder extends TextDecoder {
-
-    @Override
-    public PrimitiveType getInputPrimitiveType() {
-      return Interval;
-    }
-
-    @Override
-    public Class<?> getOutputType() {
-      return Interval.class;
-    }
-
-    @Override
-    public Interval decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
+    protected Interval decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
       return new Interval(buffer.toString());
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<Interval> {
+
+    TxtEncoder() {
+      super((StringConverter<Interval>) Interval::new);
+    }
 
     @Override
-    public Class<?> getInputType() {
+    public PrimitiveType getPrimitiveType() {
+      return PrimitiveType.Interval;
+    }
+
+    @Override
+    public Class<Interval> getDefaultClass() {
       return Interval.class;
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
-      return Interval;
-    }
-
-    @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
-      buffer.append(val.toString());
+    protected void encodeNativeValue(Context context, Type type, Interval value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

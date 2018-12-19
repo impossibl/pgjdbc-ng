@@ -34,7 +34,6 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.netty.buffer.ByteBuf;
 
@@ -48,13 +47,13 @@ public interface ProtocolListener {
 
   void parseComplete() throws IOException;
 
-  void parametersDescription(List<TypeRef> parameterTypes) throws IOException;
+  void parametersDescription(TypeRef[] parameterTypes) throws IOException;
 
   void noData() throws IOException;
 
   void bindComplete() throws IOException;
 
-  void rowDescription(List<ResultField> resultFields) throws IOException;
+  void rowDescription(ResultField[] resultFields) throws IOException;
 
   void rowData(ByteBuf buffer) throws IOException;
 
@@ -97,4 +96,7 @@ public interface ProtocolListener {
   void authenticateSSPI(ProtocolImpl protocol) throws IOException;
 
   void exception(Throwable cause) throws IOException;
+
+  void waitUntilComplete(long networkTimeout) throws IOException;
+
 }

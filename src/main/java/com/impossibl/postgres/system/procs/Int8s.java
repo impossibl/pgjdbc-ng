@@ -35,6 +35,7 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.types.PrimitiveType.Int8;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -44,99 +45,94 @@ public class Int8s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int8");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends NumericBinaryDecoder<Long> {
+
+    BinDecoder() {
+      super(8, Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int8;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Long> getDefaultClass() {
       return Long.class;
     }
 
     @Override
-    public Long decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 8) {
-        throw new IOException("invalid length");
-      }
-
+    protected Long decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
       return buffer.readLong();
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends NumericBinaryEncoder<Long> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Long.class;
+    BinEncoder() {
+      super(8, Long::parseLong, val -> val ? (long) 1 : (long) 0, Number::longValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int8;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<Long> getDefaultClass() {
+      return Long.class;
+    }
 
-      if (val == null) {
-
-        buffer.writeInt(-1);
-      }
-      else {
-
-        buffer.writeInt(8);
-        buffer.writeLong((Long) val);
-      }
-
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Long value, Object sourceContext, ByteBuf buffer) throws IOException {
+      buffer.writeLong(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends NumericTextDecoder<Long> {
+
+    TxtDecoder() {
+      super(Number::toString);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int8;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<Long> getDefaultClass() {
       return Long.class;
     }
 
     @Override
-    public Long decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
-      return Long.valueOf(buffer.toString());
+    protected Long decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+      return context.getIntegerFormatter().parse(buffer.toString()).longValue();
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends NumericTextEncoder<Long> {
 
-    @Override
-    public Class<?> getInputType() {
-      return Long.class;
+    TxtEncoder() {
+      super(Long::parseLong, val -> val ? (long) 1 : (long) 0, Number::longValue);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Int8;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<Long> getDefaultClass() {
+      return Long.class;
+    }
 
-      buffer.append((long)val);
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Long value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(value);
     }
 
   }

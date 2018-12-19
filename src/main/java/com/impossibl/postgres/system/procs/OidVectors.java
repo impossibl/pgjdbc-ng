@@ -34,6 +34,7 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 
 public class OidVectors extends SimpleProcProvider {
@@ -42,67 +43,51 @@ public class OidVectors extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "oidvector");
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return Integer[].class;
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      int length = buffer.length();
+      String[] items = buffer.toString().split(" ");
+      Integer[] oids = new Integer[items.length];
 
-      Object instance = null;
-
-      if (length != 0) {
-        String[] items = buffer.toString().split(" ");
-        Integer[] oids = new Integer[items.length];
-        for (int c = 0; c < items.length; ++c) {
-          oids[c] = (int)(Long.parseLong(items[c]) & 0xffffffffL);
-        }
-        instance = oids;
+      for (int c = 0; c < items.length; ++c) {
+        oids[c] = (int) (Long.parseLong(items[c]) & 0xffffffffL);
       }
 
-      return instance;
+      return oids;
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Integer[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      if (val == null) {
-        buffer.append("");
-        return;
-      }
-
-      Integer[] oids = (Integer[]) val;
+      Integer[] oids = (Integer[]) value;
       String[] items = new String[oids.length];
+
       for (int c = 0; c < oids.length; ++c) {
         items[c] = Long.toString(oids[c] & 0xffffffffL);
       }
 
       Joiner.on(' ').appendTo(buffer, items);
-
     }
 
   }

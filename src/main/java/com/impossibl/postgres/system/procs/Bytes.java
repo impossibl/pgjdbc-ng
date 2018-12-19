@@ -28,7 +28,10 @@
  */
 package com.impossibl.postgres.system.procs;
 
+import com.impossibl.postgres.jdbc.PGBlob;
+import com.impossibl.postgres.jdbc.PGBufferBlob;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
@@ -36,46 +39,97 @@ import com.impossibl.postgres.utils.guava.ByteStreams;
 import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.sql.Blob;
+import java.sql.SQLException;
 
 import static java.lang.Math.min;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.Unpooled;
 
 public class Bytes extends SimpleProcProvider {
-
-  public static final BinDecoder BINARY_DECODER = new BinDecoder();
-  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
 
   public Bytes() {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bytea");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  private static byte[] coerceInput(Object source, Long length) throws IOException {
+
+    if (source instanceof byte[]) {
+      return (byte[]) source;
+    }
+
+    if (source instanceof InputStream) {
+      InputStream is = (InputStream) source;
+      if (length != null) {
+        is = ByteStreams.limit(is, length);
+      }
+      return ByteStreams.toByteArray(is);
+    }
+
+    if (source instanceof PGBlob) {
+      PGBlob blob = (PGBlob) source;
+      try (InputStream in = blob.getBinaryStream()) {
+        return ByteStreams.toByteArray(in);
+      }
+      catch (SQLException e) {
+        throw new IOException("Error loading blob data", e);
+      }
+    }
+
+    throw new ConversionException(source.getClass(), Binary);
+  }
+
+  private static Object convertOutput(Context context, ByteBuf decoded, Class<?> targetClass) throws ConversionException {
+
+    if (targetClass == InputStream.class) {
+      return new ByteBufInputStream(decoded, true);
+    }
+
+    if (targetClass == byte[].class) {
+      byte[] bytes = new byte[decoded.readableBytes()];
+      decoded.readBytes(bytes);
+      decoded.release();
+      return bytes;
+    }
+
+    if (targetClass == String.class) {
+      byte[] bytes = new byte[decoded.readableBytes()];
+      decoded.readBytes(bytes);
+      decoded.release();
+      return new String(bytes, context.getCharset());
+    }
+
+    if (targetClass == Blob.class) {
+      return new PGBufferBlob(decoded.retainedDuplicate());
+    }
+
+    throw new ConversionException(Binary, targetClass);
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
+
+    BinDecoder() {
+      enableRespectMaxLength();
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return InputStream.class;
     }
 
     @Override
-    public InputStream decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-
+      int length = buffer.readableBytes();
       int readLength;
       Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
       if (maxLength != null) {
@@ -85,189 +139,166 @@ public class Bytes extends SimpleProcProvider {
         readLength = length;
       }
 
-      final ByteBuf data = buffer.readBytes(readLength);
-      buffer.skipBytes(length - readLength);
+      ByteBuf bytes = buffer.readRetainedSlice(readLength);
+      try {
 
-      return new ByteBufInputStream(data) {
-        @Override
-        public void close() throws IOException {
-          super.close();
-          data.release();
-        }
-      };
+        buffer.skipBytes(length - readLength);
+
+        return convertOutput(context, bytes, targetClass);
+      }
+      catch (Throwable t) {
+        bytes.release();
+        throw t;
+      }
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return InputStream.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object val, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val == null) {
+      Long specifiedLength = (Long) sourceContext;
+      byte[] value = Bytes.coerceInput(val, specifiedLength);
 
-        buffer.writeInt(-1);
-      }
-      else {
-
-        if (val instanceof byte[])
-          val = new ByteArrayInputStream((byte[]) val);
-
-        InputStream in = (InputStream) val;
-
-        int totalLength;
-
-        // Do we know, for sure, how long the stream is?
-        if (in instanceof ByteStreams.LimitedInputStream) {
-
-          totalLength = (int) ((ByteStreams.LimitedInputStream) in).limit();
-
-        }
-        else if (in instanceof ByteArrayInputStream) {
-
-          totalLength = in.available();
-
-        }
-        else if (in instanceof ByteBufInputStream) {
-
-          totalLength = in.available();
-
-        }
-        else {
-
-          // We must fallback to reading entire buffer to make sure we
-          // get all the data from the input stream
-
-          byte[] data = ByteStreams.toByteArray(in);
-
-          totalLength = data.length;
-          in = new ByteArrayInputStream(data);
-        }
-
-        buffer.writeInt(totalLength);
-
-        // Copy stream to buffer
-        long totalRead = ByteStreams.copy(in, new ByteBufOutputStream(buffer));
-
-        if (totalLength != totalRead) {
-          throw new IOException("invalid stream length");
-        }
-
+      if (specifiedLength != null && specifiedLength != value.length) {
+        throw new IOException("Invalid binary length");
       }
 
+      buffer.writeBytes(value);
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
+
+    TxtDecoder() {
+      enableRespectMaxLength();
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return InputStream.class;
     }
 
     @Override
-    public InputStream decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      byte[] data;
+      ByteBuf bytes;
 
       if (buffer.length() > 2 && buffer.charAt(0) == '\\' && buffer.charAt(1) == 'x') {
-        data = decodeHex(buffer.subSequence(2, buffer.length()));
+        bytes = Unpooled.wrappedBuffer(decodeHex(buffer.subSequence(2, buffer.length())));
       }
       else {
-        data = decodeEscape(buffer.subSequence(2, buffer.length()));
+        bytes = decodeEscape(buffer);
       }
 
-      return new ByteArrayInputStream(data);
-    }
-
-    byte[] decodeHex(CharSequence buffer) {
-
-      int length = buffer.length();
-      byte[] data = new byte[length / 2];
-      for (int i = 0; i < length; i += 2) {
-        data[i / 2] = (byte) ((Character.digit(buffer.charAt(i), 16) << 4) + Character.digit(buffer.charAt(i + 1), 16));
+      try {
+        return convertOutput(context, bytes, targetClass);
       }
-      return data;
+      catch (Throwable t) {
+        bytes.release();
+        throw t;
+      }
     }
 
-    byte[] decodeEscape(CharSequence buffer) {
+    ByteBuf decodeEscape(CharSequence buffer) {
 
       int length = buffer.length();
-      byte[] data = new byte[length];
-      int out = 0;
-      for (int i = 0; i < length; ++i) {
+      ByteBuf data = Unpooled.buffer(length);
+      try {
 
-        char ch = buffer.charAt(i);
-        switch (ch) {
+        for (int i = 0; i < length; ++i) {
 
-          case '\\':
+          char ch = buffer.charAt(i);
+          if (ch == '\\') {
+
             char ch1 = buffer.charAt(++i);
-            switch (ch1) {
-              case '\\':
-                data[++out] = '\\';
-
-              default:
-                char ch2 = buffer.charAt(++i);
-                char ch3 = buffer.charAt(++i);
-                data[++out] = (byte) (ch1 * 64 + ch2 * 8 + ch3);
+            if (ch1 == '\\') {
+              data.writeByte((byte) '\\');
             }
+            if (i == length - 1) break;
 
-          default:
-            data[++out] = (byte) ch;
+            char ch2 = buffer.charAt(++i);
+            char ch3 = buffer.charAt(++i);
+            data.writeByte((byte) (ch1 * 64 + ch2 * 8 + ch3));
+          }
+
+          data.writeByte((byte) ch);
         }
 
+        return data.capacity(data.writerIndex());
+      }
+      catch (Throwable t) {
+        data.release();
+        throw t;
       }
 
-      return Arrays.copyOf(data, out);
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return InputStream.class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
-    private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
-
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object val, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      if (val instanceof byte[])
-        val = new ByteArrayInputStream((byte[]) val);
+      Long specifiedLength = (Long) sourceContext;
+      byte[] value = coerceInput(val, specifiedLength);
 
-      InputStream in = (InputStream) val;
+      if (specifiedLength != null && specifiedLength != value.length) {
+        throw new IOException("Mismatch in length of binary arguments");
+      }
 
       buffer.append("\\x");
 
-      int v;
-      while ((v = in.read()) > -1) {
-        buffer.append(hexArray[v >>> 4]).append(hexArray[v & 0x0F]);
-      }
+      encodeHex(value, buffer);
 
+    }
+
+  }
+
+  private static final char[] HEX_CHARS = "0123456789ABCDEF".toCharArray();
+
+  public static byte[] decodeHex(CharSequence buffer) {
+
+    int length = buffer.length();
+    byte[] data = new byte[length / 2];
+
+    for (int i = 0, j = 0; i < length; i += 2, j += 1) {
+      data[j] = (byte) (((Character.digit(buffer.charAt(i), 16) << 4) + Character.digit(buffer.charAt(i + 1), 16)));
+    }
+
+    return data;
+  }
+
+  public static String encodeHex(byte[] value) {
+    StringBuilder out = new StringBuilder();
+    encodeHex(value, out);
+    return out.toString();
+  }
+
+  public static void encodeHex(byte[] value, StringBuilder buffer) {
+
+    buffer.ensureCapacity(buffer.capacity() + value.length * 2);
+    for (byte b : value) {
+      buffer.append(HEX_CHARS[(b >>> 4) & 0x0F]).append(HEX_CHARS[b & 0x0F]);
     }
 
   }

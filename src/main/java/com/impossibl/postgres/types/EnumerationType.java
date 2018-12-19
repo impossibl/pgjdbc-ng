@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.tables.PgType.Row;
 
 import java.util.Collection;
@@ -44,12 +44,12 @@ public class EnumerationType extends Type {
   Type textType;
 
   @Override
-  public boolean isParameterFormatSupported(Format format) {
+  public boolean isParameterFormatSupported(FieldFormat format) {
     return textType.isParameterFormatSupported(format);
   }
 
   @Override
-  public boolean isResultFormatSupported(Format format) {
+  public boolean isResultFormatSupported(FieldFormat format) {
     return textType.isResultFormatSupported(format);
   }
 

@@ -112,7 +112,6 @@ public class TimeTest {
     Timestamp timestamptz = rs.getTimestamp(2);
     assertNotNull(timestamptz);
 
-    Time timetz = rs.getTime(2);
     assertEquals(midnight, time);
 
     time = rs.getTime(1, cal);
@@ -130,7 +129,7 @@ public class TimeTest {
 
     assertEquals(100000000, timestamp.getNanos());
 
-    timetz = rs.getTime(2);
+    Time timetz = rs.getTime(2);
     assertNotNull(timetz);
     assertEquals(10, extractMillis(timetz.getTime()));
     timestamptz = rs.getTimestamp(2);

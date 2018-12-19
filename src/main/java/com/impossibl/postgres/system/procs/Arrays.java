@@ -28,22 +28,30 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.jdbc.PGArray;
+import com.impossibl.postgres.jdbc.PGBuffersArray;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.lang.Character.isWhitespace;
-import static java.lang.reflect.Array.newInstance;
+import static java.util.Arrays.copyOf;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 
 
 /*
@@ -56,217 +64,188 @@ public class Arrays extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "array_", "anyarray_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static Object convertOutput(PGArray array, Class<?> targetClass) throws IOException {
+
+    if (targetClass == java.sql.Array.class) {
+      return array;
+    }
+
+    if (targetClass.isArray()) {
+      try {
+        Object result = array.getArray(targetClass.getComponentType());
+        array.free();
+        return result;
+      }
+      catch (SQLException e) {
+        throw new IOException(e);
+      }
+    }
+
+    throw new ConversionException(PrimitiveType.Array, targetClass);
+  }
+
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Object[].class;
+    public Class<?> getDefaultClass() {
+      return java.sql.Array.class;
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
+      ArrayType atype = (ArrayType) type;
 
-      int readStart = buffer.readerIndex();
+      //
+      //Header
+      //
 
-      Object instance = null;
+      int dimensionCount = buffer.readInt();
+      /* int flags = */ buffer.readInt();
+      Type elementType = context.getRegistry().loadType(buffer.readInt());
 
-      if (length != -1) {
+      if (!atype.getElementType().equals(elementType)) {
+        throw new IllegalStateException("Array element type mismatch");
+      }
 
-        ArrayType atype = (ArrayType) type;
+      //Each Dimension
+      int[] dimensions = new int[dimensionCount];
+      // int[] lowerBounds = new int[dimensionCount];
+      for (int d = 0; d < dimensionCount; ++d) {
 
-        //
-        //Header
-        //
+        //Dimension
+        dimensions[d] = buffer.readInt();
 
-        int dimensionCount = buffer.readInt();
-        /* boolean hasNulls = */
-        buffer.readInt() /* == 1 ? true : false */;
-        Type elementType = context.getRegistry().loadType(buffer.readInt());
+        //Lower bounds
+        /* lowerBounds[d] = */ buffer.readInt();
+      }
 
-        //Each Dimension
-        int[] dimensions = new int[dimensionCount];
-        int[] lowerBounds = new int[dimensionCount];
-        for (int d = 0; d < dimensionCount; ++d) {
+      //
+      //Array & Elements
+      //
 
-          //Dimension
-          dimensions[d] = buffer.readInt();
+      int totalItems = strideOfDimensions(dimensions);
 
-          //Lower bounds
-          lowerBounds[d] = buffer.readInt();
+      ByteBuf[] elementBufs = new ByteBuf[totalItems];
+      for (int elementIdx = 0; elementIdx < totalItems; ++elementIdx) {
+        int elementLength = buffer.readInt();
+        if (elementLength != -1) {
+          elementBufs[elementIdx] = buffer.readRetainedSlice(elementLength);
         }
-
-        if (atype.getElementType().getId() != elementType.getId()) {
-          context.refreshType(atype.getId());
+        else {
+          elementBufs[elementIdx] = null;
         }
-
-        //
-        //Array & Elements
-        //
-
-        instance = readArray(buffer, elementType, dimensions, context);
-
-
-        if (length != buffer.readerIndex() - readStart) {
-          throw new IOException("invalid length");
-        }
-
       }
 
-      return instance;
-    }
-
-    Object readArray(ByteBuf buffer, Type type, int[] dims, Context context) throws IOException {
-
-      if (dims.length == 0) {
-        return readElements(buffer, type, 0, context);
-      }
-      else if (dims.length == 1) {
-        return readElements(buffer, type, dims[0], context);
-      }
-      else {
-        return readSubArray(buffer, type, dims, context);
-      }
-
-    }
-
-    Object readSubArray(ByteBuf buffer, Type type, int[] dims, Context context) throws IOException {
-
-      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>>emptyMap());
-      Object inst = newInstance(elementClass, dims);
-
-      int[] subDims = java.util.Arrays.copyOfRange(dims, 1, dims.length);
-
-      for (int c = 0; c < dims[0]; ++c) {
-
-        Array.set(inst, c, readArray(buffer, type, subDims, context));
-
-      }
-
-      return inst;
-    }
-
-    Object readElements(ByteBuf buffer, Type type, int len, Context context) throws IOException {
-
-      Class<?> elementClass = type.unwrap().getJavaType(Format.Binary, Collections.<String, Class<?>>emptyMap());
-      Object inst = newInstance(elementClass, len);
-
-      for (int c = 0; c < len; ++c) {
-
-        Array.set(inst, c, type.getBinaryCodec().getDecoder().decode(type, null, null, buffer, context));
-
-      }
-
-      return inst;
+      return convertOutput(new PGBuffersArray(context, atype, FieldFormat.Binary, elementBufs, dimensions), targetClass);
     }
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Object[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      buffer.writeInt(-1);
+      Class<?> valueType = value.getClass();
 
-      if (val != null) {
-
-        int writeStart = buffer.writerIndex();
-
-        ArrayType atype = (ArrayType) type;
-        Type elementType = atype.getElementType();
-
-        //
-        //Header
-        //
-
-        int dimensionCount = getDimensions(val.getClass(), atype.unwrapAll());
-        //Dimension count
-        buffer.writeInt(dimensionCount);
-        //Has nulls
-        buffer.writeInt(hasNulls(val) ? 1 : 0);
-        //Element type
-        buffer.writeInt(elementType.getId());
-
-        //each dimension
-        Object dim = val;
-        for (int d = 0; d < dimensionCount; ++d) {
-
-          int dimension = 0;
-          if (dim != null)
-            dimension = Array.getLength(dim);
-
-          //Dimension
-          buffer.writeInt(dimension);
-
-          //Lower bounds
-          buffer.writeInt(1);
-
-          if (dimension == 0)
-            dim = null;
-          else if (dim != null)
-            dim = Array.get(dim, 0);
+      if (value instanceof PGArray) {
+        try {
+          value = ((PGArray) value).getArray();
         }
-
-        //
-        //Array & Elements
-
-        writeArray(buffer, elementType, val, context);
-
-        //Set length
-        buffer.setInt(writeStart - 4, buffer.writerIndex() - writeStart);
-
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
       }
+      else if (!valueType.isArray()) {
+        throw new ConversionException(valueType, PrimitiveType.Array);
+      }
+
+      ArrayType atype = (ArrayType) type;
+      Type elementType = atype.getElementType();
+
+      //
+      //Header
+      //
+
+      int dimensionCount = getDimensions(value.getClass());
+      //Dimension count
+      buffer.writeInt(dimensionCount);
+      //Has nulls
+      buffer.writeInt(hasNulls(value) ? 1 : 0);
+      //Element type
+      buffer.writeInt(elementType.getId());
+
+      //each dimension
+      Object array = value;
+      for (int d = 0; d < dimensionCount; ++d) {
+
+        int dimension = array != null ? Array.getLength(array) : 0;
+
+        //Dimension
+        buffer.writeInt(dimension);
+
+        //Lower bounds
+        buffer.writeInt(1);
+
+        if (dimension == 0) {
+          array = null;
+        }
+        else {
+          array = Array.get(array, 0);
+        }
+      }
+
+      //
+      //Array & Elements
+
+      writeArray(context, elementType, value, buffer);
 
     }
 
-    void writeArray(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
+    void writeArray(Context context, Type type, Object val, ByteBuf buffer) throws IOException {
 
-      if (val.getClass().getComponentType().isArray() && !type.getBinaryCodec().getEncoder().getInputType().isArray()) {
+      if (val.getClass().getComponentType().isArray()) {
 
-        writeSubArray(buffer, type, val, context);
+        writeSubArray(context, type, val, buffer);
       }
       else {
 
-        writeElements(buffer, type, val, context);
+        writeElements(context, type, val, buffer);
       }
 
     }
 
-    void writeElements(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
+    void writeElements(Context context, Type type, Object val, ByteBuf buffer) throws IOException {
 
       int len = Array.getLength(val);
 
       for (int c = 0; c < len; ++c) {
 
-        type.getBinaryCodec().getEncoder().encode(type, buffer, Array.get(val, c), context);
+        Object element = Array.get(val, c);
+
+        lengthEncodeBinary(type.getBinaryCodec().getEncoder(), context, type, element, null, buffer);
       }
 
     }
 
-    void writeSubArray(ByteBuf buffer, Type type, Object val, Context context) throws IOException {
+    void writeSubArray(Context context, Type type, Object val, ByteBuf buffer) throws IOException {
 
       int len = Array.getLength(val);
 
       for (int c = 0; c < len; ++c) {
 
-        writeArray(buffer, type, Array.get(val, c), context);
+        writeArray(context, type, Array.get(val, c), buffer);
       }
 
     }
@@ -283,96 +262,122 @@ public class Arrays extends SimpleProcProvider {
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public Class<?> getOutputType() {
-      return Object[].class;
+    public Class<?> getDefaultClass() {
+      return java.sql.Array.class;
     }
 
     @Override
-    public Object decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      int length = buffer.length();
+      ByteBufAllocator byteBufAllocator = context.getProtocol().getChannel().alloc();
+      ArrayType atype = (ArrayType) type;
 
-      Object instance = null;
+      List<CharSequence> elementBuffers = new ArrayList<>();
 
-      if (length != 0) {
+      int[] dimensions = parseElementBuffers(atype.getDelimeter(), buffer, elementBuffers);
 
-        ArrayType atype = (ArrayType) type;
-
-        List<Object> elements = new ArrayList<>();
-
-        readArray(buffer, 0, atype.getDelimeter(), type.unwrap(), context, elements);
-
-        instance = elements.toArray();
+      ByteBuf[] elementBinaryBuffers = new ByteBuf[elementBuffers.size()];
+      for (int elementIdx = 0; elementIdx < elementBuffers.size(); ++elementIdx) {
+        CharSequence elementBuffer = elementBuffers.get(elementIdx);
+        if (elementBuffer != null) {
+          elementBinaryBuffers[elementIdx] = ByteBufUtil.writeUtf8(byteBufAllocator, elementBuffer);
+        }
       }
 
-      return instance;
+      return convertOutput(new PGBuffersArray(context, atype, FieldFormat.Text, elementBinaryBuffers, dimensions), targetClass);
     }
 
-    int readArray(CharSequence data, int start, char delim, Type type, Context context, List<Object> elements) throws IOException {
+    int[] parseElementBuffers(char delim, CharSequence buffer, List<CharSequence> elements) throws IOException {
 
-      if (data.equals("{}")) {
-        return start + 1;
-      }
+      int[] dimensions = new int[0];
+      int len = buffer.length();
+      StringBuilder elementText = null;
 
-      StringBuilder elementTxt = null;
+      int depth = -1;
+      int charIdx;
 
-      int c;
-      int len = data.length();
+      scan:
+      for (charIdx = 0; charIdx < len; ++charIdx) {
 
-    scan:
-      for (c = start + 1; c < len; ++c) {
-
-        char ch = data.charAt(c);
+        char ch = buffer.charAt(charIdx);
         switch (ch) {
 
           case '{':
-            List<Object> subElements = new ArrayList<>();
-            c = readArray(data, c, delim, type, context, subElements);
-            elements.add(subElements.toArray());
+            ++depth;
+            if (dimensions.length < depth + 1) {
+              dimensions = copyOf(dimensions, depth + 1);
+            }
+            dimensions[depth] = 0;
             break;
 
           case '}':
-            if (elementTxt != null) {
-              elements.add(decode(elementTxt.toString(), type, context));
+            if (elementText != null) {
+              ++dimensions[depth];
+              elementText = addTextElement(elementText, elements);
             }
-            break scan;
+            if (--depth < 0) {
+              break scan;
+            }
+            else {
+              ++dimensions[depth];
+            }
+            break;
 
           case '"':
-            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
-            c = readString(data, c, elementTxt);
+            elementText = new StringBuilder();
+            charIdx = readString(buffer, charIdx, elementText);
             break;
+
+          case '[':
+            if (depth == -1) {
+              while (ch != '=' && charIdx < len) ch = buffer.charAt(++charIdx);
+              break;
+            }
 
           default:
 
             // Eat whitespace
             if (isWhitespace(ch)) {
-              c = skipWhitespace(data, c);
+              charIdx = skipWhitespace(buffer, charIdx);
               break;
             }
 
             if (ch == delim) {
-              if (elementTxt != null) {
-                elements.add(decode(elementTxt.toString(), type, context));
+              if (elementText != null) {
+                ++dimensions[depth];
+                elementText = addTextElement(elementText, elements);
               }
-              elementTxt = null;
               break;
             }
 
-            elementTxt = elementTxt != null ? elementTxt : new StringBuilder();
-            elementTxt.append(ch);
+            if (elementText == null) {
+              elementText = new StringBuilder();
+            }
+            elementText.append(ch);
         }
 
       }
 
-      return c;
+      return dimensions;
+    }
+
+    StringBuilder addTextElement(StringBuilder text, List<CharSequence> elements) {
+      String textStr = text.toString();
+      if (textStr.equalsIgnoreCase("NULL")) {
+        elements.add(null);
+      }
+      else {
+        elements.add(textStr);
+      }
+      return null;
     }
 
     int skipWhitespace(CharSequence data, int start) {
@@ -385,20 +390,19 @@ public class Arrays extends SimpleProcProvider {
       return c;
     }
 
-    int readString(CharSequence data, int start, StringBuilder string) {
+    int readString(CharSequence data, int start, Appendable out) throws IOException {
 
       int len = data.length();
-      int c;
+      int charIdx;
 
-    scan:
-      for (c = start + 1; c < len; ++c) {
-
-        char ch = data.charAt(c);
+      scan:
+      for (charIdx = start + 1; charIdx < len; ++charIdx) {
+        char ch = data.charAt(charIdx);
         switch (ch) {
           case '"':
-            if (c < data.length() - 1 && data.charAt(c + 1) == '"') {
-              ++c;
-              string.append('"');
+            if (charIdx < data.length() - 1 && data.charAt(charIdx + 1) == '"') {
+              ++charIdx;
+              out.append('"');
               break;
             }
             else {
@@ -406,99 +410,93 @@ public class Arrays extends SimpleProcProvider {
             }
 
           case '\\':
-            ++c;
-            if (c < data.length()) {
-              ch = data.charAt(c);
+            ++charIdx;
+            if (charIdx < data.length()) {
+              ch = data.charAt(charIdx);
             }
 
           default:
-            string.append(ch);
+            out.append(ch);
         }
-
       }
 
-      return c;
-    }
-
-    Object decode(String elementTxt, Type type, Context context) throws IOException {
-      if (elementTxt.equals("NULL")) {
-        return null;
-      }
-      return type.getCodec(Format.Text).getDecoder().decode(type, null, null, elementTxt, context);
+      return charIdx;
     }
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return Object[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return PrimitiveType.Array;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      if (val == null) {
-        buffer.append("");
-        return;
+      Class<?> valueType = value.getClass();
+
+      if (value instanceof PGArray) {
+        try {
+          value = ((PGArray) value).getArray();
+        }
+        catch (SQLException e) {
+          throw new IOException(e);
+        }
+      }
+      else if (!valueType.isArray()) {
+        throw new ConversionException(valueType, PrimitiveType.Array);
       }
 
       ArrayType arrayType = (ArrayType) type;
 
       Type elementType = arrayType.getElementType();
 
-      writeArray(buffer, elementType.getDelimeter(), elementType, val, context);
+      writeArray(context, elementType, elementType.getDelimeter(), value, sourceContext, buffer);
 
     }
 
-    void writeArray(StringBuilder out, char delim, Type type, Object val, Context context) throws IOException {
+    void writeArray(Context context, Type elementType, char delim, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      TextEncoder encoder = (TextEncoder) type.getCodec(Format.Text).getEncoder();
+      Type.Codec.Encoder<StringBuilder> encoder = elementType.getTextCodec().getEncoder();
 
-      out.append('{');
+      buffer.append('{');
 
-      int len = Array.getLength(val);
+      int len = Array.getLength(value);
       for (int c = 0; c < len; ++c) {
 
-        Object elemVal = Array.get(val, c);
-        StringBuilder elemOut = new StringBuilder();
+        Object elementValue = Array.get(value, c);
+        StringBuilder elementBuffer = new StringBuilder();
 
-        if (elemVal == null) {
-          out.append("NULL");
+        if (elementValue == null) {
+          buffer.append("NULL");
         }
-        else if (elemVal.getClass().isArray() && elemVal.getClass() != byte[].class) {
-          writeArray(out, delim, type, elemVal, context);
+        else if (elementValue.getClass().isArray() && elementValue.getClass() != byte[].class) {
+          writeArray(context, elementType, delim, elementValue, sourceContext, buffer);
         }
         else {
-          encoder.encode(type, elemOut, elemVal, context);
+          encoder.encode(context, elementType, elementValue, sourceContext, elementBuffer);
 
-          String elemStr = elemOut.toString();
+          String elemStr = elementBuffer.toString();
 
           if (needsQuotes(elemStr, delim)) {
             elemStr = elemStr.replace("\\", "\\\\");
             elemStr = elemStr.replace("\"", "\\\"");
-            out.append('\"').append(elemStr).append('\"');
+            buffer.append('\"').append(elemStr).append('\"');
           }
           else {
-            out.append(elemStr);
+            buffer.append(elemStr);
           }
 
         }
 
         if (c < len - 1)
-          out.append(delim);
+          buffer.append(delim);
 
       }
 
-
-      out.append('}');
-
+      buffer.append('}');
     }
 
     private static boolean needsQuotes(String elemStr, char delim) {
@@ -522,10 +520,23 @@ public class Arrays extends SimpleProcProvider {
 
   }
 
-  public static int getDimensions(Class<?> type, Type elementType) {
-    if (type.isArray() && type != elementType.getBinaryCodec().getEncoder().getInputType())
-      return 1 + getDimensions(type.getComponentType(), elementType);
+  private static int getDimensions(Class<?> type) {
+    if (type.isArray())
+      return 1 + getDimensions(type.getComponentType());
     return 0;
+  }
+
+  public static int strideOfDimensions(int[] dimensions) {
+    return strideOfDimensions(dimensions, 0);
+  }
+
+  public static int strideOfDimensions(int[] dimensions, int offset) {
+    if (dimensions.length == 0) return 0;
+    int stride = 1;
+    for (int c = offset; c < dimensions.length; ++c) {
+      stride *= dimensions[c];
+    }
+    return stride;
   }
 
 }

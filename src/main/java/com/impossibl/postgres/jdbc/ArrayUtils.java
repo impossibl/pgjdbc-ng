@@ -32,18 +32,32 @@ import java.lang.reflect.Array;
 
 public class ArrayUtils {
 
-  public static int getDimensions(Object array) {
+  public static Class<?> getElementType(Class<?> type) {
+    if (type.isArray())
+      return getElementType(type.getComponentType());
+    return type;
+  }
+
+  public static int getDimensionCount(Object array) {
     if (array == null || !array.getClass().isArray()) {
       return 0;
     }
     if (Array.getLength(array) == 0) {
       return 1;
     }
-    return getDimensions(Array.get(array, 0)) + 1;
+    return getDimensionCount(Array.get(array, 0)) + 1;
   }
 
-  public static int getDimensions(Class<?> cls) {
-    return cls.getName().lastIndexOf('[') + 1;
+  public static int[] getDimensions(Object array) {
+
+    int[] dims = new int[getDimensionCount(array)];
+    for (int dimIdx = 0; dimIdx < dims.length; ++dimIdx) {
+      dims[dimIdx] = Array.getLength(array);
+      if (dims[dimIdx] == 0) break;
+      array = Array.get(array, 0);
+    }
+
+    return dims;
   }
 
 }

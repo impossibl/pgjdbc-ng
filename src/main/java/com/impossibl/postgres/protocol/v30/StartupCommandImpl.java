@@ -44,10 +44,10 @@ import io.netty.buffer.ByteBuf;
 
 public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
-  Map<String, Object> params;
-  boolean ready;
+  private Map<String, Object> params;
+  private boolean ready;
 
-  public StartupCommandImpl(Map<String, Object> params) {
+  StartupCommandImpl(Map<String, Object> params) {
     this.params = params;
   }
 
@@ -62,21 +62,21 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       }
 
       @Override
-      public synchronized void ready(TransactionStatus txStatus) {
+      public void ready(TransactionStatus txStatus) {
         StartupCommandImpl.this.ready = true;
-        notifyAll();
+        notifyPossibleCompletion();
       }
 
       @Override
-      public synchronized void error(Notice error) {
+      public void error(Notice error) {
         setError(error);
-        notifyAll();
+        notifyPossibleCompletion();
       }
 
       @Override
-      public synchronized void exception(Throwable cause) {
+      public void exception(Throwable cause) {
         setException(cause);
-        notifyAll();
+        notifyPossibleCompletion();
       }
 
       @Override
@@ -98,13 +98,13 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       }
 
       @Override
-      public void authenticateClear(ProtocolImpl protocol) throws IOException {
+      public void authenticateClear(ProtocolImpl protocol) {
 
         Context context = protocol.getContext();
 
         String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
 
-        ByteBuf msg = protocol.channel.alloc().buffer();
+        ByteBuf msg = protocol.getChannel().alloc().buffer();
 
         protocol.writePassword(msg, password);
 
@@ -112,11 +112,11 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
       }
 
       @Override
-      public void authenticateCrypt(ProtocolImpl protocol) throws IOException {
+      public void authenticateCrypt(ProtocolImpl protocol) {
       }
 
       @Override
-      public void authenticateMD5(ProtocolImpl protocol, byte[] salt) throws IOException {
+      public void authenticateMD5(ProtocolImpl protocol, byte[] salt) {
 
         Context context = protocol.getContext();
 
@@ -125,7 +125,7 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
         String response = MD5Authentication.encode(password, username, salt);
 
-        ByteBuf msg = protocol.channel.alloc().buffer();
+        ByteBuf msg = protocol.getChannel().alloc().buffer();
 
         protocol.writePassword(msg, response);
 
@@ -152,13 +152,13 @@ public class StartupCommandImpl extends CommandImpl implements StartupCommand {
 
     protocol.setListener(listener);
 
-    ByteBuf msg = protocol.channel.alloc().buffer();
+    ByteBuf msg = protocol.getChannel().alloc().buffer();
 
     protocol.writeStartup(msg, params);
 
     protocol.send(msg);
 
-    waitFor(listener);
+    listener.waitUntilComplete(networkTimeout);
 
   }
 

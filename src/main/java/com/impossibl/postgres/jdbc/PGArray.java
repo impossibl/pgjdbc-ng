@@ -28,128 +28,116 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.DataRow;
-import com.impossibl.postgres.protocol.ParsedDataRow;
-import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ResultField.Format;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.TypeMapContext;
 import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.jdbc.ArrayUtils.getDimensions;
-import static com.impossibl.postgres.jdbc.SQLTypeUtils.coerceToArray;
 
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
-public class PGArray implements Array {
+public abstract class PGArray implements Array {
 
-  PGConnectionImpl connection;
-  ArrayType type;
-  Object[] value;
+  protected Context context;
+  protected ArrayType type;
 
-  public PGArray(PGConnectionImpl connection, ArrayType type, Object[] value) {
+  PGArray(Context context, ArrayType type) {
     super();
-    this.connection = connection;
+    this.context = context;
     this.type = type;
-    this.value = value;
   }
 
-  public Object[] getValue() {
-    return value;
+  public abstract int getLength();
+
+  protected abstract Object getArray(Context context, Class<?> targetComponentType, long index, int count) throws SQLException;
+
+  protected abstract ResultSet getResultSet(Context context, long index, int count) throws SQLException;
+
+  protected void checkFreed() throws SQLException {
+    if (context == null && type == null) {
+      throw new PGSQLSimpleException("Array previously freed");
+    }
+  }
+
+  public ArrayType getType() {
+    return type;
   }
 
   @Override
   public String getBaseTypeName() throws SQLException {
+    checkFreed();
+
     return type.getElementType().getName();
   }
 
   @Override
   public int getBaseType() throws SQLException {
+    checkFreed();
+
     return SQLTypeMetaData.getSQLType(type.getElementType());
+  }
+
+  public Object getArray(Class<?> targetComponentType) throws SQLException {
+    checkFreed();
+
+    return getArray(context, targetComponentType, 1, getLength());
   }
 
   @Override
   public Object getArray() throws SQLException {
-    return getArray(connection.getTypeMap());
+    checkFreed();
+
+    return getArray(context, null, 1, getLength());
   }
 
   @Override
   public Object getArray(Map<String, Class<?>> typeMap) throws SQLException {
+    checkFreed();
 
-    Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
-
-    return coerceToArray(value, type, targetType, typeMap, connection);
+    return getArray(new TypeMapContext(context, typeMap), null, 1, getLength());
   }
 
   @Override
   public Object getArray(long index, int count) throws SQLException {
-    return getArray(index, count, connection.getTypeMap());
+    checkFreed();
+
+    return getArray(context, null, index, count);
   }
 
   @Override
   public Object getArray(long index, int count, Map<String, Class<?>> typeMap) throws SQLException {
+    checkFreed();
 
-    if (index < 1 || index > value.length || (index + count) > (value.length + 1)) {
-      throw new SQLException("Invalid array slice");
-    }
-
-    Class<?> targetType = SQLTypeUtils.mapGetType(type, typeMap, connection);
-
-    return coerceToArray(value, (int) index - 1, count, type, targetType, typeMap, connection);
+    return getArray(new TypeMapContext(context, typeMap), null, index, count);
   }
 
   @Override
   public ResultSet getResultSet() throws SQLException {
-    return getResultSet(connection.getTypeMap());
+    checkFreed();
+
+    return getResultSet(context.getCustomTypeMap());
   }
 
   @Override
-  public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
-    return getResultSet(1, value.length, map);
+  public ResultSet getResultSet(Map<String, Class<?>> typeMap) throws SQLException {
+    checkFreed();
+
+    return getResultSet(new TypeMapContext(context, typeMap), 1, getLength());
   }
 
   @Override
   public ResultSet getResultSet(long index, int count) throws SQLException {
-    return getResultSet(index, count, connection.getTypeMap());
+    checkFreed();
+
+    return getResultSet(context, index, count);
   }
 
   @Override
-  public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+  public ResultSet getResultSet(long index, int count, Map<String, Class<?>> typeMap) throws SQLException {
+    checkFreed();
 
-    if (index < 1 || index > (value.length + 1) || (index + count) > (value.length + 1)) {
-      throw new SQLException("Invalid array slice");
-    }
-
-    Registry reg = connection.getRegistry();
-
-    Type elementType = getDimensions(value) > 1 ? type : type.getElementType();
-
-    ResultField[] fields = {
-      new ResultField("INDEX", 0, (short)0, reg.loadType("int4"), (short)0, 0, Format.Binary),
-      new ResultField("VALUE", 0, (short)0, elementType, (short)0, 0, Format.Binary)
-    };
-
-    List<DataRow> results = new ArrayList<>(value.length);
-    for (long c = index, end = index + count; c < end; ++c) {
-      results.add(new ParsedDataRow(new Object[]{c, value[(int) c - 1]}));
-    }
-
-    PGStatement stmt = connection.createStatement();
-    stmt.closeOnCompletion();
-    return stmt.createResultSet(Arrays.asList(fields), results, false);
-  }
-
-  @Override
-  public void free() throws SQLException {
-    connection = null;
-    type = null;
-    value = null;
+    return getResultSet(new TypeMapContext(context, typeMap), index, count);
   }
 
 }

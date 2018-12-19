@@ -37,18 +37,18 @@ import java.sql.SQLException;
 
 class LargeObject {
 
-  protected static final int INV_READ   = 0x00040000;
-  protected static final int INV_WRITE  = 0x00020000;
+  static final int INV_READ   = 0x00040000;
+  static final int INV_WRITE  = 0x00020000;
 
-  protected static final int SEEK_SET = 0;
-  protected static final int SEEK_CUR = 1;
-  protected static final int SEEK_END = 2;
+  static final int SEEK_SET = 0;
+  static final int SEEK_CUR = 1;
+  static final int SEEK_END = 2;
 
   int oid;
   int fd;
-  PGConnectionImpl connection;
+  PGDirectConnection connection;
 
-  static LargeObject open(PGConnectionImpl connection, int oid) throws SQLException {
+  static LargeObject open(PGDirectConnection connection, int oid) throws SQLException {
     int fd = open(connection, oid, INV_READ | INV_WRITE);
     if (fd == -1) {
       throw new SQLException("Unable to open large object");
@@ -60,7 +60,7 @@ class LargeObject {
       return new LargeObject(connection, oid, fd);
   }
 
-  LargeObject(PGConnectionImpl connection, int oid, int fd) throws SQLException {
+  LargeObject(PGDirectConnection connection, int oid, int fd) throws SQLException {
     super();
     this.oid = oid;
     this.fd = fd;
@@ -78,7 +78,7 @@ class LargeObject {
     return open(connection, oid);
   }
 
-  static void ensurePrepared(PGConnectionImpl conn, String name, String sql, String... typeNames) throws SQLException {
+  static void ensurePrepared(PGDirectConnection conn, String name, String sql, String... typeNames) throws SQLException {
     if (!conn.isUtilQueryPrepared(name)) {
       try {
         conn.prepareUtilQuery(name, sql, typeNames);
@@ -89,35 +89,35 @@ class LargeObject {
     }
   }
 
-  static int creat(PGConnectionImpl conn, int mode) throws SQLException {
+  static int creat(PGDirectConnection conn, int mode) throws SQLException {
     ensurePrepared(conn, "lo.creat", "select lo_creat($1)", "int4");
-    return conn.executeForFirstResultValue("@lo.creat", true, Integer.class, mode);
+    return conn.executeForValue("@lo.creat", Integer.class, mode);
   }
 
-  static int open(PGConnectionImpl conn, int oid, int access) throws SQLException {
+  static int open(PGDirectConnection conn, int oid, int access) throws SQLException {
     ensurePrepared(conn, "lo.open", "select lo_open($1,$2)", "oid", "int4");
-    return conn.executeForFirstResultValue("@lo.open", true, Integer.class, oid, access);
+    return conn.executeForValue("@lo.open", Integer.class, oid, access);
   }
 
-  static int unlink(PGConnectionImpl conn, int oid) throws SQLException {
+  static int unlink(PGDirectConnection conn, int oid) throws SQLException {
     ensurePrepared(conn, "lo.unlink", "select lo_unlink($1)", "oid");
-    return conn.executeForFirstResultValue("@lo.unlink", true, Integer.class, oid);
+    return conn.executeForValue("@lo.unlink", Integer.class, oid);
   }
 
   int close() throws SQLException {
-    return connection.executeForFirstResultValue("@lo.close", true, Integer.class, fd);
+    return connection.executeForValue("@lo.close", Integer.class, fd);
   }
 
   long lseek(long offset, int whence) throws SQLException {
-    return connection.executeForFirstResultValue("@lo.lseek", true, Integer.class, fd, (int) offset, whence);
+    return connection.executeForValue("@lo.lseek", Integer.class, fd, (int) offset, whence);
   }
 
   long tell() throws SQLException {
-    return connection.executeForFirstResultValue("@lo.tell", true, Integer.class, fd);
+    return connection.executeForValue("@lo.tell", Integer.class, fd);
   }
 
   byte[] read(long len) throws SQLException {
-    try (InputStream data = connection.executeForFirstResultValue("@lo.read", true, InputStream.class, fd, (int) len)) {
+    try (InputStream data = connection.executeForValue("@lo.read", InputStream.class, fd, (int) len)) {
       return ByteStreams.toByteArray(data);
     }
     catch (IOException e) {
@@ -129,11 +129,11 @@ class LargeObject {
 
     InputStream dataIn = new ByteArrayInputStream(data, off, len);
 
-    return connection.executeForFirstResultValue("@lo.write", true, Integer.class, fd, dataIn);
+    return connection.executeForValue("@lo.write", Integer.class, fd, dataIn);
   }
 
   int truncate(long len) throws SQLException {
-    return connection.executeForFirstResultValue("@lo.truncate", true, Integer.class, fd, (int) len);
+    return connection.executeForValue("@lo.truncate", Integer.class, fd, (int) len);
   }
 
 }

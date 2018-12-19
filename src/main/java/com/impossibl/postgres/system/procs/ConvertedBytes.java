@@ -43,33 +43,26 @@ import io.netty.buffer.ByteBuf;
 
 public class ConvertedBytes extends SimpleProcProvider {
 
-  public static final BinDecoder BINARY_DECODER = new BinDecoder();
-  public static final BinEncoder BINARY_ENCODER = new BinEncoder();
-
   public ConvertedBytes() {
     super(null, null, new BinEncoder(), new BinDecoder(), "");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<?> getDefaultClass() {
       return byte[].class;
     }
 
     @Override
-    public byte[] decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-
+      int length = buffer.readableBytes();
       byte[] bytes;
 
       Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
@@ -88,33 +81,19 @@ public class ConvertedBytes extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public Class<?> getInputType() {
-      return byte[].class;
-    }
-
-    @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Binary;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      if (val == null) {
+      byte[] bytes = (byte[]) value;
 
-        buffer.writeInt(-1);
-      }
-      else {
-
-        byte[] bytes = (byte[]) val;
-
-        buffer.writeInt(bytes.length);
-        buffer.writeBytes(bytes);
-      }
-
+      buffer.writeBytes(bytes);
     }
 
   }

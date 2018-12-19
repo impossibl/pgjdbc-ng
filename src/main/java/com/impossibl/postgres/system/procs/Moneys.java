@@ -40,6 +40,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
 
+import static java.math.BigDecimal.ONE;
+import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 
 import io.netty.buffer.ByteBuf;
@@ -50,28 +52,24 @@ public class Moneys extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "cash_");
   }
 
-  static class BinDecoder extends BinaryDecoder {
+  static class BinDecoder extends AutoConvertingBinaryDecoder<BigDecimal> {
+
+    BinDecoder() {
+      super(8);
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Money;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<BigDecimal> getDefaultClass() {
       return BigDecimal.class;
     }
 
     @Override
-    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Context context) throws IOException {
-
-      int length = buffer.readInt();
-      if (length == -1) {
-        return null;
-      }
-      else if (length != 8) {
-        throw new IOException("invalid length");
-      }
+    protected BigDecimal decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
       long val = buffer.readLong();
 
@@ -82,56 +80,52 @@ public class Moneys extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends BinaryEncoder {
+  static class BinEncoder extends AutoConvertingBinaryEncoder<BigDecimal> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BigDecimal.class;
+    BinEncoder() {
+      super(8, new NumericEncodingConverter<>(BigDecimal::new, val -> val ? ONE : ZERO, val -> BigDecimal.valueOf(val.doubleValue())));
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Money;
     }
 
     @Override
-    public void encode(Type type, ByteBuf buffer, Object val, Context context) throws IOException {
+    public Class<BigDecimal> getDefaultClass() {
+      return BigDecimal.class;
+    }
 
-      if (val == null) {
+    @Override
+    protected void encodeNativeValue(Context context, Type type, BigDecimal value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-        buffer.writeInt(-1);
-      }
-      else {
+      int fracDigits = getFractionalDigits(context);
 
-        int fracDigits = getFractionalDigits(context);
+      value = value.setScale(fracDigits, HALF_UP);
 
-        BigDecimal dec = (BigDecimal) val;
-
-        dec = dec.setScale(fracDigits, HALF_UP);
-
-        buffer.writeInt(8);
-        buffer.writeLong(dec.unscaledValue().longValue());
-      }
-
+      buffer.writeLong(value.unscaledValue().longValue());
     }
 
   }
 
-  static class TxtDecoder extends TextDecoder {
+  static class TxtDecoder extends AutoConvertingTextDecoder<BigDecimal> {
+
+    TxtDecoder() {
+      super(new NumericDecodingConverter<>(BigDecimal::toPlainString));
+    }
 
     @Override
-    public PrimitiveType getInputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Money;
     }
 
     @Override
-    public Class<?> getOutputType() {
+    public Class<BigDecimal> getDefaultClass() {
       return BigDecimal.class;
     }
 
     @Override
-    public BigDecimal decode(Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Context context) throws IOException {
-
+    protected BigDecimal decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
       try {
         return (BigDecimal) context.getCurrencyFormatter().parse(buffer.toString());
       }
@@ -142,33 +136,36 @@ public class Moneys extends SimpleProcProvider {
 
   }
 
-  static class TxtEncoder extends TextEncoder {
+  static class TxtEncoder extends AutoConvertingTextEncoder<BigDecimal> {
 
-    @Override
-    public Class<?> getInputType() {
-      return BigDecimal.class;
+    protected TxtEncoder() {
+      super((StringConverter<BigDecimal>) BigDecimal::new);
     }
 
     @Override
-    public PrimitiveType getOutputPrimitiveType() {
+    public PrimitiveType getPrimitiveType() {
       return Money;
     }
 
     @Override
-    public void encode(Type type, StringBuilder buffer, Object val, Context context) throws IOException {
+    public Class<BigDecimal> getDefaultClass() {
+      return BigDecimal.class;
+    }
 
-      buffer.append(context.getCurrencyFormatter().format(val));
+    @Override
+    protected void encodeNativeValue(Context context, Type type, BigDecimal value, Object sourceContext, StringBuilder buffer) throws IOException {
+      buffer.append(context.getCurrencyFormatter().format(value));
     }
 
   }
 
-  static int getFractionalDigits(Context context) {
+  private static int getFractionalDigits(Context context) {
 
     Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
     if (val == null)
       return 2;
 
-    return (Integer)val;
+    return (Integer) val;
   }
 
 }
