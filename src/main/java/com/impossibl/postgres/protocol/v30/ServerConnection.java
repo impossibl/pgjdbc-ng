@@ -5,21 +5,21 @@ import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
-import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.protocol.FieldFormats.REQUEST_ALL_TEXT;
 import static com.impossibl.postgres.system.Settings.ALLOCATOR;
 import static com.impossibl.postgres.system.Settings.ALLOCATOR_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
 import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
+import java.io.OutputStreamWriter;
 import java.net.SocketAddress;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,32 +40,21 @@ import io.netty.util.AttributeKey;
 
 class ServerConnection implements com.impossibl.postgres.protocol.ServerConnection, RequestExecutor {
 
-  static final AttributeKey<ServerConnection.State> STATE_KEY = AttributeKey.valueOf("state");
+  static final AttributeKey<ServerConnection> STATE_KEY = AttributeKey.valueOf("state");
 
-  static class State {
-
-    boolean traceRequestProcessing = false;
-    WeakReference<Context> context;
-    TransactionStatus transactionStatus = TransactionStatus.Idle;
-    ConcurrentLinkedDeque<ProtocolHandler> protocolHandlers = new ConcurrentLinkedDeque<>();
-    ProtocolHandler.Notification notificationHandler;
-
-    State(Context context, ProtocolHandler.Notification notificationHandler) {
-      this.context = new WeakReference<>(context);
-      this.notificationHandler = notificationHandler;
-    }
-
-  }
-
+  private BasicContext owner;
   private Channel channel;
-  private State state;
+  private TransactionStatus transactionStatus;
+  private ProtocolHandler.Notification notificationHandler;
   private AtomicBoolean connected;
   private ServerConnectionShared.Ref sharedRef;
 
 
   ServerConnection(BasicContext owner, Channel channel, ServerConnectionShared.Ref sharedRef) {
+    this.owner = owner;
     this.channel = channel;
-    this.state = new State(owner, owner::reportNotification);
+    this.transactionStatus = TransactionStatus.Idle;
+    this.notificationHandler = owner::reportNotification;
     this.connected = new AtomicBoolean(true);
     this.sharedRef = sharedRef;
 
@@ -74,7 +63,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     //
 
     // Shared handler state
-    channel.attr(STATE_KEY).set(state);
+    channel.attr(STATE_KEY).set(this);
 
     // Set allocator
     boolean usePooledAllocator = parseBoolean(owner.getSetting(ALLOCATOR, ALLOCATOR_DEFAULT));
@@ -91,6 +80,12 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
         channel.config().setOption(ChannelOption.SO_SNDBUF, owner.getSetting(SEND_BUFFER_SIZE, int.class));
     }
 
+    if (parseBoolean(owner.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT))) {
+      MessageDispatchHandler dispatchHandler =
+          (MessageDispatchHandler) channel.pipeline().context(MessageDispatchHandler.class).handler();
+      dispatchHandler.setTraceWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+    }
+
   }
 
   private EventLoop eventLoop() {
@@ -101,6 +96,10 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     return channel.pipeline();
   }
 
+  ProtocolHandler.Notification getNotificationHandler() {
+    return notificationHandler;
+  }
+
   @Override
   public Future<Void> shutdown() {
 
@@ -108,8 +107,6 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     if (!connected.getAndSet(false)) {
       return eventLoop().newSucceededFuture(null);
     }
-
-    sharedRef.release();
 
     // Stop reading while we are shutting down...
     channel.config().setOption(ChannelOption.AUTO_READ, false);
@@ -123,6 +120,9 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
       //Close anyway...
 
       return channel.close();
+    }
+    finally {
+      sharedRef.release();
     }
   }
 
@@ -153,7 +153,11 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   @Override
   public TransactionStatus getTransactionStatus() {
-    return state.transactionStatus;
+    return transactionStatus;
+  }
+
+  void setTransactionStatus(TransactionStatus transactionStatus) {
+    this.transactionStatus = transactionStatus;
   }
 
   @Override
@@ -161,8 +165,8 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     return connected.get();
   }
 
-  public Context getOwner() {
-    return state.context.get();
+  public BasicContext getOwner() {
+    return owner;
   }
 
   @Override
@@ -176,8 +180,8 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.QueryHandler handler) throws IOException {
-    submit(new ExecuteQueryRequest(sql, portalName, parameterFormats, parameterBuffers, REQUEST_ALL_TEXT, handler));
+  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, RequestExecutor.QueryHandler handler) throws IOException {
+    submit(new ExecuteQueryRequest(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler));
   }
 
   @Override
@@ -186,7 +190,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs, Integer maxRows, ExecuteHandler handler) throws IOException {
+  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs, int maxRows, ExecuteHandler handler) throws IOException {
     submit(new ExecuteStatementRequest(statementName, portalName, parameterFormats, parameterBuffers, resultFieldFormatRefs, maxRows, handler));
   }
 
@@ -212,10 +216,8 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   synchronized void submit(ServerRequest request) throws IOException {
 
-    Context context = state.context.get();
-    if (context == null) {
-      // Not sure how we're still alive...
-      return;
+    if (!connected.get()) {
+      throw new IOException("Connection closed");
     }
 
     // Add handler to queue (if request produces one)
@@ -223,13 +225,13 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     ProtocolHandler requestProtocolHandler = request.createHandler();
     if (requestProtocolHandler != null) {
 
-      state.protocolHandlers.offer(requestProtocolHandler);
+      channel.write(requestProtocolHandler, channel.voidPromise());
 
     }
 
     // Execute the request
 
-    request.execute(new ProtocolChannel(channel, context.getCharset()));
+    request.execute(new ProtocolChannel(channel, owner.getCharset()));
   }
 
 }

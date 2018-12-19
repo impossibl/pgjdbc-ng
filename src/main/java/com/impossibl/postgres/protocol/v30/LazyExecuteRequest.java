@@ -31,6 +31,11 @@ public class LazyExecuteRequest implements ServerRequest {
   class Handler implements BindComplete, CommandComplete, CommandError, ReportNotice {
 
     @Override
+    public String toString() {
+      return "Lazy Execute Statement";
+    }
+
+    @Override
     public Action bindComplete() {
       return Action.Resume;
     }

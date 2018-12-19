@@ -32,8 +32,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.Runtime.getRuntime;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -101,7 +99,6 @@ public class ServerConnectionShared {
 
   private void init() {
 
-    int workerCount = getRuntime().availableProcessors();
     NioEventLoopGroup group = new NioEventLoopGroup(2, new NamedThreadFactory("PG-JDBC EventLoop"));
 
     bootstrap = new Bootstrap()
@@ -112,7 +109,7 @@ public class ServerConnectionShared {
           protected void initChannel(SocketChannel ch) {
             ch.pipeline().addLast(
                 new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 1, 4, -4, 0),
-                new IncomingMessageHandler()
+                new MessageDispatchHandler()
             );
           }
         })

@@ -45,6 +45,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import static java.lang.Integer.max;
 import static java.util.Arrays.asList;
 
 
@@ -92,10 +93,10 @@ class PGSimpleStatement extends PGStatement {
 
     setup(sqlText);
 
-    boolean result = executeDirect(sqlText.toString(), null, null);
+    boolean result = executeDirect(sqlText.toString());
 
     if (cursorName != null) {
-      result = executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null);
+      result = executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName);
     }
 
     return result;
@@ -172,7 +173,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -182,7 +183,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -192,7 +193,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -202,7 +203,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -240,6 +241,7 @@ class PGSimpleStatement extends PGStatement {
       }
 
       execute(batchCommands);
+
       counts = new int[resultBatches.size()];
 
       for (c = 0; c < resultBatches.size(); ++c) {
@@ -249,8 +251,7 @@ class PGSimpleStatement extends PGStatement {
         if (resultBatch.getCommand().equals("SELECT")) {
           throw new BatchUpdateException("SELECT in executeBatch", Arrays.copyOf(counts, c));
         }
-
-        if (resultBatch.getRowsAffected() != null) {
+        else if (resultBatch.getRowsAffected() != null) {
           counts[c] = (int)(long)resultBatches.get(c).getRowsAffected();
         }
         else {

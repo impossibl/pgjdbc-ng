@@ -120,9 +120,9 @@ public class ErrorUtils {
    */
   public static SQLWarning makeSQLWarning(Notice notice) {
 
-    if (!notice.isWarning()) {
-      throw new IllegalArgumentException("Notice not warning: " + notice.getCode() + ": " + notice.getMessage());
-    }
+//    if (!notice.isWarning()) {
+//      throw new IllegalArgumentException("Notice not warning: " + notice.getCode() + ": " + notice.getMessage());
+//    }
 
     return new SQLWarning(notice.getMessage(), notice.getCode());
   }

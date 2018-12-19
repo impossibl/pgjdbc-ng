@@ -31,13 +31,14 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.QueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.EmptyQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
-import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
 
@@ -49,25 +50,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
+
+import static io.netty.util.ReferenceCountUtil.release;
 
 public class QueryRequest implements ServerRequest {
 
   private String query;
   private QueryHandler handler;
   private ResultField[] resultFields;
-  private List<RowData> rows;
+  private RowDataSet rows;
   private List<Notice> notices;
 
   QueryRequest(String query, QueryHandler handler) {
     this.query = query;
     this.handler = handler;
     this.resultFields = EMPTY_FIELDS;
-    this.rows = new ArrayList<>();
+    this.rows = new RowDataSet();
     this.notices = new ArrayList<>();
   }
 
-  private class Handler implements RowDescription, DataRow, EmptyQuery, CommandComplete, CommandError, ReadyForQuery {
+  private class Handler implements RowDescription, DataRow, EmptyQuery, CommandComplete, CommandError, ReportNotice, ReadyForQuery {
+
+    @Override
+    public String toString() {
+      return "Query";
+    }
+
+    @Override
+    public Action notice(Notice notice) {
+      notices.add(notice);
+      return Action.Resume;
+    }
 
     @Override
     public Action rowDescription(ResultField[] fields) {
@@ -83,7 +96,7 @@ public class QueryRequest implements ServerRequest {
 
     @Override
     public Action emptyQuery() throws IOException {
-      return commandComplete(null, null, null);
+      return commandComplete("", null, null);
     }
 
     @Override
@@ -93,7 +106,9 @@ public class QueryRequest implements ServerRequest {
         handler.handleComplete(command, rowsAffected, insertedOid, EMPTY_TYPES, resultFields, rows, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
+        rows = new RowDataSet();
+        resultFields = EMPTY_FIELDS;
       }
 
       return Action.Resume;
@@ -106,7 +121,9 @@ public class QueryRequest implements ServerRequest {
         handler.handleError(new NoticeException(error), notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
+        rows = new RowDataSet();
+        resultFields = EMPTY_FIELDS;
       }
 
       return Action.Resume;
@@ -119,13 +136,15 @@ public class QueryRequest implements ServerRequest {
         handler.handleError(cause, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
+        rows = new RowDataSet();
       }
 
     }
 
     @Override
-    public Action readyForQuery(TransactionStatus txnStatus) {
+    public Action readyForQuery(TransactionStatus txnStatus) throws IOException {
+      handler.handleReady();
       return Action.Complete;
     }
 

@@ -46,6 +46,11 @@ public class Settings {
 
   public static final String PREPARED_STATEMENT_CACHE_SIZE = "preparedStatementCacheSize";
   public static final int PREPARED_STATEMENT_CACHE_SIZE_DEFAULT = 50;
+  public static final String PREPARED_STATEMENT_CACHE_THRESHOLD = "preparedStatementCacheThreshold";
+  public static final int PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT = 0;
+
+  public static final String DESCRIPTION_CACHE_SIZE = "descriptionCacheSize";
+  public static final int DESCRIPTION_CACHE_SIZE_DEFAULT = 200;
 
   public static final String CLIENT_ENCODING = "client_encoding";
   public static final String CLIENT_ENCODING_DEFAULT = "UTF8";
@@ -107,5 +112,8 @@ public class Settings {
 
   public static final String ALLOCATOR = "allocator.pooled";
   public static final String ALLOCATOR_DEFAULT = "true";
+
+  public static final String PROTOCOL_TRACE = "protocol.trace";
+  public static final String PROTOCOL_TRACE_DEFAULT = "false";
 
 }

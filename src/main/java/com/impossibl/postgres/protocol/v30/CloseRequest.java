@@ -46,7 +46,12 @@ public class CloseRequest implements ServerRequest {
     this.objectName = objectName;
   }
 
-  class Handler implements CloseComplete, CommandError {
+  class CloseStatementHandler implements CloseComplete, CommandError {
+
+    @Override
+    public String toString() {
+      return "Close Statement";
+    }
 
     @Override
     public Action closeComplete() {
@@ -64,9 +69,32 @@ public class CloseRequest implements ServerRequest {
 
   }
 
+  class ClosePortalHandler implements CloseComplete, CommandError {
+
+    @Override
+    public String toString() {
+      return "Close Portal";
+    }
+
+    @Override
+    public Action closeComplete() {
+      return Action.Sync;
+    }
+
+    @Override
+    public Action error(Notice notice) {
+      return Action.Sync;
+    }
+
+    @Override
+    public void exception(Throwable cause) {
+    }
+
+  }
+
   @Override
-  public Handler createHandler() {
-    return new Handler();
+  public ProtocolHandler createHandler() {
+    return objectType == ServerObjectType.Portal ? new ClosePortalHandler() : new CloseStatementHandler();
   }
 
   @Override
@@ -74,6 +102,12 @@ public class CloseRequest implements ServerRequest {
 
     channel
         .writeClose(objectType, objectName);
+
+    if (objectType == ServerObjectType.Portal) {
+      channel
+          .writeSync()
+          .flush();
+    }
 
   }
 

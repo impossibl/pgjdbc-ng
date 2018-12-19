@@ -31,7 +31,7 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.protocol.FieldBuffersRowData;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.NestedArrayType;
@@ -263,7 +263,7 @@ public class PGBuffersArray extends PGArray {
         new ResultField("VALUE", 0, (short) 0, elementType, (short) 0, 0, elementFormat)
     };
 
-    List<RowData> results = new ArrayList<>(count);
+    RowDataSet results = new RowDataSet(count);
     for (int c = 0; c < count; ++c) {
 
       ByteBuf indexBuffer = byteBufAllocator.buffer(4).writeInt(offset + c + 1);

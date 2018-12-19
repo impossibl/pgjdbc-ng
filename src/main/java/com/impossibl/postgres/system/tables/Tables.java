@@ -71,7 +71,7 @@ public class Tables {
   }
 
   public static <R extends Table.Row, T extends Table<R>> List<R> convertRows(Context context, T table, ResultBatch results) throws IOException {
-    List<R> rows = new ArrayList<>(results.getResults().size());
+    List<R> rows = new ArrayList<>(results.borrowRows().size());
     for (ResultBatch.Row row : results) {
       rows.add(table.createRow(context, row));
     }

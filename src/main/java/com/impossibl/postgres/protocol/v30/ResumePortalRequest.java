@@ -2,12 +2,11 @@ package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.ExecuteHandler;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.EmptyQuery;
-import com.impossibl.postgres.protocol.v30.ProtocolHandler.NoData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
 import com.impossibl.postgres.system.NoticeException;
 
@@ -16,7 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
+
+import static io.netty.util.ReferenceCountUtil.release;
 
 
 public class ResumePortalRequest implements ServerRequest {
@@ -24,27 +24,27 @@ public class ResumePortalRequest implements ServerRequest {
   private String portalName;
   private int maxRows;
   private ExecuteHandler handler;
-  private List<RowData> rows;
+  private RowDataSet rows;
   private List<Notice> notices;
 
   ResumePortalRequest(String portalName, int maxRows, ExecuteHandler handler) {
     this.portalName = portalName;
     this.maxRows = maxRows;
     this.handler = handler;
-    this.rows = new ArrayList<>();
+    this.rows = new RowDataSet();
     this.notices = new ArrayList<>();
   }
 
-  private class Handler implements NoData, DataRow, EmptyQuery, PortalSuspended, CommandComplete, CommandError {
+  private class Handler implements DataRow, EmptyQuery, PortalSuspended, CommandComplete, CommandError {
+
+    @Override
+    public String toString() {
+      return "Resume Portal";
+    }
 
     @Override
     public Action rowData(ByteBuf data) {
       rows.add(new BufferRowData(data.retain()));
-      return Action.Resume;
-    }
-
-    @Override
-    public Action noData() {
       return Action.Resume;
     }
 
@@ -55,10 +55,10 @@ public class ResumePortalRequest implements ServerRequest {
         handler.handleSuspend(rows, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
-      return Action.Sync;
+      return Action.Complete;
     }
 
     @Override
@@ -73,10 +73,10 @@ public class ResumePortalRequest implements ServerRequest {
         handler.handleComplete(command, rowsAffected, insertedOid, rows, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
-      return Action.Sync;
+      return Action.Complete;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class ResumePortalRequest implements ServerRequest {
         handler.handleError(new NoticeException(error), notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
       return Action.Sync;
@@ -99,7 +99,7 @@ public class ResumePortalRequest implements ServerRequest {
         handler.handleError(cause, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
     }

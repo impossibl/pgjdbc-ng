@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import io.netty.util.ReferenceCountUtil;
+import static io.netty.util.ReferenceCountUtil.retain;
 
 public class RequestExecutorHandlers {
 
@@ -111,71 +111,122 @@ public class RequestExecutorHandlers {
 
   }
 
-  public static abstract class AnyQueryResults extends Result {
+  public static abstract class AnyQueryResult extends Result {
 
-    public abstract ResultBatch getResultBatch();
+    public abstract boolean isSuspended();
+    public abstract ResultBatch getBatch();
 
   }
 
-  public static class QueryResults extends AnyQueryResults implements RequestExecutor.QueryHandler {
+  public static class QueryResult extends AnyQueryResult implements RequestExecutor.QueryHandler {
 
+    private boolean suspended;
     private ResultBatch resultBatch;
 
     @Override
-    public ResultBatch getResultBatch() {
+    public boolean isSuspended() {
+      return suspended;
+    }
+
+    @Override
+    public ResultBatch getBatch() {
       checkCompleted();
 
       return resultBatch;
     }
 
     @Override
-    public void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, List<RowData> rows, List<Notice> notices) {
-      this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, resultFields, rows);
+    public void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
+      this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, resultFields, retain(rows));
       this.notices = notices;
-
-      rows.forEach(ReferenceCountUtil::retain);
 
       completed.countDown();
     }
 
     @Override
-    public void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, List<RowData> rows, List<Notice> notices) {
-      this.resultBatch = new ResultBatch(null, null, null, resultFields, rows);
+    public void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
+      this.resultBatch = new ResultBatch(null, null, null, resultFields, retain(rows));
+      this.notices = notices;
+
+      suspended = true;
 
       completed.countDown();
     }
 
+    @Override
+    public void handleReady() {
+    }
+
   }
 
-  public static class ExecuteResults extends AnyQueryResults implements RequestExecutor.ExecuteHandler {
+  public static class ExecuteResult extends AnyQueryResult implements RequestExecutor.ExecuteHandler {
 
+    private boolean suspended;
     private ResultField[] describedResultFields;
     private ResultBatch resultBatch;
 
-    public ExecuteResults(ResultField[] describedResultFields) {
+    public ExecuteResult(ResultField[] describedResultFields) {
       this.describedResultFields = describedResultFields;
     }
 
-    public ResultBatch getResultBatch() {
+    @Override
+    public boolean isSuspended() {
+      return suspended;
+    }
+
+    @Override
+    public ResultBatch getBatch() {
       checkCompleted();
 
       return resultBatch;
     }
 
     @Override
-    public void handleComplete(String command, Long rowsAffected, Long insertedOid, List<RowData> rows, List<Notice> notices) {
-      this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, describedResultFields, rows);
+    public void handleComplete(String command, Long rowsAffected, Long insertedOid, RowDataSet rows, List<Notice> notices) {
+      this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, describedResultFields, retain(rows));
       this.notices = notices;
-
-      rows.forEach(ReferenceCountUtil::retain);
 
       completed.countDown();
     }
 
     @Override
-    public void handleSuspend(List<RowData> rows, List<Notice> notices) {
-      this.resultBatch = new ResultBatch(null, null, null, describedResultFields, rows);
+    public void handleSuspend(RowDataSet rows, List<Notice> notices) {
+      this.resultBatch = new ResultBatch(null, null, null, describedResultFields, retain(rows));
 
+      suspended = true;
+
+      completed.countDown();
+    }
+
+  }
+
+  public static class CompositeQueryResults extends Result implements RequestExecutor.QueryHandler {
+
+    private List<ResultBatch> resultBatches;
+
+    public CompositeQueryResults() {
+      resultBatches = new ArrayList<>();
+    }
+
+    public List<ResultBatch> getBatches() {
+      return resultBatches;
+    }
+
+    @Override
+    public void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
+      resultBatches.add(new ResultBatch(command, rowsAffected, insertedOid, resultFields, retain(rows)));
+
+      this.notices.addAll(notices);
+    }
+
+    @Override
+    public void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
+      completed.countDown();
+      throw new IllegalStateException("Should not be able to suspend during composite query");
+    }
+
+    @Override
+    public void handleReady() {
       completed.countDown();
     }
 

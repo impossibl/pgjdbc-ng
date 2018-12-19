@@ -74,6 +74,11 @@ public class StartupRequest implements ServerRequest {
   private class Handler implements Authentication, BackendKeyData, ParameterStatus, ReadyForQuery, CommandError {
 
     @Override
+    public String toString() {
+      return "Startup";
+    }
+
+    @Override
     public Action backendKeyData(int processId, int secretKey) {
       backendProcessId = processId;
       backendSecretKey = secretKey;

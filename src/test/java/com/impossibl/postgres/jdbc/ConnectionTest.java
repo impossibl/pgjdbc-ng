@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.ServerConnection;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -368,14 +370,10 @@ public class ConnectionTest {
   @Test
   public void testKillConnection() throws Exception {
 
+    int networkTimeout = 60000;
     Connection con = TestUtil.openDB();
-    con.setNetworkTimeout(null, 1000);
+    con.setNetworkTimeout(null, networkTimeout + 20);
     con.setAutoCommit(false);
-
-    // TODO fixme when running in CI
-    if (con.getMetaData().getDatabaseMajorVersion() == 9 && con.getMetaData().getDatabaseMinorVersion() == 1) {
-      return;
-    }
 
     long pid = -1;
     try (PreparedStatement ps = con.prepareStatement("SELECT pg_backend_pid()")) {
@@ -397,6 +395,8 @@ public class ConnectionTest {
 
     Thread.sleep(200);
 
+    long start = System.currentTimeMillis();
+
     try {
       stmt.execute("SELECT 1");
       fail("Expected SQLException");
@@ -414,6 +414,7 @@ public class ConnectionTest {
     }
     assertFalse(con.isValid(5));
     assertTrue(con.isClosed());
+    assertTrue("Connection was probably closed by network timeout", (System.currentTimeMillis() - start) < networkTimeout);
   }
 
   /**

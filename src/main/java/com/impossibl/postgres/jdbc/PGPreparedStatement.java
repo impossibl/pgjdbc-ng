@@ -30,11 +30,11 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.PrepareResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.Type;
@@ -46,11 +46,14 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
+import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
+import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
+import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.utils.ByteBufs.releaseAll;
 import static com.impossibl.postgres.utils.ByteBufs.retainedDuplicateAll;
 
@@ -135,11 +138,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   void set(int parameterIdx, Object source, Object sourceContext, int targetSQLType) throws SQLException {
     checkClosed();
 
-    //parseIfNeeded();
-    if (parameterTypesParsed == null || parameterTypesParsed.length == 0) {
-      parameterTypesParsed = parameterTypes.clone();
-      fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
-    }
+    describeIfNeeded();
 
     if (parameterIdx < 1 || parameterIdx > parameterTypes.length) {
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
@@ -224,10 +223,34 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     }
   }
 
+  void describeIfNeeded() throws SQLException {
+
+    if (parameterTypesParsed != null) {
+      return;
+    }
+
+    // First, check statement cache
+    final CachedStatementKey key = new CachedStatementKey(sqlText, EMPTY_TYPES);
+    CachedStatement cachedStatement = connection.getCachedStatement(key);
+    if (cachedStatement != null) {
+      parameterTypesParsed = cachedStatement.parameterTypes;
+    }
+
+    // Else, have server describe it
+    PrepareResult result = connection.execute(timeout -> {
+      PrepareResult handler = new PrepareResult();
+      connection.getRequestExecutor().prepare(null, sqlText, EMPTY_TYPES, handler);
+      handler.await(timeout, MILLISECONDS);
+      return handler;
+    });
+
+    parameterTypesParsed = result.getDescribedParameterTypes();
+  }
+
   void parseIfNeeded() throws SQLException {
 
     if (cursorName != null && query != null) {
-      super.executeDirect("CLOSE " + cursorName, null, null);
+      super.executeDirect("CLOSE " + cursorName);
     }
 
     if (!parsed) {
@@ -299,18 +322,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     boolean res;
 
     if (name == null) {
-      res = super.executeDirect(sqlText, parameterFormats, parameterBuffers);
+      res = super.executeDirect(sqlText, parameterFormats, parameterBuffers, resultFields);
     }
     else {
       res = super.executeStatement(name, parameterFormats, parameterBuffers);
     }
 
     if (cursorName != null) {
-      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null);
+      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null, resultFields);
     }
 
     if (wantsGeneratedKeys) {
       generatedKeysResultSet = getResultSet();
+      res = false;
     }
 
     return res;
@@ -319,7 +343,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public PGResultSet executeQuery() throws SQLException {
 
-    execute();
+    if (!execute()) {
+      throw NO_RESULT_SET_AVAILABLE;
+    }
 
     return getResultSet();
   }
@@ -327,7 +353,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public int executeUpdate() throws SQLException {
 
-    execute();
+    if (execute()) {
+      throw NO_RESULT_COUNT_AVAILABLE;
+    }
 
     return getUpdateCount();
   }
@@ -380,7 +408,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       int[] counts = new int[batchParameterBuffers.size()];
       fill(counts, SUCCESS_NO_INFO);
 
-      List<RowData> generatedKeys = new ArrayList<>();
+      RowDataSet generatedKeys = new RowDataSet();
 
       if (!connection.autoCommit && connection.getServerConnection().getTransactionStatus() == TransactionStatus.Idle) {
         connection.execute((long timeout) -> connection.getRequestExecutor().lazyExecute("TC"));
@@ -419,16 +447,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           ByteBuf[] parameterBuffers = batchParameterBuffers.get(batchIdx);
           ResultField[] resultFields = lastResultFields;
 
-          ExecuteResults exec = connection.execute((timeout) -> {
-            ExecuteResults handler = new ExecuteResults(resultFields);
-            requestExecutor.execute(null, null, parameterFormats, parameterBuffers, resultFields, null, handler);
+          ExecuteResult exec = connection.execute((timeout) -> {
+            ExecuteResult handler = new ExecuteResult(resultFields);
+            requestExecutor.execute(null, null, parameterFormats, parameterBuffers, resultFields, 0, handler);
             handler.await(timeout, MILLISECONDS);
             return handler;
           });
 
           warningChain = chainWarnings(warningChain, exec);
 
-          try (ResultBatch resultBatch = exec.getResultBatch()) {
+          try (ResultBatch resultBatch = exec.getBatch()) {
 
             if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
               throw new SQLException("SELECT in executeBatch");
@@ -442,7 +470,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
             }
 
             if (wantsGeneratedKeys) {
-              generatedKeys.add(resultBatch.getResults().remove(0));
+              generatedKeys.add(resultBatch.borrowRows().take(0));
             }
           }
 

@@ -33,7 +33,7 @@ import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.QueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BindComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -43,6 +43,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.NoData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterDescriptions;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParseComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.TypeRef;
@@ -59,7 +60,8 @@ import java.util.List;
 import static java.lang.Integer.min;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
+
+import static io.netty.util.ReferenceCountUtil.release;
 
 
 class ExecuteQueryRequest implements ServerRequest {
@@ -73,28 +75,44 @@ class ExecuteQueryRequest implements ServerRequest {
   private QueryHandler handler;
   private TypeRef[] describedParameterTypes;
   private ResultField[] describedResultFields;
-  private List<RowData> rows;
+  private RowDataSet rows;
   private List<Notice> notices;
 
   ExecuteQueryRequest(String sql, String portalName,
                       FieldFormatRef[] parameterFormatRefs,
                       ByteBuf[] parameterBuffers,
                       FieldFormatRef[] resultFieldFormatRefs,
+                      int maxRows,
                       QueryHandler handler) {
     this.sql = sql;
     this.portalName = portalName;
     this.parameterFormatRefs = parameterFormatRefs;
     this.parameterBuffers = parameterBuffers;
     this.resultFieldFormatRefs = resultFieldFormatRefs;
-    this.maxRows = 0;
+    this.maxRows = maxRows;
     this.handler = handler;
     this.describedParameterTypes = EMPTY_TYPES;
     this.describedResultFields = EMPTY_FIELDS;
-    this.rows = new ArrayList<>();
+    this.rows = new RowDataSet();
     this.notices = new ArrayList<>();
   }
 
-  private class Handler implements ParameterDescriptions, RowDescription, ParseComplete, BindComplete, NoData, DataRow, EmptyQuery, PortalSuspended, CommandComplete, CommandError {
+  private boolean sentSync() {
+    return maxRows == 0;
+  }
+
+  private class Handler implements ParameterDescriptions, RowDescription, ParseComplete, BindComplete, NoData, DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReportNotice, CommandError {
+
+    @Override
+    public String toString() {
+      return "Execute Query";
+    }
+
+    @Override
+    public Action notice(Notice notice) {
+      notices.add(notice);
+      return Action.Resume;
+    }
 
     @Override
     public Action bindComplete() {
@@ -148,10 +166,10 @@ class ExecuteQueryRequest implements ServerRequest {
         handler.handleSuspend(describedParameterTypes, describedResultFields, rows, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
-      return Action.Sync;
+      return Action.Complete;
     }
 
     @Override
@@ -166,10 +184,10 @@ class ExecuteQueryRequest implements ServerRequest {
         handler.handleComplete(command, rowsAffected, insertedOid, describedParameterTypes, describedResultFields, rows, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
-      return Action.Sync;
+      return sentSync() ? Action.Sync : Action.Complete;
     }
 
     @Override
@@ -179,10 +197,10 @@ class ExecuteQueryRequest implements ServerRequest {
         handler.handleError(new NoticeException(error), notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
 
-      return Action.Sync;
+      return sentSync() ? Action.Sync : Action.Complete;
     }
 
     @Override
@@ -192,9 +210,10 @@ class ExecuteQueryRequest implements ServerRequest {
         handler.handleError(cause, notices);
       }
       finally {
-        rows.forEach(ReferenceCountUtil::release);
+        release(rows);
       }
     }
+
   }
 
   @Override
@@ -211,7 +230,7 @@ class ExecuteQueryRequest implements ServerRequest {
         .writeBind(portalName, null, parameterFormatRefs, parameterBuffers, resultFieldFormatRefs)
         .writeExecute(portalName, maxRows);
 
-    if (maxRows > 0) {
+    if (!sentSync()) {
       channel.writeFlush();
     }
     else {

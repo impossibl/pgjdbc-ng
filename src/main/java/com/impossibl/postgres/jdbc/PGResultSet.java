@@ -30,10 +30,11 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.FieldBuffersRowData;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.UpdatableRowData;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Settings;
@@ -95,7 +96,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
+
+import static io.netty.util.ReferenceCountUtil.release;
 
 
 class PGResultSet implements ResultSet {
@@ -163,9 +165,9 @@ class PGResultSet implements ResultSet {
 
   private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
 
-  PGResultSet(PGStatement statement, Query query, ResultField[] resultFields, List<RowData> results) throws SQLException {
+  PGResultSet(PGStatement statement, Query query, ResultField[] resultFields, RowDataSet results) throws SQLException {
     this(statement, query, null);
-    this.scroller = new CommandScroller(this, query, resultFields, results);
+    this.scroller = new QueryScroller(this, query, resultFields, results);
 
     if (statement.fetchDirection != ResultSet.FETCH_FORWARD) {
       if (scroller.getType() == ResultSet.TYPE_FORWARD_ONLY)
@@ -173,7 +175,7 @@ class PGResultSet implements ResultSet {
     }
   }
 
-  PGResultSet(PGStatement statement, ResultField[] resultFields, List<RowData> results, boolean releaseResults, Map<String, Class<?>> typeMap) throws SQLException {
+  PGResultSet(PGStatement statement, ResultField[] resultFields, RowDataSet results, boolean releaseResults, Map<String, Class<?>> typeMap) throws SQLException {
     this(statement, null, typeMap);
     this.scroller = new ListScroller(resultFields, results, releaseResults);
 
@@ -1794,21 +1796,19 @@ abstract class Scroller {
 class ListScroller extends Scroller {
 
   int currentRowIndex = -1;
-  List<RowData> results;
+  RowDataSet results;
   ResultField[] resultFields;
   private boolean releaseResults;
 
-  ListScroller(ResultField[] resultFields, List<RowData> results, boolean releaseResults) {
+  ListScroller(ResultField[] resultFields, RowDataSet results, boolean releaseResults) {
     this.resultFields = resultFields;
     this.results = results;
     this.releaseResults = releaseResults;
   }
 
-  void setResults(List<RowData> results) {
-    if (this.results != null) {
-      for (RowData row : this.results) {
-        ReferenceCountUtil.release(row);
-      }
+  void setResults(RowDataSet results) {
+    if (this.results != null && releaseResults) {
+      release(this.results);
     }
     this.results = results;
   }
@@ -1866,7 +1866,7 @@ class ListScroller extends Scroller {
 
   @Override
   RowData getRowData() {
-    return results.get(currentRowIndex);
+    return results.borrow(currentRowIndex);
   }
 
   @Override
@@ -1977,15 +1977,15 @@ class ListScroller extends Scroller {
 /**
  * Forward-only scroller that operates on finite batches from the server.
  *
- * Implemented using PostgreSQL portals; specifically the "PortalSuspended" funcitonality.
+ * Implemented using PostgreSQL portals; specifically the "PortalSuspended" functionality.
  */
-class CommandScroller extends ListScroller {
+class QueryScroller extends ListScroller {
 
   private PGResultSet resultSet;
   private int resultsIndexOffset;
   private Query query;
 
-  CommandScroller(PGResultSet resultSet, Query query, ResultField[] resultFields, List<RowData> results) {
+  QueryScroller(PGResultSet resultSet, Query query, ResultField[] resultFields, RowDataSet results) {
     super(resultFields, results, true);
     this.resultSet = resultSet;
     this.query = query;
@@ -2080,15 +2080,16 @@ class CommandScroller extends ListScroller {
           throw new SQLException("Invalid result data");
         }
 
-        ResultBatch resultBatch = resultBatches.get(0);
+        try (ResultBatch resultBatch = resultBatches.remove(0)) {
 
-        resultFields = resultBatch.getFields();
-        setResults(resultBatch.getResults());
+          resultFields = resultBatch.getFields();
+          setResults(resultBatch.takeRows());
 
-        resultsIndexOffset += currentRowIndex;
-        currentRowIndex = -1;
+          resultsIndexOffset += currentRowIndex;
+          currentRowIndex = -1;
 
-        return next();
+          return next();
+        }
       }
 
     }
@@ -2135,7 +2136,7 @@ class CursorScroller extends Scroller {
   }
 
   void setResult(RowData result) {
-    ReferenceCountUtil.release(this.result);
+    release(this.result);
     this.result = result;
   }
 
@@ -2173,10 +2174,10 @@ class CursorScroller extends Scroller {
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
 
       connection.execute((timeout) -> {
-        QueryResults handler = new QueryResults();
+        QueryResult handler = new QueryResult();
         connection.getRequestExecutor().query("CLOSE " + cursorName, handler);
         handler.await(timeout, MILLISECONDS);
-        handler.getResultBatch().close();
+        handler.getBatch().close();
       });
     }
 
@@ -2228,7 +2229,7 @@ class CursorScroller extends Scroller {
     }
 
     UpdatableRowData updatableResult = result.duplicateForUpdate();
-    ReferenceCountUtil.release(result);
+    release(result);
     result = updatableResult;
 
     return updatableResult;

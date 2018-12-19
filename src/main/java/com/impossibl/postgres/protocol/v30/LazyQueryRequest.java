@@ -17,7 +17,18 @@ import java.io.IOException;
  */
 public class LazyQueryRequest implements ServerRequest {
 
+  private String query;
+
+  public LazyQueryRequest(String query) {
+    this.query = query;
+  }
+
   class Handler implements CommandComplete, CommandError, ReportNotice {
+
+    @Override
+    public String toString() {
+      return "Lazy Execute Query";
+    }
 
     @Override
     public Action commandComplete(String command, Long rowsAffected, Long insertedOid) {
@@ -40,12 +51,6 @@ public class LazyQueryRequest implements ServerRequest {
     public void exception(Throwable cause) {
     }
 
-  }
-
-  private String query;
-
-  public LazyQueryRequest(String query) {
-    this.query = query;
   }
 
   @Override

@@ -36,14 +36,14 @@ public interface Query {
   void dispose(PGDirectConnection connection) throws SQLException;
 
   static Query create(String sqlText) {
-    return new DirectQuery(sqlText, EMPTY_FORMATS, EMPTY_BUFFERS);
+    return new DirectQuery(sqlText, EMPTY_FORMATS, EMPTY_BUFFERS, EMPTY_FORMATS);
   }
 
   static Query create(String sqlText, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers) {
     if (parameterFormats == null && parameterBuffers == null) {
       return create(sqlText);
     }
-    return new DirectQuery(sqlText, parameterFormats, parameterBuffers);
+    return new DirectQuery(sqlText, parameterFormats, parameterBuffers, EMPTY_FORMATS);
   }
 
   static Query create(String statement, ResultField[] resultFields) {

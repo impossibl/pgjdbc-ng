@@ -1,12 +1,13 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.FieldFormatRef;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerObjectType;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -56,7 +57,7 @@ public class PreparedQuery implements Query {
 
   @Override
   public void setMaxRows(Integer maxRows) {
-    this.maxRows = maxRows;
+    this.maxRows = maxRows != null && maxRows > 0 ? maxRows : null;
   }
 
   @Override
@@ -64,45 +65,76 @@ public class PreparedQuery implements Query {
     return new ArrayList<>(singletonList(resultBatch));
   }
 
+  private boolean requiresPortal() {
+    return maxRows != null;
+  }
+
+  private SQLWarning executeStatement(PGDirectConnection connection) throws SQLException {
+
+    if (requiresPortal()) {
+      portalName = connection.getNextPortalName();
+    }
+    else {
+      portalName = null;
+    }
+
+    ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
+      ExecuteResult handler = new ExecuteResult(resultFields);
+      connection.getRequestExecutor().execute(portalName, statementName, parameterFormatRefs, parameterBuffers, resultFields, firstNonNull(maxRows, 0), handler);
+      handler.await(timeout, MILLISECONDS);
+      return handler;
+    });
+
+    resultBatch = result.getBatch();
+    if (result.isSuspended()) {
+      status = Status.Suspended;
+    }
+    else if (portalName != null) {
+      connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
+      portalName = null;
+    }
+
+    return chainWarnings(null, result);
+  }
+
+  private SQLWarning resumeStatement(PGDirectConnection connection) throws SQLException {
+
+    ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
+      ExecuteResult handler = new ExecuteResult(resultFields);
+      connection.getRequestExecutor().resume(portalName, firstNonNull(maxRows, 0), handler);
+      handler.await(timeout, MILLISECONDS);
+      return handler;
+    });
+
+    status = result.isSuspended() ? Status.Suspended : Status.Completed;
+    resultBatch = result.getBatch();
+
+    return chainWarnings(null, result);
+  }
+
   @Override
   public SQLWarning execute(PGDirectConnection connection) throws SQLException {
 
-    if (status == Status.Suspended) {
-
-      if (portalName != null) {
-        throw new PGSQLSimpleException("Illegal query state - suspended with no portal");
-      }
-
-      ExecuteResults results = connection.executeTimed(this.timeout, (timeout) -> {
-        ExecuteResults handler = new ExecuteResults(resultFields);
-        connection.getRequestExecutor().resume(portalName, maxRows, handler);
-        handler.await(timeout, MILLISECONDS);
-        return handler;
-      });
-
-      return chainWarnings(null, results);
-    }
-
-    if (maxRows != null) {
-      portalName = connection.getNextPortalName();
-    }
+    boolean wasSuspended = status == Status.Suspended;
 
     status = Status.InProgress;
     try {
 
-      ExecuteResults results = connection.executeTimed(this.timeout, (timeout) -> {
-        ExecuteResults handler = new ExecuteResults(resultFields);
-        connection.getRequestExecutor().execute(portalName, statementName, parameterFormatRefs, parameterBuffers, resultFields, maxRows, handler);
-        handler.await(timeout, MILLISECONDS);
-        return handler;
-      });
+      if (wasSuspended) {
 
-      resultBatch = results.getResultBatch();
+        if (portalName == null) {
+          throw new PGSQLSimpleException("Illegal query state - suspended with no portal");
+        }
 
-      return chainWarnings(null, results);
+        return resumeStatement(connection);
+      }
+
+      return executeStatement(connection);
     }
     finally {
-      status = Status.Completed;
+      if (status == Status.InProgress) {
+        status = Status.Completed;
+      }
     }
 
   }
@@ -114,6 +146,15 @@ public class PreparedQuery implements Query {
       connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
     }
 
+  }
+
+  @Override
+  public String toString() {
+    return "PreparedQuery{" +
+        "statementName='" + statementName + '\'' +
+        ", portalName='" + portalName + '\'' +
+        ", status=" + status +
+        '}';
   }
 
 }

@@ -35,9 +35,9 @@ import com.impossibl.postgres.datetime.ISOTimestampFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutor;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.PrepareResult;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.ServerConnection;
@@ -492,13 +492,13 @@ public class BasicContext extends AbstractContext {
     }
     else {
 
-      QueryResults handler = new QueryResults();
+      QueryResult handler = new QueryResult();
 
       serverConnection.getRequestExecutor().query(queryTxt, handler);
 
       handler.await(timeout, MILLISECONDS);
 
-      handler.getResultBatch().close();
+      handler.getBatch().close();
     }
 
   }
@@ -525,13 +525,13 @@ public class BasicContext extends AbstractContext {
     }
     else {
 
-      QueryResults handler = new QueryResults();
+      QueryResult handler = new QueryResult();
 
       serverConnection.getRequestExecutor().query(queryTxt, handler);
 
       handler.await(timeout, MILLISECONDS);
 
-      return handler.getResultBatch();
+      return handler.getBatch();
     }
 
   }
@@ -605,14 +605,14 @@ public class BasicContext extends AbstractContext {
                                          FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
                                          ResultField[] resultFields, long timeout) throws IOException, NoticeException {
 
-    ExecuteResults handler = new ExecuteResults(resultFields);
+    ExecuteResult handler = new ExecuteResult(resultFields);
 
     serverConnection.getRequestExecutor()
-        .execute(null, statementName, paramFormats, paramBuffers, resultFields, null, handler);
+        .execute(null, statementName, paramFormats, paramBuffers, resultFields, 0, handler);
 
     handler.await(timeout, MILLISECONDS);
 
-    return handler.getResultBatch();
+    return handler.getBatch();
   }
 
   public void setKeyData(int processId, int secretKey) {

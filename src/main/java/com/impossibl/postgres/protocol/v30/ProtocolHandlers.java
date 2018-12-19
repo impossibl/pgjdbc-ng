@@ -36,6 +36,11 @@ class ProtocolHandlers {
       FunctionResult, EmptyQuery, ReportNotice, CommandError, ReadyForQuery {
 
     @Override
+    public String toString() {
+      return "SYNC";
+    }
+
+    @Override
     public Action readyForQuery(TransactionStatus txnStatus) {
       return Action.Resume;
     }

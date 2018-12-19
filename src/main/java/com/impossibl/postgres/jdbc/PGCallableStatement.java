@@ -121,6 +121,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     super.internalClose();
 
     ReferenceCountUtil.release(outParameterData);
+    outParameterData = null;
   }
 
   @Override
@@ -177,13 +178,13 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
         try (ResultBatch returnValuesBatch = resultBatches.remove(0)) {
 
-          if (returnValuesBatch.getFields().length != outParameterSQLTypes.size()) {
+          if (returnValuesBatch.getFields().length != outParameterSQLTypes.size() || returnValuesBatch.borrowRows().size() > 1) {
             throw new SQLException("incorrect number of out parameters");
           }
 
-          if (returnValuesBatch.getResults() != null && !returnValuesBatch.getResults().isEmpty()) {
+          if (!returnValuesBatch.isEmpty()) {
             outParameterFields = returnValuesBatch.getFields();
-            outParameterData = ReferenceCountUtil.retain(returnValuesBatch.getResults().get(0));
+            outParameterData = returnValuesBatch.borrowRows().take(0);
           }
 
         }
@@ -195,7 +196,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     }
 
-    return res;
+    if (!resultBatches.isEmpty()) {
+      resultBatches.get(0).clearRowsAffected();
+    }
+
+    return false;
   }
 
   @Override
@@ -203,6 +208,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     super.clearParameters();
 
     ReferenceCountUtil.release(outParameterData);
+    outParameterData = null;
   }
 
   private int mapToInParameterIndex(int parameterIdx) {
@@ -314,8 +320,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
     parameterFormats = copyOf(parameterFormats, parameterFormats.length + needed);
     parameterBuffers = copyOf(parameterBuffers, parameterBuffers.length + needed);
-
-    parsed = true;
 
     super.set(parameterIdx, source, sourceContext, targetSQLType);
 

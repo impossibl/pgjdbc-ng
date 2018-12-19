@@ -7,6 +7,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Action;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Authentication.GSSStage;
+import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.TypeRef;
@@ -18,7 +19,6 @@ import static com.impossibl.postgres.utils.ByteBufs.readCString;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.logging.Logger;
 
 import static java.util.Arrays.asList;
@@ -60,14 +60,14 @@ class BackendMessageDispatcher {
    * Message dispatching & parsing
    */
 
-  static Action backendDispatch(Context context, Channel channel, ServerConnection.State state,
+  static Action backendDispatch(BasicContext context, Channel channel, ServerConnection serverConnection,
                                 byte id, ByteBuf data,
                                 ProtocolHandler handler) throws IOException {
 
     switch (id) {
       case NOTIFICATION_MSG_ID:
-        if (state.notificationHandler != null) {
-          receiveNotification(context, data, state.notificationHandler);
+        if (serverConnection.getNotificationHandler() != null) {
+          receiveNotification(context, data, serverConnection.getNotificationHandler());
         }
         return Action.Resume;
 
@@ -88,7 +88,9 @@ class BackendMessageDispatcher {
         return receiveBackendKeyData(data, (ProtocolHandler.BackendKeyData) handler);
 
       case PARAMETER_STATUS_MSG_ID:
-        if (!(handler instanceof ProtocolHandler.BackendKeyData)) return null;
+        if (!(handler instanceof ProtocolHandler.BackendKeyData)) {
+          return receiveParameterStatus(context, data, null);
+        }
         return receiveParameterStatus(context, data, (ProtocolHandler.ParameterStatus) handler);
 
       case PARAMETER_DESC_MSG_ID:
@@ -141,7 +143,7 @@ class BackendMessageDispatcher {
 
       case READY_FOR_QUERY_MSG_ID:
         if (!(handler instanceof ProtocolHandler.ReadyForQuery)) return null;
-        return receiveReadyForQuery(state, data, (ProtocolHandler.ReadyForQuery) handler);
+        return receiveReadyForQuery(serverConnection, data, (ProtocolHandler.ReadyForQuery) handler);
 
       default:
         throw new IOException("unsupported message type: " + (id & 0xff));
@@ -248,14 +250,20 @@ class BackendMessageDispatcher {
     return handler.backendKeyData(processId, secretKey);
   }
 
-  private static Action receiveParameterStatus(Context context, ByteBuf buffer, ProtocolHandler.ParameterStatus handler) throws IOException {
+  private static Action receiveParameterStatus(BasicContext context, ByteBuf buffer, ProtocolHandler.ParameterStatus handler) throws IOException {
 
     String name = readCString(buffer, context.getCharset());
     String value = readCString(buffer, context.getCharset());
 
     LOGGER.finest("PARAMETER STATUS: " + name + " = " + value);
 
-    return handler.parameterStatus(name, value);
+    if (handler != null) {
+      return handler.parameterStatus(name, value);
+    }
+    else {
+      context.updateSystemParameter(name, value);
+      return Action.Resume;
+    }
   }
 
   private static Action receiveError(Context context, ByteBuf buffer, ProtocolHandler.CommandError handler) throws IOException {
@@ -380,132 +388,39 @@ class BackendMessageDispatcher {
 
     String commandTag = readCString(buffer, context.getCharset());
 
-    String[] parts = commandTag.split(" ");
-
-    String command = parts[0];
+    String command = null;
     Long rowsAffected = null;
-    Long oid = null;
+    Long insertedOid = null;
 
-    switch (command) {
+    try {
+      int lastSpace = commandTag.lastIndexOf(' ');
 
-      case "INSERT":
+      if (lastSpace != -1 && Character.isDigit(commandTag.charAt(lastSpace + 1))) {
+        rowsAffected = Long.valueOf(commandTag.substring(lastSpace + 1));
 
-        if (parts.length == 3) {
-
-          oid = Long.parseLong(parts[1]);
-          rowsAffected = Long.parseLong(parts[2]);
+        if (Character.isDigit(commandTag.charAt(lastSpace - 1))) {
+          int nextToLastSpace = commandTag.lastIndexOf(' ', lastSpace - 1);
+          insertedOid = Long.valueOf(commandTag.substring(nextToLastSpace + 1, lastSpace));
+          command = commandTag.substring(0, nextToLastSpace);
         }
         else {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
+          command = commandTag.substring(0, lastSpace);
         }
-
-        break;
-
-      case "SELECT":
-
-        if (parts.length == 2) {
-
-          rowsAffected = null;
-        }
-        else {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-
-        break;
-
-      case "UPDATE":
-      case "DELETE":
-      case "MOVE":
-      case "FETCH":
-
-        if (parts.length == 2) {
-          rowsAffected = Long.parseLong(parts[1]);
-        }
-        else {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-
-        break;
-
-      case "COPY":
-
-        if (parts.length != 1) {
-          if (parts.length == 2) {
-            rowsAffected = Long.parseLong(parts[1]);
-          }
-          else {
-            throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-          }
-        }
-
-        break;
-
-      case "CREATE":
-      case "DROP":
-      case "ALTER":
-      case "DECLARE":
-      case "CLOSE":
-
-        if (parts.length == 2) {
-
-          command += " " + parts[1];
-          rowsAffected = 0L;
-        }
-        else if (parts.length == 3) {
-          command += " " + parts[1] + " " + parts[2];
-          rowsAffected = 0L;
-        }
-        else if (parts.length == 4) {
-          command += " " + parts[1] + " " + parts[2] + " " + parts[3];
-          rowsAffected = 0L;
-        }
-        else {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-
-        break;
-
-      case "PREPARE":
-        if (parts.length != 2) {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-        break;
-
-      case "COMMIT":
-        if (parts.length != 1 && parts.length != 2) {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-        break;
-
-      case "ROLLBACK":
-        if (parts.length != 1 && parts.length != 2) {
-          throw new IOException("error parsing command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-        break;
-
-      case "DEALLOCATE":
-      case "TRUNCATE":
-      case "LOCK":
-      case "GRANT":
-      case "REVOKE":
-        // These are "complex" (e.g. greater than one word) but known good
-        break;
-
-      default:
-
-        if (parts.length > 1) {
-          LOGGER.warning("Ignoring unknown complex command tag: " + command + " (" + Arrays.toString(parts) + ")");
-        }
-
-        rowsAffected = 0L;
+      }
+      else {
+        command = commandTag;
+      }
+    }
+    catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+      throw new IOException("Unrecognized command tag: " + commandTag);
     }
 
     LOGGER.finest("COMPLETE: " + commandTag);
 
-    return handler.commandComplete(command, rowsAffected, oid);
+    return handler.commandComplete(command, rowsAffected, insertedOid);
   }
 
-  private static Action receiveReadyForQuery(ServerConnection.State state, ByteBuf buffer, ProtocolHandler.ReadyForQuery handler) throws IOException {
+  private static Action receiveReadyForQuery(ServerConnection serverConnection, ByteBuf buffer, ProtocolHandler.ReadyForQuery handler) throws IOException {
 
     TransactionStatus txStatus;
 
@@ -525,7 +440,7 @@ class BackendMessageDispatcher {
 
     LOGGER.finest("READY: " + txStatus);
 
-    state.transactionStatus = txStatus;
+    serverConnection.setTransactionStatus(txStatus);
 
     return handler.readyForQuery(txStatus);
   }

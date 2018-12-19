@@ -2,9 +2,14 @@ package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.Context;
 
+import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
+
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
+
+import static java.util.Collections.emptyIterator;
 
 import io.netty.util.AbstractReferenceCounted;
 import io.netty.util.ReferenceCountUtil;
@@ -59,26 +64,35 @@ public class ResultBatch extends AbstractReferenceCounted implements Iterable<Re
   private Long rowsAffected;
   private Long insertedOid;
   private ResultField[] fields;
-  private List<RowData> results;
+  private RowDataSet rows;
 
-  public ResultBatch(String command, Long rowsAffected, Long insertedOid, ResultField[] fields, List<RowData> results) {
+  public ResultBatch(String command, Long rowsAffected, Long insertedOid, ResultField[] fields, RowDataSet rows) {
     this.command = command;
     this.rowsAffected = rowsAffected;
     this.insertedOid = insertedOid;
-    this.fields = fields;
-    this.results = results;
+    this.fields = firstNonNull(fields, EMPTY_FIELDS);
+    this.rows = rows;
+  }
+
+  public boolean hasRows() {
+    return fields.length != 0;
   }
 
   public boolean isEmpty() {
-    return results.isEmpty();
+    return !hasRows() || rows.isEmpty();
   }
 
   public String getCommand() {
     return command;
   }
 
+  public boolean hasRowsAffected() {
+    return rowsAffected != null;
+  }
+
   public Long getRowsAffected() {
-    return rowsAffected;
+    if (!hasRowsAffected()) return null;
+    return firstNonNull(rowsAffected, 0L);
   }
 
   public Long getInsertedOid() {
@@ -89,27 +103,48 @@ public class ResultBatch extends AbstractReferenceCounted implements Iterable<Re
     return fields;
   }
 
-  public List<RowData> getResults() {
-    return results;
+  public RowDataSet borrowRows() {
+    return rows;
+  }
+
+  public RowDataSet takeRows() {
+    RowDataSet rows = this.rows;
+    this.rows = null;
+    this.fields = EMPTY_FIELDS;
+    return rows;
+  }
+
+  public void clearRowsAffected() {
+    this.rowsAffected = null;
+  }
+
+  public void clearRows() {
+    ReferenceCountUtil.release(takeRows());
+    fields = EMPTY_FIELDS;
   }
 
   public Row getRow(int rowIndex) {
-    return new Row(fields, results.get(rowIndex));
+    return new Row(fields, rows.borrow(rowIndex));
   }
 
   @Override
   protected void deallocate() {
-    results.forEach(ReferenceCountUtil::release);
+    if (rows != null) {
+      rows.release();
+    }
   }
 
   public ResultBatch touch(Object hint) {
-    results.forEach(rowData -> ReferenceCountUtil.touch(rowData, hint));
+    if (rows != null) {
+      rows.touch(hint);
+    }
     return this;
   }
 
   @Override
   public Iterator<Row> iterator() {
-    return new RowIterator(results.iterator());
+    if (rows == null) return emptyIterator();
+    return new RowIterator(rows.borrowAll().iterator());
   }
 
   @Override
@@ -117,4 +152,14 @@ public class ResultBatch extends AbstractReferenceCounted implements Iterable<Re
     release();
   }
 
+  @Override
+  public String toString() {
+    return "ResultBatch{" +
+        "command='" + command + '\'' +
+        ", rowsAffected=" + rowsAffected +
+        ", insertedOid=" + insertedOid +
+        ", fields=" + Arrays.toString(fields) +
+        ", rows=" + rows +
+        '}';
+  }
 }

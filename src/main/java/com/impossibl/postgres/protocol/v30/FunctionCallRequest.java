@@ -61,6 +61,11 @@ public class FunctionCallRequest implements ServerRequest {
   private class Handler implements FunctionResult, CommandError, ReportNotice {
 
     @Override
+    public String toString() {
+      return "Function Call";
+    }
+
+    @Override
     public Action notice(Notice notice) {
       notices.add(notice);
       return Action.Resume;

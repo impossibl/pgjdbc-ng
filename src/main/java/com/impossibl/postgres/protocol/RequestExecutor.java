@@ -51,14 +51,17 @@ public interface RequestExecutor {
 
   interface QueryHandler extends ErrorHandler {
 
-    void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, List<RowData> rows, List<Notice> notices) throws IOException;
-    void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, List<RowData> rows, List<Notice> notices) throws IOException;
+    void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) throws IOException;
+    void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) throws IOException;
+    void handleReady() throws IOException;
 
   }
 
 
   void query(String sql, QueryHandler handler) throws IOException;
-  void query(String sql, String portalName, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, QueryHandler handler) throws IOException;
+  void query(String sql, String portalName,
+             FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers,
+             FieldFormatRef[] resultFieldFormats, int maxRows, QueryHandler handler) throws IOException;
 
 
   /*****
@@ -82,14 +85,14 @@ public interface RequestExecutor {
 
   interface ExecuteHandler extends ErrorHandler {
 
-    void handleComplete(String command, Long rowsAffected, Long insertedOid, List<RowData> rows, List<Notice> notices) throws IOException;
-    void handleSuspend(List<RowData> rows, List<Notice> notices) throws IOException;
+    void handleComplete(String command, Long rowsAffected, Long insertedOid, RowDataSet rows, List<Notice> notices) throws IOException;
+    void handleSuspend(RowDataSet rows, List<Notice> notices) throws IOException;
 
   }
 
   void execute(String portalName, String statementName,
                FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers,
-               FieldFormatRef[] resultFieldFormatRefs, Integer maxRows,
+               FieldFormatRef[] resultFieldFormatRefs, int maxRows,
                ExecuteHandler handler) throws IOException;
 
   void resume(String portalName, int maxRows, ExecuteHandler handler) throws IOException;

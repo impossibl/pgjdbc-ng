@@ -79,6 +79,8 @@ import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
 import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD;
+import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
@@ -127,7 +129,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 
 
 /**
@@ -188,6 +189,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private SQLWarning warningChain;
   private List<WeakReference<PGStatement>> activeStatements;
   private Map<CachedStatementKey, CachedStatement> preparedStatementCache;
+  private int preparedStatementCacheThreshold;
   private Map<CachedStatementKey, Integer> preparedStatementHeat;
   private int defaultFetchSize;
   final Housekeeper.Ref housekeeper;
@@ -204,7 +206,6 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
     if (statementCacheSize > 0) {
-      preparedStatementHeat = new ConcurrentHashMap<>();
       preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<CachedStatementKey, CachedStatement>(statementCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
 
@@ -224,6 +225,11 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
           }
         }
       });
+    }
+    final int statementCacheThreshold = getSetting(PREPARED_STATEMENT_CACHE_THRESHOLD, PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT);
+    if (statementCacheThreshold > 0) {
+      preparedStatementCacheThreshold = statementCacheThreshold;
+      preparedStatementHeat = new ConcurrentHashMap<>();
     }
 
     final int sqlCacheSize = getSetting(PARSED_SQL_CACHE_SIZE, PARSED_SQL_CACHE_SIZE_DEFAULT);
@@ -439,16 +445,10 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   <T> T execute(QueryResultFunction<T> function) throws SQLException {
 
-    if (!autoCommit && serverConnection.getTransactionStatus() == Idle) {
-      try {
+    try {
+      if (!autoCommit && serverConnection.getTransactionStatus() == Idle) {
         serverConnection.getRequestExecutor().lazyExecute("TB");
       }
-      catch (IOException e) {
-        throw new PGSQLSimpleException(e);
-      }
-    }
-
-    try {
 
       return function.query(networkTimeout);
 
@@ -579,7 +579,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         return null;
       }
 
-      return ReferenceCountUtil.retain(resultBatch.getResults().get(0));
+      return resultBatch.borrowRows().take(0);
     }
   }
 
@@ -1313,6 +1313,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     CachedStatement load() throws SQLException;
   }
 
+  CachedStatement getCachedStatement(CachedStatementKey key) {
+    if (preparedStatementCache == null) return null;
+
+    return preparedStatementCache.get(key);
+  }
+
   CachedStatement getCachedStatement(CachedStatementKey key, CachedStatementLoader loader) throws SQLException {
 
     if (preparedStatementCache == null) {
@@ -1323,13 +1329,15 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     if (cached != null) return cached;
 
 
-    Integer heat = preparedStatementHeat.computeIfPresent(key, (k, h) -> h + 1);
-    if (heat == null) {
-      preparedStatementHeat.put(key, 1);
-      return null;
-    }
-    else if (heat < 5) {
-      return null;
+    if (preparedStatementHeat != null) {
+      Integer heat = preparedStatementHeat.computeIfPresent(key, (k, h) -> h + 1);
+      if (heat == null) {
+        preparedStatementHeat.put(key, 1);
+        return null;
+      }
+      else if (heat < preparedStatementCacheThreshold) {
+        return null;
+      }
     }
 
     cached = loader.load();

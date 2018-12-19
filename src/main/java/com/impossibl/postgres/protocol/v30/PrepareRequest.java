@@ -68,6 +68,11 @@ public class PrepareRequest implements ServerRequest {
   private class Handler implements ParameterDescriptions, RowDescription, NoData, ReportNotice, ParseComplete, CommandError {
 
     @Override
+    public String toString() {
+      return "Prepare";
+    }
+
+    @Override
     public Action parseComplete() {
       return Action.Resume;
     }
