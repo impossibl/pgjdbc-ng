@@ -118,7 +118,7 @@ public class RequestExecutorHandlers {
 
   }
 
-  public static class QueryResult extends AnyQueryResult implements RequestExecutor.QueryHandler {
+  public static class QueryResult extends AnyQueryResult implements RequestExecutor.SimpleQueryHandler, RequestExecutor.QueryHandler {
 
     private boolean suspended;
     private ResultBatch resultBatch;
@@ -200,7 +200,7 @@ public class RequestExecutorHandlers {
 
   }
 
-  public static class CompositeQueryResults extends Result implements RequestExecutor.QueryHandler {
+  public static class CompositeQueryResults extends Result implements RequestExecutor.SimpleQueryHandler {
 
     private List<ResultBatch> resultBatches;
 
@@ -217,12 +217,6 @@ public class RequestExecutorHandlers {
       resultBatches.add(new ResultBatch(command, rowsAffected, insertedOid, resultFields, retain(rows)));
 
       this.notices.addAll(notices);
-    }
-
-    @Override
-    public void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
-      completed.countDown();
-      throw new IllegalStateException("Should not be able to suspend during composite query");
     }
 
     @Override

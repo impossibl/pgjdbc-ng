@@ -175,7 +175,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, RequestExecutor.QueryHandler handler) throws IOException {
+  public void query(String sql, RequestExecutor.SimpleQueryHandler handler) throws IOException {
     submit(new QueryRequest(sql, handler));
   }
 
