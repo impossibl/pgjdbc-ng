@@ -156,7 +156,8 @@ public class BasicContext extends AbstractContext {
   }
 
   protected void shutdown() {
-    serverConnection.shutdown().syncUninterruptibly();
+    // TODO serverConnection.shutdown().syncUninterruptibly();
+    serverConnection.shutdown();
   }
 
   public Version getServerVersion() {

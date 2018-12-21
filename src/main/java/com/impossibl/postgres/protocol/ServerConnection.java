@@ -2,10 +2,10 @@ package com.impossibl.postgres.protocol;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.ChannelFuture;
 
 public interface ServerConnection {
 
@@ -17,9 +17,9 @@ public interface ServerConnection {
 
   RequestExecutor getRequestExecutor();
 
-  ChannelFuture shutdown();
+  CompletableFuture<?> shutdown();
 
-  ChannelFuture kill();
+  CompletableFuture<?> kill();
 
   boolean isConnected();
 

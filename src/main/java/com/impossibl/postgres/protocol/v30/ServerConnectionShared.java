@@ -30,13 +30,16 @@ package com.impossibl.postgres.protocol.v30;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.util.ThreadDeathWatcher;
-import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 
@@ -69,6 +72,15 @@ public class ServerConnectionShared {
 
   private EventLoopGroup eventLoopGroup;
   private int count = 0;
+
+  private ScheduledExecutorService ioExecutor;
+
+  public ScheduledExecutorService getIOExecutor() {
+    if (ioExecutor == null) {
+      ioExecutor = Executors.newSingleThreadScheduledExecutor();
+    }
+    return ioExecutor;
+  }
 
   EventLoopGroup getEventLoopGroup(Class<? extends EventLoopGroup> type) {
 
@@ -106,15 +118,32 @@ public class ServerConnectionShared {
 
   private Future<?> shutdown() {
 
-    Future<?> res = eventLoopGroup.shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
-    eventLoopGroup = null;
-    return res;
+    if (ioExecutor != null) {
+      ioExecutor.shutdown();
+      ioExecutor = null;
+    }
+
+    if (eventLoopGroup != null) {
+      Future<?> res = eventLoopGroup.shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
+      eventLoopGroup = null;
+      return res;
+    }
+
+    return CompletableFuture.completedFuture(null);
   }
 
   @SuppressWarnings("deprecation")
   public void waitForShutdown() {
 
-    shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
+    if (ioExecutor != null) {
+      try {
+        ioExecutor.awaitTermination(10, TimeUnit.SECONDS);
+      }
+      catch (InterruptedException e) {
+      }
+    }
+
+    //shutdown().awaitUninterruptibly(10, TimeUnit.SECONDS);
 
     Thread deathThread = new Thread(() -> {
       try {

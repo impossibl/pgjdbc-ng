@@ -7,100 +7,173 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStreamWriter;
+import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelOption;
+import io.netty.buffer.PooledByteBufAllocator;
 
 
-class ServerConnection implements com.impossibl.postgres.protocol.ServerConnection, RequestExecutor {
+class ServerConnection implements com.impossibl.postgres.protocol.ServerConnection, RequestExecutor, HandlerContext {
 
-  private Channel channel;
-  private ServerConnectionShared.Ref sharedRef;
+  private Socket socket;
+  private MessageDispatchHandler messageDispatchHandler;
+  private ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
+  private final ServerConnectionShared.Ref sharedRef;
+  private Thread readThread;
 
-  ServerConnection(Context context, Channel channel, ServerConnectionShared.Ref sharedRef) {
-    this.channel = channel;
+  ServerConnection(Context context, Socket channel, ProtocolHandler defaultHandler, ServerConnectionShared.Ref sharedRef) {
+    this.socket = channel;
+    this.messageDispatchHandler = new MessageDispatchHandler(socket, context.getCharset(), defaultHandler);
     this.sharedRef = sharedRef;
+    this.readThread = new Thread(this::reader);
+    this.readThread.setName("PG-JDBC I/O - " + context.getSetting(DATABASE_URL));
+    this.readThread.start();
 
     if (context.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
-
-      getMessageDispatchHandler().setTraceWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+      this.messageDispatchHandler.setTraceWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
     }
   }
 
-  private MessageDispatchHandler getMessageDispatchHandler() {
-    return (MessageDispatchHandler) channel.pipeline().context(MessageDispatchHandler.class).handler();
+  private DataInputStream socketIn;
+
+  private void reader() {
+
+    try {
+      socketIn = new DataInputStream(new BufferedInputStream(socket.getInputStream(), 32 * 1024));
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    while (!socket.isClosed()) {
+      try {
+
+        byte id = socketIn.readByte();
+        int length = socketIn.readInt();
+        int msgLength = length + 1;
+
+        ByteBuf msg = alloc.heapBuffer(msgLength);
+        msg.writeByte(id);
+        msg.writeInt(length);
+        while (msg.readableBytes() < msgLength) {
+          try {
+            msg.writeBytes(socketIn, msgLength - msg.readableBytes());
+          }
+          catch (InterruptedIOException ignore) {
+          }
+        }
+
+        try {
+          messageDispatchHandler.channelRead(this, msg);
+        }
+        catch (Throwable t) {
+          messageDispatchHandler.exceptionCaught(this, t);
+        }
+
+      }
+      catch (EOFException e) {
+        messageDispatchHandler.channelReadComplete(this);
+      }
+      catch (SocketException | ClosedChannelException e) {
+        // Retest
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
   }
 
   @Override
-  public ChannelFuture shutdown() {
+  public CompletableFuture<?> shutdown() {
 
     //Ensure only one thread can ever succeed in calling shutdown
-    if (!channel.isActive()) {
-      return channel.pipeline().newSucceededFuture();
+    if (socket.isClosed()) {
+      return CompletableFuture.completedFuture(null);
     }
-
-    // Stop reading while we are shutting down...
-    channel.config().setOption(ChannelOption.AUTO_READ, false);
 
     try {
-      return new ProtocolChannel(channel, StandardCharsets.UTF_8)
+      // Stop reading while we are shutting down...
+      socket.shutdownInput();
+
+      return new ProtocolChannel(this, StandardCharsets.UTF_8)
           .writeTerminate()
-          .addListener(ChannelFutureListener.CLOSE);
+          .whenCompleteAsync((o, throwable) -> kill(), getIOExecutor());
+
     }
     catch (Exception ignore) {
+      return kill();
     }
+
+  }
+
+  @Override
+  public CompletableFuture<?> kill() {
+
+    if (socket.isClosed()) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    CompletableFuture<?> res = new CompletableFuture<>();
+    try {
+      socket.close();
+      res.complete(null);
+    }
+    catch (Exception e) {
+      res.completeExceptionally(e);
+    }
+
+    readThread.interrupt();
 
     sharedRef.release();
 
-    return kill();
-  }
-
-  @Override
-  public ChannelFuture kill() {
-
-    return channel.close();
+    return res;
   }
 
   @Override
   public ByteBufAllocator getAllocator() {
-    return channel.alloc();
+    return alloc;
   }
 
   @Override
   public SocketAddress getRemoteAddress() {
-    return channel.remoteAddress();
+    return socket.getRemoteSocketAddress();
   }
 
   @Override
   public ScheduledExecutorService getIOExecutor() {
-    return channel.eventLoop();
+    return sharedRef.get().getIOExecutor();
   }
 
   @Override
   public TransactionStatus getTransactionStatus() throws IOException {
-    if (!channel.isActive()) {
+    if (socket.isClosed()) {
       throw new ClosedChannelException();
     }
-    return getMessageDispatchHandler().getTransactionStatus();
+    return messageDispatchHandler.getTransactionStatus();
   }
 
   @Override
   public boolean isConnected() {
-    return channel.isActive();
+    return !socket.isClosed() && socket.isConnected();
   }
 
   @Override
@@ -148,9 +221,39 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     submit(new CloseRequest(objectType, objectName));
   }
 
-  synchronized void submit(ServerRequest request) {
+  synchronized void submit(ServerRequest request) throws IOException {
 
-    channel.writeAndFlush(request, channel.voidPromise());
+    messageDispatchHandler.write(this, request, voidPromise());
+  }
+
+  @Override
+  public ByteBufAllocator alloc() {
+    return alloc;
+  }
+
+  private static CompletableFuture<?> voidPromise = CompletableFuture.completedFuture(null);
+  @Override
+  public CompletableFuture<?> voidPromise() {
+    return voidPromise;
+  }
+
+  @Override
+  public CompletableFuture<?> write(ByteBuf msg, CompletableFuture<?> promise) {
+
+    try {
+      messageDispatchHandler.write(this, msg, promise);
+    }
+    catch (Throwable t) {
+      promise.completeExceptionally(t);
+    }
+
+    return promise;
+  }
+
+  @Override
+  public void flush() throws IOException {
+
+    messageDispatchHandler.flush(this);
   }
 
 }

@@ -42,36 +42,42 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.protocol.v30.ProtocolHandlers.SYNC;
 import static com.impossibl.postgres.utils.ByteBufs.readCString;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.Deque;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static java.util.Arrays.asList;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
 
 
-@ChannelHandler.Sharable
-public class MessageDispatchHandler extends ChannelDuplexHandler {
+public class MessageDispatchHandler {
 
   private TransactionStatus transactionStatus;
   private Deque<ProtocolHandler> protocolHandlers;
   private ProtocolHandler defaultHandler;
   private Charset charset;
   private Writer traceWriter;
-  private boolean requiresFlush = false;
+  private BufferedOutputStream outputStream;
 
-  MessageDispatchHandler(Charset charset, ProtocolHandler defaultHandler) {
+  MessageDispatchHandler(Socket socket, Charset charset, ProtocolHandler defaultHandler) {
     this.protocolHandlers = new ConcurrentLinkedDeque<>();
     this.defaultHandler = defaultHandler;
     this.charset = charset;
+    try {
+      this.outputStream = new BufferedOutputStream(socket.getOutputStream(), 32 * 1024);
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   TransactionStatus getTransactionStatus() {
@@ -82,8 +88,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     this.traceWriter = traceWriter;
   }
 
-  @Override
-  public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws IOException {
+  public void write(HandlerContext ctx, Object msg, CompletableFuture<?> promise) throws IOException {
 
     if (msg instanceof ServerRequest) {
 
@@ -100,9 +105,9 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
       // Execute the request
 
-      request.execute(new ProtocolChannel(ctx.channel(), ctx, charset));
+      request.execute(new ProtocolChannel((ServerConnection) ctx, charset));
 
-      promise.setSuccess();
+      promise.complete(null);
     }
     else if (msg instanceof ByteBuf) {
 
@@ -112,24 +117,46 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
       trace('<', (char) buf.getByte(0));
 
-      ctx.write(msg,  promise);
-
-      requiresFlush = true;
+      doWrite(buf, promise);
     }
 
   }
 
-  @Override
-  public void flush(ChannelHandlerContext ctx) throws Exception {
+  public void doWrite(ByteBuf msg, CompletableFuture<?> promise) {
+
+    try {
+      while (msg.isReadable()) {
+        try {
+          msg.readBytes(outputStream, msg.readableBytes());
+        }
+        catch (InterruptedIOException e) {
+          // continue trying write
+        }
+        catch (IOException e) {
+          promise.completeExceptionally(e);
+          return;
+        }
+      }
+
+      promise.complete(null);
+    }
+    finally {
+      msg.release();
+    }
+  }
+
+  public void doFlush() throws IOException {
+
+    outputStream.flush();
+  }
+
+  public void flush(HandlerContext ctx) throws IOException {
     trace("\n");
     flushTrace();
-    if (requiresFlush) {
-      super.flush(ctx);
-    }
+    doFlush();
   }
 
-  @Override
-  public void channelRead(ChannelHandlerContext ctx, Object message) throws IOException {
+  public void channelRead(HandlerContext ctx, Object message) throws IOException {
 
     ByteBuf msg = (ByteBuf) message;
     try {
@@ -153,15 +180,12 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     }
   }
 
-  @Override
-  public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+  public void channelReadComplete(HandlerContext ctx) {
     trace("\n");
     flushTrace();
-    super.channelReadComplete(ctx);
   }
 
-  @Override
-  public void channelInactive(ChannelHandlerContext ctx) {
+  public void channelInactive(HandlerContext ctx) {
 
     // Dispatch to current request handler (if any)
 
@@ -177,8 +201,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
   }
 
-  @Override
-  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+  public void exceptionCaught(HandlerContext ctx, Throwable cause) {
 
     // Dispatch to current request handler (if any)
 
@@ -193,7 +216,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
   }
 
-  private void dispatch(ChannelHandlerContext ctx, byte id, ByteBuf data, ProtocolHandler protocolHandler) throws IOException {
+  private void dispatch(HandlerContext ctx, byte id, ByteBuf data, ProtocolHandler protocolHandler) throws IOException {
 
     ProtocolHandler.Action action;
     try {
@@ -255,7 +278,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   }
 
   // Backend messages
-  static private final byte NEGOTIATE_PROTOCOL_VERSION_ID = 'B';
+  private static final byte NEGOTIATE_PROTOCOL_VERSION_ID = 'B';
   private static final byte AUTHENTICATION_MSG_ID = 'R';
   private static final byte BACKEND_KEY_MSG_ID = 'K';
   private static final byte PARAMETER_STATUS_MSG_ID = 'S';
@@ -284,7 +307,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
    * Message dispatching & parsing
    */
 
-  private ProtocolHandler.Action parseAndDispatch(ChannelHandlerContext ctx, byte id, ByteBuf data, ProtocolHandler handler) throws IOException {
+  private ProtocolHandler.Action parseAndDispatch(HandlerContext ctx, byte id, ByteBuf data, ProtocolHandler handler) throws IOException {
 
     switch (id) {
       case NOTIFICATION_MSG_ID:
@@ -393,9 +416,9 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     return handler.negotiate(minorProtocol, asList(unsupportedParameters));
   }
 
-  private ProtocolHandler.Action receiveAuthentication(ChannelHandlerContext ctx, ByteBuf buffer, ProtocolHandler.Authentication handler) throws IOException {
+  private ProtocolHandler.Action receiveAuthentication(HandlerContext ctx, ByteBuf buffer, ProtocolHandler.Authentication handler) throws IOException {
 
-    ProtocolChannel protocolChannel = new ProtocolChannel(ctx.channel(), ctx, charset);
+    ProtocolChannel protocolChannel = new ProtocolChannel((ServerConnection) ctx, charset);
 
     int code = buffer.readInt();
     switch (code) {
@@ -734,4 +757,11 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     }
   }
 
+}
+
+interface HandlerContext {
+  ByteBufAllocator alloc();
+  CompletableFuture<?> voidPromise();
+  CompletableFuture<?> write(ByteBuf msg, CompletableFuture<?> promise);
+  void flush() throws IOException;
 }

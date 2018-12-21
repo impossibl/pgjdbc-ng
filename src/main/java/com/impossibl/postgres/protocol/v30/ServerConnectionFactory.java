@@ -1,7 +1,6 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Notification;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
@@ -21,12 +20,6 @@ import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE;
 import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE;
 import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_DEFAULT;
-import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
-import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
-import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SSL_MODE;
 import static com.impossibl.postgres.system.Settings.SSL_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Await.awaitUninterruptibly;
@@ -35,6 +28,7 @@ import static com.impossibl.postgres.utils.StringTransforms.capitalizeOption;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
@@ -50,22 +44,11 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.channel.socket.oio.OioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.ssl.SslHandler;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -101,52 +84,52 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       int maxMessageSize = context.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
       boolean usePooledAllocator = context.getSetting(ALLOCATOR, ALLOCATOR_DEFAULT);
 
-      Channel channel =
-          createChannel(address, context, sharedRef, clientEncoding, maxMessageSize, usePooledAllocator)
-              .syncUninterruptibly()
-              .channel();
+      Socket socket = new Socket();
+      socket.connect(address);
 
-      ServerConnection serverConnection = new ServerConnection(context, channel, sharedRef);
+      ProtocolHandler defaultHandler = new DefaultHandler(context);
+
+      ServerConnection serverConnection = new ServerConnection(context, socket, defaultHandler, sharedRef);
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
         // Execute SSL query command
 
-        SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
-        serverConnection.submit(sslQueryRequest);
-
-        boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
-
-        if (sslQueryCompleted && sslQueryRequest.isAllowed()) {
-
-          // Attach the actual handler
-
-          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, context);
-
-          final SslHandler sslHandler = new SslHandler(sslEngine);
-
-          channel.pipeline().addFirst("ssl", sslHandler);
-
-          try {
-
-            sslHandler.handshakeFuture().syncUninterruptibly();
-
-          }
-          catch (Exception e) {
-
-            // Retry with no SSL
-            if (sslMode == SSLMode.Prefer) {
-              return connect(SSLMode.Disable, address, context);
-            }
-
-            throw e;
-          }
-
-        }
-        else if (sslMode.isRequired()) {
-
-          throw new IOException("SSL not allowed by server");
-        }
+//        SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
+//        serverConnection.submit(sslQueryRequest);
+//
+//        boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
+//
+//        if (sslQueryCompleted && sslQueryRequest.isAllowed()) {
+//
+//          // Attach the actual handler
+//
+//          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, context);
+//
+//          final SslHandler sslHandler = new SslHandler(sslEngine);
+//
+//          channel.pipeline().addFirst("ssl", sslHandler);
+//
+//          try {
+//
+//            sslHandler.handshakeFuture().syncUninterruptibly();
+//
+//          }
+//          catch (Exception e) {
+//
+//            // Retry with no SSL
+//            if (sslMode == SSLMode.Prefer) {
+//              return connect(SSLMode.Disable, address, context);
+//            }
+//
+//            throw e;
+//          }
+//
+//        }
+//        else if (sslMode.isRequired()) {
+//
+//          throw new IOException("SSL not allowed by server");
+//        }
 
       }
 
@@ -156,19 +139,19 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
         if (sslMode == SSLMode.VerifyFull) {
 
-          SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
-          if (sslHandler != null) {
-
-            String hostname;
-            if (address instanceof InetSocketAddress) {
-              hostname = ((InetSocketAddress) address).getHostString();
-            }
-            else {
-              hostname = "";
-            }
-
-            verifyHostname(hostname, sslHandler.engine().getSession());
-          }
+//          SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
+//          if (sslHandler != null) {
+//
+//            String hostname;
+//            if (address instanceof InetSocketAddress) {
+//              hostname = ((InetSocketAddress) address).getHostString();
+//            }
+//            else {
+//              hostname = "";
+//            }
+//
+//            verifyHostname(hostname, sslHandler.engine().getSession());
+//          }
 
         }
 
@@ -219,47 +202,48 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   private Bootstrap bootstrapSocket(BasicContext context, ServerConnectionShared.Ref sharedRef, Charset clientEncoding, int maxMessageSize) {
 
-    Class<? extends SocketChannel> channelType;
-    Class<? extends EventLoopGroup> groupType;
-
-    String ioMode = context.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
-    switch (ioMode) {
-      case "oio":
-        channelType = OioSocketChannel.class;
-        groupType = OioEventLoopGroup.class;
-        break;
-
-      case "nio":
-        channelType = NioSocketChannel.class;
-        groupType = NioEventLoopGroup.class;
-        break;
-
-      default:
-        throw new IllegalStateException("Unsupported io mode: " + ioMode);
-    }
-
-    Bootstrap bootstrap = new Bootstrap()
-            .group(sharedRef.get().getEventLoopGroup(groupType))
-            .channel(channelType)
-            .handler(new ChannelInitializer<SocketChannel>() {
-              @Override
-              protected void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(
-                    new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
-                    new MessageDispatchHandler(clientEncoding, new DefaultHandler(context))
-                );
-              }
-            })
-            .option(ChannelOption.TCP_NODELAY, true);
-
-    if (context.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_RCVBUF, context.getSetting(RECEIVE_BUFFER_SIZE, int.class));
-    }
-    if (context.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_SNDBUF, context.getSetting(SEND_BUFFER_SIZE, int.class));
-    }
-
-    return bootstrap;
+//    Class<? extends SocketChannel> channelType;
+//    Class<? extends EventLoopGroup> groupType;
+//
+//    String ioMode = context.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
+//    switch (ioMode) {
+//      case "oio":
+//        channelType = OioSocketChannel.class;
+//        groupType = OioEventLoopGroup.class;
+//        break;
+//
+//      case "nio":
+//        channelType = NioSocketChannel.class;
+//        groupType = NioEventLoopGroup.class;
+//        break;
+//
+//      default:
+//        throw new IllegalStateException("Unsupported io mode: " + ioMode);
+//    }
+//
+//    Bootstrap bootstrap = new Bootstrap()
+//            .group(sharedRef.get().getEventLoopGroup(groupType))
+//            .channel(channelType)
+//            .handler(new ChannelInitializer<SocketChannel>() {
+//              @Override
+//              protected void initChannel(SocketChannel ch) {
+//                ch.pipeline().addLast(
+//                    new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
+//                    new MessageDispatchHandler(clientEncoding, new DefaultHandler(context))
+//                );
+//              }
+//            })
+//            .option(ChannelOption.TCP_NODELAY, true);
+//
+//    if (context.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
+//      bootstrap.option(ChannelOption.SO_RCVBUF, context.getSetting(RECEIVE_BUFFER_SIZE, int.class));
+//    }
+//    if (context.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT) {
+//      bootstrap.option(ChannelOption.SO_SNDBUF, context.getSetting(SEND_BUFFER_SIZE, int.class));
+//    }
+//
+//    return bootstrap;
+    return null;
   }
 
   private static void startup(ServerConnection serverConnection, BasicContext context) throws IOException, NoticeException {

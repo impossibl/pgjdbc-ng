@@ -13,12 +13,10 @@ import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelOutboundInvoker;
 import io.netty.channel.ChannelPipeline;
 
 public class ProtocolChannel {
@@ -36,28 +34,22 @@ public class ProtocolChannel {
   private static final byte CLOSE_MSG_ID = 'C';
   private static final byte FUNCTION_CALL_MSG_ID = 'F';
 
-  private Channel channel;
-  private ChannelOutboundInvoker flusher;
+  private ServerConnection ctx;
   private ByteBufAllocator alloc;
   private Charset charset;
 
-  public ProtocolChannel(Channel channel, Charset charset) {
-    this(channel, channel, charset);
-  }
-
-  public ProtocolChannel(Channel channel, ChannelOutboundInvoker flusher, Charset charset) {
-    this.channel = channel;
-    this.flusher = flusher;
-    this.alloc = channel.alloc();
+  public ProtocolChannel(ServerConnection ctx, Charset charset) {
+    this.ctx = ctx;
+    this.alloc = ctx.alloc();
     this.charset = charset;
   }
 
   ChannelPipeline pipeline() {
-    return channel.pipeline();
+    return null;
   }
 
-  ProtocolChannel flush() {
-    flusher.flush();
+  ProtocolChannel flush() throws IOException {
+    ctx.flush();
     return this;
   }
 
@@ -68,7 +60,7 @@ public class ProtocolChannel {
     msg.writeInt(8);
     msg.writeInt(80877103);
 
-    channel.write(msg, channel.voidPromise());
+    ctx.write(msg, ctx.voidPromise());
 
     return this;
   }
@@ -120,7 +112,7 @@ public class ProtocolChannel {
 
     ByteBuf msg = alloc.buffer(1);
     msg.writeByte(code);
-    channel.write(msg);
+    ctx.write(msg, ctx.voidPromise());
 
     return this;
   }
@@ -258,11 +250,11 @@ public class ProtocolChannel {
     return this;
   }
 
-  ChannelFuture writeTerminate() {
+  CompletableFuture<?> writeTerminate() {
 
     ByteBuf msg = beginMessage(TERMINATE_MSG_ID);
 
-    return channel.writeAndFlush(msg);
+    return ctx.write(msg, new CompletableFuture<>());
   }
 
   private void writeMessage(byte msgId) {
@@ -272,7 +264,7 @@ public class ProtocolChannel {
     msg.writeByte(msgId);
     msg.writeInt(4);
 
-    channel.write(msg, channel.voidPromise());
+    ctx.write(msg, ctx.voidPromise());
   }
 
   private ByteBuf beginMessage(byte msgId) {
@@ -301,7 +293,7 @@ public class ProtocolChannel {
 
     msg.writerIndex(endPos);
 
-    channel.write(msg, channel.voidPromise());
+    ctx.write(msg, ctx.voidPromise());
   }
 
   private void loadParams(ByteBuf msg, FieldFormatRef[] fieldFormatRefs, ByteBuf[] paramBuffers) throws IOException {
