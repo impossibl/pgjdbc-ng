@@ -55,7 +55,7 @@ public class StartupRequest implements ServerRequest {
     byte authenticateSCM() throws IOException;
     ByteBuf authenticateGSS(ByteBuf data) throws IOException;
     ByteBuf authenticateSSPI(ByteBuf data) throws IOException;
-    ByteBuf authenticateGSSorSSPIContinue(ByteBuf data) throws IOException;
+    ByteBuf authenticateContinue(ByteBuf data) throws IOException;
 
     void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) throws IOException;
     void handleError(Throwable cause, List<Notice> notices) throws IOException;
@@ -153,7 +153,7 @@ public class StartupRequest implements ServerRequest {
     @Override
     public void authenticateSSPI(ByteBuf data, ProtocolChannel channel) throws IOException {
 
-      data = handler.authenticateGSS(data);
+      data = handler.authenticateSSPI(data);
 
       channel
           .writePassword(data)
@@ -165,7 +165,7 @@ public class StartupRequest implements ServerRequest {
     @Override
     public void authenticateContinue(ByteBuf data, ProtocolChannel channel) throws IOException {
 
-      data = handler.authenticateGSS(data);
+      data = handler.authenticateContinue(data);
 
       channel
           .writePassword(data)

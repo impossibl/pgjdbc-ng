@@ -309,7 +309,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       }
 
       @Override
-      public ByteBuf authenticateGSSorSSPIContinue(ByteBuf data) {
+      public ByteBuf authenticateContinue(ByteBuf data) {
         throw new IllegalStateException("Unsupported Authentication Method");
       }
 
