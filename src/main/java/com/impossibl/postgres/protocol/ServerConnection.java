@@ -1,10 +1,11 @@
 package com.impossibl.postgres.protocol;
 
+import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.ChannelFuture;
 
 public interface ServerConnection {
 
@@ -12,13 +13,13 @@ public interface ServerConnection {
 
   SocketAddress getRemoteAddress();
 
-  TransactionStatus getTransactionStatus();
+  TransactionStatus getTransactionStatus() throws IOException;
 
   RequestExecutor getRequestExecutor();
 
-  Future<Void> shutdown();
+  ChannelFuture shutdown();
 
-  Future<Void> kill();
+  ChannelFuture kill();
 
   boolean isConnected();
 

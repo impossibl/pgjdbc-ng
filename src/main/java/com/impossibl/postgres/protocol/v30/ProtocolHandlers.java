@@ -11,34 +11,40 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.EmptyQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.FunctionResult;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.NoData;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.Notification;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterDescriptions;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParseComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
+import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.types.TypeRef;
+
+import java.lang.ref.WeakReference;
 
 import io.netty.buffer.ByteBuf;
 
 class ProtocolHandlers {
 
   static final ProtocolHandler SYNC = new Adapter() {
+
+    public String toString() {
+      return "SYNC";
+    }
+
     @Override
     public Action readyForQuery(TransactionStatus txnStatus) {
       return Action.Complete;
     }
+
   };
 
   public static class Adapter implements
       ParameterDescriptions, RowDescription, NoData, DataRow, PortalSuspended,
       BindComplete, CloseComplete, CommandComplete, ParseComplete,
       FunctionResult, EmptyQuery, ReportNotice, CommandError, ReadyForQuery {
-
-    @Override
-    public String toString() {
-      return "SYNC";
-    }
 
     @Override
     public Action readyForQuery(TransactionStatus txnStatus) {
@@ -113,6 +119,10 @@ class ProtocolHandlers {
     @Override
     public void exception(Throwable cause) {
     }
+
+  }
+
+  public static class DefaultHander extends Adapter {
 
   }
 

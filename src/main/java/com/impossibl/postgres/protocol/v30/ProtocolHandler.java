@@ -4,7 +4,6 @@ import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.types.TypeRef;
-import com.impossibl.postgres.system.Context;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,19 +31,14 @@ public interface ProtocolHandler {
 
   interface Authentication extends ProtocolHandler {
 
-    enum GSSStage {
-      Initialize,
-      Continue
-    }
-
     Action authenticated() throws IOException;
-    default void authenticateKerberos(Context context, ProtocolChannel channel) throws IOException {}
-    default void authenticateClear(Context context, ProtocolChannel channel) throws IOException {}
-    default void authenticateCrypt(Context context, ProtocolChannel channel) throws IOException {}
-    default void authenticateMD5(Context context, byte[] salt, ProtocolChannel channel) throws IOException {}
-    default void authenticateSCM(Context context, ProtocolChannel channel) throws IOException {}
-    default void authenticateGSS(Context context, GSSStage stage, ProtocolChannel channel) throws IOException {}
-    default void authenticateSSPI(Context context, ProtocolChannel channel) throws IOException {}
+    void authenticateKerberos(ProtocolChannel channel) throws IOException;
+    void authenticateClear(ProtocolChannel channel) throws IOException;
+    void authenticateMD5(byte[] salt, ProtocolChannel channel) throws IOException;
+    void authenticateSCM(ProtocolChannel channel) throws IOException;
+    void authenticateGSS(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateSSPI(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateContinue(ByteBuf data, ProtocolChannel channel) throws IOException;
 
   }
 

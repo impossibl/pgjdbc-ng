@@ -450,7 +450,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    QueryDescription desc = new QueryDescription(name, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
+    QueryDescription desc = new QueryDescription(name, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
     utilQueries.put(name, desc);
   }
 
@@ -470,7 +470,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new QueryDescription(null, handler.getDescribedParameterTypes(), handler.getDescribedResultFields());
+    return new QueryDescription(null, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
   }
 
   private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {

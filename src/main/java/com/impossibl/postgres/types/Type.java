@@ -207,7 +207,7 @@ public abstract class Type implements TypeRef {
   }
 
   @Override
-  public Type getType() {
+  public Type getType(Context context) {
     return this;
   }
 

@@ -111,9 +111,15 @@ public class Settings {
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
 
   public static final String ALLOCATOR = "allocator.pooled";
-  public static final String ALLOCATOR_DEFAULT = "true";
+  public static final boolean ALLOCATOR_DEFAULT = true;
+
+  public static final String MAX_MESSAGE_SIZE = "protocol.message.max";
+  public static final int MAX_MESSAGE_SIZE_DEFAULT = 15 * 1024 * 1024;
 
   public static final String PROTOCOL_TRACE = "protocol.trace";
-  public static final String PROTOCOL_TRACE_DEFAULT = "false";
+  public static final boolean PROTOCOL_TRACE_DEFAULT = false;
+
+  public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
+  public static final String PROTOCOL_SOCKET_IO_DEFAULT = "nio";
 
 }

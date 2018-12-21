@@ -28,21 +28,16 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.channel.EventLoopGroup;
 import io.netty.util.ThreadDeathWatcher;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GlobalEventExecutor;
-
 
 
 public class ServerConnectionShared {
@@ -72,17 +67,29 @@ public class ServerConnectionShared {
     return instance.addReference();
   }
 
-  private Bootstrap bootstrap;
+  private EventLoopGroup eventLoopGroup;
   private int count = 0;
 
-  Bootstrap getBootstrap() {
-    return bootstrap;
+  EventLoopGroup getEventLoopGroup(Class<? extends EventLoopGroup> type) {
+
+    if (eventLoopGroup != null) {
+      return type.cast(eventLoopGroup);
+    }
+
+    ThreadFactory threadFactory = new NamedThreadFactory("PG-JDBC I/O");
+
+    try {
+      Constructor<? extends EventLoopGroup> constructor = type.getConstructor(int.class, ThreadFactory.class);
+      eventLoopGroup = constructor.newInstance(0, threadFactory);
+    }
+    catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalArgumentException("Unsupported event loop group type: " + type.getSimpleName());
+    }
+
+    return eventLoopGroup;
   }
 
   private synchronized Ref addReference() {
-    if (count == 0) {
-      init();
-    }
     count++;
     return new Ref();
   }
@@ -97,29 +104,11 @@ public class ServerConnectionShared {
     }
   }
 
-  private void init() {
-
-    NioEventLoopGroup group = new NioEventLoopGroup(2, new NamedThreadFactory("PG-JDBC EventLoop"));
-
-    bootstrap = new Bootstrap()
-        .group(group)
-        .channel(NioSocketChannel.class)
-        .handler(new ChannelInitializer<SocketChannel>() {
-          @Override
-          protected void initChannel(SocketChannel ch) {
-            ch.pipeline().addLast(
-                new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 1, 4, -4, 0),
-                new MessageDispatchHandler()
-            );
-          }
-        })
-        .option(ChannelOption.TCP_NODELAY, true);
-
-  }
-
   private Future<?> shutdown() {
 
-    return bootstrap.config().group().shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
+    Future<?> res = eventLoopGroup.shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
+    eventLoopGroup = null;
+    return res;
   }
 
   @SuppressWarnings("deprecation")

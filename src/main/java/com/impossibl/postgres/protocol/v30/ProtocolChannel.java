@@ -15,8 +15,10 @@ import java.nio.charset.Charset;
 import java.util.Map;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOutboundInvoker;
 import io.netty.channel.ChannelPipeline;
 
 public class ProtocolChannel {
@@ -35,10 +37,18 @@ public class ProtocolChannel {
   private static final byte FUNCTION_CALL_MSG_ID = 'F';
 
   private Channel channel;
+  private ChannelOutboundInvoker flusher;
+  private ByteBufAllocator alloc;
   private Charset charset;
 
   public ProtocolChannel(Channel channel, Charset charset) {
+    this(channel, channel, charset);
+  }
+
+  public ProtocolChannel(Channel channel, ChannelOutboundInvoker flusher, Charset charset) {
     this.channel = channel;
+    this.flusher = flusher;
+    this.alloc = channel.alloc();
     this.charset = charset;
   }
 
@@ -47,13 +57,13 @@ public class ProtocolChannel {
   }
 
   ProtocolChannel flush() {
-    channel.flush();
+    flusher.flush();
     return this;
   }
 
   ProtocolChannel writeSSLRequest() {
 
-    ByteBuf msg = channel.alloc().buffer();
+    ByteBuf msg = alloc.buffer();
 
     msg.writeInt(8);
     msg.writeInt(80877103);
@@ -91,6 +101,26 @@ public class ProtocolChannel {
     writeCString(msg, password, charset);
 
     endMessage(msg);
+
+    return this;
+  }
+
+  ProtocolChannel writePassword(ByteBuf password) {
+
+    ByteBuf msg = beginMessage(PASSWORD_MSG_ID);
+
+    msg.writeBytes(password);
+
+    endMessage(msg);
+
+    return this;
+  }
+
+  ProtocolChannel writeSCM(byte code) {
+
+    ByteBuf msg = alloc.buffer(1);
+    msg.writeByte(code);
+    channel.write(msg);
 
     return this;
   }
@@ -237,7 +267,7 @@ public class ProtocolChannel {
 
   private void writeMessage(byte msgId) {
 
-    ByteBuf msg = channel.alloc().buffer(5);
+    ByteBuf msg = alloc.buffer(5);
 
     msg.writeByte(msgId);
     msg.writeInt(4);
@@ -247,7 +277,7 @@ public class ProtocolChannel {
 
   private ByteBuf beginMessage(byte msgId) {
 
-    ByteBuf msg = channel.alloc().buffer();
+    ByteBuf msg = alloc.buffer();
 
     if (msgId != 0)
       msg.writeByte(msgId);

@@ -71,7 +71,7 @@ public class BufferRowData extends DefaultByteBufHolder implements RowData, Refe
     for (int fieldIdx = 0; fieldIdx < fields.length; ++fieldIdx) {
 
       ResultField field = fields[fieldIdx];
-      Type fieldType = field.getTypeRef().getType();
+      Type fieldType = field.getTypeRef().getType(context);
       Object value = values[fieldIdx];
 
       fieldOffsets[fieldIdx] =
@@ -128,7 +128,7 @@ public class BufferRowData extends DefaultByteBufHolder implements RowData, Refe
     decodeFieldOffsetsIfNeeded();
 
     ByteBuf buffer = content();
-    Type type = field.getTypeRef().getType();
+    Type type = field.getTypeRef().getType(context);
     int offset = fieldOffsets[fieldIdx];
     int length = buffer.getInt(offset);
     if (length == -1) {

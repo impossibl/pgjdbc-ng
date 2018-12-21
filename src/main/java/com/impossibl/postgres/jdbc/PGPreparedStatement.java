@@ -239,7 +239,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         return handler;
       });
 
-      return new StatementDescription(result.getDescribedParameterTypes(), result.getDescribedResultFields());
+      return new StatementDescription(result.getDescribedParameterTypes(connection), result.getDescribedResultFields());
     });
 
     if (cachedDescription != null) {
@@ -286,13 +286,13 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         // Results are always described as "Text"... update them to our preferred format.
         ResultField[] describedResultFields = prep.getDescribedResultFields().clone();
         for (int idx = 0; idx < describedResultFields.length; ++idx) {
-          Type type = describedResultFields[idx].getTypeRef().getType();
+          Type type = describedResultFields[idx].getTypeRef().getType(connection);
           if (type != null) {
             describedResultFields[idx].setFormat(type.getResultFormat());
           }
         }
 
-        return new PreparedStatementDescription(name, prep.getDescribedParameterTypes(), describedResultFields);
+        return new PreparedStatementDescription(name, prep.getDescribedParameterTypes(connection), describedResultFields);
       });
 
       if (cachedStatement != null) {
@@ -409,7 +409,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
       RowDataSet generatedKeys = new RowDataSet();
 
-      if (!connection.autoCommit && connection.getServerConnection().getTransactionStatus() == TransactionStatus.Idle) {
+      if (!connection.autoCommit && connection.getTransactionStatus() == TransactionStatus.Idle) {
         connection.execute((long timeout) -> connection.getRequestExecutor().lazyExecute("TC"));
       }
 
@@ -437,7 +437,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
             warningChain = chainWarnings(warningChain, prep);
 
-            parameterTypes = prep.getDescribedParameterTypes();
+            parameterTypes = prep.getDescribedParameterTypes(connection);
             lastParameterTypes = parameterTypes;
             lastResultFields = prep.getDescribedResultFields();
           }

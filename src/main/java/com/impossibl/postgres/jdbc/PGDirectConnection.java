@@ -39,6 +39,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Settings;
@@ -92,6 +93,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -298,6 +300,22 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     }
   }
 
+  public TransactionStatus getTransactionStatus() throws SQLException {
+    try {
+      return serverConnection.getTransactionStatus();
+    }
+    catch (ClosedChannelException e) {
+      internalClose();
+
+      throw CLOSED_CONNECTION;
+    }
+    catch (IOException e) {
+      internalClose();
+
+      throw new PGSQLSimpleException(e);
+    }
+  }
+
   /**
    * Add warning to end of warning chain
    *
@@ -481,7 +499,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       throw new SQLTimeoutException(e);
     }
-    catch (InterruptedIOException e) {
+    catch (InterruptedIOException | ClosedChannelException e) {
 
       internalClose();
 
@@ -763,7 +781,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     // Commit any in-flight transaction (cannot call commit as it will start a
     // new transaction since we would still be in manual commit mode)
-    if (!this.autoCommit && serverConnection.getTransactionStatus() != Idle) {
+    if (!this.autoCommit && getTransactionStatus() != Idle) {
       execute(getCommitText());
     }
 
@@ -783,7 +801,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
 
-    if (serverConnection.getTransactionStatus() != Idle) {
+    if (getTransactionStatus() != Idle) {
       throw new SQLException("cannot set read only during a transaction");
     }
 
@@ -821,7 +839,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     checkManualCommit();
 
     // Commit the current transaction
-    if (serverConnection.getTransactionStatus() != Idle) {
+    if (getTransactionStatus() != Idle) {
       execute("@TC");
     }
 
@@ -833,7 +851,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     checkManualCommit();
 
     // Roll back the current transaction
-    if (serverConnection.getTransactionStatus() != Idle) {
+    if (getTransactionStatus() != Idle) {
       execute("@TR");
     }
 
@@ -880,7 +898,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     try {
       // Rollback to save-point (if in transaction)
-      if (serverConnection.getTransactionStatus() != Idle) {
+      if (getTransactionStatus() != Idle) {
 
         execute(getRollbackToText(savepoint));
 
@@ -906,7 +924,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     try {
       // Release the save-point (if in a transaction)
-      if (!savepoint.getReleased() && serverConnection.getTransactionStatus() != Idle) {
+      if (!savepoint.getReleased() && getTransactionStatus() != Idle) {
         execute(getReleaseSavepointText(savepoint));
       }
     }

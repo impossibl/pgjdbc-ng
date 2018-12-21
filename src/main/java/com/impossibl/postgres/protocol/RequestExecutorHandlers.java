@@ -1,5 +1,6 @@
 package com.impossibl.postgres.protocol;
 
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.TypeRef;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static io.netty.util.ReferenceCountUtil.retain;
@@ -85,13 +87,14 @@ public class RequestExecutorHandlers {
     private TypeRef[] describedParameterTypes;
     private ResultField[] describedResultFields;
 
-    public Type[] getDescribedParameterTypes() {
+    public TypeRef[] getDescribedParameterTypes() {
+      return describedParameterTypes;
+    }
+
+    public Type[] getDescribedParameterTypes(Context context) {
       checkCompleted();
 
-      Type[] types = new Type[describedParameterTypes.length];
-      for (int idx = 0; idx < types.length; ++idx)
-        types[idx] = describedParameterTypes[idx].getType();
-      return types;
+      return stream(describedParameterTypes).map(ref -> ref.getType(context)).toArray(Type[]::new);
     }
 
     public ResultField[] getDescribedResultFields() {

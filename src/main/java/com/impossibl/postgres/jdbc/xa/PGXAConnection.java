@@ -474,7 +474,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       // Check preconditions. The connection mustn't be used for another
       // other XA or local transaction, or the COMMIT PREPARED command
       // would mess it up.
-      if (state != STATE_IDLE || conn.getServerConnection().getTransactionStatus() != TransactionStatus.Idle)
+      if (state != STATE_IDLE || conn.getTransactionStatus() != TransactionStatus.Idle)
         throw new PGXAException("Not implemented: 2nd phase commit must be issued using an idle connection",
                                 XAException.XAER_RMERR);
 

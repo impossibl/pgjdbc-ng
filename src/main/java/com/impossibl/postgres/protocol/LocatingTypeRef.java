@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.TypeRef;
 
@@ -37,9 +37,9 @@ public class LocatingTypeRef implements TypeRef {
 
   private Object val;
 
-  public Type getType() {
+  public Type getType(Context context) {
     if (val instanceof Locator) {
-      val = ((Locator) val).locate();
+      val = ((Locator) val).locate(context);
     }
     return (Type) val;
   }
@@ -48,8 +48,8 @@ public class LocatingTypeRef implements TypeRef {
     this.val = val;
   }
 
-  public static LocatingTypeRef from(int typeId, Registry registry) {
-    return new LocatingTypeRef(new Locator(typeId, registry));
+  public static LocatingTypeRef from(int typeId) {
+    return new LocatingTypeRef(new Locator(typeId));
   }
 
   @Override
@@ -63,15 +63,13 @@ public class LocatingTypeRef implements TypeRef {
   static class Locator {
 
     private int typeId;
-    private Registry registry;
 
-    Locator(int typeId, Registry registry) {
+    Locator(int typeId) {
       this.typeId = typeId;
-      this.registry = registry;
     }
 
-    Type locate() {
-      return registry.loadType(typeId);
+    Type locate(Context context) {
+      return context.getRegistry().loadType(typeId);
     }
 
     @Override

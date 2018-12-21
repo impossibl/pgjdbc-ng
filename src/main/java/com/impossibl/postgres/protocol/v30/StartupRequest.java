@@ -35,12 +35,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.BackendKeyData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
-import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
-import com.impossibl.postgres.utils.MD5Authentication;
-
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,9 +43,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.netty.buffer.ByteBuf;
+
 public class StartupRequest implements ServerRequest {
 
   interface CompletionHandler {
+
+    String authenticateClear() throws IOException;
+    String authenticateMD5(byte[] salt) throws IOException;
+    void authenticateKerberos() throws IOException;
+    byte authenticateSCM() throws IOException;
+    ByteBuf authenticateGSS(ByteBuf data) throws IOException;
+    ByteBuf authenticateSSPI(ByteBuf data) throws IOException;
+    ByteBuf authenticateGSSorSSPIContinue(ByteBuf data) throws IOException;
 
     void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) throws IOException;
     void handleError(Throwable cause, List<Notice> notices) throws IOException;
@@ -97,25 +102,76 @@ public class StartupRequest implements ServerRequest {
     }
 
     @Override
-    public void authenticateClear(Context context, ProtocolChannel channel) {
+    public void authenticateClear(ProtocolChannel channel) throws IOException {
+
+      String password = handler.authenticateClear();
 
       channel
-          .writePassword(context.getSetting(CREDENTIALS_PASSWORD, ""))
+          .writePassword(password)
           .flush();
 
     }
 
     @Override
-    public void authenticateMD5(Context context, byte[] salt, ProtocolChannel channel) {
+    public void authenticateMD5(byte[] salt, ProtocolChannel channel) throws IOException {
 
-      String username = context.getSetting(CREDENTIALS_USERNAME).toString();
-      String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
-
-      String response = MD5Authentication.encode(password, username, salt);
+      String response = handler.authenticateMD5(salt);
 
       channel
           .writePassword(response)
           .flush();
+    }
+
+    @Override
+    public void authenticateKerberos(ProtocolChannel channel) throws IOException {
+      handler.authenticateKerberos();
+    }
+
+    @Override
+    public void authenticateSCM(ProtocolChannel channel) throws IOException {
+
+      byte response = handler.authenticateSCM();
+
+      channel
+          .writeSCM(response)
+          .flush();
+
+    }
+
+    @Override
+    public void authenticateGSS(ByteBuf data, ProtocolChannel channel) throws IOException {
+
+      data = handler.authenticateGSS(data);
+
+      channel
+          .writePassword(data)
+          .flush();
+
+      data.release();
+    }
+
+    @Override
+    public void authenticateSSPI(ByteBuf data, ProtocolChannel channel) throws IOException {
+
+      data = handler.authenticateGSS(data);
+
+      channel
+          .writePassword(data)
+          .flush();
+
+      data.release();
+    }
+
+    @Override
+    public void authenticateContinue(ByteBuf data, ProtocolChannel channel) throws IOException {
+
+      data = handler.authenticateGSS(data);
+
+      channel
+          .writePassword(data)
+          .flush();
+
+      data.release();
     }
 
     @Override
