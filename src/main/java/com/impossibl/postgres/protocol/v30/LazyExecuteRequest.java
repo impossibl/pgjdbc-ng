@@ -1,9 +1,11 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BindComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 
 import static com.impossibl.postgres.protocol.FieldFormats.REQUEST_ALL_TEXT;
@@ -28,7 +30,7 @@ public class LazyExecuteRequest implements ServerRequest {
     this.txnStatementName = txnStatementName;
   }
 
-  class Handler implements BindComplete, CommandComplete, CommandError, ReportNotice {
+  class Handler implements BindComplete, CommandComplete, CommandError, ReportNotice, ReadyForQuery {
 
     @Override
     public String toString() {
@@ -42,19 +44,24 @@ public class LazyExecuteRequest implements ServerRequest {
 
     @Override
     public Action commandComplete(String command, Long rowsAffected, Long insertedOid) {
-      return Action.Complete;
+      return Action.Resume;
     }
 
     @Override
     public Action error(Notice notice) {
       // Pass error to next handler, cause it to believe an error occurred in its command
-      return Action.CompletePassing;
+      return Action.ResumePassing;
     }
 
     @Override
     public Action notice(Notice notice) {
       // Pass any notices to the next handler, still need to wait for command complete.
       return Action.ResumePassing;
+    }
+
+    @Override
+    public Action readyForQuery(TransactionStatus txnStatus) {
+      return Action.Complete;
     }
 
     @Override
@@ -73,7 +80,8 @@ public class LazyExecuteRequest implements ServerRequest {
 
     channel
         .writeBind(null, txnStatementName, EMPTY_FORMATS, EMPTY_BUFFERS, REQUEST_ALL_TEXT)
-        .writeExecute(null, 0);
+        .writeExecute(null, 0)
+        .writeSync();
 
   }
 
