@@ -168,10 +168,6 @@ public class BasicContext extends AbstractContext {
     return serverConnection.getAllocator();
   }
 
-  public ServerConnection getServerConnection() {
-    return serverConnection;
-  }
-
   @Override
   public Registry getRegistry() {
     return registry;
