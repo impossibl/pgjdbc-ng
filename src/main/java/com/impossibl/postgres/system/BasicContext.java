@@ -85,6 +85,7 @@ import static java.util.logging.Level.WARNING;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.channel.ChannelFuture;
 
 
 public class BasicContext extends AbstractContext {
@@ -155,8 +156,8 @@ public class BasicContext extends AbstractContext {
     this.utilQueries = new HashMap<>();
   }
 
-  protected void shutdown() {
-    serverConnection.shutdown().syncUninterruptibly();
+  protected ChannelFuture shutdown() {
+    return serverConnection.shutdown();
   }
 
   public Version getServerVersion() {

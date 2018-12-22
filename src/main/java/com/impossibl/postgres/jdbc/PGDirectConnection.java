@@ -682,9 +682,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     closeStatements();
 
-    shutdown();
-
     notificationListeners.clear();
+
+    shutdown().awaitUninterruptibly(networkTimeout > 0 ? networkTimeout : Integer.MAX_VALUE);
 
     if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
