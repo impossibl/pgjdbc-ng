@@ -58,7 +58,7 @@ import io.netty.buffer.ByteBuf;
 public class PreparedQuery implements Query {
 
   private String statementName;
-  private FieldFormatRef[] parameterFormatRefs;
+  private FieldFormatRef[] parameterFormats;
   private ByteBuf[] parameterBuffers;
   private ResultField[] resultFields;
   private String portalName;
@@ -67,9 +67,9 @@ public class PreparedQuery implements Query {
   private int maxRows;
   private ResultBatch resultBatch;
 
-  PreparedQuery(String statementName, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, ResultField[] resultFields) {
+  PreparedQuery(String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, ResultField[] resultFields) {
     this.statementName = statementName;
-    this.parameterFormatRefs = parameterFormatRefs;
+    this.parameterFormats = parameterFormats;
     this.parameterBuffers = parameterBuffers;
     this.resultFields = resultFields;
     this.status = Status.Initialized;
@@ -115,7 +115,7 @@ public class PreparedQuery implements Query {
 
     ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
       ExecuteResult handler = new ExecuteResult(!requiresPortal(), resultFields);
-      connection.getRequestExecutor().execute(portalName, statementName, parameterFormatRefs, parameterBuffers, resultFields, maxRows, handler);
+      connection.getRequestExecutor().execute(portalName, statementName, parameterFormats, parameterBuffers, resultFields, maxRows, handler);
       handler.await(timeout, MILLISECONDS);
       return handler;
     });

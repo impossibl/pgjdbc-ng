@@ -26,19 +26,50 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004-2011, PostgreSQL Global Development Group
- *
- *
- *-------------------------------------------------------------------------
- */
-package com.impossibl.postgres.types;
+package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.system.Context;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-public interface TypeRef {
 
-  Type getType(Context context);
+public class TypeOid implements TypeRef {
+
+  public static final TypeOid INVALID = new TypeOid(0);
+
+  private static final AtomicReferenceArray<TypeOid> fastCachedOids = new AtomicReferenceArray<>(4096);
+
+  public static TypeOid valueOf(int oid) {
+    // Craziness is to reduce garbage creation for frequently used types
+    if (oid < fastCachedOids.length()) {
+      if (fastCachedOids.compareAndSet(oid, null, INVALID)) {
+        // Was null, is now INVALID, set to correct value
+        TypeOid toid = new TypeOid(oid);
+        fastCachedOids.set(oid, toid);
+        return toid;
+      }
+      TypeOid toid = fastCachedOids.get(oid);
+      if (toid == INVALID) {
+        // Another thread is current creating it... just create garbage...
+        toid = new TypeOid(oid);
+      }
+      return toid;
+    }
+    return new TypeOid(oid);
+  }
+
+  private int oid;
+
+  private TypeOid(int oid) {
+    this.oid = oid;
+  }
+
+  @Override
+  public int getOid() {
+    return oid;
+  }
+
+  @Override
+  public String toString() {
+    return "->" + oid;
+  }
 
 }

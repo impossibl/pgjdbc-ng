@@ -29,11 +29,11 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.LocatingTypeRef;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.types.TypeRef;
+import com.impossibl.postgres.protocol.TypeOid;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
@@ -498,7 +498,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
     for (int c = 0; c < paramCount; ++c) {
 
-      paramTypes[c] = LocatingTypeRef.from(buffer.readInt());
+      paramTypes[c] = TypeOid.valueOf(buffer.readInt());
     }
 
     return handler.parameterDescriptions(paramTypes);
@@ -515,7 +515,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
       ResultField field = new ResultField(readCString(buffer, charset),
           buffer.readInt(),
           (short) buffer.readUnsignedShort(),
-          LocatingTypeRef.from(buffer.readInt()),
+          TypeOid.valueOf(buffer.readInt()),
           buffer.readShort(),
           buffer.readInt(),
           FieldFormat.values()[buffer.readUnsignedShort()]);

@@ -617,7 +617,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     try (ResultBatch resultBatch = executeForResultBatch(sql, params)) {
 
       try {
-        return resultBatch.getRow(0).getField(0, this, returnType);
+        Object value = resultBatch.borrowRows().borrow(0).getField(0, resultBatch.getFields()[0], this, returnType, null);
+        return returnType.cast(value);
       }
       catch (IOException e) {
         throw new SQLException("Error decoding column", e);

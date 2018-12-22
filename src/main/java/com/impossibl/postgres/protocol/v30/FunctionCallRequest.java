@@ -45,14 +45,14 @@ import io.netty.buffer.ByteBuf;
 public class FunctionCallRequest implements ServerRequest {
 
   private int functionId;
-  private FieldFormatRef[] parameterFormatRefs;
+  private FieldFormatRef[] parameterFormats;
   private ByteBuf[] parameterBuffers;
   private FunctionCallHandler handler;
   private List<Notice> notices;
 
-  public FunctionCallRequest(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, FunctionCallHandler handler) {
+  public FunctionCallRequest(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FunctionCallHandler handler) {
     this.functionId = functionId;
-    this.parameterFormatRefs = parameterFormatRefs;
+    this.parameterFormats = parameterFormats;
     this.parameterBuffers = parameterBuffers;
     this.handler = handler;
     this.notices = new ArrayList<>();
@@ -99,7 +99,7 @@ public class FunctionCallRequest implements ServerRequest {
   public void execute(ProtocolChannel channel) throws IOException {
 
     channel
-        .writeFunctionCall(functionId, parameterFormatRefs, parameterBuffers)
+        .writeFunctionCall(functionId, parameterFormats, parameterBuffers)
         .flush();
 
   }

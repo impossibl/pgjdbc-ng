@@ -39,7 +39,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.TypeRef;
+import com.impossibl.postgres.protocol.TypeRef;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
@@ -52,12 +52,12 @@ public class PrepareRequest implements ServerRequest {
 
   private String query;
   private String statementName;
-  private Type[] suggestedParameterTypes;
+  private TypeRef[] suggestedParameterTypes;
   private PrepareHandler handler;
   private TypeRef[] describedParameterTypes;
   private List<Notice> notices;
 
-  PrepareRequest(String statementName, String query, Type[] suggestedParameterTypes, PrepareHandler handler) {
+  PrepareRequest(String statementName, String query, TypeRef[] suggestedParameterTypes, PrepareHandler handler) {
     this.statementName = statementName;
     this.query = query;
     this.suggestedParameterTypes = suggestedParameterTypes;

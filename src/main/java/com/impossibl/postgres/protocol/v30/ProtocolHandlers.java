@@ -52,7 +52,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
-import com.impossibl.postgres.types.TypeRef;
+import com.impossibl.postgres.protocol.TypeRef;
 
 import io.netty.buffer.ByteBuf;
 

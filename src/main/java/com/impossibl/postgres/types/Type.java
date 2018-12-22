@@ -29,6 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -207,8 +208,8 @@ public abstract class Type implements TypeRef {
   }
 
   @Override
-  public Type getType(Context context) {
-    return this;
+  public int getOid() {
+    return id;
   }
 
   public int getId() {

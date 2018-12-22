@@ -38,7 +38,6 @@ package com.impossibl.postgres.protocol;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.TypeRef;
 import com.impossibl.postgres.utils.Await;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
@@ -134,7 +133,7 @@ public class RequestExecutorHandlers {
     public Type[] getDescribedParameterTypes(Context context) {
       checkCompleted();
 
-      return stream(describedParameterTypes).map(ref -> ref.getType(context)).toArray(Type[]::new);
+      return stream(describedParameterTypes).map(ref -> context.getRegistry().loadType(ref)).toArray(Type[]::new);
     }
 
     public ResultField[] getDescribedResultFields() {

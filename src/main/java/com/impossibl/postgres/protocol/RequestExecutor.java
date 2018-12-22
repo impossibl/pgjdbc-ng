@@ -28,9 +28,6 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.TypeRef;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -204,7 +201,7 @@ public interface RequestExecutor {
    *                callback.
    * @throws IOException If an error occurs submitting the request.
    */
-  void prepare(String statementName, String sqlText, Type[] parameterTypes, PrepareHandler handler) throws IOException;
+  void prepare(String statementName, String sqlText, TypeRef[] parameterTypes, PrepareHandler handler) throws IOException;
 
 
   /*****

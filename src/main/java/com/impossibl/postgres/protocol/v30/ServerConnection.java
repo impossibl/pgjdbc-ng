@@ -39,8 +39,8 @@ import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
@@ -168,13 +168,13 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void prepare(String statementName, String sqlText, Type[] parameterTypes, RequestExecutor.PrepareHandler handler) {
+  public void prepare(String statementName, String sqlText, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) {
     submit(new PrepareRequest(statementName, sqlText, parameterTypes, handler));
   }
 
   @Override
-  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs, int maxRows, ExecuteHandler handler) {
-    submit(new ExecuteStatementRequest(statementName, portalName, parameterFormats, parameterBuffers, resultFieldFormatRefs, maxRows, handler));
+  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) {
+    submit(new ExecuteStatementRequest(statementName, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler));
   }
 
   @Override
@@ -193,8 +193,8 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void call(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
-    submit(new FunctionCallRequest(functionId, parameterFormatRefs, parameterBuffers, handler));
+  public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
+    submit(new FunctionCallRequest(functionId, parameterFormats, parameterBuffers, handler));
   }
 
   @Override

@@ -26,57 +26,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.TypeRef;
+public interface TypeRef {
 
-
-public class LocatingTypeRef implements TypeRef {
-
-  private Object val;
-
-  public Type getType(Context context) {
-    if (val instanceof Locator) {
-      val = ((Locator) val).locate(context);
-    }
-    return (Type) val;
-  }
-
-  private LocatingTypeRef(Object val) {
-    this.val = val;
-  }
-
-  public static LocatingTypeRef from(int typeId) {
-    return new LocatingTypeRef(new Locator(typeId));
-  }
-
-  @Override
-  public String toString() {
-    if (val instanceof Locator) {
-      return "->" + val.toString();
-    }
-    return val.toString();
-  }
-
-  static class Locator {
-
-    private int typeId;
-
-    Locator(int typeId) {
-      this.typeId = typeId;
-    }
-
-    Type locate(Context context) {
-      return context.getRegistry().loadType(typeId);
-    }
-
-    @Override
-    public String toString() {
-      return Integer.toString(typeId);
-    }
-
-  }
+  int getOid();
 
 }

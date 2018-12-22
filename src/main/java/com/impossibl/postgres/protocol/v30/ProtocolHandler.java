@@ -38,7 +38,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
-import com.impossibl.postgres.types.TypeRef;
+import com.impossibl.postgres.protocol.TypeRef;
 
 import java.io.IOException;
 import java.util.List;

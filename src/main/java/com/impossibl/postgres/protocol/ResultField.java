@@ -29,7 +29,6 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.types.TypeRef;
 
 public class ResultField implements FieldFormatRef {
 
@@ -75,6 +74,10 @@ public class ResultField implements FieldFormatRef {
 
   public TypeRef getTypeRef() {
     return typeRef;
+  }
+
+  public void setTypeRef(TypeRef typeRef) {
+    this.typeRef = typeRef;
   }
 
   public short getTypeLength() {

@@ -38,7 +38,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.ServerObjectType;
-import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.protocol.TypeRef;
 
 import static com.impossibl.postgres.protocol.FieldFormat.Text;
 import static com.impossibl.postgres.utils.ByteBufs.lengthEncode;
@@ -171,7 +171,7 @@ public class ProtocolChannel {
     return this;
   }
 
-  ProtocolChannel writeParse(String stmtName, String query, Type[] paramTypes) {
+  ProtocolChannel writeParse(String stmtName, String query, TypeRef[] paramTypes) {
 
     ByteBuf msg = beginMessage(PARSE_MSG_ID);
 
@@ -179,8 +179,8 @@ public class ProtocolChannel {
     writeCString(msg, query, charset);
 
     msg.writeShort(paramTypes.length);
-    for (Type paramType : paramTypes) {
-      int paramTypeOid = paramType != null ? paramType.getId() : 0;
+    for (TypeRef paramType : paramTypes) {
+      int paramTypeOid = paramType != null ? paramType.getOid() : 0;
       msg.writeInt(paramTypeOid);
     }
 
@@ -193,7 +193,7 @@ public class ProtocolChannel {
     return fieldFormats.length == 1 && fieldFormats[0].getFormat() == Text;
   }
 
-  ProtocolChannel writeBind(String portalName, String stmtName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs) throws IOException {
+  ProtocolChannel writeBind(String portalName, String stmtName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats) throws IOException {
 
     byte[] portalNameBytes = nullToEmpty(portalName).getBytes(charset);
     byte[] stmtNameBytes = nullToEmpty(stmtName).getBytes(charset);
@@ -206,19 +206,19 @@ public class ProtocolChannel {
     loadParams(msg, parameterFormats, parameterBuffers);
 
     //Set format for results fields
-    if (resultFieldFormatRefs == null || resultFieldFormatRefs.length == 0) {
+    if (resultFieldFormats == null || resultFieldFormats.length == 0) {
       //Request all binary
       msg.writeShort(1);
       msg.writeShort(1);
     }
-    else if (isAllText(resultFieldFormatRefs)) {
+    else if (isAllText(resultFieldFormats)) {
       //Shortcut to all text
       msg.writeShort(0);
     }
-    else if (!isAllText(resultFieldFormatRefs)) {
+    else if (!isAllText(resultFieldFormats)) {
       //Select result format for each
-      msg.writeShort(resultFieldFormatRefs.length);
-      for (FieldFormatRef formatRef : resultFieldFormatRefs) {
+      msg.writeShort(resultFieldFormats.length);
+      for (FieldFormatRef formatRef : resultFieldFormats) {
         msg.writeShort(formatRef.getFormat().ordinal());
       }
     }
@@ -252,13 +252,13 @@ public class ProtocolChannel {
     return this;
   }
 
-  ProtocolChannel writeFunctionCall(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers) throws IOException {
+  ProtocolChannel writeFunctionCall(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers) throws IOException {
 
     ByteBuf msg = beginMessage(FUNCTION_CALL_MSG_ID);
 
     msg.writeInt(functionId);
 
-    loadParams(msg, parameterFormatRefs, parameterBuffers);
+    loadParams(msg, parameterFormats, parameterBuffers);
 
     msg.writeShort(1);
 
@@ -339,16 +339,16 @@ public class ProtocolChannel {
     channel.write(msg, channel.voidPromise());
   }
 
-  private void loadParams(ByteBuf msg, FieldFormatRef[] fieldFormatRefs, ByteBuf[] paramBuffers) throws IOException {
+  private void loadParams(ByteBuf msg, FieldFormatRef[] fieldFormats, ByteBuf[] paramBuffers) throws IOException {
 
     // Select format for parameters
-    if (fieldFormatRefs == null) {
+    if (fieldFormats == null) {
       msg.writeShort(1);
       msg.writeShort(1);
     }
     else {
-      msg.writeShort(fieldFormatRefs.length);
-      for (FieldFormatRef paramFormatRef : fieldFormatRefs) {
+      msg.writeShort(fieldFormats.length);
+      for (FieldFormatRef paramFormatRef : fieldFormats) {
         paramFormatRef = paramFormatRef != null ? paramFormatRef : FieldFormat.Text;
         msg.writeShort(paramFormatRef.getFormat().ordinal());
       }

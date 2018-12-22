@@ -285,10 +285,10 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         // Results are always described as "Text"... update them to our preferred format.
         ResultField[] describedResultFields = prep.getDescribedResultFields().clone();
-        for (int idx = 0; idx < describedResultFields.length; ++idx) {
-          Type type = describedResultFields[idx].getTypeRef().getType(connection);
+        for (ResultField describedResultField : describedResultFields) {
+          Type type = connection.getRegistry().loadType(describedResultField.getTypeRef());
           if (type != null) {
-            describedResultFields[idx].setFormat(type.getResultFormat());
+            describedResultField.setFormat(type.getResultFormat());
           }
         }
 

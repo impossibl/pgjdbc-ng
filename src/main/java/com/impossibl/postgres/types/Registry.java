@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -119,6 +120,13 @@ public class Registry {
 
   public Context getContext() {
     return context.get();
+  }
+
+  public Type loadType(TypeRef typeRef) {
+    if (typeRef instanceof Type) {
+      return (Type) typeRef;
+    }
+    return loadType(typeRef.getOid());
   }
 
   /**
