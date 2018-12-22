@@ -35,65 +35,14 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.system.Context;
-
 import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
-
-import static java.util.Collections.emptyIterator;
 
 import io.netty.util.AbstractReferenceCounted;
-import io.netty.util.ReferenceCountUtil;
 
-public class ResultBatch extends AbstractReferenceCounted implements Iterable<ResultBatch.Row>, AutoCloseable {
-
-  public static class Row {
-
-    private ResultField[] fields;
-    private RowData rowData;
-
-    private Row(ResultField[] fields, RowData rowData) {
-      this.fields = fields;
-      this.rowData = rowData;
-    }
-
-    public RowData getData() {
-      return rowData;
-    }
-
-    public Object getField(int fieldIndex, Context context, Class<?> targetClass, Object targetContext) throws IOException {
-      return rowData.getField(fieldIndex, fields[fieldIndex], context, targetClass, targetContext);
-    }
-
-    public <T> T getField(int fieldIndex, Context context, Class<T> targetClass) throws IOException {
-      return targetClass.cast(getField(fieldIndex, context, targetClass, null));
-    }
-
-  }
-
-  private class RowIterator implements Iterator<Row> {
-
-    private Iterator<RowData> resultsIterator;
-
-    private RowIterator(Iterator<RowData> resultsIterator) {
-      this.resultsIterator = resultsIterator;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return resultsIterator.hasNext();
-    }
-
-    @Override
-    public Row next() {
-      return new Row(fields, resultsIterator.next());
-    }
-
-  }
+public class ResultBatch extends AbstractReferenceCounted implements AutoCloseable {
 
   private String command;
   private Long rowsAffected;
@@ -153,15 +102,6 @@ public class ResultBatch extends AbstractReferenceCounted implements Iterable<Re
     this.rowsAffected = null;
   }
 
-  public void clearRows() {
-    ReferenceCountUtil.release(takeRows());
-    fields = EMPTY_FIELDS;
-  }
-
-  public Row getRow(int rowIndex) {
-    return new Row(fields, rows.borrow(rowIndex));
-  }
-
   @Override
   protected void deallocate() {
     if (rows != null) {
@@ -174,12 +114,6 @@ public class ResultBatch extends AbstractReferenceCounted implements Iterable<Re
       rows.touch(hint);
     }
     return this;
-  }
-
-  @Override
-  public Iterator<Row> iterator() {
-    if (rows == null) return emptyIterator();
-    return new RowIterator(rows.borrowAll().iterator());
   }
 
   @Override

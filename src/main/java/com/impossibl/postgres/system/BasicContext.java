@@ -40,6 +40,7 @@ import com.impossibl.postgres.protocol.RequestExecutorHandlers.PrepareResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerConnectionFactory;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -258,9 +259,9 @@ public class BasicContext extends AbstractContext {
     try (ResultBatch resultBatch =
         queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", INTERNAL_QUERY_TIMEOUT)) {
 
-      for (ResultBatch.Row row : resultBatch) {
+      for (RowData rowData : resultBatch.borrowRows().borrowAll()) {
 
-        String localeSpec = row.getField(1, this, String.class);
+        String localeSpec = rowData.getField(1, resultBatch.getFields()[1], this, String.class, null).toString();
 
         switch (localeSpec.toUpperCase(Locale.US)) {
           case "C":
@@ -273,7 +274,8 @@ public class BasicContext extends AbstractContext {
 
         String[] localeIds = localeSpec.split("[_.]");
 
-        switch (row.getField(0, this, String.class)) {
+        String name = rowData.getField(0, resultBatch.getFields()[1], this, String.class, null).toString();
+        switch (name) {
           case "lc_numeric":
 
             Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
@@ -503,7 +505,8 @@ public class BasicContext extends AbstractContext {
   protected String queryString(String queryTxt, long timeout) throws IOException, NoticeException {
 
     try (ResultBatch resultBatch = queryBatch(queryTxt, timeout)) {
-      String val = resultBatch.getRow(0).getField(0, this, String.class);
+      String val = resultBatch.borrowRows().borrow(0)
+          .getField(0, resultBatch.getFields()[0], this, String.class, null).toString();
       return nullToEmpty(val);
     }
 

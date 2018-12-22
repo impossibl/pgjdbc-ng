@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.tables;
 
 import com.impossibl.postgres.protocol.ResultBatch;
+import com.impossibl.postgres.protocol.ResultFields;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
@@ -71,9 +72,13 @@ public class Tables {
   }
 
   public static <R extends Table.Row, T extends Table<R>> List<R> convertRows(Context context, T table, ResultBatch results) throws IOException {
-    List<R> rows = new ArrayList<>(results.borrowRows().size());
-    for (ResultBatch.Row row : results) {
-      rows.add(table.createRow(context, row));
+    // Cache looked up types...
+    ResultFields.transformTypes(results.getFields(), context.getRegistry()::loadType);
+
+    int rowCount = results.borrowRows().size();
+    List<R> rows = new ArrayList<>(rowCount);
+    for (int rowIdx = 0; rowIdx < rowCount; ++rowIdx) {
+      rows.add(table.createRow(context, results, rowIdx));
     }
     return rows;
   }

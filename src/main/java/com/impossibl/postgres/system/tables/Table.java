@@ -62,13 +62,17 @@ public interface Table<R extends Table.Row> {
    *
    * @return An instance of the table's row type
    */
-  R createRow(Context context, ResultBatch.Row rowData) throws IOException;
+  R createRow(Context context, ResultBatch resultBatch, int rowIdx) throws IOException;
 
 
   interface Row {
 
-    void load(Context context, ResultBatch.Row rowData) throws IOException;
+    void load(Context context, ResultBatch resultBatch, int rowIdx) throws IOException;
 
+  }
+
+  static <T> T getFieldOfRow(ResultBatch resultBatch, int rowIdx, int fieldIdx, Context context, Class<T> targetType) throws IOException {
+    return targetType.cast(resultBatch.borrowRows().borrow(rowIdx).getField(fieldIdx, resultBatch.getFields()[fieldIdx], context, targetType, null));
   }
 
 }
