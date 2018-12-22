@@ -1264,6 +1264,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     if (isClosed())
       return;
 
+    // Save socket address (as shutdown might erase it)
+    SocketAddress serverAddress = serverConnection.getRemoteAddress();
+
     //Shutdown socket (also guarantees no more commands begin execution)
     shutdown();
 
@@ -1271,7 +1274,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     //is a convenience to the server as the abort does not depend on its
     //success to complete properly
 
-    executor.execute(new CancelRequestTask(serverConnection.getRemoteAddress(), getKeyData()));
+    executor.execute(new CancelRequestTask(serverAddress, getKeyData()));
 
     if (housekeeper != null)
       housekeeper.remove(cleanupKey);
