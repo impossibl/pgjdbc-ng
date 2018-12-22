@@ -46,7 +46,6 @@ import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
-import com.impossibl.postgres.utils.QueryTimeoutException;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
@@ -486,11 +485,6 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       }
 
       return function.query(networkTimeout);
-
-    }
-    catch (QueryTimeoutException e) {
-
-      throw new SQLTimeoutException(e);
 
     }
     catch (BlockingReadTimeoutException e) {
