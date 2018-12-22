@@ -35,8 +35,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.ServerConnection;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

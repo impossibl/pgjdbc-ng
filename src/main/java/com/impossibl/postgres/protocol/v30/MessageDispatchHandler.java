@@ -255,7 +255,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   }
 
   // Backend messages
-  static private final byte NEGOTIATE_PROTOCOL_VERSION_ID = 'B';
+  private static final byte NEGOTIATE_PROTOCOL_VERSION_ID = 'B';
   private static final byte AUTHENTICATION_MSG_ID = 'R';
   private static final byte BACKEND_KEY_MSG_ID = 'K';
   private static final byte PARAMETER_STATUS_MSG_ID = 'S';
