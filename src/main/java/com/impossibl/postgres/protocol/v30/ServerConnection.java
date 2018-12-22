@@ -83,7 +83,6 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   @Override
   public ChannelFuture shutdown() {
 
-    //Ensure only one thread can ever succeed in calling shutdown
     if (!channel.isActive()) {
       return channel.pipeline().newSucceededFuture();
     }
@@ -96,22 +95,15 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
       new ProtocolChannel(channel, StandardCharsets.UTF_8)
           .writeTerminate()
           .addListener(terminated -> {
-            if (terminated.cause() != null) {
-              promise.setFailure(terminated.cause());
-              // Kill anyway (but don't wait)
-              kill();
-            }
-            else {
-              // Now kill & wait...
-              kill().addListener(killed -> {
-                if (killed.cause() != null) {
-                  promise.setFailure(killed.cause());
-                }
-                else {
-                  promise.setSuccess();
-                }
-              });
-            }
+            // Now kill & wait...
+            kill().addListener(killed -> {
+              if (killed.cause() != null) {
+                promise.setFailure(killed.cause());
+              }
+              else {
+                promise.setSuccess();
+              }
+            });
           });
       return promise;
     }
@@ -124,7 +116,10 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   @Override
   public ChannelFuture kill() {
 
-    sharedRef.release();
+    if (sharedRef != null) {
+      sharedRef.release();
+      sharedRef = null;
+    }
 
     return channel.close();
   }
