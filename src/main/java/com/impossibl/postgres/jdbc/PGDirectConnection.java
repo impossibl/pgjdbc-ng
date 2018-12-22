@@ -134,6 +134,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 
 
 /**
@@ -1268,13 +1269,15 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     SocketAddress serverAddress = serverConnection.getRemoteAddress();
 
     //Shutdown socket (also guarantees no more commands begin execution)
-    shutdown();
+    ChannelFuture shutdown = shutdown();
 
     //Issue cancel request from separate socket (per Postgres protocol). This
     //is a convenience to the server as the abort does not depend on its
     //success to complete properly
 
     executor.execute(new CancelRequestTask(serverAddress, getKeyData()));
+
+    shutdown.syncUninterruptibly();
 
     if (housekeeper != null)
       housekeeper.remove(cleanupKey);
