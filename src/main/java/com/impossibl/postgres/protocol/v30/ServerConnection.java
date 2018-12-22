@@ -57,7 +57,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelOption;
 
 
@@ -94,18 +93,18 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     try {
       return new ProtocolChannel(channel, StandardCharsets.UTF_8)
           .writeTerminate()
-          .addListener(ChannelFutureListener.CLOSE);
+          .addListener(future -> kill());
     }
     catch (Exception ignore) {
     }
-
-    sharedRef.release();
 
     return kill();
   }
 
   @Override
   public ChannelFuture kill() {
+
+    sharedRef.release();
 
     return channel.close();
   }
