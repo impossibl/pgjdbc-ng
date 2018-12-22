@@ -2168,7 +2168,6 @@ class CursorScroller extends Scroller {
   @Override
   void close() throws SQLException {
 
-    cancel();
     setResult(null);
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
