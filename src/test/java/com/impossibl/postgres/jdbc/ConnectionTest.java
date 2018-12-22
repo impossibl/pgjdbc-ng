@@ -44,7 +44,6 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
 import org.junit.After;
 import org.junit.Before;
@@ -368,7 +367,7 @@ public class ConnectionTest {
   @Test
   public void testKillConnection() throws Exception {
 
-    int networkTimeout = 60000;
+    int networkTimeout = 30000;
     Connection con = TestUtil.openDB();
     con.setNetworkTimeout(null, networkTimeout + 20);
     con.setAutoCommit(false);
@@ -432,13 +431,12 @@ public class ConnectionTest {
 
           try (Statement stmt = con.createStatement()) {
 
-            stmt.execute("SELECT pg_sleep(10);");
-
+            stmt.execute("SELECT pg_sleep(30);");
+            fail("Query should have been aborted");
           }
 
         }
         catch (SQLException e) {
-          // Ignore
         }
 
       }
@@ -447,21 +445,13 @@ public class ConnectionTest {
 
     queryThread.start();
 
-    Executor executor = new Executor() {
-
-      @Override
-      public void execute(Runnable command) {
-        command.run();
-      }
-    };
-
     long start = System.currentTimeMillis();
 
-    con.abort(executor);
+    con.abort(Runnable::run);
 
     queryThread.join();
 
-    assertTrue(System.currentTimeMillis() - start < 10000);
+    assertTrue(System.currentTimeMillis() - start < 30000);
     assertTrue(con.isClosed());
 
   }
