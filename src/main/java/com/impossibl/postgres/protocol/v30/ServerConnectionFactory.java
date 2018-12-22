@@ -58,6 +58,8 @@ import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE;
 import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS_DEFAULT;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
@@ -257,17 +259,20 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     Class<? extends SocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
+    int maxThreads;
 
     String ioMode = context.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
     switch (ioMode) {
       case "oio":
         channelType = OioSocketChannel.class;
         groupType = OioEventLoopGroup.class;
+        maxThreads = 0;
         break;
 
       case "nio":
         channelType = NioSocketChannel.class;
         groupType = NioEventLoopGroup.class;
+        maxThreads = context.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
         break;
 
       default:
@@ -275,7 +280,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     }
 
     Bootstrap bootstrap = new Bootstrap()
-            .group(sharedRef.get().getEventLoopGroup(groupType))
+            .group(sharedRef.get().getEventLoopGroup(groupType, maxThreads))
             .channel(channelType)
             .handler(new ChannelInitializer<SocketChannel>() {
               @Override

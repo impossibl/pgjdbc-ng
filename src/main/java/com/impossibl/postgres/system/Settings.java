@@ -122,4 +122,7 @@ public class Settings {
   public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
   public static final String PROTOCOL_SOCKET_IO_DEFAULT = "nio";
 
+  public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
+  public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;
+
 }

@@ -70,7 +70,7 @@ public class ServerConnectionShared {
   private EventLoopGroup eventLoopGroup;
   private int count = 0;
 
-  EventLoopGroup getEventLoopGroup(Class<? extends EventLoopGroup> type) {
+  EventLoopGroup getEventLoopGroup(Class<? extends EventLoopGroup> type, int maxThreads) {
 
     if (eventLoopGroup != null) {
       return type.cast(eventLoopGroup);
@@ -80,7 +80,7 @@ public class ServerConnectionShared {
 
     try {
       Constructor<? extends EventLoopGroup> constructor = type.getConstructor(int.class, ThreadFactory.class);
-      eventLoopGroup = constructor.newInstance(0, threadFactory);
+      eventLoopGroup = constructor.newInstance(maxThreads, threadFactory);
     }
     catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
       throw new IllegalArgumentException("Unsupported event loop group type: " + type.getSimpleName());
