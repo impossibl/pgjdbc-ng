@@ -421,6 +421,7 @@ public class ConnectionTest {
   public void testAbort() throws Exception {
 
     con = TestUtil.openDB();
+    con.setNetworkTimeout(null, 40000);
 
     Thread queryThread = new Thread() {
 
