@@ -250,8 +250,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   void parseIfNeeded() throws SQLException {
 
-    if (cursorName != null && query != null) {
-      super.executeDirect("CLOSE " + cursorName);
+    if (query != null) {
+      closeCursor(connection, cursorName);
     }
 
     if (!parsed) {

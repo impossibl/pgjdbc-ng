@@ -39,12 +39,14 @@ import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.ExecuteHandler;
 import com.impossibl.postgres.protocol.RowDataSet;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BindComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.EmptyQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.system.NoticeException;
 
@@ -84,11 +86,11 @@ public class ExecuteStatementRequest implements ServerRequest {
     this.notices = new ArrayList<>();
   }
 
-  private boolean sentSync() {
+  private boolean isSynchronized() {
     return maxRows == 0;
   }
 
-  private class Handler implements BindComplete, DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReportNotice, CommandError {
+  private class Handler implements BindComplete, DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReportNotice, CommandError, ReadyForQuery {
 
     @Override
     public String toString() {
@@ -140,7 +142,7 @@ public class ExecuteStatementRequest implements ServerRequest {
         release(rows);
       }
 
-      return sentSync() ? Action.Sync : Action.Complete;
+      return isSynchronized() ? Action.Resume : Action.Complete;
     }
 
     @Override
@@ -153,7 +155,13 @@ public class ExecuteStatementRequest implements ServerRequest {
         release(rows);
       }
 
-      return sentSync() ? Action.Sync : Action.Complete;
+      return isSynchronized() ? Action.Resume : Action.Complete;
+    }
+
+    @Override
+    public Action readyForQuery(TransactionStatus txnStatus) throws IOException {
+      handler.handleReady(txnStatus);
+      return Action.Complete;
     }
 
     @Override
@@ -181,7 +189,7 @@ public class ExecuteStatementRequest implements ServerRequest {
     channel.writeBind(portalName, statementName, parameterFormats, parameterBuffers, resultFieldFormats);
     channel.writeExecute(portalName, maxRows);
 
-    if (!sentSync()) {
+    if (!isSynchronized()) {
       channel.writeFlush();
     }
     else {

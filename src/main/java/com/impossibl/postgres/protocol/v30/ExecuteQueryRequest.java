@@ -31,9 +31,10 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.QueryHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowDataSet;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BindComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -43,6 +44,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.NoData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterDescriptions;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParseComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
@@ -72,7 +74,7 @@ class ExecuteQueryRequest implements ServerRequest {
   private ByteBuf[] parameterBuffers;
   private FieldFormatRef[] resultFieldFormatRefs;
   private int maxRows;
-  private QueryHandler handler;
+  private ExtendedQueryHandler handler;
   private TypeRef[] describedParameterTypes;
   private ResultField[] describedResultFields;
   private RowDataSet rows;
@@ -83,7 +85,7 @@ class ExecuteQueryRequest implements ServerRequest {
                       ByteBuf[] parameterBuffers,
                       FieldFormatRef[] resultFieldFormatRefs,
                       int maxRows,
-                      QueryHandler handler) {
+                      ExtendedQueryHandler handler) {
     this.sql = sql;
     this.portalName = portalName;
     this.parameterFormatRefs = parameterFormatRefs;
@@ -97,11 +99,11 @@ class ExecuteQueryRequest implements ServerRequest {
     this.notices = new ArrayList<>();
   }
 
-  private boolean sentSync() {
+  private boolean isSynchronized() {
     return maxRows == 0;
   }
 
-  private class Handler implements ParameterDescriptions, RowDescription, ParseComplete, BindComplete, NoData, DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReportNotice, CommandError {
+  private class Handler implements ParameterDescriptions, RowDescription, ParseComplete, BindComplete, NoData, DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReportNotice, CommandError, ReadyForQuery {
 
     @Override
     public String toString() {
@@ -187,7 +189,7 @@ class ExecuteQueryRequest implements ServerRequest {
         release(rows);
       }
 
-      return sentSync() ? Action.Sync : Action.Complete;
+      return isSynchronized() ? Action.Resume : Action.Complete;
     }
 
     @Override
@@ -200,7 +202,13 @@ class ExecuteQueryRequest implements ServerRequest {
         release(rows);
       }
 
-      return sentSync() ? Action.Sync : Action.Complete;
+      return isSynchronized() ? Action.Resume : Action.Complete;
+    }
+
+    @Override
+    public Action readyForQuery(TransactionStatus txnStatus) throws IOException {
+      handler.handleReady(txnStatus);
+      return Action.Complete;
     }
 
     @Override
@@ -230,7 +238,7 @@ class ExecuteQueryRequest implements ServerRequest {
         .writeBind(portalName, null, parameterFormatRefs, parameterBuffers, resultFieldFormatRefs)
         .writeExecute(portalName, maxRows);
 
-    if (!sentSync()) {
+    if (!isSynchronized()) {
       channel.writeFlush();
     }
     else {

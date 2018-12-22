@@ -607,16 +607,16 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     switch (buffer.readByte()) {
       case 'T':
         transactionStatus = Active;
-        trace("(((");
+        trace("[");
         break;
       case 'E':
         transactionStatus = Failed;
-        trace("!!)");
+        trace("!");
         break;
       case 'I':
         transactionStatus = Idle;
         if (previousTransactionStatus != Idle) {
-          trace(")))");
+          trace("]");
         }
         break;
       default:

@@ -38,7 +38,6 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
-import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.NoticeException;
@@ -232,7 +231,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         protected boolean removeEldestEntry(Map.Entry<StatementCacheKey, PreparedStatementDescription> eldest) {
           if (size() > statementCacheSize) {
             try {
-              PGStatement.dispose(PGDirectConnection.this, ServerObjectType.Statement, eldest.getValue().name);
+              PGStatement.dispose(PGDirectConnection.this, eldest.getValue().name);
             }
             catch (SQLException e) {
               // Ignore...

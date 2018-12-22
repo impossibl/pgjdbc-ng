@@ -37,9 +37,9 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.SynchronizedResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObjectType;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
@@ -64,7 +64,7 @@ public class PreparedQuery implements Query {
   private String portalName;
   private Status status;
   private Long timeout;
-  private Integer maxRows;
+  private int maxRows;
   private ResultBatch resultBatch;
 
   PreparedQuery(String statementName, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, ResultField[] resultFields) {
@@ -91,8 +91,8 @@ public class PreparedQuery implements Query {
   }
 
   @Override
-  public void setMaxRows(Integer maxRows) {
-    this.maxRows = maxRows != null && maxRows > 0 ? maxRows : null;
+  public void setMaxRows(int maxRows) {
+    this.maxRows = maxRows;
   }
 
   @Override
@@ -101,7 +101,7 @@ public class PreparedQuery implements Query {
   }
 
   private boolean requiresPortal() {
-    return maxRows != null;
+    return maxRows > 0;
   }
 
   private SQLWarning executeStatement(PGDirectConnection connection) throws SQLException {
@@ -114,35 +114,41 @@ public class PreparedQuery implements Query {
     }
 
     ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
-      ExecuteResult handler = new ExecuteResult(resultFields);
-      connection.getRequestExecutor().execute(portalName, statementName, parameterFormatRefs, parameterBuffers, resultFields, firstNonNull(maxRows, 0), handler);
+      ExecuteResult handler = new ExecuteResult(!requiresPortal(), resultFields);
+      connection.getRequestExecutor().execute(portalName, statementName, parameterFormatRefs, parameterBuffers, resultFields, maxRows, handler);
       handler.await(timeout, MILLISECONDS);
       return handler;
     });
 
-    resultBatch = result.getBatch();
-    if (result.isSuspended()) {
-      status = Status.Suspended;
-    }
-    else if (portalName != null) {
-      connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
-      portalName = null;
-    }
-
-    return chainWarnings(null, result);
+    return applyResult(connection, result);
   }
 
   private SQLWarning resumeStatement(PGDirectConnection connection) throws SQLException {
 
     ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
-      ExecuteResult handler = new ExecuteResult(resultFields);
+      ExecuteResult handler = new ExecuteResult(false, resultFields);
       connection.getRequestExecutor().resume(portalName, firstNonNull(maxRows, 0), handler);
       handler.await(timeout, MILLISECONDS);
       return handler;
     });
 
-    status = result.isSuspended() ? Status.Suspended : Status.Completed;
+    return applyResult(connection, result);
+
+  }
+
+  private SQLWarning applyResult(PGDirectConnection connection, ExecuteResult result) throws SQLException {
     resultBatch = result.getBatch();
+    if (result.isSuspended()) {
+      status = Status.Suspended;
+    }
+    else if (portalName != null) {
+      connection.execute(timeout -> {
+        SynchronizedResult handler = new SynchronizedResult();
+        connection.getRequestExecutor().finish(portalName, handler);
+        handler.await(timeout, MILLISECONDS);
+      });
+      portalName = null;
+    }
 
     return chainWarnings(null, result);
   }
@@ -178,7 +184,11 @@ public class PreparedQuery implements Query {
   public void dispose(PGDirectConnection connection) throws SQLException {
 
     if (portalName != null) {
-      connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
+      connection.execute(timeout -> {
+        SynchronizedResult handler = new SynchronizedResult();
+        connection.getRequestExecutor().finish(portalName, handler);
+        handler.await(timeout, MILLISECONDS);
+      });
     }
 
   }

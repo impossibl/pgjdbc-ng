@@ -29,28 +29,36 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.RequestExecutor.SynchronizedHandler;
 import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CloseComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
+import com.impossibl.postgres.system.NoticeException;
 
 import java.io.IOException;
+
+import static java.util.Collections.emptyList;
 
 
 public class CloseRequest implements ServerRequest {
 
   private ServerObjectType objectType;
   private String objectName;
+  private SynchronizedHandler handler;
 
-  CloseRequest(ServerObjectType objectType, String objectName) {
+  CloseRequest(ServerObjectType objectType, String objectName, SynchronizedHandler handler) {
     this.objectType = objectType;
     this.objectName = objectName;
+    this.handler = handler;
   }
 
-  class CloseStatementHandler implements CloseComplete, CommandError {
+  class LazyHandler implements CloseComplete, CommandError {
 
     @Override
     public String toString() {
-      return "Close Statement";
+      return "Close " + objectType;
     }
 
     @Override
@@ -69,32 +77,40 @@ public class CloseRequest implements ServerRequest {
 
   }
 
-  class ClosePortalHandler implements CloseComplete, CommandError {
+  class SyncedHandler implements CloseComplete, CommandError, ReadyForQuery {
 
     @Override
     public String toString() {
-      return "Close Portal";
+      return "Close " + objectType + ": (Synchronized)";
     }
 
     @Override
     public Action closeComplete() {
-      return Action.Sync;
+      return Action.Resume;
     }
 
     @Override
-    public Action error(Notice notice) {
-      return Action.Sync;
+    public Action error(Notice notice) throws IOException {
+      handler.handleError(new NoticeException(notice), emptyList());
+      return Action.Resume;
     }
 
     @Override
-    public void exception(Throwable cause) {
+    public Action readyForQuery(TransactionStatus txnStatus) throws IOException {
+      handler.handleReady(txnStatus);
+      return Action.Complete;
+    }
+
+    @Override
+    public void exception(Throwable cause) throws IOException {
+      handler.handleError(cause, emptyList());
     }
 
   }
 
   @Override
   public ProtocolHandler createHandler() {
-    return objectType == ServerObjectType.Portal ? new ClosePortalHandler() : new CloseStatementHandler();
+    return handler != null ? new SyncedHandler() : new LazyHandler();
   }
 
   @Override
@@ -103,7 +119,7 @@ public class CloseRequest implements ServerRequest {
     channel
         .writeClose(objectType, objectName);
 
-    if (objectType == ServerObjectType.Portal) {
+    if (handler != null) {
       channel
           .writeSync()
           .flush();

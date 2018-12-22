@@ -38,10 +38,10 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.CompositeQueryResults;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.ServerObjectType;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
@@ -66,7 +66,7 @@ public class DirectQuery implements Query {
   private String portalName;
   private Status status;
   private Long timeout;
-  private Integer maxRows;
+  private int maxRows;
   private List<ResultBatch> resultBatches;
   private ResultField[] suspendedResultFields;
 
@@ -95,8 +95,8 @@ public class DirectQuery implements Query {
   }
 
   @Override
-  public void setMaxRows(Integer maxRows) {
-    this.maxRows = maxRows != null && maxRows > 0 ? maxRows : null;
+  public void setMaxRows(int maxRows) {
+    this.maxRows = maxRows;
   }
 
   @Override
@@ -105,7 +105,7 @@ public class DirectQuery implements Query {
   }
 
   private boolean requiresPortal() {
-    return maxRows != null;
+    return maxRows > 0;
   }
 
   private boolean hasParameters() {
@@ -138,29 +138,22 @@ public class DirectQuery implements Query {
     }
 
     QueryResult result = connection.executeTimed(this.timeout, (timeout) -> {
-      QueryResult handler = new QueryResult();
-      connection.getRequestExecutor().query(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, firstNonNull(maxRows, 0), handler);
+      QueryResult handler = new QueryResult(!requiresPortal());
+      connection.getRequestExecutor().query(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler);
       handler.await(timeout, MILLISECONDS);
       return handler;
     });
 
-    resultBatches = new ArrayList<>(singletonList(result.getBatch()));
     if (result.isSuspended()) {
-      status = Status.Suspended;
-      suspendedResultFields = resultBatches.get(0).getFields();
+      suspendedResultFields = result.getBatch().getFields();
     }
-    else if (portalName != null) {
-      connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
-      portalName = null;
-    }
-
-    return chainWarnings(null, result);
+    return applyExecuteResult(connection, result);
   }
 
   private SQLWarning resumeExtended(PGDirectConnection connection) throws SQLException {
 
-    RequestExecutorHandlers.ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
-      RequestExecutorHandlers.ExecuteResult handler = new RequestExecutorHandlers.ExecuteResult(suspendedResultFields);
+    ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
+      ExecuteResult handler = new ExecuteResult(false, suspendedResultFields);
       connection.getRequestExecutor().resume(portalName, firstNonNull(maxRows, 0), handler);
       handler.await(timeout, MILLISECONDS);
       return handler;
@@ -168,6 +161,18 @@ public class DirectQuery implements Query {
 
     status = result.isSuspended() ? Status.Suspended : Status.Completed;
     resultBatches = new ArrayList<>(singletonList(result.getBatch()));
+
+    return chainWarnings(null, result);
+  }
+
+  private SQLWarning applyExecuteResult(PGDirectConnection connection, QueryResult result) throws SQLException {
+    resultBatches = new ArrayList<>(singletonList(result.getBatch()));
+    if (result.isSuspended()) {
+      status = Status.Suspended;
+    }
+    else if (portalName != null) {
+      dispose(connection);
+    }
 
     return chainWarnings(null, result);
   }
@@ -212,9 +217,14 @@ public class DirectQuery implements Query {
   public void dispose(PGDirectConnection connection) throws SQLException {
 
     if (portalName != null) {
-      connection.execute((long timeout) -> connection.getRequestExecutor().close(ServerObjectType.Portal, portalName));
+      connection.execute((timeout) -> {
+        RequestExecutorHandlers.SynchronizedResult finish = new RequestExecutorHandlers.SynchronizedResult();
+        connection.getRequestExecutor().finish(portalName, finish);
+        finish.await(timeout, MILLISECONDS);
+      });
     }
 
+    portalName = null;
   }
 
   @Override

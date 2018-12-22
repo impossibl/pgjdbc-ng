@@ -29,7 +29,7 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.SimpleQueryHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.QueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.TransactionStatus;
@@ -56,12 +56,12 @@ import static io.netty.util.ReferenceCountUtil.release;
 public class QueryRequest implements ServerRequest {
 
   private String query;
-  private SimpleQueryHandler handler;
+  private QueryHandler handler;
   private ResultField[] resultFields;
   private RowDataSet rows;
   private List<Notice> notices;
 
-  QueryRequest(String query, SimpleQueryHandler handler) {
+  QueryRequest(String query, QueryHandler handler) {
     this.query = query;
     this.handler = handler;
     this.resultFields = EMPTY_FIELDS;
@@ -144,7 +144,7 @@ public class QueryRequest implements ServerRequest {
 
     @Override
     public Action readyForQuery(TransactionStatus txnStatus) throws IOException {
-      handler.handleReady();
+      handler.handleReady(txnStatus);
       return Action.Complete;
     }
 

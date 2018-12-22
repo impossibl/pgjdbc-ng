@@ -163,43 +163,48 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, RequestExecutor.SimpleQueryHandler handler) throws IOException {
+  public void query(String sql, QueryHandler handler) {
     submit(new QueryRequest(sql, handler));
   }
 
   @Override
-  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, RequestExecutor.QueryHandler handler) throws IOException {
+  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) {
     submit(new ExecuteQueryRequest(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler));
   }
 
   @Override
-  public void prepare(String statementName, String sqlText, Type[] parameterTypes, RequestExecutor.PrepareHandler handler) throws IOException {
+  public void prepare(String statementName, String sqlText, Type[] parameterTypes, RequestExecutor.PrepareHandler handler) {
     submit(new PrepareRequest(statementName, sqlText, parameterTypes, handler));
   }
 
   @Override
-  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs, int maxRows, ExecuteHandler handler) throws IOException {
+  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormatRefs, int maxRows, ExecuteHandler handler) {
     submit(new ExecuteStatementRequest(statementName, portalName, parameterFormats, parameterBuffers, resultFieldFormatRefs, maxRows, handler));
   }
 
   @Override
-  public void resume(String portalName, int maxRows, ExecuteHandler handler) throws IOException {
+  public void resume(String portalName, int maxRows, ResumeHandler handler) {
     submit(new ResumePortalRequest(portalName, maxRows, handler));
   }
 
   @Override
-  public void lazyExecute(String statementName) throws IOException {
+  public void finish(String portalName, SynchronizedHandler handler) {
+    submit(new CloseRequest(ServerObjectType.Portal, portalName, handler));
+  }
+
+  @Override
+  public void lazyExecute(String statementName) {
     submit(new LazyExecuteRequest(statementName));
   }
 
   @Override
-  public void call(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) throws IOException {
+  public void call(int functionId, FieldFormatRef[] parameterFormatRefs, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
     submit(new FunctionCallRequest(functionId, parameterFormatRefs, parameterBuffers, handler));
   }
 
   @Override
-  public void close(ServerObjectType objectType, String objectName) throws IOException {
-    submit(new CloseRequest(objectType, objectName));
+  public void close(ServerObjectType objectType, String objectName) {
+    submit(new CloseRequest(objectType, objectName, null));
   }
 
   synchronized void submit(ServerRequest request) {

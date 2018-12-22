@@ -35,7 +35,6 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultBatches;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowDataSet;
-import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.system.Settings;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
@@ -101,7 +100,7 @@ abstract class PGStatement implements Statement {
       closeResultSets(resultSets);
 
       try {
-        dispose(connection, ServerObjectType.Statement, name);
+        dispose(connection, name);
       }
       catch (SQLException e) {
         // Ignore...
@@ -173,22 +172,27 @@ abstract class PGStatement implements Statement {
   }
 
   /**
-   * Disposes of the named server object
+   * Disposes of the server statement
    *
-   * @param objectType
-   *          Type of object to dispose of
-   * @param objectName
-   *          Name of the object to dispose of
+   * @param statementName
+   *          Name of the statement to dispose of
    * @throws SQLException
    *          If an error occurs during disposal
    */
-  @SuppressWarnings("ThrowableNotThrown")
-  static void dispose(PGDirectConnection connection, ServerObjectType objectType, String objectName) throws SQLException {
+  static void dispose(PGDirectConnection connection, String statementName) throws SQLException {
 
-    if (objectName == null)
+    if (statementName == null)
       return;
 
-    connection.execute((long timeout) -> connection.getRequestExecutor().close(objectType, objectName));
+    connection.execute((long timeout) -> connection.getRequestExecutor().close(Statement, statementName));
+  }
+
+  static void closeCursor(PGDirectConnection connection, String cursorName) throws SQLException {
+
+    if (cursorName == null)
+      return;
+
+    connection.execute((long timeout) -> connection.query("CLOSE " + cursorName, timeout));
   }
 
   /**
@@ -270,7 +274,7 @@ abstract class PGStatement implements Statement {
     resultBatches = ResultBatches.releaseAll(resultBatches);
 
     if (name != null && !name.startsWith(CACHED_STATEMENT_PREFIX)) {
-      dispose(connection, Statement, name);
+      dispose(connection, name);
     }
 
     if (housekeeper != null)
@@ -288,6 +292,13 @@ abstract class PGStatement implements Statement {
 
   private boolean hasUpdateCount() {
     return !resultBatches.isEmpty() && resultBatches.get(0).hasRowsAffected();
+  }
+
+  private boolean shouldUseFetchSize() {
+    // Only use if fetch size is requested &
+    // we aren't executing a cursor request; cursor
+    // requests always return 0 or 1 row.
+    return fetchSize != null && cursorName == null;
   }
 
   boolean executeDirect(String sqlText) throws SQLException {
@@ -312,7 +323,10 @@ abstract class PGStatement implements Statement {
       Query query = new DirectQuery(sqlText, parameterFormats, parameterBuffers, resultFieldFormats);
 
       query.setTimeout(SECONDS.toMillis(queryTimeout));
-      query.setMaxRows(fetchSize);
+
+      if (shouldUseFetchSize()) {
+        query.setMaxRows(fetchSize);
+      }
 
       this.warningChain = query.execute(connection);
 
@@ -351,7 +365,10 @@ abstract class PGStatement implements Statement {
       Query query = Query.create(statementName, parameterFormats, parameterValues, resultFields);
 
       query.setTimeout(SECONDS.toMillis(queryTimeout));
-      query.setMaxRows(fetchSize);
+
+      if (shouldUseFetchSize()) {
+        query.setMaxRows(fetchSize);
+      }
 
       this.warningChain = query.execute(connection);
 

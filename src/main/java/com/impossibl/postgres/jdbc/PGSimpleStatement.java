@@ -30,7 +30,6 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultBatches;
-import com.impossibl.postgres.protocol.ServerObjectType;
 
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
@@ -82,7 +81,7 @@ class PGSimpleStatement extends PGStatement {
 
     if (name != null) {
 
-      dispose(connection, ServerObjectType.Statement, name);
+      dispose(connection, name);
 
       name = null;
     }

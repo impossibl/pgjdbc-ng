@@ -36,7 +36,7 @@
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.ExecuteHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.ResumeHandler;
 import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -58,11 +58,11 @@ public class ResumePortalRequest implements ServerRequest {
 
   private String portalName;
   private int maxRows;
-  private ExecuteHandler handler;
+  private ResumeHandler handler;
   private RowDataSet rows;
   private List<Notice> notices;
 
-  ResumePortalRequest(String portalName, int maxRows, ExecuteHandler handler) {
+  ResumePortalRequest(String portalName, int maxRows, ResumeHandler handler) {
     this.portalName = portalName;
     this.maxRows = maxRows;
     this.handler = handler;
@@ -124,7 +124,7 @@ public class ResumePortalRequest implements ServerRequest {
         release(rows);
       }
 
-      return Action.Sync;
+      return Action.Complete;
     }
 
     @Override

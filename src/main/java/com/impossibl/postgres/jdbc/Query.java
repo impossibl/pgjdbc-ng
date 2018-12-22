@@ -62,7 +62,7 @@ public interface Query {
   Long getTimeout();
   void setTimeout(Long timeout);
 
-  void setMaxRows(Integer maxRows);
+  void setMaxRows(int maxRows);
 
   List<ResultBatch> getResultBatches();
 

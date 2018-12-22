@@ -38,9 +38,22 @@ import io.netty.buffer.ByteBuf;
 
 public interface RequestExecutor {
 
+  /**
+   * Base type handler for all requests.
+   */
   interface ErrorHandler {
 
     void handleError(Throwable cause, List<Notice> notices) throws IOException;
+
+  }
+
+  /**
+   * Base type handler for requests that <bold>may</bold> receive a ready callback
+   * containing a transaction status.
+   */
+  interface SynchronizedHandler extends ErrorHandler {
+
+    void handleReady(TransactionStatus transactionStatus) throws IOException;
 
   }
 
@@ -50,12 +63,11 @@ public interface RequestExecutor {
 
 
   /**
-   * Request handler interface for the {@link #query(String, SimpleQueryHandler)} request.
+   * Request handler interface for the {@link #query(String, QueryHandler)} request.
    */
-  interface SimpleQueryHandler extends ErrorHandler {
+  interface QueryHandler extends SynchronizedHandler {
 
     void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) throws IOException;
-    void handleReady() throws IOException;
 
   }
 
@@ -65,34 +77,33 @@ public interface RequestExecutor {
    *
    * The SQL provided may contain multiple queries concatenated with
    * a semi-colon. Each separate query will produce a single
-   * {@link SimpleQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)}`
+   * {@link QueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)}`
    * or
-   * {@link SimpleQueryHandler#handleError(Throwable, List)}
+   * {@link QueryHandler#handleError(Throwable, List)}
    * callback in the provided handler. After all
    * queries have been completed a
-   * {@link SimpleQueryHandler#handleReady()} is issued.
+   * {@link QueryHandler#handleReady(TransactionStatus)} is issued.
    *
    * @param sql SQL query or queries to execute.
    * @param handler Query handler to process results. Can produce multiple
-   *                {@link SimpleQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)}
+   *                {@link QueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)}
    *                or
-   *                {@link SimpleQueryHandler#handleError(Throwable, List)}
+   *                {@link QueryHandler#handleError(Throwable, List)}
    *                callbacks. Followed by a final
-   *                {@link SimpleQueryHandler#handleReady()}
+   *                {@link QueryHandler#handleReady(TransactionStatus)}
    *                callback when all requests are complete.
    * @throws IOException If an error occurs submitting the request.
    */
-  void query(String sql, SimpleQueryHandler handler) throws IOException;
+  void query(String sql, QueryHandler handler) throws IOException;
 
 
   /**
    * Request handler interface for the
-   * {@link #query(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, QueryHandler)}
+   * {@link #query(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, ExtendedQueryHandler)}
    * request.
    */
-  interface QueryHandler extends ErrorHandler {
+  interface ExtendedQueryHandler extends QueryHandler {
 
-    void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) throws IOException;
     void handleSuspend(TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) throws IOException;
 
   }
@@ -103,25 +114,26 @@ public interface RequestExecutor {
    *
    * The SQL can only contain a single SQL query and thus the will only
    * produce a single
-   * {@link QueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
-   * {@link QueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   * {@link ExtendedQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
+   * {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
    * or
-   * {@link QueryHandler#handleError(Throwable, List)}
-   * callback.
+   * {@link ExtendedQueryHandler#handleError(Throwable, List)}
+   * callback, followed by a final
+   * {@link ExtendedQueryHandler#handleReady(TransactionStatus)}.
    *
    * Setting {@code maxRows} to anything greater than zero enables suspend/resume
    * functionality via portals. Results are delivered in groups of {@code maxRows} via the
-   * {@link QueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   * {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
    * callback.
    * After the first group is received the
-   * {@link #resume(String, int, ExecuteHandler)}
+   * {@link #resume(String, int, ResumeHandler)}
    * request can be used to receive the next group of rows.
    *
    * A unique {@code portalName} is required if you wish to have multiple portals
    * open simultaneously. If not, you can pass {@code null} and an unnamed portal will
-   * be used; it will destroy any current use of that portal. Anytime you use
-   * a named portal it must be closed with a
-   * {@link #close(ServerObjectType, String)}
+   * be used; it will destroy any current use of that portal.
+   * Anytime a named portal is used it must be finalized with a
+   * {@link #close(ServerObjectType, String)} or {@link #finish(String, SynchronizedHandler)}
    * request.
    *
    * @param sql SQL query to execute.
@@ -135,16 +147,16 @@ public interface RequestExecutor {
    * @param maxRows The number of results to receive at a time, or zero to receive all results at once. Anything
    *                other than zero instantiates a portal.
    * @param handler Query handler to process results. Will produce a single
-   *                {@link QueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
-   *                {@link QueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   *                {@link ExtendedQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
+   *                {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
    *                or
-   *                {@link QueryHandler#handleError(Throwable, List)}
+   *                {@link ExtendedQueryHandler#handleError(Throwable, List)}
    *                callback.
    * @throws IOException If an error occurs submitting the request.
    */
   void query(String sql, String portalName,
              FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers,
-             FieldFormatRef[] resultFieldFormats, int maxRows, QueryHandler handler) throws IOException;
+             FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) throws IOException;
 
 
   /*****
@@ -205,29 +217,27 @@ public interface RequestExecutor {
    * {@link #execute(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, ExecuteHandler)}
    * request.
    */
-  interface ExecuteHandler extends ErrorHandler {
-
-    void handleComplete(String command, Long rowsAffected, Long insertedOid, RowDataSet rows, List<Notice> notices) throws IOException;
-    void handleSuspend(RowDataSet rows, List<Notice> notices) throws IOException;
+  interface ExecuteHandler extends ResumeHandler, SynchronizedHandler {
 
   }
+
   /**
    * Uses the "extended" query protocol to execute a previously prepared query. The
    * requests can pass parameters and result formats.
    *
    * Setting {@code maxRows} to anything greater than zero enables suspend/resume
    * functionality via portals. Results are delivered in groups of {@code maxRows} via the
-   * {@link QueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   * {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
    * callback.
    * After the first group is received the
-   * {@link #resume(String, int, ExecuteHandler)}
+   * {@link #resume(String, int, ResumeHandler)}
    * request can be used to receive the next group of rows.
    *
    * A unique {@code portalName} is required if you wish to have multiple portals
-   * open simultaneously. If not, you can pass {@code null} and an unnamed portal will
-   * be used; it will destroy any current use of that portal. Anytime you use
-   * a named portal it must be closed with a
-   * {@link #close(ServerObjectType, String)}
+   * open and suspended simultaneously. If not, you can pass {@code null} and an
+   * unnamed portal will be used; it will destroy any current use of that portal.
+   * Anytime a named portal is used it must be finalized with a
+   * {@link #close(ServerObjectType, String)} or {@link #finish(String, SynchronizedHandler)}
    * request.
    *
    * @param portalName Name of the portal to instantiate or {@code null} to use the unnamed portal.
@@ -242,8 +252,12 @@ public interface RequestExecutor {
    *                other than zero instantiates a portal.
    * @param handler Execute handler to process results. Will produce a single
    *                {@link ExecuteHandler#handleComplete(String, Long, Long, RowDataSet, List)},
-   *                {@link ExecuteHandler#handleSuspend(RowDataSet, List)} or
    *                {@link ExecuteHandler#handleError(Throwable, List)}
+   *                callback, followed by a final
+   *                {@link ExecuteHandler#handleReady(TransactionStatus)}
+   *                for completed queries.
+   *                Alternatively, for suspended queries, you will receive a single
+   *                {@link ExecuteHandler#handleSuspend(RowDataSet, List)}
    *                callback.
    * @throws IOException If an error occurs submitting the request.
    */
@@ -253,18 +267,34 @@ public interface RequestExecutor {
                ExecuteHandler handler) throws IOException;
 
   /**
+   * Request handler interface for the
+   * {@link #resume(String, int, ResumeHandler)}
+   * request.
+   */
+  interface ResumeHandler extends ErrorHandler {
+
+    void handleComplete(String command, Long rowsAffected, Long insertedOid, RowDataSet rows, List<Notice> notices) throws IOException;
+    void handleSuspend(RowDataSet rows, List<Notice> notices) throws IOException;
+
+  }
+
+  /**
    * Resumes a portal previously instantiated via an
    * {@link #execute(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, ExecuteHandler)}
    * or
-   * {@link #query(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, QueryHandler)}
+   * {@link #query(String, String, FieldFormatRef[], ByteBuf[], FieldFormatRef[], int, ExtendedQueryHandler)}
    * request.
    *
    * A portal can be resumed until no more rows are available. As long as more rows are available
    * the request will complete with a
-   * {@link ExecuteHandler#handleSuspend(RowDataSet, List)}
+   * {@link ResumeHandler#handleSuspend(RowDataSet, List)}
    * callback. When no more rows are available the request will complete with a
-   * {@link ExecuteHandler#handleComplete(String, Long, Long, RowDataSet, List)}
+   * {@link ResumeHandler#handleComplete(String, Long, Long, RowDataSet, List)}
    * callback.
+   *
+   * Of particular note is that this request is <bold>not</bold> synchronized. Its
+   * handler does not extend {@link SynchronizedHandler}), thus will not receive a
+   * ready callback. {@link }
    *
    * @param portalName Name of the portal to resume or {@code null} to resume the unnamed portal.
    * @param maxRows Max number of rows to return from this request.
@@ -275,7 +305,20 @@ public interface RequestExecutor {
    *                callback.
    * @throws IOException If an error occurs submitting the request.
    */
-  void resume(String portalName, int maxRows, ExecuteHandler handler) throws IOException;
+  void resume(String portalName, int maxRows, ResumeHandler handler) throws IOException;
+
+  /**
+   * Closes a portal that was previously suspended and synchronizes the
+   * transaction state.
+   *
+   * This can be used in place of a {@link #close(ServerObjectType, String)}
+   * request to allow waiting for the requests completion and synchronization.
+   *
+   * @param portalName Name of a previously executed, and suspended, portal.
+   * @param handler Handler to process synchronization callback.
+   * @throws IOException If an error occurs submitting the request.
+   */
+  void finish(String portalName, SynchronizedHandler handler) throws IOException;
 
 
   /*****
@@ -323,19 +366,12 @@ public interface RequestExecutor {
 
 
   /**
-   * Closes a `Portal` or `Statement` object for the connection.
+   * Closes a previously prepared statement for the connection.
    *
-   * Closing a `Portal` sends a `sync` message to ensure proper
-   * transaction demarcation and the request is sent immediately.
-   *
-   * Closing a statement does not send a sync message and does not attempt
-   * to send the request immediately.
-   *
-   * @param objectType Type of object `Portal` or `Statement` to close
    * @param objectName Name of the object to close.
    * @throws IOException If an error occurs submitting the request.
    */
-  void close(ServerObjectType objectType, String objectName) throws IOException;
+  void close(ServerObjectType serverObjectType, String objectName) throws IOException;
 
   /**
    * Executes a statement at the earliest convenience. The submitter has no

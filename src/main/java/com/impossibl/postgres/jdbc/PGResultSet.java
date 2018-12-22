@@ -30,7 +30,6 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.protocol.FieldBuffersRowData;
-import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
@@ -93,7 +92,6 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
 
@@ -2069,8 +2067,9 @@ class QueryScroller extends ListScroller {
       if (query != null && query.getStatus() != Completed) {
 
         Integer fetchSize = resultSet.fetchSize();
-        if (fetchSize != null)
+        if (fetchSize != null) {
           query.setMaxRows(fetchSize);
+        }
 
         SQLWarning warningChain = query.execute(resultSet.statement.connection);
         resultSet.addWarnings(warningChain);
@@ -2171,13 +2170,7 @@ class CursorScroller extends Scroller {
     setResult(null);
 
     if (holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-
-      connection.execute((timeout) -> {
-        QueryResult handler = new QueryResult();
-        connection.getRequestExecutor().query("CLOSE " + cursorName, handler);
-        handler.await(timeout, MILLISECONDS);
-        handler.getBatch().close();
-      });
+      PGStatement.closeCursor(connection, cursorName);
     }
 
   }

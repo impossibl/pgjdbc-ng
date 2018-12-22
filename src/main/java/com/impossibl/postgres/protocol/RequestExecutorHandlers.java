@@ -117,14 +117,19 @@ public class RequestExecutorHandlers {
 
   }
 
+  public static class SynchronizedResult extends Result implements RequestExecutor.SynchronizedHandler {
+
+    @Override
+    public void handleReady(TransactionStatus transactionStatus) {
+      completed.countDown();
+    }
+
+  }
+
   public static class PrepareResult extends Result implements RequestExecutor.PrepareHandler {
 
     private TypeRef[] describedParameterTypes;
     private ResultField[] describedResultFields;
-
-    public TypeRef[] getDescribedParameterTypes() {
-      return describedParameterTypes;
-    }
 
     public Type[] getDescribedParameterTypes(Context context) {
       checkCompleted();
@@ -149,17 +154,26 @@ public class RequestExecutorHandlers {
 
   }
 
-  public abstract static class AnyQueryResult extends Result {
+  public abstract static class AnyQueryResult extends SynchronizedResult {
 
     public abstract boolean isSuspended();
     public abstract ResultBatch getBatch();
 
   }
 
-  public static class QueryResult extends AnyQueryResult implements RequestExecutor.SimpleQueryHandler, RequestExecutor.QueryHandler {
+  public static class QueryResult extends AnyQueryResult implements RequestExecutor.ExtendedQueryHandler {
 
+    private boolean synced;
     private boolean suspended;
     private ResultBatch resultBatch;
+
+    public QueryResult() {
+      this(true);
+    }
+
+    public QueryResult(boolean synced) {
+      this.synced = synced;
+    }
 
     @Override
     public boolean isSuspended() {
@@ -177,8 +191,9 @@ public class RequestExecutorHandlers {
     public void handleComplete(String command, Long rowsAffected, Long insertedOid, TypeRef[] parameterTypes, ResultField[] resultFields, RowDataSet rows, List<Notice> notices) {
       this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, resultFields, retain(rows));
       this.notices = notices;
-
-      completed.countDown();
+      if (!synced) {
+        completed.countDown();
+      }
     }
 
     @Override
@@ -191,19 +206,21 @@ public class RequestExecutorHandlers {
       completed.countDown();
     }
 
-    @Override
-    public void handleReady() {
-    }
-
   }
 
   public static class ExecuteResult extends AnyQueryResult implements RequestExecutor.ExecuteHandler {
 
+    private boolean synced;
     private boolean suspended;
     private ResultField[] describedResultFields;
     private ResultBatch resultBatch;
 
     public ExecuteResult(ResultField[] describedResultFields) {
+      this(true, describedResultFields);
+    }
+
+    public ExecuteResult(boolean synced, ResultField[] describedResultFields) {
+      this.synced = synced;
       this.describedResultFields = describedResultFields;
     }
 
@@ -223,8 +240,9 @@ public class RequestExecutorHandlers {
     public void handleComplete(String command, Long rowsAffected, Long insertedOid, RowDataSet rows, List<Notice> notices) {
       this.resultBatch = new ResultBatch(command, rowsAffected, insertedOid, describedResultFields, retain(rows));
       this.notices = notices;
-
-      completed.countDown();
+      if (!synced) {
+        completed.countDown();
+      }
     }
 
     @Override
@@ -238,7 +256,7 @@ public class RequestExecutorHandlers {
 
   }
 
-  public static class CompositeQueryResults extends Result implements RequestExecutor.SimpleQueryHandler {
+  public static class CompositeQueryResults extends SynchronizedResult implements RequestExecutor.QueryHandler {
 
     private List<ResultBatch> resultBatches;
 
@@ -255,11 +273,6 @@ public class RequestExecutorHandlers {
       resultBatches.add(new ResultBatch(command, rowsAffected, insertedOid, resultFields, retain(rows)));
 
       this.notices.addAll(notices);
-    }
-
-    @Override
-    public void handleReady() {
-      completed.countDown();
     }
 
   }
