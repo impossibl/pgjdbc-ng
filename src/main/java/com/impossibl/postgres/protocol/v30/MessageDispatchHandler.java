@@ -125,6 +125,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     flushTrace();
     if (requiresFlush) {
       super.flush(ctx);
+      requiresFlush = false;
     }
   }
 
