@@ -125,4 +125,7 @@ public class Settings {
   public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
   public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;
 
+  public static final String SQL_TRACE = "sql.trace";
+  public static final boolean SQL_TRACE_DEFAULT = false;
+
 }

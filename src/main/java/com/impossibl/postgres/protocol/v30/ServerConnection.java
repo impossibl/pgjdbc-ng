@@ -44,13 +44,18 @@ import com.impossibl.postgres.system.Context;
 
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.SQL_TRACE;
+import static com.impossibl.postgres.system.Settings.SQL_TRACE_DEFAULT;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.netty.buffer.ByteBuf;
@@ -65,13 +70,17 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   private Channel channel;
   private ServerConnectionShared.Ref sharedRef;
+  private SQLTrace sqlTrace;
 
   ServerConnection(Context context, Channel channel, ServerConnectionShared.Ref sharedRef) {
     this.channel = channel;
     this.sharedRef = sharedRef;
 
-    if (context.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
+    if (context.getSetting(SQL_TRACE, SQL_TRACE_DEFAULT)) {
+      sqlTrace = new SQLTrace(new OutputStreamWriter(System.out));
+    }
 
+    if (context.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
       getMessageDispatchHandler().setTraceWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
     }
   }
@@ -159,21 +168,33 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   @Override
   public void query(String sql, QueryHandler handler) {
+    if (sqlTrace != null) {
+      sqlTrace.query(sql);
+    }
     submit(new QueryRequest(sql, handler));
   }
 
   @Override
   public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) {
+    if (sqlTrace != null) {
+      sqlTrace.query(sql);
+    }
     submit(new ExecuteQueryRequest(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler));
   }
 
   @Override
-  public void prepare(String statementName, String sqlText, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) {
-    submit(new PrepareRequest(statementName, sqlText, parameterTypes, handler));
+  public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) {
+    if (sqlTrace != null) {
+      sqlTrace.prepare(statementName, sql);
+    }
+    submit(new PrepareRequest(statementName, sql, parameterTypes, handler));
   }
 
   @Override
   public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) {
+    if (sqlTrace != null) {
+      sqlTrace.execute(statementName);
+    }
     submit(new ExecuteStatementRequest(statementName, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler));
   }
 
@@ -189,11 +210,17 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
 
   @Override
   public void lazyExecute(String statementName) {
+    if (sqlTrace != null) {
+      sqlTrace.query(statementName);
+    }
     submit(new LazyExecuteRequest(statementName));
   }
 
   @Override
   public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
+    if (sqlTrace != null) {
+      sqlTrace.query("CALL: " + functionId);
+    }
     submit(new FunctionCallRequest(functionId, parameterFormats, parameterBuffers, handler));
   }
 
@@ -205,6 +232,44 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   synchronized void submit(ServerRequest request) {
 
     channel.writeAndFlush(request, channel.voidPromise());
+  }
+
+}
+
+
+class SQLTrace {
+
+  private Writer out;
+  private Map<String, String> preparedText;
+
+  public SQLTrace(Writer out) {
+    this.out = out;
+    this.preparedText = new HashMap<>();
+  }
+
+  public void prepare(String statement, String text) {
+    preparedText.put(statement, text);
+    try {
+      out.append("P: ").append(statement).append(" = ").append(text).append('\n').flush();
+    }
+    catch (IOException ignore) {
+    }
+  }
+
+  public void query(String text) {
+    try {
+      out.append("Q: ").append(text).append('\n').flush();
+    }
+    catch (IOException ignore) {
+    }
+  }
+
+  public void execute(String statement) {
+    try {
+      out.append("Q (").append(statement).append("): ").append(preparedText.get(statement)).append('\n').flush();
+    }
+    catch (IOException ignore) {
+    }
   }
 
 }
