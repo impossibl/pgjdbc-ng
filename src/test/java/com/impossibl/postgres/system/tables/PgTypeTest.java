@@ -103,8 +103,8 @@ public class PgTypeTest {
     Version.get(9, 2, 0),
     " select" +
       "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
-      "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
+      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::text as \"inputId\", typoutput::text as \"outputId\", typreceive::text as \"receiveId\", typsend::text as \"sendId\"," +
+      "   typmodin::text as \"modInId\", typmodout::text as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\", " +
       "   rngsubtype as \"rangeBaseTypeId\"" +
       " from" +
@@ -114,8 +114,8 @@ public class PgTypeTest {
     Version.get(9, 1, 0),
     " select" +
       "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::oid as \"inputId\", typoutput::oid as \"outputId\", typreceive::oid as \"receiveId\", typsend::oid as \"sendId\"," +
-      "   typmodin::oid as \"modInId\", typmodout::oid as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
+      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::text as \"inputId\", typoutput::text as \"outputId\", typreceive::text as \"receiveId\", typsend::text as \"sendId\"," +
+      "   typmodin::text as \"modInId\", typmodout::text as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
       "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
       "   null as \"rangeBaseTypeId\"" +
       " from" +

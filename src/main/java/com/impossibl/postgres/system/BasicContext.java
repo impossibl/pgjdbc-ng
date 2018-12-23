@@ -44,10 +44,16 @@ import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerConnectionFactory;
 import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgProc;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.system.tables.Table;
 import com.impossibl.postgres.system.tables.Tables;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.BaseType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.DomainType;
+import com.impossibl.postgres.types.EnumerationType;
+import com.impossibl.postgres.types.PsuedoType;
+import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.ByteBufs;
@@ -66,22 +72,25 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.logging.Level.WARNING;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -98,11 +107,13 @@ public class BasicContext extends AbstractContext {
   private static class QueryDescription {
 
     String name;
+    String sql;
     Type[] parameterTypes;
     ResultField[] resultFields;
 
-    QueryDescription(String name, Type[] parameterTypes, ResultField[] resultFields) {
+    QueryDescription(String name, String sql, Type[] parameterTypes, ResultField[] resultFields) {
       this.name = name;
+      this.sql = sql;
       this.parameterTypes = parameterTypes;
       this.resultFields = resultFields;
     }
@@ -247,9 +258,9 @@ public class BasicContext extends AbstractContext {
     currencyFormatter = (DecimalFormat) DecimalFormat.getCurrencyInstance();
     currencyFormatter.setGroupingUsed(false);
 
-    loadTypes();
-
     prepareRefreshTypeQueries();
+
+    loadTypes();
 
     loadLocale();
   }
@@ -307,124 +318,183 @@ public class BasicContext extends AbstractContext {
 
     Timer timer = new Timer();
 
-    //Load types
+    // Load "simple" types only - composite types are loaded on demand
     String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-    List<PgType.Row> pgTypes = queryTable(typeSQL, PgType.INSTANCE);
+    List<PgType.Row> pgTypes = queryTable(typeSQL + " WHERE typrelid = 0", PgType.INSTANCE);
 
-    //Load attributes
-    String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-    List<PgAttribute.Row> pgAttrs = queryTable(attrsSQL, PgAttribute.INSTANCE);
+    // Load initial types without causing refresh queries...
+    //
 
-    //Load procs
-    String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-    List<PgProc.Row> pgProcs = queryTable(procsSQL, PgProc.INSTANCE);
+    // First, base types...
+    Set<PgType.Row> baseTypeRows = pgTypes.stream()
+        .filter(PgType.Row::isBase)
+        .collect(toSet());
+    Set<Integer> baseTypeOids = baseTypeRows.stream()
+        .map(PgType.Row::getOid)
+        .collect(toSet());
+
+    List<Type> baseTypes = baseTypeRows.stream()
+        .filter(row -> !row.isArray())
+        .map(this::loadRaw)
+        .collect(toList());
+    registry.updateTypes(baseTypes);
+
+    // Now, types that reference base types (arrays, ranges, domains, etc)
+    Set<PgType.Row> baseReferencingRows = pgTypes.stream()
+        .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
+        .collect(toSet());
+
+    List<Type> baseReferencingTypes = baseReferencingRows.stream()
+        .map(this::loadRaw)
+        .collect(toList());
+    registry.updateTypes(baseReferencingTypes);
+
+    // Next, psuedo types
+    List<Type> psuedoTypes = pgTypes.stream()
+        .filter(PgType.Row::isPsuedo)
+        .map(this::loadRaw)
+        .collect(toList());
+    registry.updateTypes(psuedoTypes);
 
     logger.fine("query time: " + timer.getLap() + "ms");
-
-    //Update the registry with known types
-    registry.update(pgTypes, pgAttrs, pgProcs);
-
-    logger.fine("load time: " + timer.getLap() + "ms");
   }
 
   private void prepareRefreshTypeQueries() throws IOException, NoticeException {
 
-    prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1");
+    prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
 
-    prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1", "int4");
+    prepareUtilQuery("refresh-named-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.typname = $1");
 
-    prepareUtilQuery("refresh-types", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1", "int4");
+    prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " AND a.attrelid = $1", "int4");
 
-    prepareUtilQuery("refresh-types-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )", "int4[]");
-
-    prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1", "int4");
+    prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.typrelid = $1", "int4");
 
   }
 
   @Override
-  public void refreshType(int typeId) {
-
-    int latestKnownTypeId = registry.getLatestKnownTypeId();
-    if (latestKnownTypeId >= typeId) {
-      //Refresh this specific type
-      refreshSpecificType(typeId);
-    }
-    else {
-      //Load all new types we haven't seen
-      refreshTypes(latestKnownTypeId);
-    }
-
-  }
-
-  private void refreshSpecificType(int typeId) {
+  public Type loadType(int typeId) {
 
     try {
 
       //Load types
       List<PgType.Row> pgTypes = queryTable("@refresh-type", PgType.INSTANCE, typeId);
-
       if (pgTypes.isEmpty()) {
-        return;
+        return null;
       }
 
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgTypes.get(0).getRelationId());
+      PgType.Row pgType  = pgTypes.get(0);
 
-      registry.update(pgTypes, pgAttrs, emptyList());
+      //Load attributes
+      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgType.getRelationId());
+
+      return loadRaw(pgType, pgAttrs);
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
     }
 
+    return null;
   }
 
-  private void refreshTypes(int latestTypeId) {
+  @Override
+  public Type loadType(String typeName) {
 
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-types", PgType.INSTANCE, latestTypeId);
-
+      List<PgType.Row> pgTypes = queryTable("@refresh-named-type", PgType.INSTANCE, typeName);
       if (pgTypes.isEmpty()) {
-        return;
+        return null;
       }
 
-      Integer[] typeIds = new Integer[pgTypes.size()];
-      for (int c = 0; c < pgTypes.size(); ++c)
-        typeIds[c] = pgTypes.get(c).getRelationId();
+      PgType.Row pgType  = pgTypes.get(0);
 
       //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-types-attrs", PgAttribute.INSTANCE, (Object) typeIds);
+      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgType.getRelationId());
 
-      registry.update(pgTypes, pgAttrs, emptyList());
+      return loadRaw(pgType, pgAttrs);
     }
     catch (IOException | NoticeException e) {
-      logger.log(WARNING, "Error refreshing types", e);
+      //Ignore errors
     }
 
+    return null;
   }
 
   @Override
-  public void refreshRelationType(int relationId) {
+  public CompositeType loadRelationType(int relationId) {
 
     try {
 
       //Load types
       List<PgType.Row> pgTypes = queryTable("@refresh-reltype", PgType.INSTANCE, relationId);
-
       if (pgTypes.isEmpty()) {
-        return;
+        return null;
+      }
+
+      PgType.Row pgType = pgTypes.get(0);
+      if (pgType.getRelationId() == 0) {
+        return null;
       }
 
       //Load attributes
       List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, relationId);
 
-      registry.update(pgTypes, pgAttrs, emptyList());
+      return (CompositeType) loadRaw(pgType, pgAttrs);
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
     }
 
+    return null;
+  }
+
+  /*
+   * Materialize a type from the given "pg_type" and "pg_attribute" data
+   */
+  private Type loadRaw(PgType.Row pgType) {
+    return loadRaw(pgType, emptySet());
+  }
+
+  private Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
+
+    Type type;
+
+    if (pgType.getElementTypeId() != 0 && pgType.getCategory().equals("A")) {
+
+      type = new ArrayType();
+    }
+    else {
+
+      switch (pgType.getDiscriminator().charAt(0)) {
+        case 'b':
+          type = new BaseType();
+          break;
+        case 'c':
+          type = new CompositeType();
+          break;
+        case 'd':
+          type = new DomainType();
+          break;
+        case 'e':
+          type = new EnumerationType();
+          break;
+        case 'p':
+          type = new PsuedoType();
+          break;
+        case 'r':
+          type = new RangeType();
+          break;
+        default:
+          logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
+          return null;
+      }
+
+    }
+
+    type.load(pgType, pgAttrs, registry);
+
+    return type;
   }
 
   public boolean isUtilQueryPrepared(String name) {
@@ -449,7 +519,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    QueryDescription desc = new QueryDescription(name, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    QueryDescription desc = new QueryDescription(name, sql, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
     utilQueries.put(name, desc);
   }
 
@@ -469,7 +539,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new QueryDescription(null, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
   }
 
   private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {

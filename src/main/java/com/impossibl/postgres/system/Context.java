@@ -30,7 +30,9 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
@@ -86,17 +88,17 @@ public interface Context {
 
   Map<String, Class<?>> getCustomTypeMap();
 
-  void refreshType(int typeId);
+  Type loadType(String typeName);
 
-  void refreshRelationType(int relationId);
+  Type loadType(int typeId);
+
+  CompositeType loadRelationType(int relationId);
 
   Object getSetting(String name);
 
   <T> T getSetting(String name, Class<T> type);
 
   <T> T getSetting(String name, T defaultValue);
-
-  boolean isSettingEnabled(String name);
 
   Context unwrap();
 

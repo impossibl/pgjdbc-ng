@@ -29,7 +29,9 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.procs.NestedArrays;
+
+import static com.impossibl.postgres.system.procs.NestedArrays.BINARY_DECODER;
+import static com.impossibl.postgres.system.procs.NestedArrays.TEXT_DECODER;
 
 /**
  * A database array type.
@@ -42,13 +44,14 @@ public class NestedArrayType extends ArrayType {
   private int[] dimensions;
   private FieldFormat elementFormat;
 
-  public NestedArrayType(String name, Type elementType, FieldFormat elementFormat, int[] dimensions) {
-    super(elementType);
+  public NestedArrayType(ArrayType arrayType, Type elementType, FieldFormat elementFormat, int[] dimensions) {
+    super(
+        arrayType.getId(), arrayType.getName(), arrayType.getNamespace(), (short) -1, (byte) 4, Category.Array, ',', 0,
+        new BinaryCodec(BINARY_DECODER, null), new TextCodec(TEXT_DECODER, null), arrayType.getModifierParser(),
+        elementFormat, elementFormat, elementType
+    );
     this.dimensions = dimensions;
     this.elementFormat = elementFormat;
-    this.setName(name);
-    this.setTextCodec(new TextCodec(NestedArrays.TEXT_DECODER, null));
-    this.setBinaryCodec(new BinaryCodec(NestedArrays.BINARY_DECODER, null));
   }
 
   public int[] getDimensions() {
@@ -64,4 +67,8 @@ public class NestedArrayType extends ArrayType {
     return PrimitiveType.Array;
   }
 
+  @Override
+  public String toString() {
+    return super.toString() + "[]";
+  }
 }

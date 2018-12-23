@@ -162,7 +162,7 @@ public class CompositeType extends Type {
   }
 
   @Override
-  public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs, Registry registry) {
+  public void load(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs, Registry registry) {
 
     super.load(pgType, pgAttrs, registry);
 

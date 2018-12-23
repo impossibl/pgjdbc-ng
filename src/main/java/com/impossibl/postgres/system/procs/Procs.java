@@ -33,6 +33,8 @@ import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
 
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
+
 import java.util.ServiceLoader;
 
 import io.netty.buffer.ByteBuf;
@@ -102,7 +104,7 @@ public class Procs {
 
   public Modifiers.Parser loadModifierParserProc(String name, Context context) {
 
-    if (!name.isEmpty()) {
+    if (!isNullOrEmpty(name) && !name.equals("-")) {
       Modifiers.Parser p;
 
       for (ProcProvider pp : providers) {

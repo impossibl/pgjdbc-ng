@@ -30,7 +30,9 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
@@ -106,13 +108,18 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public void refreshType(int typeId) {
-    base.refreshType(typeId);
+  public Type loadType(int typeId) {
+    return base.loadType(typeId);
   }
 
   @Override
-  public void refreshRelationType(int relationId) {
-    base.refreshRelationType(relationId);
+  public CompositeType loadRelationType(int relationId) {
+    return base.loadRelationType(relationId);
+  }
+
+  @Override
+  public Type loadType(String typeName) {
+    return base.loadType(typeName);
   }
 
   @Override

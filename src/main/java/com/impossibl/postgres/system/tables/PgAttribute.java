@@ -59,6 +59,20 @@ public class PgAttribute implements Table<PgAttribute.Row> {
     private int numberOfDimensions;
     private boolean hasDefault;
 
+    public Row(int relationTypeId, int relationId, String name, int typeId, int typeModifier, short length, short number, boolean nullable, Boolean autoIncrement, int numberOfDimensions, boolean hasDefault) {
+      this.relationTypeId = relationTypeId;
+      this.relationId = relationId;
+      this.name = name;
+      this.typeId = typeId;
+      this.typeModifier = typeModifier;
+      this.length = length;
+      this.number = number;
+      this.nullable = nullable;
+      this.autoIncrement = autoIncrement;
+      this.numberOfDimensions = numberOfDimensions;
+      this.hasDefault = hasDefault;
+    }
+
     public Row() {
     }
 
@@ -80,88 +94,44 @@ public class PgAttribute implements Table<PgAttribute.Row> {
       return relationTypeId;
     }
 
-    public void setRelationTypeId(int v) {
-      relationTypeId = v;
-    }
-
     public int getRelationId() {
       return relationId;
-    }
-
-    public void setRelationId(int v) {
-      relationId = v;
     }
 
     public String getName() {
       return name;
     }
 
-    public void setName(String v) {
-      name = v;
-    }
-
     public int getTypeId() {
       return typeId;
-    }
-
-    public void setTypeId(int v) {
-      typeId = v;
     }
 
     public int getTypeModifier() {
       return typeModifier;
     }
 
-    public void setTypeModifier(int v) {
-      typeModifier = v;
-    }
-
     public short getLength() {
       return length;
-    }
-
-    public void setLength(short v) {
-      length = v;
     }
 
     public short getNumber() {
       return number;
     }
 
-    public void setNumber(short v) {
-      number = v;
-    }
-
     public boolean isNullable() {
       return nullable;
-    }
-
-    public void setNullable(boolean v) {
-      nullable = v;
     }
 
     public boolean isAutoIncrement() {
       return autoIncrement != null ? autoIncrement : false;
     }
 
-    public void setAutoIncrement(boolean v) {
-      autoIncrement = v;
-    }
-
     public int getNumberOfDimensions() {
       return numberOfDimensions;
     }
 
-    public void setNumberOfDimensions(int numberOfDimensions) {
-      this.numberOfDimensions = numberOfDimensions;
-    }
-
     public boolean isHasDefault() {
       return hasDefault;
-    }
-
-    public void setHasDefault(boolean v) {
-      hasDefault = v;
     }
 
     @Override
@@ -188,24 +158,22 @@ public class PgAttribute implements Table<PgAttribute.Row> {
       }
       else if (!name.equals(other.name))
         return false;
-      if (typeId != other.typeId)
-        return false;
-      return true;
+      return typeId == other.typeId;
     }
 
   }
 
-  static final int RELATION_ID = 0;
-  static final int NAME = 1;
-  static final int TYPE_ID = 2;
-  static final int TYPE_MOD = 3;
-  static final int LENGTH = 4;
-  static final int NUMBER = 5;
-  static final int NULLABLE = 6;
-  static final int AUTOINCREMENT = 7;
-  static final int NUMBER_OF_DIMS = 8;
-  static final int HAS_DEFAULT = 9;
-  static final int RELATION_TYPE_ID = 10;
+  private static final int RELATION_ID = 0;
+  private static final int NAME = 1;
+  private static final int TYPE_ID = 2;
+  private static final int TYPE_MOD = 3;
+  private static final int LENGTH = 4;
+  private static final int NUMBER = 5;
+  private static final int NULLABLE = 6;
+  private static final int AUTOINCREMENT = 7;
+  private static final int NUMBER_OF_DIMS = 8;
+  private static final int HAS_DEFAULT = 9;
+  private static final int RELATION_TYPE_ID = 10;
 
   public static final PgAttribute INSTANCE = new PgAttribute();
 
@@ -226,19 +194,15 @@ public class PgAttribute implements Table<PgAttribute.Row> {
 
   private static final Object[] SQL = {
     Version.get(9, 0, 0),
-    " select " +
-      "   attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
-      "   attnum as \"number\", not attnotnull as \"nullable\", pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) like '%nextval(%' as \"autoIncrement\", " +
-      "   attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\", reltype as \"relationTypeId\" " +
-      " from " +
-      "   pg_catalog.pg_attribute a " +
-      " left join pg_catalog.pg_attrdef ad " +
-      "   on (a.attrelid = ad.adrelid and a.attnum = ad.adnum)" +
-      " left join pg_catalog.pg_class c" +
-      "   on (a.attrelid = c.oid)" +
-      " where " +
-      "   not a.attisdropped" +
-      "     AND (c.relpersistence <> 't' OR c.relpersistence IS NULL)"
+      " SELECT" +
+          " attrelid, attname, atttypid, atttypmod, attlen," +
+          " attnum, NOT attnotnull, pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) LIKE '%nextval(%'," +
+          " attndims, atthasdef, reltype" +
+          " FROM" +
+          "   pg_catalog.pg_attribute a" +
+          " LEFT JOIN pg_catalog.pg_attrdef ad ON (a.attrelid = ad.adrelid AND a.attnum = ad.adnum)" +
+          " LEFT JOIN pg_catalog.pg_class c ON (a.attrelid = c.oid)" +
+          " WHERE NOT a.attisdropped AND (c.relpersistence <> 't' OR c.relpersistence IS NULL)"
   };
 
 }

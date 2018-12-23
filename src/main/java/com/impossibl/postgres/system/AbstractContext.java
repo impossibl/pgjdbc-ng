@@ -63,12 +63,4 @@ public abstract class AbstractContext implements Context {
     return (T) defaultValue.getClass().cast(val);
   }
 
-  @Override
-  public boolean isSettingEnabled(String name) {
-    Object val = getSetting(name);
-    if (val instanceof String)
-      return ((String) val).equalsIgnoreCase("on");
-    return val instanceof Boolean && (Boolean) val;
-  }
-
 }

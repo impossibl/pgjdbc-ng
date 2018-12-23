@@ -52,14 +52,8 @@ public class DomainType extends Type {
   public Type getBase() {
     return base;
   }
-  public void setBase(Type base) {
-    this.base = base;
-  }
   public boolean isNullable() {
     return nullable;
-  }
-  public void setNullable(boolean nullable) {
-    this.nullable = nullable;
   }
 
   @Override
@@ -81,16 +75,8 @@ public class DomainType extends Type {
     return modifiers;
   }
 
-  public void setModifiers(Map<String, Object> modifiers) {
-    this.modifiers = modifiers;
-  }
-
   public String getDefaultValue() {
     return defaultValue;
-  }
-
-  public void setDefaultValue(String defaultValue) {
-    this.defaultValue = defaultValue;
   }
 
   @Override

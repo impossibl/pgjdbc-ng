@@ -31,9 +31,6 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgProc;
-import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.types.Type.Codec;
 
@@ -45,7 +42,6 @@ import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_ENCODER;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -68,11 +64,6 @@ public class Registry {
   private Map<String, Type> nameMap;
   private TreeMap<Integer, Type> relIdMap;
 
-  private TreeMap<Integer, PgType.Row> pgTypeData;
-  private TreeMap<Integer, Collection<PgAttribute.Row>> pgAttrData;
-  private TreeMap<Integer, PgProc.Row> pgProcData;
-  private Map<String, PgProc.Row> pgProcNameMap;
-
   private WeakReference<Context> context;
   private Procs procs;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -86,25 +77,22 @@ public class Registry {
 
     this.procs = new Procs(context.getClass().getClassLoader());
 
-    pgTypeData = new TreeMap<>();
-    pgAttrData = new TreeMap<>();
-    pgProcData = new TreeMap<>();
-    pgProcNameMap = new HashMap<>();
-
     // Required initial types for bootstrapping
     oidMap = new TreeMap<>();
-    oidMap.put(16, new BaseType(16, "bool",     (short) 1,  (byte) 0, Category.Boolean, ',', 0, "bool", procs, Binary, Binary));
-    oidMap.put(17, new BaseType(17, "bytea",    (short) 1,  (byte) 0, Category.User,    ',', 0, "bytea", procs, Binary, Binary));
-    oidMap.put(18, new BaseType(18, "char",     (short) 1,  (byte) 0, Category.String,  ',', 0, "char", procs, Binary, Binary));
-    oidMap.put(19, new BaseType(19, "name",     (short) 64, (byte) 0, Category.String,  ',', 0, "name", procs, Binary, Binary));
-    oidMap.put(21, new BaseType(21, "int2",     (short) 2,  (byte) 0, Category.Numeric, ',', 0, "int2", procs, Binary, Binary));
-    oidMap.put(23, new BaseType(23, "int4",     (short) 4,  (byte) 0, Category.Numeric, ',', 0, "int4", procs, Binary, Binary));
-    oidMap.put(24, new BaseType(24, "regproc",  (short) 4,  (byte) 0, Category.Numeric, ',', 0, "regproc", procs, Binary, Binary));
-    oidMap.put(25, new BaseType(25, "text",     (short) 1,  (byte) 0, Category.String,  ',', 0, "text", procs, Binary, Binary));
-    oidMap.put(26, new BaseType(26, "oid",      (short) 4,  (byte) 0, Category.Numeric, ',', 0, "oid", procs, Binary, Binary));
+    oidMap.put(16,  new BaseType(16, "bool",       (short) 1,  (byte) 1, Category.Boolean, ',', 1000, procs, Binary, Binary));
+    oidMap.put(17,  new BaseType(17, "bytea",      (short) 1,  (byte) 4, Category.User,    ',', 1001, procs, Binary, Binary));
+    oidMap.put(18,  new BaseType(18, "char",       (short) 1,  (byte) 1, Category.String,  ',', 1002, procs, Binary, Binary));
+    oidMap.put(19,  new BaseType(19, "name",       (short)64,  (byte) 1, Category.String,  ',', 1003, procs, Binary, Binary));
+    oidMap.put(20,  new BaseType(20, "int8",       (short) 8,  (byte) 8, Category.Numeric, ',', 1016, procs, Binary, Binary));
+    oidMap.put(21,  new BaseType(21, "int2",       (short) 2,  (byte) 2, Category.Numeric, ',', 1005, procs, Binary, Binary));
+    oidMap.put(23,  new BaseType(23, "int4",       (short) 4,  (byte) 4, Category.Numeric, ',', 1007, procs, Binary, Binary));
+    oidMap.put(25,  new BaseType(25, "text",       (short)-1,  (byte) 4, Category.String,  ',', 1009, procs, Binary, Binary));
+    oidMap.put(26,  new BaseType(26, "oid",        (short) 4,  (byte) 4, Category.Numeric, ',', 1028, procs, Binary, Binary));
+
+    nameMap = new HashMap<>();
+    oidMap.values().forEach(type -> nameMap.put(type.getName(), type));
 
     relIdMap = new TreeMap<>();
-    nameMap = new HashMap<>();
 
     typeNameAliases = new HashMap<>();
     typeNameAliases.put("smallint", "int2");
@@ -149,25 +137,18 @@ public class Registry {
         lock.readLock().unlock();
         try {
 
-          type = loadRaw(typeId);
+          type = getContext().loadType(typeId);
 
-          if (type == null) {
-
-            getContext().refreshType(typeId);
-
-          }
+          updateType(type);
 
         }
         finally {
           lock.readLock().lock();
         }
 
-        type = oidMap.get(typeId);
-
       }
 
       return type;
-
     }
     finally {
       lock.readLock().unlock();
@@ -183,45 +164,49 @@ public class Registry {
    */
   public Type loadType(String name) {
 
-    boolean isArray = false;
-    if (name .endsWith("[]")) {
-      isArray = true;
-      name = name.substring(0, name.length() - 2);
+    if (name == null)
+      return null;
+
+    if (name.endsWith("[]")) {
+
+      String baseName = name.substring(0, name.length() - 2);
+
+      baseName = typeNameAliases.getOrDefault(baseName, baseName);
+
+      name = "_" + baseName;
+    }
+    else {
+
+      name = typeNameAliases.getOrDefault(name, name);
     }
 
-
-    String alias = typeNameAliases.get(name);
-    if (alias != null) {
-      name = alias;
-    }
-
-
-    Type res;
 
     lock.readLock().lock();
     try {
-      res = nameMap.get(name);
+
+      Type type = nameMap.get(name);
+      if (type == null) {
+
+        lock.readLock().unlock();
+        try {
+
+          type = getContext().loadType(name);
+
+          updateType(type);
+
+        }
+        finally {
+          lock.readLock().lock();
+        }
+
+      }
+
+      return type;
     }
     finally {
       lock.readLock().unlock();
     }
 
-    if (res == null) {
-      getContext().refreshType(getLatestKnownTypeId() + 1);
-      lock.readLock().lock();
-      try {
-        res = nameMap.get(name);
-      }
-      finally {
-        lock.readLock().unlock();
-      }
-    }
-
-    if (isArray && res != null) {
-      res = loadType(res.getArrayTypeId());
-    }
-
-    return res;
   }
 
   /**
@@ -244,21 +229,15 @@ public class Registry {
         lock.readLock().unlock();
         try {
 
-          type = loadRelationRaw(relationId);
+          type = getContext().loadRelationType(relationId);
 
-          if (type == null) {
-
-            getContext().refreshRelationType(relationId);
-
-          }
+          updateType(type);
 
         }
         finally {
           lock.readLock().lock();
         }
 
-        type = (CompositeType) relIdMap.get(relationId);
-
       }
 
       return type;
@@ -269,335 +248,74 @@ public class Registry {
 
   }
 
-  /**
-   * Looks up a procedures name given it's proc-id (aka OID)
-   *
-   * @param procId The procedure's id
-   * @return The text name of the procedure or null, if none found
-   */
-  private String lookupProcName(int procId) {
+  public void updateType(Type type) {
+    if (type == null) return;
 
-    lock.readLock().lock();
-    try {
-
-      PgProc.Row pgProc = pgProcData.get(procId);
-      if (pgProc == null)
-        return null;
-
-      return pgProc.getName();
-    }
-    finally {
-      lock.readLock().unlock();
+    oidMap.put(type.getId(), type);
+    nameMap.put(type.getName(), type);
+    if (type.getRelationId() != 0) {
+      relIdMap.put(type.getRelationId(), type);
     }
   }
 
-  /**
-   * Looks up a procedure id (aka OID) given it's name.
-   *
-   * @param procName The procedure's name
-   * @return The id of the procedure (aka OID) or null, if none found
-   */
-  public int lookupProcId(String procName) {
+  public void updateTypes(Collection<Type> types) {
 
-    lock.readLock().lock();
-    try {
-
-      PgProc.Row pgProc = pgProcNameMap.get(procName);
-      if (pgProc == null)
-        return 0;
-
-      return pgProc.getOid();
-    }
-    finally {
-      lock.readLock().unlock();
+    for (Type type : types) {
+      updateType(type);
     }
 
-  }
-
-  public int getLatestKnownTypeId() {
-    return oidMap.lastKey();
-  }
-
-  /**
-   * Updates the type information from the given catalog data. Any
-   * information not specifically mentioned in the given updated
-   * data will be retained and untouched.
-   *
-   * @param pgTypeRows "pg_type" table rows
-   * @param pgAttrRows "pg_attribute" table rows
-   * @param pgProcRows "pg_proc" table rows
-   */
-  public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
-
-    lock.writeLock().lock();
-    try {
-      /*
-       * Update attribute info
-       */
-
-      //Remove attribute info for updating types
-      for (PgType.Row pgType : pgTypeRows) {
-        pgAttrData.remove(pgType.getRelationId());
-      }
-
-      //Add updated info
-      for (PgAttribute.Row pgAttrRow : pgAttrRows) {
-
-        Collection<PgAttribute.Row> relRows = pgAttrData.computeIfAbsent(pgAttrRow.getRelationId(), k -> new HashSet<>());
-
-        relRows.add(pgAttrRow);
-      }
-
-      /*
-       * Update proc info
-       */
-
-      for (PgProc.Row pgProcRow : pgProcRows) {
-        pgProcData.put(pgProcRow.getOid(), pgProcRow);
-        pgProcNameMap.put(pgProcRow.getName(), pgProcRow);
-      }
-
-
-      /*
-       * Update type info
-       */
-      for (PgType.Row pgTypeRow : pgTypeRows) {
-        pgTypeData.put(pgTypeRow.getOid(), pgTypeRow);
-        oidMap.remove(pgTypeRow.getOid());
-        nameMap.remove(pgTypeRow.getName());
-        relIdMap.remove(pgTypeRow.getRelationId());
-      }
-
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-
-    /*
-     * (re)load all types just updated
-     */
-    for (PgType.Row pgType : pgTypeRows) {
-      loadType(pgType.getOid());
-    }
-
-  }
-
-  /*
-   * Materialize the requested type from the raw catalog data
-   */
-  private Type loadRaw(int typeId) {
-
-    if (typeId == 0)
-      return null;
-
-    lock.writeLock().lock();
-    try {
-
-      PgType.Row pgType = pgTypeData.get(typeId);
-      if (pgType == null)
-        return null;
-
-      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.getRelationId());
-
-      Type type;
-
-      lock.writeLock().unlock();
-      try {
-        type = loadRaw(pgType, pgAttrs);
-      }
-      finally {
-        lock.writeLock().lock();
-      }
-
-      if (type != null) {
-        oidMap.put(typeId, type);
-        nameMap.put(type.getName(), type);
-        relIdMap.put(type.getRelationId(), type);
-      }
-
-      return type;
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  /*
-   * Materialize the requested type from the raw catalog data
-   */
-  private CompositeType loadRelationRaw(int relationId) {
-
-    if (relationId == 0)
-      return null;
-
-    lock.writeLock().lock();
-    try {
-
-      CompositeType type = null;
-
-      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
-      if (pgAttrs != null && !pgAttrs.isEmpty()) {
-
-        PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().getRelationTypeId());
-        if (pgType == null)
-          return null;
-
-        lock.writeLock().unlock();
-        try {
-          type = (CompositeType) loadRaw(pgType, pgAttrs);
-        }
-        finally {
-          lock.writeLock().lock();
-        }
-
-        if (type != null) {
-          oidMap.put(pgType.getOid(), type);
-          nameMap.put(type.getName(), type);
-          relIdMap.put(type.getRelationId(), type);
-        }
-      }
-
-      return type;
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-
-  }
-
-  /*
-   * Materialize a type from the given "pg_type" and "pg_attribute" data
-   */
-  private Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
-
-    Type type;
-
-    if (pgType.getElementTypeId() != 0 && pgType.getCategory().equals("A")) {
-
-      type = new ArrayType(loadType(pgType.getElementTypeId()));
-    }
-    else {
-
-      switch (pgType.getDiscriminator().charAt(0)) {
-        case 'b':
-          type = new BaseType();
-          break;
-        case 'c':
-          type = new CompositeType();
-          break;
-        case 'd':
-          type = new DomainType();
-          break;
-        case 'e':
-          type = new EnumerationType();
-          break;
-        case 'p':
-          type = new PsuedoType();
-          break;
-        case 'r':
-          type = new RangeType();
-          break;
-        default:
-          logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
-          return null;
-      }
-
-    }
-
-    try {
-
-      lock.writeLock().lock();
-      try {
-        oidMap.put(pgType.getOid(), type);
-      }
-      finally {
-        lock.writeLock().unlock();
-      }
-
-      type.load(pgType, pgAttrs, this);
-
-    }
-    catch (Exception e) {
-
-      e.printStackTrace();
-
-      lock.writeLock().lock();
-      try {
-        oidMap.remove(pgType.getOid());
-      }
-      finally {
-        lock.writeLock().unlock();
-      }
-    }
-
-    return type;
   }
 
   /**
    * Loads a matching Codec given the proc-id of its encoder and decoder
    *
-   * @param encoderId proc-id of the encoder
-   * @param decoderId proc-id of the decoder
+   * @param encoderName proc-name of the encoder
+   * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.TextCodec loadTextCodec(int encoderId, int decoderId) {
+  Type.TextCodec loadTextCodec(String encoderName, String decoderName) {
     return new Type.TextCodec(
-        loadDecoderProc(decoderId, DEFAULT_TEXT_DECODER, CharSequence.class),
-        loadEncoderProc(encoderId, DEFAULT_TEXT_ENCODER, StringBuilder.class)
+        loadDecoderProc(decoderName, DEFAULT_TEXT_DECODER, CharSequence.class),
+        loadEncoderProc(encoderName, DEFAULT_TEXT_ENCODER, StringBuilder.class)
     );
   }
 
   /**
    * Loads a matching Codec given the proc-id of its encoder and decoder
    *
-   * @param encoderId proc-id of the encoder
-   * @param decoderId proc-id of the decoder
+   * @param encoderName proc-name of the encoder
+   * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.BinaryCodec loadBinaryCodec(int encoderId, int decoderId) {
+  Type.BinaryCodec loadBinaryCodec(String encoderName, String decoderName) {
     return new Type.BinaryCodec(
-        loadDecoderProc(decoderId, DEFAULT_BINARY_DECODER, ByteBuf.class),
-        loadEncoderProc(encoderId, Procs.DEFAULT_BINARY_ENCODER, ByteBuf.class)
+        loadDecoderProc(decoderName, DEFAULT_BINARY_DECODER, ByteBuf.class),
+        loadEncoderProc(encoderName, Procs.DEFAULT_BINARY_ENCODER, ByteBuf.class)
     );
   }
 
   /*
    * Loads a matching encoder given its proc-id
    */
-  private <Buffer> Codec.Encoder<Buffer> loadEncoderProc(int procId, Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
+  private <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String procName, Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
 
-    String name = lookupProcName(procId);
-    if (name == null) {
-      return defaultEncoder;
-    }
-
-    return procs.loadEncoderProc(name, getContext(), defaultEncoder, bufferType);
+    return procs.loadEncoderProc(procName, getContext(), defaultEncoder, bufferType);
   }
 
   /*
    * Loads a matching decoder given its proc-id
    */
-  private <Buffer> Codec.Decoder<Buffer> loadDecoderProc(int procId, Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
+  private <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String procName, Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
 
-    String name = lookupProcName(procId);
-    if (name == null) {
-      return defaultDecoder;
-    }
-
-    return procs.loadDecoderProc(name, getContext(), defaultDecoder, bufferType);
+    return procs.loadDecoderProc(procName, getContext(), defaultDecoder, bufferType);
   }
 
   /*
    * Loads a matching parser given mod-in and mod-out ids
    */
-  Modifiers.Parser loadModifierParser(int modInId) {
+  Modifiers.Parser loadModifierParser(String modInName) {
 
-    String name = lookupProcName(modInId);
-    if (name == null) {
-      name = ""; //get the default proc
-    }
-
-    return procs.loadModifierParserProc(name, getContext());
+    return procs.loadModifierParserProc(modInName, getContext());
   }
 
 }

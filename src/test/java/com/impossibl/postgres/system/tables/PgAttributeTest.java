@@ -28,9 +28,6 @@
  */
 package com.impossibl.postgres.system.tables;
 
-import com.impossibl.postgres.system.UnsupportedServerVersion;
-import com.impossibl.postgres.system.Version;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,9 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Created by dstipp on 12/8/15.
@@ -52,23 +47,7 @@ public class PgAttributeTest {
   public final ExpectedException thrown = ExpectedException.none();
 
   @Test
-  public void testGetSQLVersionEqual() throws Exception {
-    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("9.0.0")), SQL[1]);
-  }
-
-  @Test
-  public void testGetSQLVersionGreater() throws Exception {
-    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
-  }
-
-  @Test
-  public void testGetSQLVersionInvalid() throws Exception {
-    thrown.expect(UnsupportedServerVersion.class);
-    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
-  }
-
-  @Test
-  public void testHashCode() throws Exception {
+  public void testHashCode() {
     PgAttribute.Row pgAttrOne = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrOneAgain = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrTwo = createRow(81, 1255, "pronamespace", 26, -1, (short) 4, (short) 2, false, false, 0, false);
@@ -79,20 +58,20 @@ public class PgAttributeTest {
   }
 
   @Test
-  public void testEquals() throws Exception {
+  public void testEquals() {
     PgAttribute.Row pgAttrOne = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrOneAgain = createRow(81, 1255, "proname", 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrOneNullName = createRow(81, 1255, null, 19, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrOneAlternateTypeId = createRow(81, 1255, "proname", 0, -1, (short) 64, (short) 1, false, false, 0, false);
     PgAttribute.Row pgAttrTwo = createRow(81, 1255, "pronamespace", 26, -1, (short) 4, (short) 2, false, false, 0, false);
 
-    assertTrue(pgAttrOne.equals(pgAttrOne));
-    assertFalse(pgAttrOne.equals(null));
-    assertFalse(pgAttrOne.equals("testStringNotSameClass"));
-    assertFalse(pgAttrOne.equals(pgAttrTwo));
-    assertFalse(pgAttrOneNullName.equals(pgAttrOne));
-    assertFalse(pgAttrOne.equals(pgAttrOneAlternateTypeId));
-    assertTrue(pgAttrOne.equals(pgAttrOneAgain));
+    assertEquals(pgAttrOne, pgAttrOne);
+    assertNotEquals(null, pgAttrOne);
+    assertNotEquals("testStringNotSameClass", pgAttrOne);
+    assertNotEquals(pgAttrOne, pgAttrTwo);
+    assertNotEquals(pgAttrOneNullName, pgAttrOne);
+    assertNotEquals(pgAttrOne, pgAttrOneAlternateTypeId);
+    assertEquals(pgAttrOne, pgAttrOneAgain);
 
   }
 
@@ -133,37 +112,10 @@ public class PgAttributeTest {
                                     boolean autoIncrement,
                                     int numberOfDimensions,
                                     boolean hasDefault) {
-    PgAttribute.Row pgAttrRow = new PgAttribute.Row();
-    pgAttrRow.setRelationTypeId(relationTypeId);
-    pgAttrRow.setRelationId(relationId);
-    pgAttrRow.setName(name);
-    pgAttrRow.setTypeId(typeId);
-    pgAttrRow.setTypeModifier(typeModifier);
-    pgAttrRow.setLength(length);
-    pgAttrRow.setNumber(number);
-    pgAttrRow.setNullable(nullable);
-    pgAttrRow.setAutoIncrement(autoIncrement);
-    pgAttrRow.setNumberOfDimensions(numberOfDimensions);
-    pgAttrRow.setHasDefault(hasDefault);
-    return pgAttrRow;
+    return new PgAttribute.Row(
+        relationTypeId, relationId, name, typeId, typeModifier, length,
+        number, nullable, autoIncrement, numberOfDimensions, hasDefault
+    );
   }
-
-  // copy-paste from PgAttribute.  Has to be a better way than this, but IDE and dp4j don't seem to get along.
-  private static final Object[] SQL = {
-    Version.get(9, 0, 0),
-    " select " +
-      "   attrelid as \"relationId\", attname as \"name\", atttypid as \"typeId\", atttypmod as \"typeModifier\", attlen as \"length\", " +
-      "   attnum as \"number\", not attnotnull as \"nullable\", pg_catalog.pg_get_expr(ad.adbin,ad.adrelid) like '%nextval(%' as \"autoIncrement\", " +
-      "   attndims as \"numberOfDimensions\", atthasdef as \"hasDefault\", reltype as \"relationTypeId\" " +
-      " from " +
-      "   pg_catalog.pg_attribute a " +
-      " left join pg_catalog.pg_attrdef ad " +
-      "   on (a.attrelid = ad.adrelid and a.attnum = ad.adnum)" +
-      " left join pg_catalog.pg_class c" +
-      "   on (a.attrelid = c.oid)" +
-      " where " +
-      "   not a.attisdropped" +
-      "     AND (c.relpersistence <> 't' OR c.relpersistence IS NULL)"
-  };
 
 }

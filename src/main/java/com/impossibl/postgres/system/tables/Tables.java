@@ -55,7 +55,7 @@ public class Tables {
 
     try {
 
-      for (int c = 0; c < sqlData.length; c += 2) {
+      for (int c = 0; c < sqlData.length; c += 3) {
 
         Version curSqlVersion = (Version) sqlData[c];
         String curSql = (String) sqlData[c + 1];

@@ -45,12 +45,12 @@ public class BaseType extends Type {
   public BaseType() {
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec, preferredParameterFormat, preferredResultFormat);
+  public BaseType(int id, String name, String namespace, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    super(id, name, namespace, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null), procs.loadModifierParserProc(procName, null), preferredParameterFormat, preferredResultFormat);
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null), preferredParameterFormat, preferredResultFormat);
+  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    this(id, name, "", length, alignment, category, delimeter, arrayTypeId, name, procs, preferredParameterFormat, preferredResultFormat);
   }
 
   @Override

@@ -250,7 +250,7 @@ public class PGBuffersArray extends PGArray {
     FieldFormat elementFormat;
     Type elementType;
     if (stride > 1) {
-      elementType = new NestedArrayType(type.getName(), type.getElementType(), this.elementFormat, copyOfRange(dimensions, 1, dimensions.length));
+      elementType = new NestedArrayType(type, type.getElementType(), this.elementFormat, copyOfRange(dimensions, 1, dimensions.length));
       elementFormat = FieldFormat.Binary;
     }
     else {

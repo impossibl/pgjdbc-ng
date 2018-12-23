@@ -192,10 +192,11 @@ public abstract class Type implements TypeRef {
   public Type() {
   }
 
-  public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+  public Type(int id, String name, String namespace, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     super();
     this.id = id;
     this.name = name;
+    this.namespace = namespace;
     this.length = length;
     this.alignment = alignment;
     this.category = category;
@@ -203,6 +204,7 @@ public abstract class Type implements TypeRef {
     this.arrayTypeId = arrayTypeId;
     this.binaryCodec = binaryCodec;
     this.textCodec = textCodec;
+    this.modifierParser = modifierParser;
     this.preferredParameterFormat = preferredParameterFormat;
     this.preferredResultFormat = preferredResultFormat;
   }
@@ -216,80 +218,40 @@ public abstract class Type implements TypeRef {
     return id;
   }
 
-  public void setId(int id) {
-    this.id = id;
-  }
-
   public String getName() {
     return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public String getNamespace() {
     return namespace;
   }
 
-  public void setNamespace(String namespace) {
-    this.namespace = namespace;
-  }
-
   public Short getLength() {
     return length;
-  }
-
-  public void setLength(Short length) {
-    this.length = length;
   }
 
   public Byte getAlignment() {
     return alignment;
   }
 
-  public void setAlignment(Byte alignment) {
-    this.alignment = alignment;
-  }
-
   public Category getCategory() {
     return category;
-  }
-
-  public void setCategory(Category category) {
-    this.category = category;
   }
 
   public char getDelimeter() {
     return delimeter;
   }
 
-  public void setDelimeter(char delimeter) {
-    this.delimeter = delimeter;
-  }
-
   public int getArrayTypeId() {
     return arrayTypeId;
-  }
-
-  public void setArrayTypeId(int arrayTypeId) {
-    this.arrayTypeId = arrayTypeId;
   }
 
   public BinaryCodec getBinaryCodec() {
     return binaryCodec;
   }
 
-  public void setBinaryCodec(BinaryCodec binaryCodec) {
-    this.binaryCodec = binaryCodec;
-  }
-
   public TextCodec getTextCodec() {
     return textCodec;
-  }
-
-  public void setTextCodec(TextCodec textCodec) {
-    this.textCodec = textCodec;
   }
 
   public Codec<?, ?> getCodec(FieldFormat format) {
@@ -305,16 +267,8 @@ public abstract class Type implements TypeRef {
     return modifierParser;
   }
 
-  public void setModifierParser(Modifiers.Parser modifierParser) {
-    this.modifierParser = modifierParser;
-  }
-
   public int getRelationId() {
     return relationId;
-  }
-
-  public void setRelationId(int relationId) {
-    this.relationId = relationId;
   }
 
   /**
