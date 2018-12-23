@@ -37,6 +37,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers.AnyQueryResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.CompositeQueryResults;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
@@ -44,6 +45,7 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.sql.SQLException;
@@ -125,6 +127,9 @@ public class DirectQuery implements Query {
 
     resultBatches = results.getBatches();
 
+    // Cache referenced types...
+    resultBatches.forEach(resultBatch -> transformFieldTypes(resultBatch, connection.getRegistry()::loadType));
+
     return chainWarnings(null, results);
   }
 
@@ -147,6 +152,7 @@ public class DirectQuery implements Query {
     if (result.isSuspended()) {
       suspendedResultFields = result.getBatch().getFields();
     }
+
     return applyExecuteResult(connection, result);
   }
 
@@ -159,14 +165,18 @@ public class DirectQuery implements Query {
       return handler;
     });
 
-    status = result.isSuspended() ? Status.Suspended : Status.Completed;
-    resultBatches = new ArrayList<>(singletonList(result.getBatch()));
-
-    return chainWarnings(null, result);
+    return applyExecuteResult(connection, result);
   }
 
-  private SQLWarning applyExecuteResult(PGDirectConnection connection, QueryResult result) throws SQLException {
-    resultBatches = new ArrayList<>(singletonList(result.getBatch()));
+  private SQLWarning applyExecuteResult(PGDirectConnection connection, AnyQueryResult result) throws SQLException {
+
+    ResultBatch resultBatch = result.getBatch();
+
+    // Cache referenced types...
+    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+
+    resultBatches = new ArrayList<>(singletonList(resultBatch));
+
     if (result.isSuspended()) {
       status = Status.Suspended;
     }

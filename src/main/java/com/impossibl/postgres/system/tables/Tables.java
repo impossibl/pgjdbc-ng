@@ -29,10 +29,11 @@
 package com.impossibl.postgres.system.tables;
 
 import com.impossibl.postgres.protocol.ResultBatch;
-import com.impossibl.postgres.protocol.ResultFields;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
+
+import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -72,8 +73,9 @@ public class Tables {
   }
 
   public static <R extends Table.Row, T extends Table<R>> List<R> convertRows(Context context, T table, ResultBatch results) throws IOException {
-    // Cache looked up types...
-    ResultFields.transformTypes(results.getFields(), context.getRegistry()::loadType);
+
+    // Cache referenced types...
+    transformFieldTypes(results, context.getRegistry()::loadType);
 
     int rowCount = results.borrowRows().size();
     List<R> rows = new ArrayList<>(rowCount);

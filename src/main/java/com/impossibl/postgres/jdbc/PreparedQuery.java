@@ -42,6 +42,7 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.sql.SQLException;
@@ -137,7 +138,12 @@ public class PreparedQuery implements Query {
   }
 
   private SQLWarning applyResult(PGDirectConnection connection, ExecuteResult result) throws SQLException {
+
     resultBatch = result.getBatch();
+
+    // Cache referenced types...
+    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+
     if (result.isSuspended()) {
       status = Status.Suspended;
     }

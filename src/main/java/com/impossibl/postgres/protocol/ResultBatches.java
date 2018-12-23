@@ -36,8 +36,15 @@
 package com.impossibl.postgres.protocol;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class ResultBatches {
+
+  public static void transformFieldTypes(ResultBatch resultBatch, Function<TypeRef, TypeRef> consumer) {
+    for (ResultField field : resultBatch.getFields()) {
+      field.setTypeRef(consumer.apply(field.getTypeRef()));
+    }
+  }
 
   public static List<ResultBatch> releaseAll(List<ResultBatch> resultBatches) {
     if (resultBatches != null) {
