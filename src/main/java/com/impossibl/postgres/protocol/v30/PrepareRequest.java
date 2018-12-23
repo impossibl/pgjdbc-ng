@@ -31,6 +31,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.PrepareHandler;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.NoData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterDescriptions;
@@ -38,8 +39,6 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParseComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
-import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.protocol.TypeRef;
 
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;
 import static com.impossibl.postgres.system.Empty.EMPTY_FIELDS;

@@ -35,6 +35,7 @@ import com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowDataSet;
 import com.impossibl.postgres.protocol.TransactionStatus;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BindComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -48,7 +49,6 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.RowDescription;
 import com.impossibl.postgres.system.NoticeException;
-import com.impossibl.postgres.protocol.TypeRef;
 
 import static com.impossibl.postgres.protocol.FieldFormats.REQUEST_ALL_BINARY;
 import static com.impossibl.postgres.protocol.ServerObjectType.Statement;

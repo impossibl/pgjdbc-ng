@@ -242,12 +242,12 @@ class SQLTrace {
   private Writer out;
   private Map<String, String> preparedText;
 
-  public SQLTrace(Writer out) {
+  SQLTrace(Writer out) {
     this.out = out;
     this.preparedText = new HashMap<>();
   }
 
-  public void prepare(String statement, String text) {
+  void prepare(String statement, String text) {
     preparedText.put(statement, text);
     try {
       out.append("P: ").append(statement).append(" = ").append(text).append('\n').flush();
@@ -256,7 +256,7 @@ class SQLTrace {
     }
   }
 
-  public void query(String text) {
+  void query(String text) {
     try {
       out.append("Q: ").append(text).append('\n').flush();
     }
@@ -264,7 +264,7 @@ class SQLTrace {
     }
   }
 
-  public void execute(String statement) {
+  void execute(String statement) {
     try {
       out.append("Q (").append(statement).append("): ").append(preparedText.get(statement)).append('\n').flush();
     }
