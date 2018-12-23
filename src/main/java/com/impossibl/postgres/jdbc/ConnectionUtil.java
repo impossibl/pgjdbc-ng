@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER;
@@ -139,7 +140,7 @@ class ConnectionUtil {
     }
   }
 
-  static PGDirectConnection createConnection(String url, Properties info, boolean allowHousekeeper) throws SQLException {
+  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry sharedRegistry, boolean allowHousekeeper) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -175,7 +176,7 @@ class ConnectionUtil {
 
       try {
 
-        PGDirectConnection conn = new PGDirectConnection(address, settings, housekeeper);
+        PGDirectConnection conn = new PGDirectConnection(address, settings, sharedRegistry, housekeeper);
 
         conn.init();
 

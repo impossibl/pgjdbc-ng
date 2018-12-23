@@ -30,11 +30,14 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.types.SharedRegistry;
 
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static java.lang.Boolean.parseBoolean;
@@ -75,6 +78,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String sslKeyFile;
   private String sslRootCertificateFile;
 
+  private Map<Properties, SharedRegistry> sharedRegistries;
+
   /**
    * Constructor
    */
@@ -102,6 +107,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.sslCertificateFile = null;
     this.sslKeyFile = null;
     this.sslRootCertificateFile = null;
+
+    this.sharedRegistries = new ConcurrentHashMap<>();
   }
 
   /**
@@ -720,7 +727,18 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (sslRootCertificateFile != null)
       props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
 
-    return ConnectionUtil.createConnection(url, props, housekeeper);
+    SharedRegistry sharedRegistry;
+    if (!parseBoolean(props.getProperty(PGSettings.REGISTRY_SHARING_DATASOURCE, PGSettings.REGISTRY_SHARING_DATASOURCE_DEFAULT))) {
+
+      sharedRegistry = new SharedRegistry(PGDataSource.class.getClassLoader());
+    }
+    else {
+
+      sharedRegistry =
+          sharedRegistries.computeIfAbsent(props, key -> new SharedRegistry(PGDataSource.class.getClassLoader()));
+    }
+
+    return ConnectionUtil.createConnection(url, props, sharedRegistry, housekeeper);
   }
 
   private String buildUrl() throws SQLException {
@@ -738,4 +756,5 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     return sb.toString();
   }
+
 }

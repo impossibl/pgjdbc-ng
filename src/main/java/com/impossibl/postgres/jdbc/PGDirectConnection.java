@@ -44,6 +44,7 @@ import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
@@ -202,8 +203,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   private static Map<String, SQLText> parsedSqlCache;
 
-  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
-    super(address, settings, Collections.emptyMap());
+  PGDirectConnection(SocketAddress address, Properties settings, SharedRegistry sharedRegistry, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
+    super(address, settings, sharedRegistry);
 
     this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);

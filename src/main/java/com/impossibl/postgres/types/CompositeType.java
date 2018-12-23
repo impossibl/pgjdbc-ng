@@ -29,6 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
@@ -162,9 +163,9 @@ public class CompositeType extends Type {
   }
 
   @Override
-  public void load(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs, Registry registry) {
+  public void load(PgType.Row pgType, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> pgAttrs, Context context, SharedRegistry registry) {
 
-    super.load(pgType, pgAttrs, registry);
+    super.load(pgType, pgAttrs, context, registry);
 
     if (pgAttrs == null) {
 
@@ -175,7 +176,7 @@ public class CompositeType extends Type {
       attributes = new ArrayList<>(pgAttrs.size());
 
       for (PgAttribute.Row pgAttr : pgAttrs) {
-        Type type = registry.loadType(pgAttr.getTypeId());
+        Type type = registry.loadType(pgAttr.getTypeId(), context::loadType);
         Attribute attr = new Attribute(pgAttr.getNumber(),
                                        pgAttr.getName(),
                                        type,

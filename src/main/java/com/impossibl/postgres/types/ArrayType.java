@@ -29,6 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -87,8 +88,8 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
-    this.elementType = registry.loadType(source.getElementTypeId());
+  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Context context, SharedRegistry registry) {
+    super.load(source, attrs, context, registry);
+    this.elementType = registry.loadType(source.getElementTypeId(), context::loadType);
   }
 }

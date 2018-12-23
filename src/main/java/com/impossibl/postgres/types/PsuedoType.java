@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgType.Row;
 
 import java.util.Collection;
@@ -41,8 +42,8 @@ import java.util.Collection;
 public class PsuedoType extends Type {
 
   @Override
-  public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
+  public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Context context, SharedRegistry registry) {
+    super.load(source, attrs, context, registry);
   }
 
 }

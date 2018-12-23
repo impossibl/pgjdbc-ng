@@ -31,6 +31,9 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.protocol.v30.ServerConnectionShared;
 import com.impossibl.postgres.system.Version;
+import com.impossibl.postgres.types.SharedRegistry;
+
+import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DRIVER;
 
 import java.sql.Driver;
 import java.sql.DriverAction;
@@ -43,6 +46,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.lang.Boolean.parseBoolean;
 
 /**
  * Driver implementation
@@ -74,12 +79,23 @@ public class PGDriver implements Driver, DriverAction {
 
   }
 
+  private SharedRegistry sharedRegistry;
+
   public PGDriver() throws SQLException {
+    if (parseBoolean(System.getProperty(REGISTRY_SHARING_DRIVER, PGSettings.REGISTRY_SHARING_DRIVER_DEFAULT))) {
+      sharedRegistry = new SharedRegistry(Thread.currentThread().getContextClassLoader());
+    }
   }
 
   @Override
   public PGConnection connect(String url, Properties info) throws SQLException {
-    return ConnectionUtil.createConnection(url, info, true);
+
+    SharedRegistry sharedRegistry = this.sharedRegistry;
+    if (this.sharedRegistry == null) {
+      sharedRegistry = new SharedRegistry(PGDriver.class.getClassLoader());
+    }
+
+    return ConnectionUtil.createConnection(url, info, sharedRegistry, true);
   }
 
   @Override

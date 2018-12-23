@@ -35,4 +35,10 @@ public class PGSettings {
   public static final String HOUSEKEEPER_DEFAULT_DRIVER = "true";
   public static final String HOUSEKEEPER_DEFAULT_DATASOURCE = "true";
 
+  public static final String REGISTRY_SHARING_DRIVER = "registry.sharing.driver";
+  public static final String REGISTRY_SHARING_DRIVER_DEFAULT = "true";
+
+  public static final String REGISTRY_SHARING_DATASOURCE = "registry.sharing.datasource";
+  public static final String REGISTRY_SHARING_DATASOURCE_DEFAULT = "true";
+
 }

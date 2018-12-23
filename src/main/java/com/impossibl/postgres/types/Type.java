@@ -338,7 +338,7 @@ public abstract class Type implements TypeRef {
    * @param attrs Associated "pg_attribute" table entries, if available.
    * @param registry The registry that is loading the type.
    */
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
+  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Context context, SharedRegistry registry) {
 
     id = source.getOid();
     name = source.getName();
@@ -349,11 +349,11 @@ public abstract class Type implements TypeRef {
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId());
-    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId());
-    modifierParser = registry.loadModifierParser(source.getModInId());
-    preferredParameterFormat = FieldFormat.valueOf(registry.getContext().getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
-    preferredResultFormat = FieldFormat.valueOf(registry.getContext().getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
+    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId(), context);
+    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId(), context);
+    modifierParser = registry.loadModifierParser(source.getModInId(), context);
+    preferredParameterFormat = FieldFormat.valueOf(context.getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
+    preferredResultFormat = FieldFormat.valueOf(context.getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
   }
 
   /**

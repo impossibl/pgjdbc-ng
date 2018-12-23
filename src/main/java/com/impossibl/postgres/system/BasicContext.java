@@ -55,6 +55,7 @@ import com.impossibl.postgres.types.EnumerationType;
 import com.impossibl.postgres.types.PsuedoType;
 import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.ByteBufs;
 import com.impossibl.postgres.utils.Locales;
@@ -154,8 +155,8 @@ public class BasicContext extends AbstractContext {
   private Map<String, QueryDescription> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> typeMap) throws IOException, NoticeException {
-    this.typeMap = new HashMap<>(typeMap);
+  public BasicContext(SocketAddress address, Properties settings, SharedRegistry sharedRegistry) throws IOException, NoticeException {
+    this.typeMap = new HashMap<>();
     this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
@@ -163,8 +164,8 @@ public class BasicContext extends AbstractContext {
     this.timeFormatter = new ISOTimeFormat();
     this.timestampFormatter = new ISOTimestampFormat();
     this.notificationListeners = new ConcurrentHashMap<>();
-    this.registry = new Registry(this);
     this.serverConnection = ServerConnectionFactory.getDefault().connect(address, this);
+    this.registry = new Registry(this, sharedRegistry);
     this.utilQueries = new HashMap<>();
   }
 
@@ -316,47 +317,57 @@ public class BasicContext extends AbstractContext {
 
   private void loadTypes() throws IOException, NoticeException {
 
-    Timer timer = new Timer();
+    SharedRegistry.Seeder seeder = registry -> {
 
-    // Load "simple" types only - composite types are loaded on demand
-    String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-    List<PgType.Row> pgTypes = queryTable(typeSQL + " WHERE typrelid = 0", PgType.INSTANCE);
+      logger.config("Seeding registry");
 
-    // Load initial types without causing refresh queries...
-    //
+      Timer timer = new Timer();
 
-    // First, base types...
-    Set<PgType.Row> baseTypeRows = pgTypes.stream()
-        .filter(PgType.Row::isBase)
-        .collect(toSet());
-    Set<Integer> baseTypeOids = baseTypeRows.stream()
-        .map(PgType.Row::getOid)
-        .collect(toSet());
+      // Load "simple" types only - composite types are loaded on demand
+      String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
+      List<PgType.Row> pgTypes = queryTable(typeSQL + " WHERE typrelid = 0", PgType.INSTANCE);
 
-    List<Type> baseTypes = baseTypeRows.stream()
-        .filter(row -> !row.isArray())
-        .map(this::loadRaw)
-        .collect(toList());
-    registry.updateTypes(baseTypes);
+      // Load initial types without causing refresh queries...
+      //
 
-    // Now, types that reference base types (arrays, ranges, domains, etc)
-    Set<PgType.Row> baseReferencingRows = pgTypes.stream()
-        .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
-        .collect(toSet());
+      // First, base types...
+      Set<PgType.Row> baseTypeRows = pgTypes.stream()
+          .filter(PgType.Row::isBase)
+          .collect(toSet());
+      Set<Integer> baseTypeOids = baseTypeRows.stream()
+          .map(PgType.Row::getOid)
+          .collect(toSet());
+      Set<PgType.Row> baseReferencingRows = pgTypes.stream()
+          .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
+          .collect(toSet());
 
-    List<Type> baseReferencingTypes = baseReferencingRows.stream()
-        .map(this::loadRaw)
-        .collect(toList());
-    registry.updateTypes(baseReferencingTypes);
+      List<Type> baseTypes = baseTypeRows.stream()
+          .filter(row -> !row.isArray())
+          .map(this::loadRaw)
+          .collect(toList());
+      registry.addTypes(baseTypes);
 
-    // Next, psuedo types
-    List<Type> psuedoTypes = pgTypes.stream()
-        .filter(PgType.Row::isPsuedo)
-        .map(this::loadRaw)
-        .collect(toList());
-    registry.updateTypes(psuedoTypes);
+      // Now, types that reference base types (arrays, ranges, domains, etc)
 
-    logger.fine("query time: " + timer.getLap() + "ms");
+      List<Type> baseReferencingTypes = baseReferencingRows.stream()
+          .map(this::loadRaw)
+          .collect(toList());
+      registry.addTypes(baseReferencingTypes);
+
+      // Next, psuedo types
+      List<Type> psuedoTypes = pgTypes.stream()
+          .filter(PgType.Row::isPsuedo)
+          .map(this::loadRaw)
+          .collect(toList());
+      registry.addTypes(psuedoTypes);
+
+      logger.fine("Seed time: " + timer.getLap() + "ms");
+
+    };
+
+    if (!registry.getShared().seed(seeder)) {
+      logger.config("Using pre-seeded registry");
+    }
   }
 
   private void prepareRefreshTypeQueries() throws IOException, NoticeException {
@@ -492,7 +503,7 @@ public class BasicContext extends AbstractContext {
 
     }
 
-    type.load(pgType, pgAttrs, registry);
+    type.load(pgType, pgAttrs, this, registry.getShared());
 
     return type;
   }
