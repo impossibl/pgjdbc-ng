@@ -55,6 +55,7 @@ import org.junit.runners.JUnit4;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -227,7 +228,7 @@ public class ConnectionTest {
 
     // Finally test clearWarnings() this time there must be something to delete
     con.clearWarnings();
-    assertTrue(con.getWarnings() == null);
+    assertNull(con.getWarnings());
   }
 
   /*
@@ -447,6 +448,9 @@ public class ConnectionTest {
     queryThread.start();
 
     long start = System.currentTimeMillis();
+
+    // Ensure query has started...
+    Thread.sleep(500);
 
     con.abort(Runnable::run);
 
