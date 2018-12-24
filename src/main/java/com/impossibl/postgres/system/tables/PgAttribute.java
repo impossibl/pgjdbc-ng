@@ -192,7 +192,7 @@ public class PgAttribute implements Table<PgAttribute.Row> {
     return row;
   }
 
-  private static final Object[] SQL = {
+  public static final Object[] SQL = {
     Version.get(9, 0, 0),
       " SELECT" +
           " attrelid, attname, atttypid, atttypmod, attlen," +

@@ -31,6 +31,9 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
 
+import static com.impossibl.postgres.system.tables.PgType.INSTANCE;
+import static com.impossibl.postgres.system.tables.PgType.SQL;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -46,29 +49,29 @@ public class PgTypeTest {
   public final ExpectedException thrown = ExpectedException.none();
 
   @Test
-  public void testGetSQLVersionEqual() throws Exception {
-    assertEquals(PgType.INSTANCE.getSQL(Version.parse("9.2.0")), SQL[1]);
-    assertNotEquals(PgType.INSTANCE.getSQL(Version.parse("9.1.0")), PgType.INSTANCE.getSQL(Version.parse("9.2.0")));
+  public void testGetSQLVersionEqual() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.2.0")), SQL[1]);
+    assertNotEquals(INSTANCE.getSQL(Version.parse("9.1.0")), INSTANCE.getSQL(Version.parse("9.2.0")));
   }
 
   @Test
-  public void testGetSQLVersionGreater() throws Exception {
-    assertEquals(PgType.INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
+  public void testGetSQLVersionGreater() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
   }
 
   @Test
-  public void testGetSQLVersionLess() throws Exception {
-    assertEquals(PgType.INSTANCE.getSQL(Version.parse("9.1.9")), SQL[3]);
+  public void testGetSQLVersionLess() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.1.9")), SQL[3]);
   }
 
   @Test
-  public void testGetSQLVersionInvalid() throws Exception {
+  public void testGetSQLVersionInvalid() {
     thrown.expect(UnsupportedServerVersion.class);
-    assertEquals(PgType.INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
+    assertEquals(INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
   }
 
   @Test
-  public void testHashCode() throws Exception {
+  public void testHashCode() {
     PgType.Row pgAttrOne = createRow(12345);
     PgType.Row pgAttrOneAgain = createRow(12345);
     PgType.Row pgAttrTwo = createRow(54321);
@@ -79,16 +82,16 @@ public class PgTypeTest {
   }
 
   @Test
-  public void testEquals() throws Exception {
+  public void testEquals() {
     PgType.Row pgAttrOne = createRow(12345);
     PgType.Row pgAttrOneAgain = createRow(12345);
     PgType.Row pgAttrTwo = createRow(54321);
 
-    assertTrue(pgAttrOne.equals(pgAttrOne));
-    assertFalse(pgAttrOne.equals(null));
-    assertFalse(pgAttrOne.equals("testStringNotSameClass"));
-    assertFalse(pgAttrOne.equals(pgAttrTwo));
-    assertTrue(pgAttrOne.equals(pgAttrOneAgain));
+    assertEquals(pgAttrOne, pgAttrOne);
+    assertNotEquals(null, pgAttrOne);
+    assertNotEquals("testStringNotSameClass", pgAttrOne);
+    assertNotEquals(pgAttrOne, pgAttrTwo);
+    assertEquals(pgAttrOne, pgAttrOneAgain);
 
   }
 
@@ -97,30 +100,5 @@ public class PgTypeTest {
     pgTypeRow.setOid(oid);
     return pgTypeRow;
   }
-
-  // copy-paste from PgType.  Has to be a better way than this, but IDE and dp4j don't seem to get along.
-  private static final Object[] SQL = {
-    Version.get(9, 2, 0),
-    " select" +
-      "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::text as \"inputId\", typoutput::text as \"outputId\", typreceive::text as \"receiveId\", typsend::text as \"sendId\"," +
-      "   typmodin::text as \"modInId\", typmodout::text as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
-      "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\", " +
-      "   rngsubtype as \"rangeBaseTypeId\"" +
-      " from" +
-      "   pg_catalog.pg_type t" +
-      " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) " +
-      " left join pg_catalog.pg_range r on (t.oid = r.rngtypid)",
-    Version.get(9, 1, 0),
-    " select" +
-      "   t.oid, typname as \"name\", typlen as \"length\", typtype as \"discriminator\", typcategory as \"category\", typdelim as \"deliminator\", typrelid as \"relationId\"," +
-      "   typelem as \"elementTypeId\", typarray as \"arrayTypeId\", typinput::text as \"inputId\", typoutput::text as \"outputId\", typreceive::text as \"receiveId\", typsend::text as \"sendId\"," +
-      "   typmodin::text as \"modInId\", typmodout::text as \"modOutId\", typalign as alignment, n.nspname as \"namespace\", " +
-      "   typbasetype as \"domainBaseTypeId\", typtypmod as \"domainTypeMod\", typnotnull as \"domainNotNull\", pg_catalog.pg_get_expr(typdefaultbin,0) as \"domainDefault\" " +
-      "   null as \"rangeBaseTypeId\"" +
-      " from" +
-      "   pg_catalog.pg_type t" +
-      " left join pg_catalog.pg_namespace n on (t.typnamespace = n.oid) ",
-  };
 
 }

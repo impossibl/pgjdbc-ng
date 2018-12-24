@@ -28,6 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
+import com.impossibl.postgres.system.UnsupportedServerVersion;
+import com.impossibl.postgres.system.Version;
+
+import static com.impossibl.postgres.system.tables.PgAttribute.SQL;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -45,6 +50,22 @@ public class PgAttributeTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
+
+  @Test
+  public void testGetSQLVersionEqual() {
+    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("9.0.0")), SQL[1]);
+  }
+
+  @Test
+  public void testGetSQLVersionGreater() {
+    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
+  }
+
+  @Test
+  public void testGetSQLVersionInvalid() {
+    thrown.expect(UnsupportedServerVersion.class);
+    assertEquals(PgAttribute.INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
+  }
 
   @Test
   public void testHashCode() {

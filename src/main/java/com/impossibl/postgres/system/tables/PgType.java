@@ -273,7 +273,7 @@ public class PgType implements Table<PgType.Row> {
     return row;
   }
 
-  private static final Object[] SQL = {
+  public static final Object[] SQL = {
     Version.get(9, 2, 0),
     " SELECT" +
         " t.oid, typname, typlen, typtype, typcategory, typdelim, typrelid, typelem, typarray," +
