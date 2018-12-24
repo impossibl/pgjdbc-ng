@@ -167,7 +167,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, QueryHandler handler) {
+  public void query(String sql, QueryHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(sql);
     }
@@ -175,7 +175,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) {
+  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(sql);
     }
@@ -183,7 +183,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) {
+  public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.prepare(statementName, sql);
     }
@@ -191,7 +191,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) {
+  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.execute(statementName);
     }
@@ -199,17 +199,17 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void resume(String portalName, int maxRows, ResumeHandler handler) {
+  public void resume(String portalName, int maxRows, ResumeHandler handler) throws IOException {
     submit(new ResumePortalRequest(portalName, maxRows, handler));
   }
 
   @Override
-  public void finish(String portalName, SynchronizedHandler handler) {
+  public void finish(String portalName, SynchronizedHandler handler) throws IOException {
     submit(new CloseRequest(ServerObjectType.Portal, portalName, handler));
   }
 
   @Override
-  public void lazyExecute(String statementName) {
+  public void lazyExecute(String statementName) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(statementName);
     }
@@ -217,7 +217,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
+  public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query("CALL: " + functionId);
     }
@@ -225,13 +225,13 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void close(ServerObjectType objectType, String objectName) {
+  public void close(ServerObjectType objectType, String objectName) throws IOException {
     submit(new CloseRequest(objectType, objectName, null));
   }
 
-  synchronized void submit(ServerRequest request) {
+  synchronized void submit(ServerRequest request) throws IOException {
 
-    channel.writeAndFlush(request, channel.voidPromise());
+    channel.writeAndFlush(request).syncUninterruptibly();
   }
 
 }
