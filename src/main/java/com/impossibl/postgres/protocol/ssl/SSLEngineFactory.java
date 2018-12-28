@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.protocol.ssl;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.utils.Factory;
 import com.impossibl.postgres.utils.Paths;
 
@@ -74,7 +74,7 @@ public class SSLEngineFactory {
   private static final String CERTIFICATE_FACTORY_TYPE = "X.509";
 
 
-  public static SSLEngine create(SSLMode sslMode, Context context) throws IOException {
+  public static SSLEngine create(SSLMode sslMode, Configuration config) throws IOException {
 
     String sslDir = Paths.getHome(SSL_DIR_NAME);
 
@@ -84,13 +84,13 @@ public class SSLEngineFactory {
 
     boolean sslFileIsDefault = false;
 
-    String sslCertFile = context.getSetting(SSL_CERT_FILE, String.class);
+    String sslCertFile = config.getSetting(SSL_CERT_FILE, String.class);
     if (sslCertFile == null) {
       sslCertFile = SSL_CERT_FILE_DEFAULT;
       sslFileIsDefault = true;
     }
 
-    String sslKeyFile = context.getSetting(SSL_KEY_FILE, String.class);
+    String sslKeyFile = config.getSetting(SSL_KEY_FILE, String.class);
     if (sslKeyFile == null) {
       sslKeyFile = SSL_KEY_FILE_DEFAULT;
       sslFileIsDefault = true;
@@ -100,7 +100,7 @@ public class SSLEngineFactory {
      * Initialize Key Manager
      */
 
-    String sslPasswordCallbackClassName = context.getSetting(SSL_PASSWORD_CALLBACK, SSL_PASSWORD_CALLBACK_DEFAULT);
+    String sslPasswordCallbackClassName = config.getSetting(SSL_PASSWORD_CALLBACK, SSL_PASSWORD_CALLBACK_DEFAULT);
 
     CallbackHandler sslPasswordCallback;
     try {
@@ -110,8 +110,8 @@ public class SSLEngineFactory {
       throw new IOException("cannot instantiate provided password callback: " + sslPasswordCallbackClassName);
     }
 
-    if (sslPasswordCallback instanceof ContextCallbackHandler) {
-      ((ContextCallbackHandler) sslPasswordCallback).init(context);
+    if (sslPasswordCallback instanceof ConfiguredCallbackHandler) {
+      ((ConfiguredCallbackHandler) sslPasswordCallback).init(config);
     }
 
     KeyManager keyManager = new OnDemandKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileIsDefault);
@@ -144,7 +144,7 @@ public class SSLEngineFactory {
        * Load root certificates into a new key store (for Trust Manager)
        */
 
-      String sslRootCertFile = context.getSetting(SSL_ROOT_CERT_FILE, String.class);
+      String sslRootCertFile = config.getSetting(SSL_ROOT_CERT_FILE, String.class);
       if (sslRootCertFile == null) {
         sslRootCertFile = sslDir + File.separator + SSL_ROOT_CERT_FILE_DEFAULT;
       }

@@ -140,7 +140,7 @@ class ConnectionUtil {
     }
   }
 
-  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry sharedRegistry, boolean allowHousekeeper) throws SQLException {
+  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry.Factory sharedRegistryFactory, boolean allowHousekeeper) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -176,9 +176,9 @@ class ConnectionUtil {
 
       try {
 
-        PGDirectConnection conn = new PGDirectConnection(address, settings, sharedRegistry, housekeeper);
+        PGDirectConnection conn = new PGDirectConnection(address, settings, housekeeper);
 
-        conn.init();
+        conn.init(sharedRegistryFactory);
 
         return conn;
 

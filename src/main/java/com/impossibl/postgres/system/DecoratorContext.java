@@ -30,6 +30,7 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -68,7 +69,12 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public KeyData getKeyData() {
+  public ServerInfo getServerInfo() {
+    return base.getServerInfo();
+  }
+
+  @Override
+  public ServerConnection.KeyData getKeyData() {
     return base.getKeyData();
   }
 

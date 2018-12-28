@@ -38,6 +38,7 @@ import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF_DEFAULT;
+import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -57,6 +58,8 @@ import io.netty.buffer.ByteBuf;
  *
  */
 public abstract class Type implements TypeRef {
+
+  public static final String CATALOG_NAMESPACE = "pg_catalog";
 
   public enum Category {
     Array('A'),
@@ -192,14 +195,14 @@ public abstract class Type implements TypeRef {
   public Type() {
   }
 
-  public Type(int id, String name, String namespace, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+  public Type(int id, String name, String namespace, Short length, Byte alignment, Category category, Character delimeter, Integer arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     super();
     this.id = id;
-    this.name = name;
-    this.namespace = namespace;
+    this.name = checkNotNull(name);
+    this.namespace = checkNotNull(namespace);
     this.length = length;
     this.alignment = alignment;
-    this.category = category;
+    this.category = checkNotNull(category);
     this.delimeter = delimeter;
     this.arrayTypeId = arrayTypeId;
     this.binaryCodec = binaryCodec;
@@ -349,9 +352,9 @@ public abstract class Type implements TypeRef {
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId(), context);
-    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId(), context);
-    modifierParser = registry.loadModifierParser(source.getModInId(), context);
+    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId());
+    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId());
+    modifierParser = registry.loadModifierParser(source.getModInId());
     preferredParameterFormat = FieldFormat.valueOf(context.getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
     preferredResultFormat = FieldFormat.valueOf(context.getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
   }

@@ -28,13 +28,55 @@
  */
 package com.impossibl.postgres.system;
 
-public abstract class AbstractContext implements Context {
+import java.net.SocketAddress;
+import java.util.Objects;
 
-  public static final String SETTING_SYSTEM_PREFIX = "pgjdbc";
+public class ServerConnectionInfo {
+
+  private ServerInfo serverInfo;
+  private SocketAddress host;
+  private String database;
+
+  public ServerConnectionInfo(ServerInfo serverInfo, SocketAddress host, String database) {
+    this.serverInfo = serverInfo;
+    this.host = host;
+    this.database = database;
+  }
+
+  public ServerInfo getServerInfo() {
+    return serverInfo;
+  }
+
+  public SocketAddress getHost() {
+    return host;
+  }
+
+  public String getDatabase() {
+    return database;
+  }
 
   @Override
-  public Object getSetting(String name) {
-    return System.getProperty(SETTING_SYSTEM_PREFIX + "." + name);
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ServerConnectionInfo that = (ServerConnectionInfo) o;
+    return serverInfo.equals(that.serverInfo) &&
+        host.equals(that.host) &&
+        database.equals(that.database);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(serverInfo, host, database);
+  }
+
+  @Override
+  public String toString() {
+    return "ServerConnectionInfo{" +
+        "serverInfo=" + serverInfo +
+        ", host=" + host +
+        ", database='" + database + '\'' +
+        '}';
   }
 
 }

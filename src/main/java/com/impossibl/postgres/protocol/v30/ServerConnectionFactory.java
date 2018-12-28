@@ -41,10 +41,14 @@ import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Notification;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
-import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.ServerInfo;
+import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.utils.MD5Authentication;
+import com.impossibl.postgres.utils.StringTransforms;
 
+import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
 import static com.impossibl.postgres.system.Settings.ALLOCATOR;
 import static com.impossibl.postgres.system.Settings.ALLOCATOR_DEFAULT;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
@@ -60,6 +64,10 @@ import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS;
 import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_VERSION;
+import static com.impossibl.postgres.system.Settings.PROTOCOL_VERSION_DEFAULT;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
 import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
@@ -67,9 +75,12 @@ import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SSL_MODE;
 import static com.impossibl.postgres.system.Settings.SSL_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Await.awaitUninterruptibly;
-import static com.impossibl.postgres.utils.StringTransforms.capitalizeOption;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -103,10 +114,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.ssl.SslHandler;
 
@@ -117,41 +126,34 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   private static final long DEFAULT_SSL_TIMEOUT = 60;
 
 
-  public ServerConnection connect(SocketAddress address, BasicContext context) throws IOException, NoticeException {
+  public ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException, NoticeException {
 
-    SSLMode sslMode = context.getSetting(SSL_MODE, val -> {
-      if (val == null)
-        return SSL_MODE_DEFAULT;
-      String valStr = capitalizeOption(val.toString());
-      return SSLMode.valueOf(valStr);
-    });
+    SSLMode sslMode = config.getSetting(SSL_MODE, SSL_MODE_DEFAULT, StringTransforms::capitalizeOption);
 
-    return connect(sslMode, address, context);
+    return connect(config, sslMode, address, listener);
   }
 
-  private ServerConnection connect(SSLMode sslMode, SocketAddress address, BasicContext context) throws IOException, NoticeException {
+  private ServerConnection connect(Configuration config, SSLMode sslMode, SocketAddress address, ServerConnection.Listener listener) throws IOException, NoticeException {
 
     try {
 
       ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire();
 
-      Charset clientEncoding = Charset.forName(context.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
-      int maxMessageSize = context.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
-      boolean usePooledAllocator = context.getSetting(ALLOCATOR, ALLOCATOR_DEFAULT);
+      int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
+      boolean usePooledAllocator = config.getSetting(ALLOCATOR, ALLOCATOR_DEFAULT);
+      Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
 
       Channel channel =
-          createChannel(address, context, sharedRef, clientEncoding, maxMessageSize, usePooledAllocator)
+          createChannel(address, config, sharedRef, clientEncoding, maxMessageSize, usePooledAllocator)
               .syncUninterruptibly()
               .channel();
-
-      ServerConnection serverConnection = new ServerConnection(context, channel, sharedRef);
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
         // Execute SSL query command
 
         SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
-        serverConnection.submit(sslQueryRequest);
+        channel.writeAndFlush(sslQueryRequest).syncUninterruptibly();
 
         boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
 
@@ -159,7 +161,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
           // Attach the actual handler
 
-          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, context);
+          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, config);
 
           final SslHandler sslHandler = new SslHandler(sslEngine);
 
@@ -174,7 +176,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
             // Retry with no SSL
             if (sslMode == SSLMode.Prefer) {
-              return connect(SSLMode.Disable, address, context);
+              return connect(config, SSLMode.Disable, address, listener);
             }
 
             throw e;
@@ -190,7 +192,8 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       try {
 
-        startup(serverConnection, context);
+        Map<String, String> parameterStatuses = new HashMap<>();
+        ServerConnection serverConnection = startup(config, channel, parameterStatuses, sharedRef);
 
         if (sslMode == SSLMode.VerifyFull) {
 
@@ -210,15 +213,23 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
         }
 
+
+        // Finally successfully connected...
+
+        serverConnection.getMessageDispatchHandler().setDefaultHandler(new DefaultHandler(listener));
+
+        parameterStatuses.forEach(listener::parameterStatusChanged);
+
+        return serverConnection;
       }
       catch (Exception e) {
 
         switch (sslMode) {
           case Allow:
-            return connect(SSLMode.Require, address, context);
+            return connect(config, SSLMode.Require, address, listener);
 
           case Prefer:
-            return connect(SSLMode.Disable, address, context);
+            return connect(config, SSLMode.Disable, address, listener);
 
           default:
             throw e;
@@ -226,7 +237,6 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       }
 
-      return serverConnection;
     }
     catch (NoticeException e) {
 
@@ -239,11 +249,12 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   }
 
-  private ChannelFuture createChannel(SocketAddress address, BasicContext context, ServerConnectionShared.Ref sharedRef, Charset clientEncoding, int maxMessageSize, boolean usePooledAllocator) {
+  private ChannelFuture createChannel(SocketAddress address, Configuration config, ServerConnectionShared.Ref sharedRef,
+                                      Charset clientEncoding, int maxMessageSize, boolean usePooledAllocator) {
 
     Bootstrap bootstrap;
     if (address instanceof InetSocketAddress) {
-      bootstrap = bootstrapSocket(context, sharedRef, clientEncoding, maxMessageSize);
+      bootstrap = bootstrapSocket(config, sharedRef, clientEncoding, maxMessageSize);
     }
     else {
       throw new IllegalArgumentException("Unsupported socket address: " + address.getClass().getSimpleName());
@@ -255,28 +266,38 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return bootstrap.connect(address);
   }
 
-  private Bootstrap bootstrapSocket(BasicContext context, ServerConnectionShared.Ref sharedRef, Charset clientEncoding, int maxMessageSize) {
+  @SuppressWarnings("deprecation")
+  private Bootstrap bootstrapSocket(Configuration config, ServerConnectionShared.Ref sharedRef, Charset clientEncoding, int maxMessageSize) {
 
     Class<? extends SocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
     int maxThreads;
 
-    String ioMode = context.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
+    String ioMode = config.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
     switch (ioMode) {
       case "oio":
-        channelType = OioSocketChannel.class;
-        groupType = OioEventLoopGroup.class;
+        channelType = io.netty.channel.socket.oio.OioSocketChannel.class;
+        groupType = io.netty.channel.oio.OioEventLoopGroup.class;
         maxThreads = 0;
         break;
 
       case "nio":
         channelType = NioSocketChannel.class;
         groupType = NioEventLoopGroup.class;
-        maxThreads = context.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+        maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
         break;
 
       default:
         throw new IllegalStateException("Unsupported io mode: " + ioMode);
+    }
+
+
+    Writer protocolTraceWriter;
+    if (config.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
+      protocolTraceWriter = new BufferedWriter(new OutputStreamWriter(System.out));
+    }
+    else {
+      protocolTraceWriter = null;
     }
 
     Bootstrap bootstrap = new Bootstrap()
@@ -287,44 +308,48 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
               protected void initChannel(SocketChannel ch) {
                 ch.pipeline().addLast(
                     new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
-                    new MessageDispatchHandler(clientEncoding, new DefaultHandler(context))
+                    new MessageDispatchHandler(clientEncoding, protocolTraceWriter)
                 );
               }
             })
             .option(ChannelOption.TCP_NODELAY, true);
 
-    if (context.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_RCVBUF, context.getSetting(RECEIVE_BUFFER_SIZE, int.class));
+    if (config.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
+      bootstrap.option(ChannelOption.SO_RCVBUF, config.getSetting(RECEIVE_BUFFER_SIZE, int.class));
     }
-    if (context.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_SNDBUF, context.getSetting(SEND_BUFFER_SIZE, int.class));
+    if (config.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT) {
+      bootstrap.option(ChannelOption.SO_SNDBUF, config.getSetting(SEND_BUFFER_SIZE, int.class));
     }
 
     return bootstrap;
   }
 
-  private static void startup(ServerConnection serverConnection, BasicContext context) throws IOException, NoticeException {
+  private static ServerConnection startup(Configuration config, Channel channel, Map<String, String> startupParameterStatuses, ServerConnectionShared.Ref sharedRef) throws IOException, NoticeException {
 
     Map<String, Object> params = new HashMap<>();
-    params.put(APPLICATION_NAME, context.getSetting(APPLICATION_NAME, APPLICATION_NAME_DEFAULT));
-    params.put(CLIENT_ENCODING, context.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
-    params.put(DATABASE, context.getSetting(DATABASE, ""));
-    params.put(CREDENTIALS_USERNAME, context.getSetting(CREDENTIALS_USERNAME, ""));
+    params.put(APPLICATION_NAME, config.getSetting(APPLICATION_NAME, APPLICATION_NAME_DEFAULT));
+    params.put(CLIENT_ENCODING, config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
+    params.put(DATABASE, config.getSetting(DATABASE, ""));
+    params.put(CREDENTIALS_USERNAME, config.getSetting(CREDENTIALS_USERNAME, ""));
 
-    CountDownLatch startupCompleted = new CountDownLatch(1);
+    Version protocolVersion = Version.parse(config.getSetting(PROTOCOL_VERSION, PROTOCOL_VERSION_DEFAULT));
+
+    AtomicReference<Version> startupProtocolVersion = new AtomicReference<>();
+    AtomicReference<KeyData> startupKeyData = new AtomicReference<>();
     AtomicReference<Throwable> startupError = new AtomicReference<>();
+    CountDownLatch startupCompleted = new CountDownLatch(1);
 
-    serverConnection.submit(new StartupRequest(params, new StartupRequest.CompletionHandler() {
+    StartupRequest startupRequest = new StartupRequest(protocolVersion, params, new StartupRequest.CompletionHandler() {
       @Override
       public String authenticateClear() {
-        return context.getSetting(CREDENTIALS_PASSWORD, "");
+        return config.getSetting(CREDENTIALS_PASSWORD, "");
       }
 
       @Override
       public String authenticateMD5(byte[] salt) {
 
-        String username = context.getSetting(CREDENTIALS_USERNAME).toString();
-        String password = context.getSetting(CREDENTIALS_PASSWORD).toString();
+        String username = config.getSetting(CREDENTIALS_USERNAME).toString();
+        String password = config.getSetting(CREDENTIALS_PASSWORD).toString();
 
         return MD5Authentication.encode(password, username, salt);
       }
@@ -355,10 +380,15 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       }
 
       @Override
+      public void handleNegotiate(Version maxProtocolVersion, List<String> unrecognizedParameters) {
+        startupProtocolVersion.set(maxProtocolVersion);
+      }
+
+      @Override
       public void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) {
 
-        context.setKeyData(processId, secretKey);
-        parameterStatuses.forEach(context::updateSystemParameter);
+        startupParameterStatuses.putAll(parameterStatuses);
+        startupKeyData.set(new KeyData(processId, secretKey));
 
         startupCompleted.countDown();
       }
@@ -369,7 +399,8 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
         startupCompleted.countDown();
       }
 
-    }));
+    });
+    channel.writeAndFlush(startupRequest).syncUninterruptibly();
 
     if (!awaitUninterruptibly(DEFAULT_STARTUP_TIMEOUT, SECONDS, startupCompleted::await)) {
       throw new IOException("Timeout starting connection");
@@ -383,6 +414,14 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       throw new RuntimeException(error);
     }
 
+    // Pull out static server parameters
+    ServerInfo serverInfo = new ServerInfo(
+        Version.parse(startupParameterStatuses.remove("server_version")),
+        startupParameterStatuses.remove("server_encoding"),
+        firstNonNull(startupParameterStatuses.remove("integer_datetimes"), "on").equalsIgnoreCase("on")
+    );
+
+    return new ServerConnection(config, channel, serverInfo, startupProtocolVersion.get(), startupKeyData.get(), sharedRef);
   }
 
   private void verifyHostname(String hostname, SSLSession session) throws SSLPeerUnverifiedException {
@@ -474,14 +513,14 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   static class DefaultHandler implements ParameterStatus, ReportNotice, Notification {
 
-    private WeakReference<BasicContext> context;
+    private WeakReference<ServerConnection.Listener> listener;
 
-    DefaultHandler(BasicContext context) {
-      this.context = new WeakReference<>(context);
+    DefaultHandler(ServerConnection.Listener listener) {
+      this.listener = new WeakReference<>(listener);
     }
 
-    private BasicContext getContext() {
-      return context.get();
+    private ServerConnection.Listener getListener() {
+      return listener.get();
     }
 
     @Override
@@ -491,13 +530,13 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     @Override
     public Action parameterStatus(String name, String value) {
-      getContext().updateSystemParameter(name, value);
+      getListener().parameterStatusChanged(name, value);
       return Action.Resume;
     }
 
     @Override
     public void notification(int processId, String channelName, String payload) {
-      getContext().reportNotification(processId, channelName, payload);
+      getListener().notificationReceived(processId, channelName, payload);
     }
 
     @Override

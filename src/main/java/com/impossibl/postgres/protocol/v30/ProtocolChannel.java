@@ -108,13 +108,13 @@ public class ProtocolChannel {
     return this;
   }
 
-  ProtocolChannel writeStartup(Map<String, Object> params) {
+  ProtocolChannel writeStartup(int protocolMajorVersion, int protocolMinorVersion, Map<String, Object> params) {
 
     ByteBuf msg = beginMessage((byte) 0);
 
     // Version
-    msg.writeShort(3);
-    msg.writeShort(0);
+    msg.writeShort(protocolMajorVersion);
+    msg.writeShort(protocolMinorVersion);
 
     // Name=Value pairs
     for (Map.Entry<String, Object> paramEntry : params.entrySet()) {

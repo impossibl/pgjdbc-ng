@@ -28,82 +28,82 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
+
+import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
 
 public class SettingSelectProcProvider extends BaseProcProvider {
 
-  private String settingName;
-  private Object settingMatchValue;
-  Codec.Encoder<StringBuilder> matchedTxtEncoder;
-  Codec.Decoder<CharSequence> matchedTxtDecoder;
-  Codec.Encoder<ByteBuf> matchedBinEncoder;
-  Codec.Decoder<ByteBuf> matchedBinDecoder;
-  Codec.Encoder<StringBuilder> unmatchedTxtEncoder;
-  Codec.Decoder<CharSequence> unmatchedTxtDecoder;
-  Codec.Encoder<ByteBuf> unmatchedBinEncoder;
-  Codec.Decoder<ByteBuf> unmatchedBinDecoder;
+  Function<ServerInfo, Boolean> check;
+  Codec.Encoder<StringBuilder> enabledTxtEncoder;
+  Codec.Decoder<CharSequence> enabledTxtDecoder;
+  Codec.Encoder<ByteBuf> enabledBinEncoder;
+  Codec.Decoder<ByteBuf> enabledBinDecoder;
+  Codec.Encoder<StringBuilder> disabledTxtEncoder;
+  Codec.Decoder<CharSequence> disabledTxtDecoder;
+  Codec.Encoder<ByteBuf> disabledBinEncoder;
+  Codec.Decoder<ByteBuf> disabledBinDecoder;
 
   public SettingSelectProcProvider(
-      String settingName, Object settingMatchValue,
-      Codec.Encoder<StringBuilder> matchedTxtEncoder, Codec.Decoder<CharSequence> matchedTxtDecoder,
-      Codec.Encoder<ByteBuf> matchedBinEncoder, Codec.Decoder<ByteBuf> matchedBinDecoder,
-      Codec.Encoder<StringBuilder> unmatchedTxtEncoder, Codec.Decoder<CharSequence> unmatchedTxtDecoder,
-      Codec.Encoder<ByteBuf> unmatchedBinEncoder, Codec.Decoder<ByteBuf> unmatchedBinDecoder, String... baseNames) {
+      Function<ServerInfo, Boolean> check,
+      Codec.Encoder<StringBuilder> enabledTxtEncoder, Codec.Decoder<CharSequence> enabledTxtDecoder,
+      Codec.Encoder<ByteBuf> enabledBinEncoder, Codec.Decoder<ByteBuf> enabledBinDecoder,
+      Codec.Encoder<StringBuilder> disabledTxtEncoder, Codec.Decoder<CharSequence> disabledTxtDecoder,
+      Codec.Encoder<ByteBuf> disabledBinEncoder, Codec.Decoder<ByteBuf> disabledBinDecoder, String... baseNames) {
     super(baseNames);
-    this.settingName = settingName;
-    this.settingMatchValue = settingMatchValue;
-    this.matchedTxtEncoder = matchedTxtEncoder;
-    this.matchedTxtDecoder = matchedTxtDecoder;
-    this.matchedBinEncoder = matchedBinEncoder;
-    this.matchedBinDecoder = matchedBinDecoder;
-    this.unmatchedTxtEncoder = unmatchedTxtEncoder;
-    this.unmatchedTxtDecoder = unmatchedTxtDecoder;
-    this.unmatchedBinEncoder = unmatchedBinEncoder;
-    this.unmatchedBinDecoder = unmatchedBinDecoder;
+    this.check = check;
+    this.enabledTxtEncoder = enabledTxtEncoder;
+    this.enabledTxtDecoder = enabledTxtDecoder;
+    this.enabledBinEncoder = enabledBinEncoder;
+    this.enabledBinDecoder = enabledBinDecoder;
+    this.disabledTxtEncoder = disabledTxtEncoder;
+    this.disabledTxtDecoder = disabledTxtDecoder;
+    this.disabledBinEncoder = disabledBinEncoder;
+    this.disabledBinDecoder = disabledBinDecoder;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType) {
-    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", context)) {
-      if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return (Codec.Encoder<Buffer>) matchedBinEncoder;
+  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", serverInfo)) {
+      if (check.apply(serverInfo))
+        return (Codec.Encoder<Buffer>) enabledBinEncoder;
       else
-        return (Codec.Encoder<Buffer>) unmatchedBinEncoder;
+        return (Codec.Encoder<Buffer>) disabledBinEncoder;
     }
-    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", context)) {
-      if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return (Codec.Encoder<Buffer>) matchedTxtEncoder;
+    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", serverInfo)) {
+      if (check.apply(serverInfo))
+        return (Codec.Encoder<Buffer>) enabledTxtEncoder;
       else
-        return (Codec.Encoder<Buffer>) unmatchedTxtEncoder;
+        return (Codec.Encoder<Buffer>) disabledTxtEncoder;
     }
     return null;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType) {
-    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", context)) {
-      if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return (Codec.Decoder<Buffer>) matchedBinDecoder;
+  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", serverInfo)) {
+      if (check.apply(serverInfo))
+        return (Codec.Decoder<Buffer>) enabledBinDecoder;
       else
-        return (Codec.Decoder<Buffer>) unmatchedBinDecoder;
+        return (Codec.Decoder<Buffer>) disabledBinDecoder;
     }
-    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", context)) {
-      if (context != null && settingMatchValue.equals(context.getSetting(settingName)))
-        return (Codec.Decoder<Buffer>) matchedTxtDecoder;
+    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", serverInfo)) {
+      if (check.apply(serverInfo))
+        return (Codec.Decoder<Buffer>) enabledTxtDecoder;
       else
-        return (Codec.Decoder<Buffer>) unmatchedTxtDecoder;
+        return (Codec.Decoder<Buffer>) disabledTxtDecoder;
     }
     return null;
   }
 
   @Override
-  public Modifiers.Parser findModifierParser(String name, Context context) {
+  public Modifiers.Parser findModifierParser(String name, ServerInfo serverInfo) {
     return null;
   }
 

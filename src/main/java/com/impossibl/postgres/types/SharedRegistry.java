@@ -29,8 +29,9 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.ServerConnectionInfo;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.types.Type.Codec;
@@ -45,6 +46,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -62,7 +64,40 @@ import io.netty.buffer.ByteBuf;
  */
 public class SharedRegistry {
 
+  public interface Factory {
+
+    SharedRegistry get(ServerConnectionInfo info);
+
+  }
+
   private static Logger logger = Logger.getLogger(SharedRegistry.class.getName());
+
+  private static class ProcSharingKey {
+    private ServerInfo serverInfo;
+    private ClassLoader classLoader;
+
+    ProcSharingKey(ServerInfo serverInfo, ClassLoader classLoader) {
+      this.serverInfo = serverInfo;
+      this.classLoader = classLoader;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      ProcSharingKey that = (ProcSharingKey) o;
+      return serverInfo.equals(that.serverInfo) &&
+          classLoader.equals(that.classLoader);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(serverInfo, classLoader);
+    }
+
+  }
+
+  private static final Map<ProcSharingKey, Procs> sharedProcs = new HashMap<>();
 
   private TreeMap<Integer, Type> oidMap;
   private Map<String, Type> nameMap;
@@ -74,9 +109,14 @@ public class SharedRegistry {
   private ReadWriteLock lock = new ReentrantReadWriteLock();
 
 
-  public SharedRegistry(ClassLoader classLoader) {
+  public SharedRegistry(ServerInfo serverInfo, ClassLoader classLoader) {
 
-    this.procs = new Procs(classLoader);
+    synchronized (SharedRegistry.class) {
+      this.procs = sharedProcs.computeIfAbsent(
+          new ProcSharingKey(serverInfo, classLoader),
+          key -> new Procs(key.serverInfo, key.classLoader)
+      );
+    }
 
     // Required initial types for bootstrapping
     oidMap = new TreeMap<>();
@@ -293,55 +333,55 @@ public class SharedRegistry {
   }
 
   /**
-   * Loads a matching Codec given the proc-id of its encoder and decoder
+   * Loads a matching Codec given the proc-name of its encoder and decoder
    *
    * @param encoderName proc-name of the encoder
    * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.TextCodec loadTextCodec(String encoderName, String decoderName, Context context) {
+  Type.TextCodec loadTextCodec(String encoderName, String decoderName) {
     return new Type.TextCodec(
-        loadDecoderProc(decoderName, context, DEFAULT_TEXT_DECODER, CharSequence.class),
-        loadEncoderProc(encoderName, context, DEFAULT_TEXT_ENCODER, StringBuilder.class)
+        loadDecoderProc(decoderName, DEFAULT_TEXT_DECODER, CharSequence.class),
+        loadEncoderProc(encoderName, DEFAULT_TEXT_ENCODER, StringBuilder.class)
     );
   }
 
   /**
-   * Loads a matching Codec given the proc-id of its encoder and decoder
+   * Loads a matching Codec given the proc-name of its encoder and decoder
    *
    * @param encoderName proc-name of the encoder
    * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.BinaryCodec loadBinaryCodec(String encoderName, String decoderName, Context context) {
+  Type.BinaryCodec loadBinaryCodec(String encoderName, String decoderName) {
     return new Type.BinaryCodec(
-        loadDecoderProc(decoderName, context, DEFAULT_BINARY_DECODER, ByteBuf.class),
-        loadEncoderProc(encoderName, context, DEFAULT_BINARY_ENCODER, ByteBuf.class)
+        loadDecoderProc(decoderName, DEFAULT_BINARY_DECODER, ByteBuf.class),
+        loadEncoderProc(encoderName, DEFAULT_BINARY_ENCODER, ByteBuf.class)
     );
   }
 
   /*
-   * Loads a matching encoder given its proc-id
+   * Loads a matching encoder given its proc-name
    */
-  private <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String procName, Context context, Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
+  private <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String procName, Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
 
-    return procs.loadEncoderProc(procName, context, defaultEncoder, bufferType);
+    return procs.loadEncoderProc(procName, defaultEncoder, bufferType);
   }
 
   /*
-   * Loads a matching decoder given its proc-id
+   * Loads a matching decoder given its proc-name
    */
-  private <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String procName, Context context, Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
+  private <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String procName, Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
 
-    return procs.loadDecoderProc(procName, context, defaultDecoder, bufferType);
+    return procs.loadDecoderProc(procName, defaultDecoder, bufferType);
   }
 
   /*
-   * Loads a matching parser given mod-in and mod-out ids
+   * Loads a matching modifier parser given mod-in name
    */
-  Modifiers.Parser loadModifierParser(String modInName, Context context) {
+  Modifiers.Parser loadModifierParser(String modInName) {
 
-    return procs.loadModifierParserProc(modInName, context);
+    return procs.loadModifierParserProc(modInName);
   }
 
 }

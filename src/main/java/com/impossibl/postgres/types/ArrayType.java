@@ -50,7 +50,7 @@ public class ArrayType extends Type {
   }
 
   public ArrayType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat, Type elementType) {
-    super(id, name, "", length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null), procs.loadModifierParserProc(procName, null), preferredParameterFormat, preferredResultFormat);
+    super(id, name, CATALOG_NAMESPACE, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName), procs.loadNamedTextCodec(procName), procs.loadModifierParserProc(procName), preferredParameterFormat, preferredResultFormat);
     this.elementType = elementType;
   }
 

@@ -26,15 +26,16 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.system;
+package com.impossibl.postgres.protocol.ssl;
 
-public abstract class AbstractContext implements Context {
+import com.impossibl.postgres.system.Configuration;
 
-  public static final String SETTING_SYSTEM_PREFIX = "pgjdbc";
+import javax.security.auth.callback.CallbackHandler;
 
-  @Override
-  public Object getSetting(String name) {
-    return System.getProperty(SETTING_SYSTEM_PREFIX + "." + name);
-  }
+
+
+public interface ConfiguredCallbackHandler extends CallbackHandler {
+
+  void init(Configuration config);
 
 }

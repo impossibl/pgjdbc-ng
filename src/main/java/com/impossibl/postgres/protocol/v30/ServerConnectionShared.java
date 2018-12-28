@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.util.ThreadDeathWatcher;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
@@ -118,7 +117,7 @@ public class ServerConnectionShared {
 
     Thread deathThread = new Thread(() -> {
       try {
-        ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
+        io.netty.util.ThreadDeathWatcher.awaitInactivity(5, TimeUnit.SECONDS);
       }
       catch (InterruptedException e) {
         // Ignore

@@ -26,16 +26,56 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol.ssl;
+package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.system.Context;
+import java.util.Objects;
 
-import javax.security.auth.callback.CallbackHandler;
+public class ServerInfo {
 
+  private Version version;
+  private String encoding;
+  private boolean integerDateTimes;
 
+  public ServerInfo(Version version, String encoding, boolean integerDateTimes) {
+    this.version = version;
+    this.encoding = encoding;
+    this.integerDateTimes = integerDateTimes;
+  }
 
-public interface ContextCallbackHandler extends CallbackHandler {
+  public Version getVersion() {
+    return version;
+  }
 
-  void init(Context context);
+  public String getEncoding() {
+    return encoding;
+  }
+
+  public boolean hasIntegerDateTimes() {
+    return integerDateTimes;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ServerInfo that = (ServerInfo) o;
+    return integerDateTimes == that.integerDateTimes &&
+        version.equals(that.version) &&
+        Objects.equals(encoding, that.encoding);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(version, encoding, integerDateTimes);
+  }
+
+  @Override
+  public String toString() {
+    return "ServerInfo{" +
+        "version=" + version +
+        ", encoding='" + encoding + '\'' +
+        ", integerDateTimes=" + integerDateTimes +
+        '}';
+  }
 
 }

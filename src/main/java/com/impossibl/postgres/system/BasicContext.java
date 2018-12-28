@@ -64,7 +64,8 @@ import com.impossibl.postgres.utils.Timer;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.Settings.DATABASE;
+import static com.impossibl.postgres.system.Settings.SESSION_USER;
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -136,6 +137,20 @@ public class BasicContext extends AbstractContext {
 
   }
 
+  private class ServerConnectionListener implements ServerConnection.Listener {
+
+    @Override
+    public void parameterStatusChanged(String name, String value) {
+      updateSystemParameter(name, value);
+    }
+
+    @Override
+    public void notificationReceived(int processId, String channelName, String payload) {
+      reportNotification(processId, channelName, payload);
+    }
+
+  }
+
 
   protected Registry registry;
   protected Map<String, Class<?>> typeMap;
@@ -148,14 +163,12 @@ public class BasicContext extends AbstractContext {
   private DecimalFormat decimalFormatter;
   private DecimalFormat currencyFormatter;
   protected Properties settings;
-  private Version serverVersion;
-  private KeyData keyData;
   protected ServerConnection serverConnection;
   protected Map<NotificationKey, NotificationListener> notificationListeners;
   private Map<String, QueryDescription> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings, SharedRegistry sharedRegistry) throws IOException, NoticeException {
+  public BasicContext(SocketAddress address, Properties settings) throws IOException, NoticeException {
     this.typeMap = new HashMap<>();
     this.settings = settings;
     this.charset = UTF_8;
@@ -164,17 +177,12 @@ public class BasicContext extends AbstractContext {
     this.timeFormatter = new ISOTimeFormat();
     this.timestampFormatter = new ISOTimestampFormat();
     this.notificationListeners = new ConcurrentHashMap<>();
-    this.serverConnection = ServerConnectionFactory.getDefault().connect(address, this);
-    this.registry = new Registry(this, sharedRegistry);
+    this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, new ServerConnectionListener());
     this.utilQueries = new HashMap<>();
   }
 
   protected ChannelFuture shutdown() {
     return serverConnection.shutdown();
-  }
-
-  public Version getServerVersion() {
-    return serverVersion;
   }
 
   public ByteBufAllocator getAllocator() {
@@ -215,8 +223,13 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public KeyData getKeyData() {
-    return keyData;
+  public ServerInfo getServerInfo() {
+    return serverConnection.getServerInfo();
+  }
+
+  @Override
+  public ServerConnection.KeyData getKeyData() {
+    return serverConnection.getKeyData();
   }
 
   @Override
@@ -248,7 +261,13 @@ public class BasicContext extends AbstractContext {
     return currencyFormatter;
   }
 
-  protected void init() throws IOException, NoticeException {
+  protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException, NoticeException {
+
+    String database = getSetting(DATABASE, getSetting(SESSION_USER, String.class));
+    ServerConnectionInfo serverConnectionInfo =
+        new ServerConnectionInfo(serverConnection.getServerInfo(), serverConnection.getRemoteAddress(), database);
+
+    registry = new Registry(this, sharedRegistryFactory.get(serverConnectionInfo));
 
     integerFormatter = NumberFormat.getIntegerInstance();
     integerFormatter.setGroupingUsed(false);
@@ -259,9 +278,9 @@ public class BasicContext extends AbstractContext {
     currencyFormatter = (DecimalFormat) DecimalFormat.getCurrencyInstance();
     currencyFormatter.setGroupingUsed(false);
 
-    prepareRefreshTypeQueries();
-
     loadTypes();
+
+    prepareRefreshTypeQueries();
 
     loadLocale();
   }
@@ -324,7 +343,7 @@ public class BasicContext extends AbstractContext {
       Timer timer = new Timer();
 
       // Load "simple" types only - composite types are loaded on demand
-      String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
+      String typeSQL = PgType.INSTANCE.getSQL(serverConnection.getServerInfo().getVersion());
       List<PgType.Row> pgTypes = queryTable(typeSQL + " WHERE typrelid = 0", PgType.INSTANCE);
 
       // Load initial types without causing refresh queries...
@@ -371,6 +390,8 @@ public class BasicContext extends AbstractContext {
   }
 
   private void prepareRefreshTypeQueries() throws IOException, NoticeException {
+
+    Version serverVersion = serverConnection.getServerInfo().getVersion();
 
     prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
 
@@ -696,20 +717,11 @@ public class BasicContext extends AbstractContext {
     return handler.getBatch();
   }
 
-  public void setKeyData(int processId, int secretKey) {
-    keyData = new KeyData(processId, secretKey);
-  }
-
-  public void updateSystemParameter(String name, String value) {
+  private void updateSystemParameter(String name, String value) {
 
     logger.config("system parameter: " + name + "=" + value);
 
     switch (name) {
-
-      case "server_version":
-
-        serverVersion = Version.parse(value);
-        break;
 
       case "DateStyle":
 
@@ -751,11 +763,6 @@ public class BasicContext extends AbstractContext {
         timeZone = TimeZone.getTimeZone(value);
         break;
 
-      case "integer_datetimes":
-
-        settings.put(FIELD_DATETIME_FORMAT_CLASS, Integer.class);
-        break;
-
       case "client_encoding":
 
         charset = Charset.forName(value);
@@ -765,6 +772,9 @@ public class BasicContext extends AbstractContext {
 
         settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
         break;
+
+      case SESSION_USER:
+        settings.put(SESSION_USER, value);
 
       default:
         break;
@@ -817,7 +827,7 @@ public class BasicContext extends AbstractContext {
     }
   }
 
-  public synchronized void reportNotification(int processId, String channelName, String payload) {
+  private synchronized void reportNotification(int processId, String channelName, String payload) {
 
     for (Map.Entry<NotificationKey, NotificationListener> entry : notificationListeners.entrySet()) {
 

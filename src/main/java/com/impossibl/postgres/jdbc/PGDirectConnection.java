@@ -84,6 +84,7 @@ import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SI
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT;
+import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
@@ -203,8 +204,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   private static Map<String, SQLText> parsedSqlCache;
 
-  PGDirectConnection(SocketAddress address, Properties settings, SharedRegistry sharedRegistry, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
-    super(address, settings, sharedRegistry);
+  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
+    super(address, settings);
 
     this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
@@ -281,9 +282,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void init() throws IOException, NoticeException {
+  public void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException, NoticeException {
 
-    super.init();
+    super.init(sharedRegistryFactory);
 
     applySettings(settings);
   }
@@ -422,7 +423,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   SQLText parseSQL(String sqlText) throws SQLException {
 
     try {
-      final boolean standardConformingStrings = getSetting(Settings.STANDARD_CONFORMING_STRINGS, false);
+      final boolean standardConformingStrings = getSetting(STANDARD_CONFORMING_STRINGS, false);
 
       if (parsedSqlCache == null) {
         return new SQLText(sqlText, standardConformingStrings);
@@ -693,7 +694,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   @Override
   public boolean isServerMinimumVersion(int major, int minor) {
-    return getServerVersion().isMinimum(major, minor);
+    return serverConnection.getServerInfo().getVersion().isMinimum(major, minor);
   }
 
   @Override

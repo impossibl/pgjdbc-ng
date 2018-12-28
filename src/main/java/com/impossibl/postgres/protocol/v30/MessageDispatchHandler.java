@@ -52,13 +52,11 @@ import static java.util.Arrays.asList;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.ReferenceCountUtil;
 
 
-@ChannelHandler.Sharable
 public class MessageDispatchHandler extends ChannelDuplexHandler {
 
   private TransactionStatus transactionStatus;
@@ -68,18 +66,18 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   private Writer traceWriter;
   private boolean requiresFlush = false;
 
-  MessageDispatchHandler(Charset charset, ProtocolHandler defaultHandler) {
+  MessageDispatchHandler(Charset charset, Writer traceWriter) {
     this.protocolHandlers = new ConcurrentLinkedDeque<>();
-    this.defaultHandler = defaultHandler;
     this.charset = charset;
+    this.traceWriter = traceWriter;
+  }
+
+  public void setDefaultHandler(ProtocolHandler defaultHandler) {
+    this.defaultHandler = defaultHandler;
   }
 
   TransactionStatus getTransactionStatus() {
     return transactionStatus;
-  }
-
-  void setTraceWriter(Writer traceWriter) {
-    this.traceWriter = traceWriter;
   }
 
   @Override
@@ -211,11 +209,13 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     }
 
     if (action == null) {
-      // Try default handler (which should always return Resume)
-      action = parseAndDispatch(ctx, id, data.resetReaderIndex(), defaultHandler);
-      if (action != ProtocolHandler.Action.Resume) {
-        String failMessage = "Unhandled message: " + (char) id + " @ " + protocolHandler.getClass().getName();
-        throw new IllegalStateException(failMessage);
+      if (defaultHandler != null) {
+        // Try default handler (which should always return Resume)
+        action = parseAndDispatch(ctx, id, data.resetReaderIndex(), defaultHandler);
+        if (action != ProtocolHandler.Action.Resume) {
+          String failMessage = "Unhandled message: " + (char) id + " @ " + protocolHandler.getClass().getName();
+          throw new IllegalStateException(failMessage);
+        }
       }
       return;
     }

@@ -55,6 +55,8 @@ public class Settings {
   public static final String CLIENT_ENCODING = "client_encoding";
   public static final String CLIENT_ENCODING_DEFAULT = "UTF8";
 
+  public static final String SESSION_USER = "session_authorization";
+
   public static final String APPLICATION_NAME = "application_name";
   public static final String APPLICATION_NAME_DEFAULT = "PG-JDBC (NG)";
 
@@ -63,7 +65,6 @@ public class Settings {
 
   public static final String FIELD_VARYING_LENGTH_MAX       = "field.varying.length.max";
   public static final String FIELD_MONEY_FRACTIONAL_DIGITS  = "field.money.fractionalDigits";
-  public static final String FIELD_DATETIME_FORMAT_CLASS    = "field.datetime.format";
 
   public static final String FIELD_FORMAT_PREF              = "field.format.preference";
   public static final String FIELD_FORMAT_PREF_DEFAULT      = FieldFormat.Binary.name();
@@ -112,6 +113,9 @@ public class Settings {
 
   public static final String ALLOCATOR = "allocator.pooled";
   public static final boolean ALLOCATOR_DEFAULT = true;
+
+  public static final String PROTOCOL_VERSION = "protocol.version";
+  public static final String PROTOCOL_VERSION_DEFAULT = "3.0";
 
   public static final String MAX_MESSAGE_SIZE = "protocol.message.max";
   public static final int MAX_MESSAGE_SIZE_DEFAULT = 15 * 1024 * 1024;

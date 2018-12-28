@@ -35,7 +35,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.protocol.ServerConnection;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -46,9 +46,9 @@ import java.net.SocketAddress;
 public class CancelRequestTask extends ExecutionTimerTask {
 
   private SocketAddress serverAddress;
-  private Context.KeyData keyData;
+  private ServerConnection.KeyData keyData;
 
-  CancelRequestTask(SocketAddress serverAddress, Context.KeyData keyData) {
+  CancelRequestTask(SocketAddress serverAddress, ServerConnection.KeyData keyData) {
     this.serverAddress = serverAddress;
     this.keyData = keyData;
   }

@@ -226,7 +226,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public String getDatabaseProductVersion() throws SQLException {
-    return connection.getServerVersion().toString();
+    return connection.getServerInfo().getVersion().toString();
   }
 
   @Override
@@ -2488,12 +2488,12 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public int getDatabaseMajorVersion() throws SQLException {
-    return connection.getServerVersion().getMajor();
+    return connection.getServerInfo().getVersion().getMajor();
   }
 
   @Override
   public int getDatabaseMinorVersion() throws SQLException {
-    return connection.getServerVersion().getMinor();
+    return connection.getServerInfo().getVersion().getMinor();
   }
 
   @Override

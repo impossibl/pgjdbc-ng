@@ -29,8 +29,12 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.SharedRegistry;
+
+import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING;
+import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DATASOURCE_DEFAULT;
 
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -78,7 +82,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String sslKeyFile;
   private String sslRootCertificateFile;
 
-  private Map<Properties, SharedRegistry> sharedRegistries;
+  private Map<ServerConnectionInfo, SharedRegistry> sharedRegistries;
 
   /**
    * Constructor
@@ -727,18 +731,19 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (sslRootCertificateFile != null)
       props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
 
-    SharedRegistry sharedRegistry;
-    if (!parseBoolean(props.getProperty(PGSettings.REGISTRY_SHARING_DATASOURCE, PGSettings.REGISTRY_SHARING_DATASOURCE_DEFAULT))) {
+    SharedRegistry.Factory sharedRegistryFactory;
+    if (!parseBoolean(props.getProperty(REGISTRY_SHARING, REGISTRY_SHARING_DATASOURCE_DEFAULT))) {
 
-      sharedRegistry = new SharedRegistry(PGDataSource.class.getClassLoader());
+      sharedRegistryFactory =
+          connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
     }
     else {
 
-      sharedRegistry =
-          sharedRegistries.computeIfAbsent(props, key -> new SharedRegistry(PGDataSource.class.getClassLoader()));
+      sharedRegistryFactory =
+          connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
     }
 
-    return ConnectionUtil.createConnection(url, props, sharedRegistry, housekeeper);
+    return ConnectionUtil.createConnection(url, props, sharedRegistryFactory, housekeeper);
   }
 
   private String buildUrl() throws SQLException {

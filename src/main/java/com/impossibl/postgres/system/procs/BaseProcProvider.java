@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerInfo;
 
 public abstract class BaseProcProvider implements ProcProvider {
 
@@ -41,7 +41,7 @@ public abstract class BaseProcProvider implements ProcProvider {
     this.baseNames = baseNames;
   }
 
-  protected boolean hasName(String name, String suffix, Context context) {
+  protected boolean hasName(String name, String suffix, ServerInfo serverInfo) {
 
     for (String baseName : baseNames) {
       if (name.equals(baseName + suffix))

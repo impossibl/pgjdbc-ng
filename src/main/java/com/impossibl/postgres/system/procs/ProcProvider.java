@@ -28,14 +28,14 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
 public interface ProcProvider {
 
-  <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType);
-  <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType);
-  Modifiers.Parser findModifierParser(String name, Context context);
+  <Buffer> Codec.Encoder<Buffer> findEncoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType);
+  <Buffer> Codec.Decoder<Buffer> findDecoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType);
+  Modifiers.Parser findModifierParser(String name, ServerInfo serverInfo);
 
 }
