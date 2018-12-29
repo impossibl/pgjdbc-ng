@@ -158,7 +158,7 @@ public class Records extends SimpleProcProvider {
         int attributeLen = buffer.readInt();
         if (attributeLen != -1) {
           ByteBuf attributeBuffer = PGBuffersStruct.Binary.ALLOC.buffer(attributeLen);
-          buffer.readSlice(attributeLen).writeBytes(attributeBuffer);
+          buffer.readBytes(attributeBuffer, attributeLen);
           attributeBuffers[c] = attributeBuffer;
         }
       }
