@@ -29,10 +29,8 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -46,14 +44,29 @@ public class DomainType extends Type {
   private Type base;
   private boolean nullable;
   private Map<String, Object> modifiers;
-  private int numberOfDimensions;
   private String defaultValue;
 
   public Type getBase() {
     return base;
   }
-  public boolean isNullable() {
+
+  @Override
+  public PrimitiveType getPrimitiveType() {
+    return PrimitiveType.Domain;
+  }
+
+  @Override
+  public Boolean isNullable() {
     return nullable;
+  }
+
+  public Map<String, Object> getModifiers() {
+    return modifiers;
+  }
+
+  @Override
+  public String getDefaultValue() {
+    return defaultValue;
   }
 
   @Override
@@ -67,26 +80,13 @@ public class DomainType extends Type {
   }
 
   @Override
-  public PrimitiveType getPrimitiveType() {
-    return PrimitiveType.Domain;
-  }
-
-  public Map<String, Object> getModifiers() {
-    return modifiers;
-  }
-
-  public String getDefaultValue() {
-    return defaultValue;
-  }
-
-  @Override
   public Type unwrap() {
     return base.unwrap();
   }
 
   @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
+  public void load(PgType.Row source, Registry registry) {
+    super.load(source, registry);
     base = registry.loadType(source.getDomainBaseTypeId());
     nullable = !source.isDomainNotNull();
     modifiers = base.getModifierParser().parse(source.getDomainTypeMod());

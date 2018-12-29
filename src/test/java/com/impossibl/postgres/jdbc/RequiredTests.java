@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
-import com.impossibl.postgres.system.tables.PgAttributeTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -61,7 +60,6 @@ import org.junit.runners.Suite.SuiteClasses;
     NotificationTest.class,
     NumericsTest.class,
     ParameterMetaDataTest.class,
-    PgAttributeTest.class,
     PreparedStatementTest.class,
     PsuedoRecordTest.class,
     ResultSetMetaDataTest.class,

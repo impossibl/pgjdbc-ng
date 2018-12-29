@@ -75,7 +75,7 @@ public abstract class PGArray implements Array {
   public int getBaseType() throws SQLException {
     checkFreed();
 
-    return SQLTypeMetaData.getSQLType(type.getElementType());
+    return JDBCTypeMapping.getSQLTypeCode(type.getElementType());
   }
 
   public Object getArray(Class<?> targetComponentType) throws SQLException {

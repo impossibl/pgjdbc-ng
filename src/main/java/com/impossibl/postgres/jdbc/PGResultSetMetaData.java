@@ -36,23 +36,52 @@ import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
-import static com.impossibl.postgres.jdbc.SQLTypeMetaData.getSQLType;
 import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-class PGResultSetMetaData implements ResultSetMetaData {
+import static java.util.Collections.singletonList;
 
-  private PGDirectConnection connection;
+class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
+
   private ResultField[] resultFields;
+  private Map<Integer, List<ColumnData>> relationsColumnsData;
   private Map<String, Class<?>> typeMap;
 
   PGResultSetMetaData(PGDirectConnection connection, ResultField[] resultFields, Map<String, Class<?>> typeMap) {
-    this.connection = connection;
+    super(connection);
     this.resultFields = resultFields;
+    this.relationsColumnsData = new HashMap<>();
     this.typeMap = typeMap;
+  }
+
+  private ColumnData getRelationColumnData(ResultField field) throws SQLException {
+    List<ColumnData> relationColumnsData = getRelationColumnsData(field.getRelationId());
+    for (ColumnData relationColumnData : relationColumnsData) {
+      if (relationColumnData.relationAttrNum == field.getRelationAttributeNumber()) {
+        return relationColumnData;
+      }
+    }
+    return null;
+  }
+
+  private List<ColumnData> getRelationColumnsData(int relationId) throws SQLException {
+    List<ColumnData> data;
+    if ((data = relationsColumnsData.get(relationId)) == null) {
+      data = loadRelationColumsData(relationId);
+      relationsColumnsData.put(relationId, data);
+    }
+    return data;
+  }
+
+  private List<ColumnData> loadRelationColumsData(int relationId) throws SQLException {
+    String sql = getColumnSQL(" AND a.attnum > 0 AND c.oid = ?").toString();
+
+    return getColumnData(sql, singletonList(relationId));
   }
 
   /**
@@ -87,24 +116,6 @@ class PGResultSetMetaData implements ResultSetMetaData {
     return connection.getRegistry().loadRelationType(field.getRelationId());
   }
 
-  /**
-   * Returns the CompositeType.Attribute representing the requested column
-   *
-   * @param columnIndex Requested column index
-   * @return CompositeType.Attribute of the requested column
-   * @throws SQLException If columnIndex is out of bounds
-   */
-  private CompositeType.Attribute getRelAttr(int columnIndex) throws SQLException {
-
-    ResultField field = get(columnIndex);
-
-    CompositeType relType = connection.getRegistry().loadRelationType(field.getRelationId());
-    if (relType == null)
-      return null;
-
-    return relType.getAttribute(field.getRelationAttributeNumber());
-  }
-
   @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (!iface.isAssignableFrom(getClass())) {
@@ -127,17 +138,19 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public boolean isAutoIncrement(int column) throws SQLException {
 
-    Registry registry = connection.getRegistry();
     ResultField field = get(column);
-    CompositeType relType = registry.loadRelationType(field.getRelationId());
+    ColumnData columnData = getRelationColumnData(field);
+    if (columnData == null) {
+      return connection.getRegistry().resolve(field.getTypeRef()).isAutoIncrement();
+    }
 
-    return SQLTypeMetaData.isAutoIncrement(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    return Type.isAutoIncrement(columnData.defaultValue) || columnData.type.isAutoIncrement();
   }
 
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
     Registry registry = connection.getRegistry();
-    return SQLTypeMetaData.isCaseSensitive(registry.resolve(get(column).getTypeRef()));
+    return JDBCTypeMetaData.isCaseSensitive(registry.resolve(get(column).getTypeRef()));
   }
 
   @Override
@@ -148,24 +161,30 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public boolean isCurrency(int column) throws SQLException {
 
-    return SQLTypeMetaData.isCurrency(connection.getRegistry().resolve(get(column).getTypeRef()));
+    return JDBCTypeMetaData.isCurrency(connection.getRegistry().resolve(get(column).getTypeRef()));
   }
 
   @Override
   public int isNullable(int column) throws SQLException {
 
-    Registry registry = connection.getRegistry();
     ResultField field = get(column);
-    CompositeType relType = registry.loadRelationType(field.getRelationId());
+    ColumnData columnData = getRelationColumnData(field);
 
-    //noinspection MagicConstant
-    return SQLTypeMetaData.isNullable(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    Boolean nullable;
+    if (columnData == null) {
+      nullable = connection.getRegistry().resolve(field.getTypeRef()).isNullable();
+    }
+    else {
+      nullable = columnData.nullable != null ? columnData.nullable : columnData.type.isNullable();
+    }
+
+    return nullable != null ? (nullable ? columnNullable : columnNoNulls) : columnNullableUnknown;
   }
 
   @Override
   public boolean isSigned(int column) throws SQLException {
 
-    return SQLTypeMetaData.isSigned(connection.getRegistry().resolve(get(column).getTypeRef()));
+    return JDBCTypeMetaData.isSigned(connection.getRegistry().resolve(get(column).getTypeRef()));
   }
 
   @Override
@@ -217,27 +236,31 @@ class PGResultSetMetaData implements ResultSetMetaData {
         return val;
     }
 
-    CompositeType.Attribute attr = getRelAttr(column);
-    if (attr == null)
+    ResultField field = get(column);
+    ColumnData columnData = getRelationColumnData(field);
+    if (columnData == null) {
       return get(column).getName();
+    }
 
-    return attr.getName();
+    return columnData.columnName;
   }
 
   @Override
   public int getColumnType(int column) throws SQLException {
     ResultField field = get(column);
-    return getSQLType(connection.getRegistry().resolve(field.getTypeRef()));
+    return JDBCTypeMapping.getSQLTypeCode(connection.getRegistry().resolve(field.getTypeRef()));
   }
 
   @Override
   public String getColumnTypeName(int column) throws SQLException {
 
-    Registry registry = connection.getRegistry();
     ResultField field = get(column);
-    CompositeType relType = registry.loadRelationType(field.getRelationId());
+    ColumnData columnData = getRelationColumnData(field);
+    if (columnData == null) {
+      return connection.getRegistry().resolve(field.getTypeRef()).getName();
+    }
 
-    return SQLTypeMetaData.getTypeName(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    return JDBCTypeMetaData.getTypeName(columnData.type, columnData.defaultValue);
   }
 
   @Override
@@ -251,21 +274,21 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public int getPrecision(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getPrecision(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
+    return JDBCTypeMetaData.getPrecision(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override
   public int getScale(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getScale(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeModifier());
+    return JDBCTypeMetaData.getScale(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeModifier());
   }
 
   @Override
   public int getColumnDisplaySize(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getDisplaySize(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
+    return JDBCTypeMetaData.getDisplaySize(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override

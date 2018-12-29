@@ -31,22 +31,18 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowDataSet;
-import com.impossibl.postgres.protocol.v30.BufferRowData;
-import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
 
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
-import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PseudoColumnUsage;
@@ -61,7 +57,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-class PGDatabaseMetaData implements DatabaseMetaData {
+class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
   private static final String EXTRA_KEYWORDS =
       "abort,acl,add,aggregate,append,archive," +
@@ -73,62 +69,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       "returns,rule,recipe,setof,stdin,stdout,store," +
       "vacuum,verbose,version";
 
-  PGDirectConnection connection;
   int maxNameLength;
   int maxIndexKeys;
 
   PGDatabaseMetaData(PGDirectConnection connection) {
-    this.connection = connection;
-  }
-
-  private int execForInteger(String query) throws SQLException {
-
-    String res = connection.executeForString(query);
-    if (res == null) {
-      throw SERVER_VERSION_NOT_SUPPORTED;
-    }
-
-    try {
-      return Integer.parseInt(res);
-    }
-    catch (NumberFormatException e) {
-      throw SERVER_VERSION_NOT_SUPPORTED;
-    }
-
-  }
-
-  private PGResultSet execForResultSet(String sql, Object... params) throws SQLException {
-
-    return execForResultSet(sql, Arrays.asList(params));
-  }
-
-  private PGResultSet execForResultSet(String sql, List<Object> params) throws SQLException {
-
-    PGPreparedStatement ps = connection.prepareStatement(sql);
-    ps.closeOnCompletion();
-
-    for (int c = 0; c < params.size(); ++c) {
-      ps.setObject(c + 1, params.get(c));
-    }
-
-    return ps.executeQuery();
-  }
-
-  private PGResultSet createResultSet(ResultField[] resultFields, List<Object[]> results) throws SQLException {
-
-    RowDataSet rows = new RowDataSet(results.size());
-    for (Object[] resultValues : results) {
-      try {
-        rows.add(BufferRowData.encode(connection, resultFields, resultValues));
-      }
-      catch (IOException e) {
-        throw new PGSQLSimpleException("Error encoding row value", e);
-      }
-    }
-
-    PGStatement stmt = connection.createStatement();
-    stmt.closeOnCompletion();
-    return stmt.createResultSet(resultFields, rows, true, connection.getTypeMap());
+    super(connection);
   }
 
   private int getMaxNameLength() throws SQLException {
@@ -882,8 +827,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
           row[2] = procedureName;
           row[3] = "returnValue";
           row[4] = DatabaseMetaData.procedureColumnReturn;
-          row[5] = SQLTypeMetaData.getSQLType(returnType);
-          row[6] = SQLTypeMetaData.getTypeName(returnType, null, 0);
+          row[5] = JDBCTypeMapping.getSQLTypeCode(returnType);
+          row[6] = JDBCTypeMetaData.getTypeName(returnType, null);
           row[7] = null;
           row[8] = null;
           row[9] = null;
@@ -933,7 +878,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
             argType = reg.loadType(argTypeIds[i].intValue());
           }
 
-          row[5] = SQLTypeMetaData.getSQLType(argType);
+          row[5] = JDBCTypeMapping.getSQLTypeCode(argType);
           row[6] = argType.getCodec(argType.getResultFormat()).getDecoder().getDefaultClass().getName();
           row[7] = null;
           row[8] = null;
@@ -964,7 +909,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
                 row[2] = procedureName;
                 row[3] = columnrs.getString("attname");
                 row[4] = DatabaseMetaData.procedureColumnResult;
-                row[5] = SQLTypeMetaData.getSQLType(columnType);
+                row[5] = JDBCTypeMapping.getSQLTypeCode(columnType);
                 row[6] = columnType.getCodec(columnType.getResultFormat()).getDecoder().getDefaultClass().getName();
                 row[7] = null;
                 row[8] = null;
@@ -1144,52 +1089,27 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return createResultSet(resultFields, results);
   }
 
-  static class ColumnData {
-    String tableSchemaName;
-    String tableName;
-    CompositeType relationType;
-    int relationAttrNum;
-    String columnName;
-    Type type;
-    int typeModifier;
-    int typeLength;
-    Boolean nullable;
-    String defaultValue;
-    String description;
-    Type baseType;
-  }
-
   @Override
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
 
     Registry registry = connection.getRegistry();
 
-    StringBuilder sql = new StringBuilder();
+    StringBuilder whereConditions = new StringBuilder(" AND a.attnum > 0");
     List<Object> params = new ArrayList<>();
 
-    sql.append(
-        "SELECT * FROM (" +
-        "   SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,a.attrelid," +
-        "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
-        "   FROM pg_catalog.pg_namespace n " +
-        "   JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
-        "   JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
-        "   JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) " +
-        "   LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-        "   LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
-        "   LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
-        "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
-        "   WHERE a.attnum > 0 AND NOT a.attisdropped ");
-
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      whereConditions.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
     if (!isNullOrEmpty(tableNamePattern)) {
-      sql.append(" AND c.relname LIKE ?");
+      whereConditions.append(" AND c.relname LIKE ?");
       params.add(tableNamePattern);
     }
+
+    StringBuilder sql = new StringBuilder("SELECT * FROM (");
+
+    sql.append(getColumnSQL(whereConditions));
 
     sql.append(") c");
 
@@ -1200,33 +1120,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     sql.append(" ORDER BY nspname,c.relname,attnum ");
 
-    //Build list of column fields and data
-
-    List<ColumnData> columnsData  = new ArrayList<>();
-
-    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
-
-      while (rs.next()) {
-
-        ColumnData columnData = new ColumnData();
-
-        columnData.tableSchemaName = rs.getString("nspname");
-        columnData.tableName = rs.getString("relname");
-        columnData.relationType = registry.loadRelationType(rs.getInt("attrelid"));
-        columnData.relationAttrNum = rs.getInt("attnum");
-        columnData.columnName = rs.getString("attname");
-        columnData.type = registry.loadType(rs.getInt("atttypid"));
-        columnData.typeModifier = rs.getInt("atttypmod");
-        columnData.typeLength = rs.getInt("attlen");
-        columnData.nullable = !rs.getBoolean("attnotnull");
-        columnData.defaultValue = rs.getString("adsrc");
-        columnData.description = rs.getString("description");
-        columnData.baseType = registry.loadType(rs.getInt("typbasetype"));
-
-        columnsData.add(columnData);
-      }
-
-    }
+    List<ColumnData> columnsData = getColumnData(sql.toString(), params);
 
     //Build result set (manually)
 
@@ -1266,20 +1160,20 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[1] = columnData.tableSchemaName;
       row[2] = columnData.tableName;
       row[3] = columnData.columnName;
-      row[4] = SQLTypeMetaData.getSQLType(columnData.type);
-      row[5] = SQLTypeMetaData.getTypeName(columnData.type, columnData.relationType, columnData.relationAttrNum);
+      row[4] = JDBCTypeMapping.getSQLTypeCode(columnData.type);
+      row[5] = JDBCTypeMetaData.getTypeName(columnData.type, columnData.defaultValue);
 
-      int size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
+      int size = JDBCTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
       if (size == 0) {
-        size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
+        size = JDBCTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
       }
 
       row[6] = size;
       row[7] = null;
-      row[8] = SQLTypeMetaData.getScale(columnData.type, columnData.typeModifier);
+      row[8] = JDBCTypeMetaData.getScale(columnData.type, columnData.typeModifier);
 
-      row[9] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
-      row[10] = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
+      row[9] = JDBCTypeMetaData.getPrecisionRadix(columnData.type);
+      row[10] = columnData.type.isNullable() != null ? (columnData.type.isNullable() ? columnNullable : columnNoNulls) : (columnData.nullable != null ? (columnData.nullable ? columnNullable : columnNoNulls) : columnNullableUnknown);
       row[11] = columnData.description;
       row[12] = columnData.defaultValue;
       row[13] = null;
@@ -1304,10 +1198,9 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[18] = null;
       row[19] = null;
       row[20] = null;
-      row[21] = columnData.baseType != null ? SQLTypeMetaData.getSQLType(columnData.baseType) : null;
-      row[22] = SQLTypeMetaData.isAutoIncrement(columnData.type, columnData.relationType, columnData.relationAttrNum) ? "YES" : "NO";
-      row[23] = columnData.relationType != null ? "YES" : "NO";
-
+      row[21] = columnData.baseType != null ? JDBCTypeMapping.getSQLTypeCode(columnData.baseType) : null;
+      row[22] = nullToEmpty(columnData.defaultValue).startsWith("nextval(") ? "YES" : "NO";
+      row[23] = columnData.relationId == 0 ? "YES" : "NO";
       results.add(row);
     }
 
@@ -1676,15 +1569,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         Type type = reg.loadType(rs.getInt("atttypid"));
         int typeLen = rs.getInt("attlen");
         int typeMod = rs.getInt("atttypmod");
-        int decimalDigits = SQLTypeMetaData.getScale(type, typeMod);
-        int columnSize = SQLTypeMetaData.getPrecision(type, typeLen, typeMod);
+        int decimalDigits = JDBCTypeMetaData.getScale(type, typeMod);
+        int columnSize = JDBCTypeMetaData.getPrecision(type, typeLen, typeMod);
         if (columnSize == 0) {
-          columnSize = SQLTypeMetaData.getDisplaySize(type, typeLen, typeMod);
+          columnSize = JDBCTypeMetaData.getDisplaySize(type, typeLen, typeMod);
         }
         row[0] = scope;
         row[1] = rs.getString("attname");
-        row[2] = SQLTypeMetaData.getSQLType(type);
-        row[3] = SQLTypeMetaData.getTypeName(type, null, 0);
+        row[2] = JDBCTypeMapping.getSQLTypeCode(type);
+        row[3] = JDBCTypeMetaData.getTypeName(type, null);
         row[4] = columnSize;
         row[5] = null; // unused
         row[6] = decimalDigits;
@@ -1730,8 +1623,8 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     row[0] = null;
     row[1] = "ctid";
-    row[2] = SQLTypeMetaData.getSQLType(type);
-    row[3] = SQLTypeMetaData.getTypeName(type, null, 0);
+    row[2] = JDBCTypeMapping.getSQLTypeCode(type);
+    row[3] = JDBCTypeMetaData.getTypeName(type, null);
     row[4] = null;
     row[5] = null;
     row[6] = null;
@@ -1893,26 +1786,26 @@ class PGDatabaseMetaData implements DatabaseMetaData {
         int typeOid = rs.getInt(2);
         Type type = registry.loadType(typeOid);
 
-        row[0] = SQLTypeMetaData.getTypeName(type, null, 0);
-        row[1] = SQLTypeMetaData.getSQLType(type);
-        row[2] = SQLTypeMetaData.getMaxPrecision(type);
+        row[0] = JDBCTypeMetaData.getTypeName(type, null);
+        row[1] = JDBCTypeMapping.getSQLTypeCode(type);
+        row[2] = JDBCTypeMetaData.getMaxPrecision(type);
 
-        if (SQLTypeMetaData.requiresQuoting(type)) {
+        if (JDBCTypeMetaData.requiresQuoting(type)) {
           row[3] = "\'";
           row[4] = "\'";
         }
 
-        row[6] = SQLTypeMetaData.isNullable(type, null, 0);
-        row[7] = SQLTypeMetaData.isCaseSensitive(type);
+        row[6] = type.isNullable() != null ? (type.isNullable() ? typeNullable : typeNoNulls) : typeNullableUnknown;
+        row[7] = JDBCTypeMetaData.isCaseSensitive(type);
         row[8] = true;
-        row[9] = !SQLTypeMetaData.isSigned(type);
-        row[10] = SQLTypeMetaData.isCurrency(type);
-        row[11] = SQLTypeMetaData.isAutoIncrement(type, null, 0);
-        row[13] = SQLTypeMetaData.getMinScale(type);
-        row[14] = SQLTypeMetaData.getMaxScale(type);
+        row[9] = !JDBCTypeMetaData.isSigned(type);
+        row[10] = JDBCTypeMetaData.isCurrency(type);
+        row[11] = type.isAutoIncrement();
+        row[13] = JDBCTypeMetaData.getMinScale(type);
+        row[14] = JDBCTypeMetaData.getMaxScale(type);
         row[15] = null; //Unused
         row[16] = null; //Unused
-        row[17] = SQLTypeMetaData.getPrecisionRadix(type);
+        row[17] = JDBCTypeMetaData.getPrecisionRadix(type);
 
         results.add(row);
 
@@ -2259,7 +2152,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
       Type type = reg.loadType(rs.getInt(7));
       if (type != null) {
-        row[6] = SQLTypeMetaData.getSQLType(type);
+        row[6] = JDBCTypeMapping.getSQLTypeCode(type);
       }
       else {
         row[6] = null;
@@ -2273,19 +2166,6 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     return createResultSet(fields, results);
   }
 
-  static class AttributeData {
-    String typeSchemaName;
-    String typeName;
-    CompositeType relationType;
-    int relationAttrNum;
-    String attributeName;
-    Type type;
-    int typeModifier;
-    int typeLength;
-    Boolean nullable;
-    String description;
-  }
-
   @Override
   public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
 
@@ -2297,10 +2177,11 @@ class PGDatabaseMetaData implements DatabaseMetaData {
     sql.append(
         "SELECT * FROM (" +
         "   SELECT n.nspname,t.typname,a.attname,a.atttypid,a.attrelid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen," +
-        "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, dsc.description" +
+        "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description" +
         "   FROM pg_catalog.pg_namespace n " +
         "   JOIN pg_catalog.pg_type t ON (t.typnamespace=n.oid) " +
         "   JOIN pg_catalog.pg_attribute a ON (a.attrelid=t.typrelid) " +
+        "   LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
         "   LEFT JOIN pg_catalog.pg_description dsc ON (t.typrelid=dsc.objoid AND a.attnum = dsc.objsubid) " +
         "   LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
         "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
@@ -2337,13 +2218,15 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
         attrData.typeSchemaName = rs.getString("nspname");
         attrData.typeName = rs.getString("typname");
-        attrData.relationType = registry.loadRelationType(rs.getInt("attrelid"));
+        attrData.relationId = rs.getInt("attrelid");
         attrData.relationAttrNum = rs.getInt("attnum");
         attrData.attributeName = rs.getString("attname");
         attrData.type = registry.loadType(rs.getInt("atttypid"));
         attrData.typeModifier = rs.getInt("atttypmod");
         attrData.typeLength = rs.getInt("attlen");
         attrData.nullable = !rs.getBoolean("attnotnull");
+        attrData.nullable = rs.wasNull() ? null : attrData.nullable;
+        attrData.defaultValue = rs.getString("adsrc");
         attrData.description = rs.getString("description");
 
         attrsData.add(attrData);
@@ -2388,19 +2271,19 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[1] = attrData.typeSchemaName;
       row[2] = attrData.typeName;
       row[3] = attrData.attributeName;
-      row[4] = SQLTypeMetaData.getSQLType(attrData.type);
-      row[5] = SQLTypeMetaData.getTypeName(attrData.type, attrData.relationType, attrData.relationAttrNum);
+      row[4] = JDBCTypeMapping.getSQLTypeCode(attrData.type);
+      row[5] = JDBCTypeMetaData.getTypeName(attrData.type, attrData.defaultValue);
 
-      int size = SQLTypeMetaData.getPrecision(attrData.type, attrData.typeLength, attrData.typeModifier);
+      int size = JDBCTypeMetaData.getPrecision(attrData.type, attrData.typeLength, attrData.typeModifier);
       if (size == 0) {
-        size = SQLTypeMetaData.getDisplaySize(attrData.type, attrData.typeLength, attrData.typeModifier);
+        size = JDBCTypeMetaData.getDisplaySize(attrData.type, attrData.typeLength, attrData.typeModifier);
       }
 
       row[6] = size;
 
-      row[7] = SQLTypeMetaData.getScale(attrData.type, attrData.typeModifier);
-      row[8] = SQLTypeMetaData.getPrecisionRadix(attrData.type);
-      row[9] = SQLTypeMetaData.isNullable(attrData.type, attrData.relationType, attrData.relationAttrNum);
+      row[7] = JDBCTypeMetaData.getScale(attrData.type, attrData.typeModifier);
+      row[8] = JDBCTypeMetaData.getPrecisionRadix(attrData.type);
+      row[9] = attrData.type.isNullable() != null ? (attrData.type.isNullable() ? attributeNullable : attributeNoNulls) : (attrData.nullable != null ? (attrData.nullable ? attributeNullable : attributeNoNulls) : attributeNullableUnknown);
       row[10] = attrData.description;
       row[11] = null;
       row[12] = null;
@@ -2409,7 +2292,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[15] = attrData.relationAttrNum;
 
       String nullable;
-      switch ((int)row[9]) {
+      switch ((short)row[9]) {
         case attributeNoNulls:
           nullable = "NO";
           break;
@@ -2425,7 +2308,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[17] = null;
       row[18] = null;
       row[19] = null;
-      row[20] = attrData.type instanceof DomainType ? SQLTypeMetaData.getSQLType(attrData.type.unwrap()) : null;
+      row[20] = attrData.type instanceof DomainType ? JDBCTypeMapping.getSQLTypeCode(attrData.type.unwrap()) : null;
 
       results.add(row);
     }
@@ -2434,7 +2317,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
   }
 
   @Override
-  public Connection getConnection() throws SQLException {
+  public PGDirectConnection getConnection() throws SQLException {
     return connection;
   }
 
@@ -2577,32 +2460,22 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     Registry registry = connection.getRegistry();
 
-    StringBuilder sql = new StringBuilder();
+    StringBuilder whereConditions = new StringBuilder(" AND a.attnum < 1");
     List<Object> params = new ArrayList<>();
 
-    sql.append(
-        "SELECT * FROM (" +
-        "   SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,a.attrelid," +
-        "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
-        "   FROM pg_catalog.pg_namespace n " +
-        "   JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
-        "   JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
-        "   JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) " +
-        "   LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-        "   LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
-        "   LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
-        "   LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
-        "   WHERE a.attnum < 1 AND NOT a.attisdropped ");
-
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      whereConditions.append(" AND n.nspname LIKE ?");
       params.add(schemaPattern);
     }
 
     if (!isNullOrEmpty(tableNamePattern)) {
-      sql.append(" AND c.relname LIKE ?");
+      whereConditions.append(" AND c.relname LIKE ?");
       params.add(tableNamePattern);
     }
+
+    StringBuilder sql = new StringBuilder("SELECT * FROM (");
+
+    sql.append(getColumnSQL(whereConditions));
 
     sql.append(") c");
 
@@ -2613,33 +2486,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
     sql.append(" ORDER BY nspname,c.relname,attnum ");
 
-    //Build list of column fields and data
-
-    List<ColumnData> columnsData  = new ArrayList<>();
-
-    try (ResultSet rs = execForResultSet(sql.toString(), params)) {
-
-      while (rs.next()) {
-
-        ColumnData columnData = new ColumnData();
-
-        columnData.tableSchemaName = rs.getString("nspname");
-        columnData.tableName = rs.getString("relname");
-        columnData.relationType = registry.loadRelationType(rs.getInt("attrelid"));
-        columnData.relationAttrNum = rs.getInt("attnum");
-        columnData.columnName = rs.getString("attname");
-        columnData.type = registry.loadType(rs.getInt("atttypid"));
-        columnData.typeModifier = rs.getInt("atttypmod");
-        columnData.typeLength = rs.getInt("attlen");
-        columnData.nullable = !rs.getBoolean("attnotnull");
-        columnData.defaultValue = rs.getString("adsrc");
-        columnData.description = rs.getString("description");
-        columnData.baseType = registry.loadType(rs.getInt("typbasetype"));
-
-        columnsData.add(columnData);
-      }
-
-    }
+    List<ColumnData> columnsData = getColumnData(sql.toString(), params);
 
     //Build result set (manually)
 
@@ -2669,36 +2516,21 @@ class PGDatabaseMetaData implements DatabaseMetaData {
       row[1] = columnData.tableSchemaName;
       row[2] = columnData.tableName;
       row[3] = columnData.columnName;
-      row[4] = SQLTypeMetaData.getSQLType(columnData.type);
+      row[4] = JDBCTypeMapping.getSQLTypeCode(columnData.type);
 
-      int size = SQLTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
+      int size = JDBCTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
       if (size == 0) {
-        size = SQLTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
+        size = JDBCTypeMetaData.getDisplaySize(columnData.type, columnData.typeLength, columnData.typeModifier);
       }
 
       row[5] = size;
-      row[6] = SQLTypeMetaData.getScale(columnData.type, columnData.typeModifier);
+      row[6] = JDBCTypeMetaData.getScale(columnData.type, columnData.typeModifier);
 
-      row[7] = SQLTypeMetaData.getPrecisionRadix(columnData.type);
+      row[7] = JDBCTypeMetaData.getPrecisionRadix(columnData.type);
       row[8] = PseudoColumnUsage.NO_USAGE_RESTRICTIONS.name();
       row[9] = columnData.description;
       row[10] = columnData.typeLength;
-
-      String nullable;
-      int isNullable = SQLTypeMetaData.isNullable(columnData.type, columnData.relationType, columnData.relationAttrNum);
-      switch (isNullable) {
-        case columnNoNulls:
-          nullable = "NO";
-          break;
-        case columnNullable:
-          nullable = "YES";
-          break;
-        default:
-          nullable = "";
-          break;
-      }
-
-      row[11] = nullable;
+      row[11] = columnData.type.isNullable() != null ? (columnData.type.isNullable() ? "YES" : "NO") : (columnData.nullable != null ? (columnData.nullable ? "YES" : "NO") : "");
 
       results.add(row);
     }

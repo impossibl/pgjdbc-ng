@@ -69,7 +69,7 @@ public class StructTest {
     public void readSQL(SQLInput in, String typeName) throws SQLException {
       str = in.readString();
       str2 = in.readString();
-      id = (UUID) in.readObject();
+      id = in.readObject(UUID.class);
       num = in.readDouble();
     }
 

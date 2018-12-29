@@ -35,7 +35,6 @@ import com.impossibl.postgres.jdbc.PGStruct;
 import com.impossibl.postgres.jdbc.PGValuesStruct;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.Character.isWhitespace;
+import static java.util.Arrays.fill;
 
 import io.netty.buffer.ByteBuf;
 
@@ -216,13 +216,11 @@ public class Records extends SimpleProcProvider {
     @Override
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      Type[] attributeTypes = null;
-      if (type instanceof CompositeType) {
-        attributeTypes = ((CompositeType) type).getAttributesTypes();
-      }
-
       List<CharSequence> attributeBuffers = new ArrayList<>();
       parseAttributeBuffers(type.getDelimeter(), buffer, attributeBuffers);
+
+      Type[] attributeTypes = new Type[attributeBuffers.size()];
+      fill(attributeTypes, context.getRegistry().loadBaseType("text"));
 
       return convertOutput(context, type, attributeTypes, attributeBuffers.toArray(new CharSequence[0]), targetClass, PGSQLInput.Text::new, PGBuffersStruct.Text::new);
     }

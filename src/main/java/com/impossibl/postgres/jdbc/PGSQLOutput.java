@@ -84,7 +84,7 @@ public class PGSQLOutput implements SQLOutput {
   }
 
   private void writeNextAttributeValue(int sqlType, Object val) throws SQLException {
-    writeNextAttributeValue(SQLTypeMetaData.getType(val, sqlType, context.getRegistry()), val);
+    writeNextAttributeValue(JDBCTypeMapping.getType(sqlType, val, context.getRegistry()), val);
   }
 
   private void writeNextAttributeValue(Type type, Object val) {

@@ -277,7 +277,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     parameterIdx--;
 
     if (targetClass == null) {
-      Type type = SQLTypeMetaData.getType(null, outParameterSQLTypes.get(parameterIdx), connection.getRegistry());
+      Type type = JDBCTypeMapping.getType(outParameterSQLTypes.get(parameterIdx), null, connection.getRegistry());
       if (type != null) {
         targetClass = type.getCodec(type.getResultFormat()).getDecoder().getDefaultClass();
       }

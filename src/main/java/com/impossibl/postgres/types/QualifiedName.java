@@ -66,6 +66,9 @@ public class QualifiedName {
 
   @Override
   public String toString() {
+    if (namespace.equals(Type.CATALOG_NAMESPACE) || namespace.equals(Type.PUBLIC_NAMESPACE)) {
+      return quoteIfNeeded(localName);
+    }
     return quoteIfNeeded(namespace) + "." + quoteIfNeeded(localName);
   }
 

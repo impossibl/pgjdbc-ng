@@ -34,7 +34,7 @@ import static com.impossibl.postgres.system.procs.NestedArrays.BINARY_DECODER;
 import static com.impossibl.postgres.system.procs.NestedArrays.TEXT_DECODER;
 
 /**
- * A database array type.
+ * A synthetic type used for managing nested array decoding.
  *
  * @author kdubb
  *
@@ -46,8 +46,10 @@ public class NestedArrayType extends ArrayType {
 
   public NestedArrayType(ArrayType arrayType, Type elementType, FieldFormat elementFormat, int[] dimensions) {
     super(
-        arrayType.getId(), arrayType.getName(), arrayType.getNamespace(), (short) -1, (byte) 4, Category.Array, ',', 0,
-        new BinaryCodec(BINARY_DECODER, null), new TextCodec(TEXT_DECODER, null), arrayType.getModifierParser(),
+        arrayType.getId(), arrayType.getName(), arrayType.getNamespace(), arrayType.getLength(),
+        arrayType.getAlignment(), arrayType.getCategory(), arrayType.getDelimeter(), arrayType.getArrayTypeId(),
+        new BinaryCodec(BINARY_DECODER, null), new TextCodec(TEXT_DECODER, null),
+        arrayType.getModifierParser(),
         elementFormat, elementFormat, elementType
     );
     this.dimensions = dimensions;

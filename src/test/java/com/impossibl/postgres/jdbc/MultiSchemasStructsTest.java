@@ -296,7 +296,7 @@ public class MultiSchemasStructsTest {
     CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_put_user(?) ");
 
 
-    Struct struct = conn.createStruct(FIRST_SCHEMA + "." + TYPE_NAME, new Object[] {1d, "First user"});
+    Struct struct = conn.createStruct(FIRST_SCHEMA + "." + TYPE_NAME, new Object[] {1, "First user"});
     statement.setObject(1, struct, Types.STRUCT);
 
     statement.execute();
@@ -307,7 +307,7 @@ public class MultiSchemasStructsTest {
     CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_put_user(?) ");
 
 
-    Struct struct = conn.createStruct(SECOND_SCHEMA + "." + TYPE_NAME, new Object[] {1d, "Second user", "second_user@mail.com"});
+    Struct struct = conn.createStruct(SECOND_SCHEMA + "." + TYPE_NAME, new Object[] {1, "Second user", "second_user@mail.com"});
     statement.setObject(1, struct, Types.STRUCT);
 
     statement.execute();

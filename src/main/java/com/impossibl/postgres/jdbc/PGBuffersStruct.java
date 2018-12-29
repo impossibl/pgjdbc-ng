@@ -32,9 +32,8 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
-
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -49,21 +48,30 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
 
     public static final ByteBufAllocator ALLOC = new UnpooledByteBufAllocator(false, true);
 
-    public static Binary encode(Context context, CompositeType type, Object[] values) throws IOException {
-      checkArgument(type.getAttributesTypes().length == values.length, "Invalid values array for type");
+    public static Binary encode(Context context, CompositeType type, Object[] values) throws SQLException, IOException {
 
-      Type[] attributeTypes = new Type[type.getAttributes().size()];
-      ByteBuf[] attributeBuffers = new ByteBuf[type.getAttributes().size()];
+      Type[] attributeTypes = new Type[values.length];
+      ByteBuf[] attributeBuffers = new ByteBuf[values.length];
 
       for (int attributeIdx = 0; attributeIdx < attributeBuffers.length; ++attributeIdx) {
 
         ByteBuf attributeBuffer = ALLOC.buffer();
-        CompositeType.Attribute attribute = type.getAttribute(attributeIdx + 1);
+        Object value = values[attributeIdx];
+        if (value == null) {
+          attributeTypes[attributeIdx] = context.getRegistry().loadBaseType("text");
+          attributeBuffers[attributeIdx] = null;
+          continue;
+        }
 
-        attribute.getType().getBinaryCodec().getEncoder()
+        Type attributeType = JDBCTypeMapping.getType(JDBCTypeMapping.getSQLTypeCode(value.getClass()), value, context.getRegistry());
+        if (attributeType == null) {
+          throw new IOException("Unable to determine type of attribute " + (attributeIdx + 1));
+        }
+
+        attributeType.getBinaryCodec().getEncoder()
             .encode(context, type, values[attributeIdx], null, attributeBuffer);
 
-        attributeTypes[attributeIdx] = attribute.getType();
+        attributeTypes[attributeIdx] = attributeType;
         attributeBuffers[attributeIdx] = attributeBuffer;
       }
 

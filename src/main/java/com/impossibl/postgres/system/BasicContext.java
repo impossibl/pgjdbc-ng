@@ -43,7 +43,6 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerConnectionFactory;
-import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 import com.impossibl.postgres.system.tables.Table;
 import com.impossibl.postgres.system.tables.Tables;
@@ -75,7 +74,6 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -89,7 +87,6 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptySet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
@@ -422,8 +419,6 @@ public class BasicContext extends AbstractContext {
 
     prepareUtilQuery("refresh-named-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1::text::regtype");
 
-    prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " AND a.attrelid = $1", "int4");
-
     prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.typrelid = $1", "int4");
 
   }
@@ -440,10 +435,7 @@ public class BasicContext extends AbstractContext {
 
       PgType.Row pgType  = pgTypes.get(0);
 
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgType.getRelationId());
-
-      return loadRaw(pgType, pgAttrs);
+      return loadRaw(pgType);
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
@@ -464,10 +456,7 @@ public class BasicContext extends AbstractContext {
 
       PgType.Row pgType  = pgTypes.get(0);
 
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgType.getRelationId());
-
-      return loadRaw(pgType, pgAttrs);
+      return loadRaw(pgType);
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
@@ -491,10 +480,7 @@ public class BasicContext extends AbstractContext {
         return null;
       }
 
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, relationId);
-
-      return (CompositeType) loadRaw(pgType, pgAttrs);
+      return (CompositeType) loadRaw(pgType);
     }
     catch (IOException | NoticeException e) {
       //Ignore errors
@@ -507,10 +493,6 @@ public class BasicContext extends AbstractContext {
    * Materialize a type from the given "pg_type" and "pg_attribute" data
    */
   private Type loadRaw(PgType.Row pgType) {
-    return loadRaw(pgType, emptySet());
-  }
-
-  private Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
 
     Type type;
 
@@ -546,7 +528,7 @@ public class BasicContext extends AbstractContext {
 
     }
 
-    type.load(pgType, pgAttrs, registry);
+    type.load(pgType, registry);
 
     return type;
   }

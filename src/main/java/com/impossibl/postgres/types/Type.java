@@ -31,7 +31,6 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
 
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
@@ -42,7 +41,6 @@ import static com.impossibl.postgres.system.Settings.getSystemProperty;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.util.Collection;
 
 import io.netty.buffer.ByteBuf;
 
@@ -61,6 +59,7 @@ import io.netty.buffer.ByteBuf;
 public abstract class Type implements TypeRef {
 
   public static final String CATALOG_NAMESPACE = "pg_catalog";
+  public static final String PUBLIC_NAMESPACE = "public";
 
   public enum Category {
     Array('A'),
@@ -252,6 +251,22 @@ public abstract class Type implements TypeRef {
     return arrayTypeId;
   }
 
+  public Boolean isNullable() {
+    return null;
+  }
+
+  public String getDefaultValue() {
+    return null;
+  }
+
+  public boolean isAutoIncrement() {
+    return isAutoIncrement(getDefaultValue());
+  }
+
+  public static boolean isAutoIncrement(String defaultValue) {
+    return defaultValue != null && defaultValue.startsWith("nextval(");
+  }
+
   public BinaryCodec getBinaryCodec() {
     return binaryCodec;
   }
@@ -341,10 +356,9 @@ public abstract class Type implements TypeRef {
    * collection of "pg_attribute" table entries.
    *
    * @param source The "pg_type" table entry
-   * @param attrs Associated "pg_attribute" table entries, if available.
    * @param registry The registry that is loading the type.
    */
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
+  public void load(PgType.Row source, Registry registry) {
     id = source.getOid();
     name = new QualifiedName(source.getNamespace(), source.getName());
     length = source.getLength() != -1 ? source.getLength() : null;

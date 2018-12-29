@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.JavaTypeMapping;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
@@ -123,6 +124,11 @@ public class Strings extends SimpleProcProvider {
 
       if (targetClass == String.class) {
         return decoded;
+      }
+
+      Type type = JavaTypeMapping.getType(targetClass, context.getRegistry());
+      if (type != null && type.getTextCodec() != null) {
+        return type.getTextCodec().getDecoder().decode(context, type, null, null, decoded, targetClass, targetContext);
       }
 
       if (targetClass == Boolean.class || targetClass == boolean.class) {

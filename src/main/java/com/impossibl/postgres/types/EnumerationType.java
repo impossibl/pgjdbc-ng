@@ -29,10 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType.Row;
-
-import java.util.Collection;
 
 /**
  * A database enumeration type.
@@ -60,8 +57,8 @@ public class EnumerationType extends Type {
   }
 
   @Override
-  public void load(Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
+  public void load(Row source, Registry registry) {
+    super.load(source, registry);
     textType = registry.loadBaseType("text");
   }
 
