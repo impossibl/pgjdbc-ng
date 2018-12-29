@@ -63,7 +63,7 @@ public class FieldBuffersRowData extends AbstractReferenceCounted implements Upd
   @Override
   public Object getField(int fieldIdx, ResultField field, Context context, Class<?> targetClass, Object targetContext) throws IOException {
 
-    Type type = context.getRegistry().loadType(field.getTypeRef());
+    Type type = context.getRegistry().resolve(field.getTypeRef());
 
     ByteBuf fieldBuffer = fieldBuffers[fieldIdx];
     fieldBuffer.resetReaderIndex();
@@ -110,7 +110,7 @@ public class FieldBuffersRowData extends AbstractReferenceCounted implements Upd
       return;
     }
 
-    Type type = context.getRegistry().loadType(field.getTypeRef());
+    Type type = context.getRegistry().resolve(field.getTypeRef());
 
     switch (field.getFormat()) {
       case Text: {

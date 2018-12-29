@@ -38,6 +38,7 @@ import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF_DEFAULT;
+import static com.impossibl.postgres.system.Settings.getSystemProperty;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
@@ -178,8 +179,7 @@ public abstract class Type implements TypeRef {
   }
 
   private int id;
-  private String name;
-  private String namespace;
+  private QualifiedName name;
   private Short length;
   private Byte alignment;
   private Category category;
@@ -198,8 +198,7 @@ public abstract class Type implements TypeRef {
   public Type(int id, String name, String namespace, Short length, Byte alignment, Category category, Character delimeter, Integer arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     super();
     this.id = id;
-    this.name = checkNotNull(name);
-    this.namespace = checkNotNull(namespace);
+    this.name = new QualifiedName(namespace, name);
     this.length = length;
     this.alignment = alignment;
     this.category = checkNotNull(category);
@@ -222,11 +221,15 @@ public abstract class Type implements TypeRef {
   }
 
   public String getName() {
-    return name;
+    return name.getLocalName();
   }
 
   public String getNamespace() {
-    return namespace;
+    return name.getNamespace();
+  }
+
+  public QualifiedName getQualifiedName() {
+    return name;
   }
 
   public Short getLength() {
@@ -341,22 +344,20 @@ public abstract class Type implements TypeRef {
    * @param attrs Associated "pg_attribute" table entries, if available.
    * @param registry The registry that is loading the type.
    */
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Context context, SharedRegistry registry) {
-
+  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
     id = source.getOid();
-    name = source.getName();
-    namespace = source.getNamespace();
+    name = new QualifiedName(source.getNamespace(), source.getName());
     length = source.getLength() != -1 ? source.getLength() : null;
     alignment = getAlignment(source.getAlignment() != null ? source.getAlignment().charAt(0) : null);
     category = Category.findValue(source.getCategory());
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId());
-    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId());
-    modifierParser = registry.loadModifierParser(source.getModInId());
-    preferredParameterFormat = FieldFormat.valueOf(context.getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
-    preferredResultFormat = FieldFormat.valueOf(context.getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
+    textCodec = registry.getShared().loadTextCodec(source.getInputId(), source.getOutputId());
+    binaryCodec = registry.getShared().loadBinaryCodec(source.getReceiveId(), source.getSendId());
+    modifierParser = registry.getShared().loadModifierParser(source.getModInId());
+    preferredParameterFormat = FieldFormat.valueOf(getSystemProperty(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
+    preferredResultFormat = FieldFormat.valueOf(getSystemProperty(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
   }
 
   /**
@@ -386,7 +387,7 @@ public abstract class Type implements TypeRef {
 
   @Override
   public String toString() {
-    return name + '(' + id + ')';
+    return name.toString() + '(' + id + ')';
   }
 
   @Override

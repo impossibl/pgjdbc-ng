@@ -53,6 +53,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.EnumerationType;
 import com.impossibl.postgres.types.PsuedoType;
+import com.impossibl.postgres.types.QualifiedName;
 import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.SharedRegistry;
@@ -147,6 +148,30 @@ public class BasicContext extends AbstractContext {
     @Override
     public void notificationReceived(int processId, String channelName, String payload) {
       reportNotification(processId, channelName, payload);
+    }
+
+  }
+
+  private class RegistryTypeLoader implements Registry.TypeLoader {
+
+    @Override
+    public Type load(int oid) {
+      return BasicContext.this.loadType(oid);
+    }
+
+    @Override
+    public CompositeType loadRelation(int relationOid) {
+      return BasicContext.this.loadRelationType(relationOid);
+    }
+
+    @Override
+    public Type load(QualifiedName name) {
+      return BasicContext.this.loadType(name.toString());
+    }
+
+    @Override
+    public Type load(String name) {
+      return BasicContext.this.loadType(name);
     }
 
   }
@@ -267,7 +292,7 @@ public class BasicContext extends AbstractContext {
     ServerConnectionInfo serverConnectionInfo =
         new ServerConnectionInfo(serverConnection.getServerInfo(), serverConnection.getRemoteAddress(), database);
 
-    registry = new Registry(this, sharedRegistryFactory.get(serverConnectionInfo));
+    registry = new Registry(sharedRegistryFactory.get(serverConnectionInfo), new RegistryTypeLoader());
 
     integerFormatter = NumberFormat.getIntegerInstance();
     integerFormatter.setGroupingUsed(false);
@@ -395,7 +420,7 @@ public class BasicContext extends AbstractContext {
 
     prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
 
-    prepareUtilQuery("refresh-named-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.typname = $1");
+    prepareUtilQuery("refresh-named-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1::text::regtype");
 
     prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " AND a.attrelid = $1", "int4");
 
@@ -403,8 +428,7 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  @Override
-  public Type loadType(int typeId) {
+  private Type loadType(int typeId) {
 
     try {
 
@@ -428,8 +452,7 @@ public class BasicContext extends AbstractContext {
     return null;
   }
 
-  @Override
-  public Type loadType(String typeName) {
+  private Type loadType(String typeName) {
 
     try {
 
@@ -453,8 +476,7 @@ public class BasicContext extends AbstractContext {
     return null;
   }
 
-  @Override
-  public CompositeType loadRelationType(int relationId) {
+  private CompositeType loadRelationType(int relationId) {
 
     try {
 
@@ -524,7 +546,7 @@ public class BasicContext extends AbstractContext {
 
     }
 
-    type.load(pgType, pgAttrs, this, registry.getShared());
+    type.load(pgType, pgAttrs, registry);
 
     return type;
   }
@@ -537,7 +559,7 @@ public class BasicContext extends AbstractContext {
 
     Type[] parameterTypes = new Type[parameterTypeNames.length];
     for (int parameterIdx = 0; parameterIdx < parameterTypes.length; ++parameterIdx) {
-      parameterTypes[parameterIdx] = registry.loadType(parameterTypeNames[parameterIdx]);
+      parameterTypes[parameterIdx] = registry.loadBaseType(parameterTypeNames[parameterIdx]);
     }
 
     prepareUtilQuery(name, sql, parameterTypes);

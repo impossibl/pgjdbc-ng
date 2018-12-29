@@ -49,6 +49,7 @@ import java.sql.Array;
 import java.sql.Date;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -161,124 +162,124 @@ class SQLTypeMetaData {
 
   public static Type getType(Class<?> cls, Registry reg) {
     if (cls == Boolean.class) {
-      return reg.loadType("bool");
+      return reg.loadBaseType("bool");
     }
     if (cls == Byte.class) {
-      return reg.loadType("int2");
+      return reg.loadBaseType("int2");
     }
     if (cls == Short.class) {
-      return reg.loadType("int2");
+      return reg.loadBaseType("int2");
     }
     if (cls == Integer.class) {
-      return reg.loadType("int4");
+      return reg.loadBaseType("int4");
     }
     if (cls == Long.class) {
-      return reg.loadType("int8");
+      return reg.loadBaseType("int8");
     }
     if (cls == BigInteger.class) {
-      return reg.loadType("numeric");
+      return reg.loadBaseType("numeric");
     }
     if (cls == Float.class) {
-      return reg.loadType("float4");
+      return reg.loadBaseType("float4");
     }
     if (cls == Double.class) {
-      return reg.loadType("float8");
+      return reg.loadBaseType("float8");
     }
     if (cls == BigDecimal.class) {
-      return reg.loadType("numeric");
+      return reg.loadBaseType("numeric");
     }
     if (cls == Character.class) {
-      return reg.loadType("char");
+      return reg.loadBaseType("char");
     }
     if (cls == String.class) {
-      return reg.loadType("text");
+      return reg.loadBaseType("text");
     }
     if (cls == Date.class) {
-      return reg.loadType("date");
+      return reg.loadBaseType("date");
     }
     if (cls == Time.class) {
-      return reg.loadType("time");
+      return reg.loadBaseType("time");
     }
     if (cls == Timestamp.class) {
-      return reg.loadType("timestamp");
+      return reg.loadBaseType("timestamp");
     }
     if (cls == Array.class) {
-      return reg.loadType("anyarray");
+      return reg.loadBaseType("anyarray");
     }
     return getExtendedType(cls, reg);
   }
 
   public static Type getExtendedType(Class<?> cls, Registry reg) {
     if (cls == Interval.class) {
-      return reg.loadType("interval");
+      return reg.loadBaseType("interval");
     }
     else if (cls == UUID.class) {
-      return reg.loadType("uuid");
+      return reg.loadBaseType("uuid");
     }
     else if (cls == Map.class) {
-      return reg.loadType("hstore");
+      return reg.loadStableType("hstore");
     }
     else if (cls == BitSet.class) {
-      return reg.loadType("bits");
+      return reg.loadBaseType("bits");
     }
     else if (cls == Range.class) {
-      return reg.loadType("range");
+      return reg.loadBaseType("range");
     }
     else if (cls == ACLItem.class) {
-      return reg.loadType("aclitem");
+      return reg.loadBaseType("aclitem");
     }
     else if (cls == CidrAddr.class) {
-      return reg.loadType("cidr");
+      return reg.loadBaseType("cidr");
     }
     else if (cls == InetAddr.class) {
-      return reg.loadType("inet");
+      return reg.loadBaseType("inet");
     }
     return null;
   }
 
-  public static Type getType(Object val, int sqlType, Registry reg) {
+  public static Type getType(Object val, int sqlType, Registry reg) throws SQLException {
 
     switch (sqlType) {
       case Types.BIT:
       case Types.BOOLEAN:
-        return reg.loadType("bool");
+        return reg.loadBaseType("bool");
       case Types.TINYINT:
       case Types.SMALLINT:
-        return reg.loadType("int2");
+        return reg.loadBaseType("int2");
       case Types.INTEGER:
-        return reg.loadType("int4");
+        return reg.loadBaseType("int4");
       case Types.BIGINT:
-        return reg.loadType("int8");
+        return reg.loadBaseType("int8");
       case Types.REAL:
-        return reg.loadType("real");
+        return reg.loadBaseType("float4");
       case Types.FLOAT:
       case Types.DOUBLE:
-        return reg.loadType("float8");
+        return reg.loadBaseType("float8");
       case Types.NUMERIC:
       case Types.DECIMAL:
-        return reg.loadType("numeric");
+        return reg.loadBaseType("numeric");
       case Types.CHAR:
-        return reg.loadType("char");
+        return reg.loadBaseType("char");
       case Types.VARCHAR:
       case Types.LONGVARCHAR:
-        return reg.loadType("text");
+        return reg.loadBaseType("text");
       case Types.DATE:
-        return reg.loadType("date");
+        return reg.loadBaseType("date");
       case Types.TIME:
-        return reg.loadType("time");
+        return reg.loadBaseType("time");
       case Types.TIME_WITH_TIMEZONE:
-        return reg.loadType("timetz");
+        return reg.loadBaseType("timetz");
       case Types.TIMESTAMP:
-        return reg.loadType("timestamp");
+        return reg.loadBaseType("timestamp");
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        return reg.loadType("timestamptz");
+        return reg.loadBaseType("timestamptz");
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
-        return reg.loadType("bytea");
+        return reg.loadBaseType("bytea");
       case Types.BLOB:
       case Types.CLOB:
-        return reg.loadType("oid");
+        return reg.loadBaseType("oid");
       case Types.ARRAY:
         if (val instanceof PGArray) {
           return ((PGArray) val).getType();
@@ -290,25 +291,20 @@ class SQLTypeMetaData {
           }
         }
         return null;
-      case Types.STRUCT:
-        return reg.loadType("record");
       case Types.ROWID:
-        return reg.loadType("tid");
+        return reg.loadBaseType("tid");
       case Types.SQLXML:
-        return reg.loadType("xml");
+        return reg.loadBaseType("xml");
       case Types.DISTINCT:
-        return reg.loadType("domain");
+        return reg.loadBaseType("domain");
+      case Types.STRUCT:
       case Types.JAVA_OBJECT:
       case Types.OTHER:
+        if (val instanceof Struct) {
+          return reg.loadTransientType(((Struct) val).getSQLTypeName());
+        }
         if (val instanceof SQLData) {
-          String typeName;
-          try {
-            typeName = ((SQLData) val).getSQLTypeName();
-          }
-          catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          return reg.loadType(typeName);
+          return reg.loadTransientType(((SQLData) val).getSQLTypeName());
         }
         if (val != null) {
           return getExtendedType(val.getClass(), reg);

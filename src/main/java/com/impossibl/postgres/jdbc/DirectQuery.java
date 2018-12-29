@@ -128,7 +128,7 @@ public class DirectQuery implements Query {
     resultBatches = results.getBatches();
 
     // Cache referenced types...
-    resultBatches.forEach(resultBatch -> transformFieldTypes(resultBatch, connection.getRegistry()::loadType));
+    resultBatches.forEach(resultBatch -> transformFieldTypes(resultBatch, connection.getRegistry()::resolve));
 
     return chainWarnings(null, results);
   }
@@ -173,7 +173,7 @@ public class DirectQuery implements Query {
     ResultBatch resultBatch = result.getBatch();
 
     // Cache referenced types...
-    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+    transformFieldTypes(resultBatch, connection.getRegistry()::resolve);
 
     resultBatches = new ArrayList<>(singletonList(resultBatch));
 

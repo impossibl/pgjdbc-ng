@@ -1180,7 +1180,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
-    Type type = getRegistry().loadType(typeName + "[]");
+    Type elementType = getRegistry().loadTransientType(typeName);
+    if (elementType == null) {
+      throw new PGSQLSimpleException("Unknown element type");
+    }
+
+    Type type = getRegistry().loadType(elementType.getArrayTypeId());
     if (!(type instanceof ArrayType)) {
       throw new SQLException("Array type not found");
     }
@@ -1197,7 +1202,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
 
-    Type type = getRegistry().loadType(typeName);
+    Type type = getRegistry().loadTransientType(typeName);
     if (!(type instanceof CompositeType)) {
       throw new SQLException("Invalid type for struct");
     }

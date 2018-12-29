@@ -63,10 +63,11 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
         attribute.getType().getBinaryCodec().getEncoder()
             .encode(context, type, values[attributeIdx], null, attributeBuffer);
 
+        attributeTypes[attributeIdx] = attribute.getType();
         attributeBuffers[attributeIdx] = attributeBuffer;
       }
 
-      return new Binary(context, type.getName(), attributeTypes, attributeBuffers);
+      return new Binary(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
     }
 
     public Binary(Context context, String typeName, Type[] attributeTypes, ByteBuf[] attributeBuffers) {

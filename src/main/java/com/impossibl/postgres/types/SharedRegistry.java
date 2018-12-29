@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.ServerInfo;
@@ -100,9 +99,8 @@ public class SharedRegistry {
   private static final Map<ProcSharingKey, Procs> sharedProcs = new HashMap<>();
 
   private TreeMap<Integer, Type> oidMap;
-  private Map<String, Type> nameMap;
+  private Map<QualifiedName, Type> nameMap;
   private TreeMap<Integer, Type> relIdMap;
-  private Map<String, String> typeNameAliases;
   private Procs procs;
 
   private AtomicBoolean seeded = new AtomicBoolean(false);
@@ -136,28 +134,15 @@ public class SharedRegistry {
     oidMap.put(29,  new BaseType(29, "cid",        (short) 4,  (byte) 4, Category.User,    ',', 1012, procs, Binary, Binary));
     oidMap.put(30, new ArrayType(30, "oidvector",  (short)-1,  (byte) 4, Category.Array,   ',', 1013, procs, Binary, Binary, oidMap.get(26)));
 
+    oidMap.put(2205,  new BaseType(2205, "regclass",  (short) 4,  (byte) 4, Category.Numeric,  ',', 2210, procs, Binary, Binary));
+    oidMap.put(2206,  new BaseType(2206, "regtype",   (short) 4,  (byte) 4, Category.Numeric,  ',', 2211, procs, Binary, Binary));
+    oidMap.put(2210, new ArrayType(2210, "_regclass", (short)-1,  (byte) 4, Category.Array,  ',', 0, procs, Binary, Binary, oidMap.get(2205)));
+    oidMap.put(2211, new ArrayType(2211, "_regtype",  (short)-1,  (byte) 4, Category.Array,  ',', 0, procs, Binary, Binary, oidMap.get(2206)));
+
     nameMap = new HashMap<>();
-    oidMap.values().forEach(type -> nameMap.put(type.getName(), type));
+    oidMap.values().forEach(type -> nameMap.put(type.getQualifiedName(), type));
 
     relIdMap = new TreeMap<>();
-
-    typeNameAliases = new HashMap<>();
-    typeNameAliases.put("smallint", "int2");
-    typeNameAliases.put("integer", "int4");
-    typeNameAliases.put("bigint", "int8");
-    typeNameAliases.put("decimal", "numeric");
-    typeNameAliases.put("real", "float4");
-    typeNameAliases.put("double precision", "float8");
-    typeNameAliases.put("smallserial", "int2");
-    typeNameAliases.put("serial", "int4");
-    typeNameAliases.put("bigserial", "int8");
-  }
-
-  public Type loadType(TypeRef typeRef, Function<Integer, Type> loader) {
-    if (typeRef instanceof Type) {
-      return (Type) typeRef;
-    }
-    return loadType(typeRef.getOid(), loader);
   }
 
   /**
@@ -166,7 +151,7 @@ public class SharedRegistry {
    * @param typeId The type's id
    * @return Type object or null, if none found
    */
-  public Type loadType(int typeId, Function<Integer, Type> loader) {
+  public Type findOrLoadType(int typeId, Function<Integer, Type> loader) {
 
     if (typeId == 0)
       return null;
@@ -200,29 +185,15 @@ public class SharedRegistry {
   }
 
   /**
-   * Loads a type by its name
+   * Finds a type by its qualified name
    *
-   * @param name The type's name
+   * @param name The type's qualified name
    * @return Type object or null, if none found
    */
-  public Type loadType(String name, Function<String, Type> loader) {
+  public Type findOrLoadType(QualifiedName name, Function<QualifiedName, Type> loader) {
 
     if (name == null)
       return null;
-
-    if (name.endsWith("[]")) {
-
-      String baseName = name.substring(0, name.length() - 2);
-
-      baseName = typeNameAliases.getOrDefault(baseName, baseName);
-
-      name = "_" + baseName;
-    }
-    else {
-
-      name = typeNameAliases.getOrDefault(name, name);
-    }
-
 
     lock.readLock().lock();
     try {
@@ -258,7 +229,7 @@ public class SharedRegistry {
    * @param relationId Relation ID of the type to load
    * @return Relation type or null
    */
-  public CompositeType loadRelationType(int relationId, Function<Integer, CompositeType> loader) {
+  public CompositeType findOrLoadRelationType(int relationId, Function<Integer, CompositeType> loader) {
 
     if (relationId == 0)
       return null;
@@ -326,7 +297,7 @@ public class SharedRegistry {
     if (type == null) return;
 
     oidMap.put(type.getId(), type);
-    nameMap.put(type.getName(), type);
+    nameMap.put(type.getQualifiedName(), type);
     if (type.getRelationId() != 0) {
       relIdMap.put(type.getRelationId(), type);
     }

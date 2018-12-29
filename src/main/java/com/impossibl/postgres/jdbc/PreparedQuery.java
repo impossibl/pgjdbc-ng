@@ -142,7 +142,7 @@ public class PreparedQuery implements Query {
     resultBatch = result.getBatch();
 
     // Cache referenced types...
-    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+    transformFieldTypes(resultBatch, connection.getRegistry()::resolve);
 
     if (result.isSuspended()) {
       status = Status.Suspended;

@@ -56,7 +56,7 @@ public class Strings extends SimpleProcProvider {
 
   public Strings() {
     super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(),
-        "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
+        "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown",  "regproc", "regtype", "regclass", "regoper");
   }
 
   private static Bools.TxtDecoder boolDecoder = new Bools.TxtDecoder();

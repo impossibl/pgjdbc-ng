@@ -75,7 +75,7 @@ public class Tables {
   public static <R extends Table.Row, T extends Table<R>> List<R> convertRows(Context context, T table, ResultBatch results) throws IOException {
 
     // Cache referenced types...
-    transformFieldTypes(results, context.getRegistry()::loadType);
+    transformFieldTypes(results, context.getRegistry()::resolve);
 
     int rowCount = results.borrowRows().size();
     List<R> rows = new ArrayList<>(rowCount);

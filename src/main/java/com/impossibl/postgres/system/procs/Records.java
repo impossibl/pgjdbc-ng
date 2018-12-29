@@ -107,7 +107,7 @@ public class Records extends SimpleProcProvider {
 
       try {
         PGSQLInput<Buffer> input = inputFactory.create(context, attributeTypes, attributeBuffers);
-        data.readSQL(input, type.getName());
+        data.readSQL(input, type.getQualifiedName().toString());
       }
       catch (SQLException e) {
         throw new IOException(e);
@@ -116,7 +116,7 @@ public class Records extends SimpleProcProvider {
       result = data;
     }
     else if (targetClass == PGStruct.class) {
-      result = structFactory.create(context, type.getName(), attributeTypes, attributeBuffers);
+      result = structFactory.create(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
     }
     else {
       throw new ConversionException(Record, targetClass);

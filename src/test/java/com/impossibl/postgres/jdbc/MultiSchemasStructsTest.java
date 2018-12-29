@@ -36,86 +36,87 @@ import java.sql.SQLException;
 import java.sql.SQLInput;
 import java.sql.SQLOutput;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created by romastar on 07.07.15.
  */
 public class MultiSchemasStructsTest {
 
-  static final String FIRST_SCHEMA = "first";
-  static final String SECOND_SCHEMA = "second";
+  private static final String FIRST_SCHEMA = "first";
+  private static final String SECOND_SCHEMA = "second";
 
-  static final String TABLE_NAME = "tbl_user";
-  static final String TYPE_NAME = "t_user";
+  private static final String TABLE_NAME = "tbl_user";
+  private static final String TYPE_NAME = "t_user";
 
-  static class FirstSchemaUser implements SQLData {
+  public static class FirstSchemaUser implements SQLData {
 
-    Double id;
+    Integer id;
     String name;
 
     @Override
-    public String getSQLTypeName() throws SQLException {
+    public String getSQLTypeName() {
       return FIRST_SCHEMA + "." + TYPE_NAME;
     }
 
     @Override
     public void readSQL(SQLInput in, String typeName) throws SQLException {
-      id = in.readDouble();
+      id = in.readInt();
       name = in.readString();
     }
 
     @Override
     public void writeSQL(SQLOutput out) throws SQLException {
-      out.writeDouble(id);
+      out.writeInt(id);
       out.writeString(name);
     }
 
   }
 
-  static class SecondSchemaUser implements SQLData {
+  public static class SecondSchemaUser implements SQLData {
 
-    Double id;
+    Integer id;
     String name;
     String email;
 
     @Override
-    public String getSQLTypeName() throws SQLException {
+    public String getSQLTypeName() {
       return SECOND_SCHEMA + "." + TYPE_NAME;
     }
 
     @Override
     public void readSQL(SQLInput in, String typeName) throws SQLException {
-      id = in.readDouble();
+      id = in.readInt();
       name = in.readString();
       email = in.readString();
     }
 
     @Override
     public void writeSQL(SQLOutput out) throws SQLException {
-      out.writeDouble(id);
+      out.writeInt(id);
       out.writeString(name);
       out.writeString(email);
     }
   }
 
-  static class PublicSchemaUser implements SQLData {
+  public static class PublicSchemaUser implements SQLData {
 
     String firstName;
     String lastName;
 
     @Override
-    public String getSQLTypeName() throws SQLException {
-      return SECOND_SCHEMA + "." + TYPE_NAME;
+    public String getSQLTypeName() {
+      return  TYPE_NAME;
     }
 
     @Override
@@ -153,69 +154,66 @@ public class MultiSchemasStructsTest {
 
 
     String firstPutFunctionTemplate =
-            "CREATE OR REPLACE FUNCTION " + FIRST_SCHEMA + ".fn_put_user(usr " + FIRST_SCHEMA + "." + TYPE_NAME + ")"
-                    + " RETURNS void AS $BODY$ begin"
-                    + " insert into " + FIRST_SCHEMA + "." + TABLE_NAME + "(id, name) values(usr.id, usr.name);"
-                    + "end; $BODY$ LANGUAGE plpgsql";
+        "CREATE OR REPLACE FUNCTION " + FIRST_SCHEMA + ".fn_put_user(usr " + FIRST_SCHEMA + "." + TYPE_NAME + ")"
+            + " RETURNS void AS $BODY$ begin"
+            + " insert into " + FIRST_SCHEMA + "." + TABLE_NAME + "(id, name) values(usr.id, usr.name);"
+            + "end; $BODY$ LANGUAGE plpgsql";
 
     String secondPutFunctionTemplate =
-            "CREATE OR REPLACE FUNCTION " + SECOND_SCHEMA + ".fn_put_user(usr " + SECOND_SCHEMA + "." + TYPE_NAME + ")"
-                    + " RETURNS void AS $BODY$ begin"
-                    + " insert into " + SECOND_SCHEMA + "." + TABLE_NAME + "(id, name, email) values(usr.id, usr.name, usr.email);"
-                    + "end; $BODY$ LANGUAGE plpgsql";
+        "CREATE OR REPLACE FUNCTION " + SECOND_SCHEMA + ".fn_put_user(usr " + SECOND_SCHEMA + "." + TYPE_NAME + ")"
+            + " RETURNS void AS $BODY$ begin"
+            + " insert into " + SECOND_SCHEMA + "." + TABLE_NAME + "(id, name, email) values(usr.id, usr.name, usr.email);"
+            + "end; $BODY$ LANGUAGE plpgsql";
 
     String publicPutFunctionTemplate =
-            "CREATE OR REPLACE FUNCTION fn_put_user(usr " + TYPE_NAME + ")"
-                    + " RETURNS void AS $BODY$ begin"
-                    + " insert into " + TABLE_NAME + "(first_name, last_name) values(usr.first_name, usr.last_name);"
-                    + "end; $BODY$ LANGUAGE plpgsql";
+        "CREATE OR REPLACE FUNCTION fn_put_user(usr " + TYPE_NAME + ")"
+            + " RETURNS void AS $BODY$ begin"
+            + " insert into " + TABLE_NAME + "(first_name, last_name) values(usr.first_name, usr.last_name);"
+            + "end; $BODY$ LANGUAGE plpgsql";
 
 
     String firstGetUsersAsArray =
-            "CREATE OR REPLACE FUNCTION " + FIRST_SCHEMA + ".fn_get_users()\n" +
-                    "  RETURNS " + FIRST_SCHEMA + "." + TYPE_NAME + "[] AS $BODY$\n" +
-                    "declare\n" +
-                    "\tusers " + FIRST_SCHEMA + "." + TYPE_NAME + "[];\n" +
-                    "\tusr " + FIRST_SCHEMA + "." + TYPE_NAME + ";\n" +
-                    "begin\n" +
-                    "\tfor usr in select * from " + FIRST_SCHEMA + "." + TABLE_NAME + " loop\n" +
-                    "\t\tusers := array_append(users, usr);\n" +
-                    "\tend loop;\n" +
-                    "\treturn users;\n" +
-                    "end;\n" +
-                    "$BODY$ LANGUAGE plpgsql";
+        "CREATE OR REPLACE FUNCTION " + FIRST_SCHEMA + ".fn_get_users()\n" +
+            "  RETURNS " + FIRST_SCHEMA + "." + TYPE_NAME + "[] AS $BODY$\n" +
+            "declare\n" +
+            "\tusers " + FIRST_SCHEMA + "." + TYPE_NAME + "[];\n" +
+            "\tusr " + FIRST_SCHEMA + "." + TYPE_NAME + ";\n" +
+            "begin\n" +
+            "\tfor usr in select * from " + FIRST_SCHEMA + "." + TABLE_NAME + " loop\n" +
+            "\t\tusers := array_append(users, usr);\n" +
+            "\tend loop;\n" +
+            "\treturn users;\n" +
+            "end;\n" +
+            "$BODY$ LANGUAGE plpgsql";
 
 
     String secondGetUsersAsArray =
-            "CREATE OR REPLACE FUNCTION " + SECOND_SCHEMA + ".fn_get_users()\n" +
-                    "  RETURNS " + SECOND_SCHEMA + "." + TYPE_NAME + "[] AS $BODY$\n" +
-                    "declare\n" +
-                    "\tusers " + SECOND_SCHEMA + "." + TYPE_NAME + "[];\n" +
-                    "\tusr " + SECOND_SCHEMA + "." + TYPE_NAME + ";\n" +
-                    "begin\n" +
-                    "\tfor usr in select * from " + SECOND_SCHEMA + "." + TABLE_NAME + " loop\n" +
-                    "\t\tusers := array_append(users, usr);\n" +
-                    "\tend loop;\n" +
-                    "\treturn users;\n" +
-                    "end;\n" +
-                    "$BODY$ LANGUAGE plpgsql";
+        "CREATE OR REPLACE FUNCTION " + SECOND_SCHEMA + ".fn_get_users()\n" +
+            "  RETURNS " + SECOND_SCHEMA + "." + TYPE_NAME + "[] AS $BODY$\n" +
+            "declare\n" +
+            "\tusers " + SECOND_SCHEMA + "." + TYPE_NAME + "[];\n" +
+            "\tusr " + SECOND_SCHEMA + "." + TYPE_NAME + ";\n" +
+            "begin\n" +
+            "\tfor usr in select * from " + SECOND_SCHEMA + "." + TABLE_NAME + " loop\n" +
+            "\t\tusers := array_append(users, usr);\n" +
+            "\tend loop;\n" +
+            "\treturn users;\n" +
+            "end;\n" +
+            "$BODY$ LANGUAGE plpgsql";
 
     String publicGetUsersAsArray =
-            "CREATE OR REPLACE FUNCTION fn_get_users()\n" +
-                    "  RETURNS " + TYPE_NAME + "[] AS $BODY$\n" +
-                    "declare\n" +
-                    "\tusers " + TYPE_NAME + "[];\n" +
-                    "\tusr " + TYPE_NAME + ";\n" +
-                    "begin\n" +
-                    "\tfor usr in select * from " + TABLE_NAME + " loop\n" +
-                    "\t\tusers := array_append(users, usr);\n" +
-                    "\tend loop;\n" +
-                    "\treturn users;\n" +
-                    "end;\n" +
-                    "$BODY$ LANGUAGE plpgsql";
-
-
-    conn = TestUtil.openDB();
+        "CREATE OR REPLACE FUNCTION fn_get_users()\n" +
+            "  RETURNS " + TYPE_NAME + "[] AS $BODY$\n" +
+            "declare\n" +
+            "\tusers " + TYPE_NAME + "[];\n" +
+            "\tusr " + TYPE_NAME + ";\n" +
+            "begin\n" +
+            "\tfor usr in select * from " + TABLE_NAME + " loop\n" +
+            "\t\tusers := array_append(users, usr);\n" +
+            "\tend loop;\n" +
+            "\treturn users;\n" +
+            "end;\n" +
+            "$BODY$ LANGUAGE plpgsql";
 
     Statement stmt = conn.createStatement();
 
@@ -235,7 +233,7 @@ public class MultiSchemasStructsTest {
     TestUtil.closeDB(conn);
   }
 
-  protected void dropTestObjects() throws Exception {
+  private void dropTestObjects() throws Exception {
     TestUtil.dropSchema(conn, FIRST_SCHEMA);
     TestUtil.dropSchema(conn, SECOND_SCHEMA);
 
@@ -248,10 +246,21 @@ public class MultiSchemasStructsTest {
   }
 
   @Test
-  @Ignore
+  public void testStructCreateDynamic() throws SQLException {
+
+    putPublicStruct();
+    putFirstStruct();
+    putSecondStruct();
+
+    checkPublicStructs();
+    checkFirstStructs();
+    checkSecondStructs();
+  }
+
+  @Test
   public void testStructsWithoutDefault() throws SQLException {
 
-    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("first.t_user", FirstSchemaUser.class);
     typeMap.put("second.t_user", SecondSchemaUser.class);
 
@@ -260,18 +269,14 @@ public class MultiSchemasStructsTest {
     putFirstUser();
     putSecondUser();
 
-    FirstSchemaUser[] firstUsers = getFirstUsers();
-    SecondSchemaUser[] secondUsers = getSecondUsers();
-
-    assertNotNull("Invalid casting to FirstSchemaUser", firstUsers);
-    assertNotNull("Invalid casting to SecondSchemaUser", secondUsers);
+    checkFirstUsers();
+    checkSecondsUsers();
   }
 
   @Test
-  @Ignore
   public void testStructsWithDefault() throws SQLException {
 
-    Map<String, Class<?>> typeMap = new HashMap<String, Class<?>>();
+    Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("first.t_user", FirstSchemaUser.class);
     typeMap.put("second.t_user", SecondSchemaUser.class);
     typeMap.put("t_user", PublicSchemaUser.class);
@@ -282,20 +287,49 @@ public class MultiSchemasStructsTest {
     putFirstUser();
     putSecondUser();
 
-    PublicSchemaUser[] publicUsers = getPublicUsers();
-    FirstSchemaUser[] firstUsers = getFirstUsers();
-    SecondSchemaUser[] secondUsers = getSecondUsers();
-
-    assertNotNull("Invalid casting to PublicSchemaUser", publicUsers);
-    assertNotNull("Invalid casting to FirstSchemaUser", firstUsers);
-    assertNotNull("Invalid casting to SecondSchemaUser", secondUsers);
+    checkPublicUsers();
+    checkFirstUsers();
+    checkSecondsUsers();
   }
 
-  public void putFirstUser() throws SQLException {
+  private void putFirstStruct() throws SQLException {
+    CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_put_user(?) ");
+
+
+    Struct struct = conn.createStruct(FIRST_SCHEMA + "." + TYPE_NAME, new Object[] {1d, "First user"});
+    statement.setObject(1, struct, Types.STRUCT);
+
+    statement.execute();
+    statement.close();
+  }
+
+  private void putSecondStruct() throws SQLException {
+    CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_put_user(?) ");
+
+
+    Struct struct = conn.createStruct(SECOND_SCHEMA + "." + TYPE_NAME, new Object[] {1d, "Second user", "second_user@mail.com"});
+    statement.setObject(1, struct, Types.STRUCT);
+
+    statement.execute();
+    statement.close();
+  }
+
+  private void putPublicStruct() throws SQLException {
+    CallableStatement statement = conn.prepareCall("select fn_put_user(?) ");
+
+
+    Struct struct = conn.createStruct(TYPE_NAME, new Object[] {"First name", "Last name"});
+    statement.setObject(1, struct, Types.STRUCT);
+
+    statement.execute();
+    statement.close();
+  }
+
+  private void putFirstUser() throws SQLException {
     CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_put_user(?) ");
 
     FirstSchemaUser userFirst = new FirstSchemaUser();
-    userFirst.id = 1d;
+    userFirst.id = 1;
     userFirst.name = "First user";
     statement.setObject(1, userFirst, Types.STRUCT);
 
@@ -303,11 +337,11 @@ public class MultiSchemasStructsTest {
     statement.close();
   }
 
-  public void putSecondUser() throws SQLException {
+  private void putSecondUser() throws SQLException {
     CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_put_user(?) ");
 
     SecondSchemaUser secondUser = new SecondSchemaUser();
-    secondUser.id = 1d;
+    secondUser.id = 1;
     secondUser.name = "Second user";
     secondUser.email = "second_user@mail.com";
     statement.setObject(1, secondUser, Types.STRUCT);
@@ -317,7 +351,7 @@ public class MultiSchemasStructsTest {
 
   }
 
-  public void putPublicUser() throws SQLException {
+  private void putPublicUser() throws SQLException {
 
     CallableStatement statement = conn.prepareCall("select fn_put_user(?) ");
 
@@ -331,7 +365,7 @@ public class MultiSchemasStructsTest {
 
   }
 
-  public FirstSchemaUser[] getFirstUsers() throws SQLException {
+  private Object[] getFirstUsers() throws SQLException {
     CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
 
     statement.registerOutParameter(1, Types.ARRAY);
@@ -339,16 +373,13 @@ public class MultiSchemasStructsTest {
 
     Array array = statement.getArray(1);
     Object users = array.getArray();
+    array.free();
     statement.close();
 
-    if (users instanceof FirstSchemaUser[]) {
-      return (FirstSchemaUser[])users;
-    }
-
-    return null;
+    return (Object[]) users;
   }
 
-  public SecondSchemaUser[] getSecondUsers() throws SQLException {
+  private Object[] getSecondUsers() throws SQLException {
 
     CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_get_users(?) ");
 
@@ -357,16 +388,13 @@ public class MultiSchemasStructsTest {
 
     Array array = statement.getArray(1);
     Object users = array.getArray();
+    array.free();
     statement.close();
 
-    if (users instanceof SecondSchemaUser[]) {
-      return (SecondSchemaUser[])users;
-    }
-
-    return null;
+    return (Object[]) users;
   }
 
-  public PublicSchemaUser[] getPublicUsers() throws SQLException {
+  private Object[] getPublicUsers() throws SQLException {
     CallableStatement statement = conn.prepareCall("select fn_get_users(?) ");
 
     statement.registerOutParameter(1, Types.ARRAY);
@@ -375,12 +403,90 @@ public class MultiSchemasStructsTest {
 
     Array array = statement.getArray(1);
     Object users = array.getArray();
+    array.free();
     statement.close();
 
-    if (users instanceof PublicSchemaUser[]) {
-      return (PublicSchemaUser[])users;
-    }
-
-    return null;
+    return (Object[]) users;
   }
+
+  private void checkFirstUsers() throws SQLException {
+    try {
+      FirstSchemaUser[] users = (FirstSchemaUser[]) getFirstUsers();
+      assertEquals(1, users.length);
+      assertEquals(1d, users[0].id, 0d);
+      assertEquals("First user", users[0].name);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to FirstSchemaUser");
+    }
+  }
+
+  private void checkSecondsUsers() throws SQLException {
+    try {
+      SecondSchemaUser[] users = (SecondSchemaUser[]) getSecondUsers();
+      assertEquals(1, users.length);
+      assertEquals(1d, users[0].id, 0d);
+      assertEquals("Second user", users[0].name);
+      assertEquals("second_user@mail.com", users[0].email);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to SecondSchemaUser");
+    }
+  }
+
+  private void checkPublicUsers() throws SQLException {
+    try {
+      PublicSchemaUser[] publicUsers = (PublicSchemaUser[]) getPublicUsers();
+      assertEquals(1, publicUsers.length);
+      assertEquals("First name", publicUsers[0].firstName);
+      assertEquals("Last name", publicUsers[0].lastName);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to PublicSchemaUser");
+    }
+  }
+  private void checkFirstStructs() throws SQLException {
+    try {
+      Struct[] users = (Struct[]) getFirstUsers();
+      assertEquals(1, users.length);
+      Object[] userAttrs = users[0].getAttributes();
+      assertEquals(2, userAttrs.length);
+      assertEquals(1, userAttrs[0]);
+      assertEquals("First user", userAttrs[1]);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to Struct");
+    }
+  }
+
+  private void checkSecondStructs() throws SQLException {
+    try {
+      Struct[] users = (Struct[]) getSecondUsers();
+      assertEquals(1, users.length);
+      Object[] userAttrs = users[0].getAttributes();
+      assertEquals(3, userAttrs.length);
+      assertEquals(1, userAttrs[0]);
+      assertEquals("Second user", userAttrs[1]);
+      assertEquals("second_user@mail.com", userAttrs[2]);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to Struct");
+    }
+  }
+
+  private void checkPublicStructs() throws SQLException {
+    try {
+      Struct[] users = (Struct[]) getPublicUsers();
+      assertEquals(1, users.length);
+      Object[] userAttrs = users[0].getAttributes();
+      assertEquals(2, userAttrs.length);
+      assertEquals("First name", userAttrs[0]);
+      assertEquals("Last name", userAttrs[1]);
+    }
+    catch (ClassCastException e) {
+      fail("Invalid casting to Struct");
+    }
+  }
+
+
 }

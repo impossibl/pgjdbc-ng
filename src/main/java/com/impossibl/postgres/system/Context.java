@@ -31,9 +31,7 @@ package com.impossibl.postgres.system;
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.protocol.ServerConnection;
-import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
-import com.impossibl.postgres.types.Type;
 
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
@@ -72,12 +70,6 @@ public interface Context extends Configuration {
   DateTimeFormat getTimestampFormatter();
 
   Map<String, Class<?>> getCustomTypeMap();
-
-  Type loadType(String typeName);
-
-  Type loadType(int typeId);
-
-  CompositeType loadRelationType(int relationId);
 
   Context unwrap();
 

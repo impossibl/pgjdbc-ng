@@ -259,7 +259,7 @@ public class PGBuffersArray extends PGArray {
     }
 
     ResultField[] fields = new ResultField[] {
-        new ResultField("INDEX", 0, (short) 0, reg.loadType("int4"), (short) 0, 0, FieldFormat.Binary),
+        new ResultField("INDEX", 0, (short) 0, reg.loadBaseType("int4"), (short) 0, 0, FieldFormat.Binary),
         new ResultField("VALUE", 0, (short) 0, elementType, (short) 0, 0, elementFormat)
     };
 

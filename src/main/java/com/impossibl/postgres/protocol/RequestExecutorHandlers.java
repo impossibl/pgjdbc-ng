@@ -133,7 +133,7 @@ public class RequestExecutorHandlers {
     public Type[] getDescribedParameterTypes(Context context) {
       checkCompleted();
 
-      return stream(describedParameterTypes).map(ref -> context.getRegistry().loadType(ref)).toArray(Type[]::new);
+      return stream(describedParameterTypes).map(ref -> context.getRegistry().resolve(ref)).toArray(Type[]::new);
     }
 
     public ResultField[] getDescribedResultFields() {

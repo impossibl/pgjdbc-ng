@@ -29,39 +29,54 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.system.Context;
 
-import java.lang.ref.WeakReference;
+import static com.impossibl.postgres.types.Type.CATALOG_NAMESPACE;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Storage and loading for all the known types of a given context.
+ * Storage and loading for all the known types of a given connection.
  *
  * @author kdubb
  *
  */
 public class Registry {
 
-  private WeakReference<Context> context;
-  private SharedRegistry sharedRegistry;
-
-  public Registry(Context context, SharedRegistry sharedRegistry) {
-    this.context = new WeakReference<>(context);
-    this.sharedRegistry = sharedRegistry;
+  public interface TypeLoader {
+    Type load(int oid);
+    CompositeType loadRelation(int relationOid);
+    Type load(QualifiedName name);
+    Type load(String name);
   }
 
-  public Type loadType(TypeRef typeRef) {
-    if (typeRef instanceof Type) {
-      return (Type) typeRef;
-    }
-    return loadType(typeRef.getOid());
+  private SharedRegistry sharedRegistry;
+  private Map<String, Type> commonTypes;
+  private Registry.TypeLoader loader;
+
+  public Registry(SharedRegistry sharedRegistry, Registry.TypeLoader loader) {
+    this.sharedRegistry = sharedRegistry;
+    this.commonTypes = new HashMap<>();
+    this.loader = loader;
   }
 
   public SharedRegistry getShared() {
     return sharedRegistry;
   }
 
-  private Context getContext() {
-    return context.get();
+  /**
+   * Resolves a type reference to an actual type object.
+   *
+   * @param typeRef Type reference to resolve
+   * @return Resolved type object
+   */
+  public Type resolve(TypeRef typeRef) {
+
+    if (typeRef instanceof Type) {
+      return (Type) typeRef;
+    }
+
+    return loadType(typeRef.getOid());
   }
 
   /**
@@ -75,21 +90,27 @@ public class Registry {
     if (typeId == 0)
       return null;
 
-    return sharedRegistry.loadType(typeId, getContext()::loadType);
+    return sharedRegistry.findOrLoadType(typeId, loader::load);
   }
 
   /**
-   * Loads a type by its name
+   * Loads a base type from the postgres schema catalog
    *
-   * @param name The type's name
-   * @return Type object or null, if none found
+   *
+   * @param localName Name of the type in the <code>pg_catalog</code> namespace.
+   * @throws IllegalArgumentException When a type cannot be found.
+   * @return Type object
    */
-  public Type loadType(String name) {
+  public Type loadBaseType(String localName) {
 
-    if (name == null)
-      return null;
+    QualifiedName name = new QualifiedName(CATALOG_NAMESPACE, localName);
 
-    return sharedRegistry.loadType(name, getContext()::loadType);
+    Type type = sharedRegistry.findOrLoadType(name, loader::load);
+    if (type == null) {
+      throw new IllegalArgumentException("Unknown type");
+    }
+
+    return type;
   }
 
   /**
@@ -103,7 +124,42 @@ public class Registry {
     if (relationId == 0)
       return null;
 
-    return sharedRegistry.loadRelationType(relationId, getContext()::loadRelationType);
+    return sharedRegistry.findOrLoadRelationType(relationId, loader::loadRelation);
+  }
+
+  /**
+   * Loads a type by name.
+   *
+   * As it is resolved by the server, the name can be a qualified, unqualified or
+   * alias name; anything acceptable to the server.
+   *
+   * Stable types are those that are expected to be available and not to change;
+   * an example being "hstore".
+   *
+   * This method caches the type in the non-shared registry. Any changes
+   * to the type (e.g. dropping and re-creating the "hstore" extension) will
+   * cause the cache to become stale.
+   *
+   * @param typeName Name of the type (can be anything accepted by the server)
+   * @return Type object or null, if none found
+   */
+  public Type loadStableType(String typeName) {
+
+    return commonTypes.computeIfAbsent(typeName, this::loadTransientType);
+  }
+
+  /**
+   * Loads a type by name.
+   *
+   * As it is resolved by the server, the name can be a qualified, unqualified or
+   * alias name; anything acceptable to the server.
+   *
+   * @param typeName Name of the type (can be anything accepted by the server)
+   * @return Type object or null, if none found
+   */
+  public Type loadTransientType(String typeName) {
+
+    return loader.load(typeName);
   }
 
 }

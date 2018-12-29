@@ -36,6 +36,8 @@ import com.impossibl.postgres.protocol.ssl.SSLMode;
 
 public class Settings {
 
+  public static final String SYSTEM_SETTING_PREFIX = "pgjdbc";
+
   public static final String DATABASE = "database";
   public static final String DATABASE_URL = "databaseUrl";
 
@@ -131,5 +133,13 @@ public class Settings {
 
   public static final String SQL_TRACE = "sql.trace";
   public static final boolean SQL_TRACE_DEFAULT = false;
+
+  public static String getSystemProperty(String key, String def) {
+    return System.getProperty(SYSTEM_SETTING_PREFIX + "." + key, def);
+  }
+
+  public static String getSystemProperty(String key) {
+    return System.getProperty(SYSTEM_SETTING_PREFIX + "." + key);
+  }
 
 }

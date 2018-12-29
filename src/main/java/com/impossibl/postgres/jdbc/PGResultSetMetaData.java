@@ -131,13 +131,13 @@ class PGResultSetMetaData implements ResultSetMetaData {
     ResultField field = get(column);
     CompositeType relType = registry.loadRelationType(field.getRelationId());
 
-    return SQLTypeMetaData.isAutoIncrement(registry.loadType(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    return SQLTypeMetaData.isAutoIncrement(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
     Registry registry = connection.getRegistry();
-    return SQLTypeMetaData.isCaseSensitive(registry.loadType(get(column).getTypeRef()));
+    return SQLTypeMetaData.isCaseSensitive(registry.resolve(get(column).getTypeRef()));
   }
 
   @Override
@@ -148,7 +148,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public boolean isCurrency(int column) throws SQLException {
 
-    return SQLTypeMetaData.isCurrency(connection.getRegistry().loadType(get(column).getTypeRef()));
+    return SQLTypeMetaData.isCurrency(connection.getRegistry().resolve(get(column).getTypeRef()));
   }
 
   @Override
@@ -159,13 +159,13 @@ class PGResultSetMetaData implements ResultSetMetaData {
     CompositeType relType = registry.loadRelationType(field.getRelationId());
 
     //noinspection MagicConstant
-    return SQLTypeMetaData.isNullable(registry.loadType(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    return SQLTypeMetaData.isNullable(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public boolean isSigned(int column) throws SQLException {
 
-    return SQLTypeMetaData.isSigned(connection.getRegistry().loadType(get(column).getTypeRef()));
+    return SQLTypeMetaData.isSigned(connection.getRegistry().resolve(get(column).getTypeRef()));
   }
 
   @Override
@@ -227,7 +227,7 @@ class PGResultSetMetaData implements ResultSetMetaData {
   @Override
   public int getColumnType(int column) throws SQLException {
     ResultField field = get(column);
-    return getSQLType(connection.getRegistry().loadType(field.getTypeRef()));
+    return getSQLType(connection.getRegistry().resolve(field.getTypeRef()));
   }
 
   @Override
@@ -237,13 +237,13 @@ class PGResultSetMetaData implements ResultSetMetaData {
     ResultField field = get(column);
     CompositeType relType = registry.loadRelationType(field.getRelationId());
 
-    return SQLTypeMetaData.getTypeName(registry.loadType(field.getTypeRef()), relType, field.getRelationAttributeNumber());
+    return SQLTypeMetaData.getTypeName(registry.resolve(field.getTypeRef()), relType, field.getRelationAttributeNumber());
   }
 
   @Override
   public String getColumnClassName(int column) throws SQLException {
 
-    Type type = connection.getRegistry().loadType(get(column).getTypeRef());
+    Type type = connection.getRegistry().resolve(get(column).getTypeRef());
     return lookupCustomType(type, typeMap, type.getCodec(type.getResultFormat()).getDecoder().getDefaultClass()).getName();
   }
 
@@ -251,21 +251,21 @@ class PGResultSetMetaData implements ResultSetMetaData {
   public int getPrecision(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getPrecision(connection.getRegistry().loadType(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
+    return SQLTypeMetaData.getPrecision(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override
   public int getScale(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getScale(connection.getRegistry().loadType(field.getTypeRef()), field.getTypeModifier());
+    return SQLTypeMetaData.getScale(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeModifier());
   }
 
   @Override
   public int getColumnDisplaySize(int column) throws SQLException {
 
     ResultField field = get(column);
-    return SQLTypeMetaData.getDisplaySize(connection.getRegistry().loadType(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
+    return SQLTypeMetaData.getDisplaySize(connection.getRegistry().resolve(field.getTypeRef()), field.getTypeLength(), field.getTypeModifier());
   }
 
   @Override

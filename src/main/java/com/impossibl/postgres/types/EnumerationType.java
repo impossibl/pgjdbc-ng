@@ -29,7 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType.Row;
 
 import java.util.Collection;
@@ -42,7 +42,7 @@ import java.util.Collection;
  */
 public class EnumerationType extends Type {
 
-  Type textType;
+  private Type textType;
 
   @Override
   public boolean isParameterFormatSupported(FieldFormat format) {
@@ -60,9 +60,9 @@ public class EnumerationType extends Type {
   }
 
   @Override
-  public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Context context, SharedRegistry registry) {
-    super.load(source, attrs, context, registry);
-    textType = registry.loadType("text", context::loadType);
+  public void load(Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
+    super.load(source, attrs, registry);
+    textType = registry.loadBaseType("text");
   }
 
 }

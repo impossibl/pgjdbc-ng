@@ -317,7 +317,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     parameterTypes = copyOf(parameterTypes, parameterTypes.length + needed);
     parameterTypesParsed = copyOf(parameterTypes, parameterTypes.length + needed);
-    fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
+    fill(parameterTypesParsed, connection.getRegistry().loadBaseType("text"));
     parameterFormats = copyOf(parameterFormats, parameterFormats.length + needed);
     parameterBuffers = copyOf(parameterBuffers, parameterBuffers.length + needed);
 

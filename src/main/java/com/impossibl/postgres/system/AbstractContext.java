@@ -28,13 +28,13 @@
  */
 package com.impossibl.postgres.system;
 
-public abstract class AbstractContext implements Context {
+import static com.impossibl.postgres.system.Settings.getSystemProperty;
 
-  public static final String SETTING_SYSTEM_PREFIX = "pgjdbc";
+public abstract class AbstractContext implements Context {
 
   @Override
   public Object getSetting(String name) {
-    return System.getProperty(SETTING_SYSTEM_PREFIX + "." + name);
+    return getSystemProperty(name);
   }
 
 }
