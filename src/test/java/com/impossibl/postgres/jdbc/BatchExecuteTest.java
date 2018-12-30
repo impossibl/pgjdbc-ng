@@ -392,9 +392,8 @@ public class BatchExecuteTest {
     }
     catch (BatchUpdateException bue) {
       // We only process until the first error
-      assertEquals(2, bue.getUpdateCounts().length);
+      assertEquals(1, bue.getUpdateCounts().length);
       assertEquals(1, bue.getUpdateCounts()[0]);
-      assertEquals(Statement.EXECUTE_FAILED, bue.getUpdateCounts()[1]);
     }
 
     pstmt.close();
@@ -417,8 +416,7 @@ public class BatchExecuteTest {
       fail("Failure");
     }
     catch (BatchUpdateException bue) {
-      assertEquals(1, bue.getUpdateCounts().length);
-      assertEquals(Statement.EXECUTE_FAILED, bue.getUpdateCounts()[0]);
+      assertEquals(0, bue.getUpdateCounts().length);
     }
     finally {
       pstmt.close();
