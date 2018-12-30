@@ -93,13 +93,13 @@ public enum PGType implements PGAnyType {
   CID                     (  29,  "cid"),
 
   HSTORE                  (null, "hstore"),
-  CITEXT                  (null,  ""),
+  CITEXT                  (null, "citext"),
 
   ;
 
   //CHECKSTYLE:ON: ParenPad|NoWhitespaceBefore
 
-  private int oid;
+  private Integer oid;
   private String name;
 
   PGType(Integer oid, String name) {
