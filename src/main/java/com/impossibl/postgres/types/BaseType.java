@@ -30,7 +30,6 @@ package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.procs.Procs;
-import com.impossibl.postgres.system.tables.PgType.Row;
 
 /**
  * A database primitive type
@@ -49,11 +48,6 @@ public class BaseType extends Type {
 
   public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     this(id, name, CATALOG_NAMESPACE, length, alignment, category, delimeter, arrayTypeId, name, procs, preferredParameterFormat, preferredResultFormat);
-  }
-
-  @Override
-  public void load(Row source, Registry registry) {
-    super.load(source, registry);
   }
 
 }

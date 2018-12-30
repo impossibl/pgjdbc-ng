@@ -43,7 +43,7 @@ import java.io.IOException;
  * @author kdubb
  *
  */
-public class PgType implements Table<PgType.Row> {
+public class PGTypeTable implements Table<PGTypeTable.Row> {
 
   public static class Row implements Table.Row {
 
@@ -256,9 +256,9 @@ public class PgType implements Table<PgType.Row> {
   private static final int DOMAIN_DEFAULT = 20;
   private static final int RANGE_BASE_TYPE_ID = 21;
 
-  public static final PgType INSTANCE = new PgType();
+  public static final PGTypeTable INSTANCE = new PGTypeTable();
 
-  private PgType() {
+  private PGTypeTable() {
   }
 
   @Override

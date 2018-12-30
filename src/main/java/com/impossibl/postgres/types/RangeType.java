@@ -29,7 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 
 /**
  * A database range type.
@@ -61,7 +61,7 @@ public class RangeType extends Type {
   }
 
   @Override
-  public void load(PgType.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) {
     super.load(source, registry);
     base = registry.loadType(source.getRangeBaseTypeId());
   }

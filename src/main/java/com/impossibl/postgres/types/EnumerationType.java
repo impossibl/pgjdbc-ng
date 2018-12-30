@@ -29,7 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgType.Row;
+import com.impossibl.postgres.system.tables.PGTypeTable.Row;
 
 /**
  * A database enumeration type.

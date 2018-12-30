@@ -30,7 +30,7 @@ package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.procs.Procs;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 
 /**
  * A database array type.
@@ -84,7 +84,7 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public void load(PgType.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) {
     super.load(source, registry);
     this.elementType = registry.loadType(source.getElementTypeId());
   }

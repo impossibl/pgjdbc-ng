@@ -28,8 +28,6 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.system.tables.PgType.Row;
-
 /**
  * A database psuedo type.
  *
@@ -37,10 +35,4 @@ import com.impossibl.postgres.system.tables.PgType.Row;
  *
  */
 public class PsuedoType extends Type {
-
-  @Override
-  public void load(Row source, Registry registry) {
-    super.load(source, registry);
-  }
-
 }

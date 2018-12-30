@@ -29,16 +29,18 @@
 package com.impossibl.postgres.system.tables;
 
 import com.impossibl.postgres.protocol.ResultBatch;
+import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
 
 import java.io.IOException;
+import java.util.List;
 
 
 /**
  * A system table object.
  *
- * Facilitates easy exploitation of the auto-mapping feature of the driver.
  * Providing a POJO type for the row and some matching SQL and a list of
  * instances can be fetched from the database with no other work.  This is
  * used for system queries.
@@ -68,6 +70,16 @@ public interface Table<R extends Table.Row> {
   interface Row {
 
     void load(Context context, ResultBatch resultBatch, int rowIdx) throws IOException;
+
+  }
+
+  default List<R> query(BasicContext context, String queryTxt, long timeout, Object... params) throws IOException, NoticeException {
+
+    try (ResultBatch resultBatch = context.queryBatchPrepared(queryTxt, params, timeout)) {
+
+      return Tables.convertRows(context, this, resultBatch);
+
+    }
 
   }
 

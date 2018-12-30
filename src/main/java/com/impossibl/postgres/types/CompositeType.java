@@ -28,8 +28,6 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.system.tables.PgType;
-
 /**
  * A database composite type.
  *
@@ -37,10 +35,4 @@ import com.impossibl.postgres.system.tables.PgType;
  *
  */
 public class CompositeType extends Type {
-
-  @Override
-  public void load(PgType.Row pgType, Registry registry) {
-    super.load(pgType, registry);
-  }
-
 }

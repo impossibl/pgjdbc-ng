@@ -176,7 +176,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <configuration>
-          <excludes>**/PgTypeTest.java,**/PgAttributeTest.java,**/PgProcTest.java,**/TablesTest.java</excludes>
         </configuration>
       </plugin>
       <!-- to generate the OSGi bundle -->

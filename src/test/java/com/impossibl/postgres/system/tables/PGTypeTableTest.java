@@ -31,19 +31,20 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
 
-import static com.impossibl.postgres.system.tables.PgType.INSTANCE;
-import static com.impossibl.postgres.system.tables.PgType.SQL;
+import static com.impossibl.postgres.system.tables.PGTypeTable.INSTANCE;
+import static com.impossibl.postgres.system.tables.PGTypeTable.SQL;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * Created by dstipp on 12/8/15.
  */
-public class PgTypeTest {
+public class PGTypeTableTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -72,9 +73,9 @@ public class PgTypeTest {
 
   @Test
   public void testHashCode() {
-    PgType.Row pgAttrOne = createRow(12345);
-    PgType.Row pgAttrOneAgain = createRow(12345);
-    PgType.Row pgAttrTwo = createRow(54321);
+    PGTypeTable.Row pgAttrOne = createRow(12345);
+    PGTypeTable.Row pgAttrOneAgain = createRow(12345);
+    PGTypeTable.Row pgAttrTwo = createRow(54321);
 
     assertEquals(pgAttrOne.hashCode(), pgAttrOne.hashCode());
     assertEquals(pgAttrOne.hashCode(), pgAttrOneAgain.hashCode());
@@ -83,9 +84,9 @@ public class PgTypeTest {
 
   @Test
   public void testEquals() {
-    PgType.Row pgAttrOne = createRow(12345);
-    PgType.Row pgAttrOneAgain = createRow(12345);
-    PgType.Row pgAttrTwo = createRow(54321);
+    PGTypeTable.Row pgAttrOne = createRow(12345);
+    PGTypeTable.Row pgAttrOneAgain = createRow(12345);
+    PGTypeTable.Row pgAttrTwo = createRow(54321);
 
     assertEquals(pgAttrOne, pgAttrOne);
     assertNotEquals(null, pgAttrOne);
@@ -95,8 +96,8 @@ public class PgTypeTest {
 
   }
 
-  private PgType.Row createRow(int oid) {
-    PgType.Row pgTypeRow = new PgType.Row();
+  private PGTypeTable.Row createRow(int oid) {
+    PGTypeTable.Row pgTypeRow = new PGTypeTable.Row();
     pgTypeRow.setOid(oid);
     return pgTypeRow;
   }

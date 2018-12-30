@@ -43,9 +43,7 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerConnectionFactory;
-import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.system.tables.Table;
-import com.impossibl.postgres.system.tables.Tables;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.BaseType;
 import com.impossibl.postgres.types.CompositeType;
@@ -365,20 +363,20 @@ public class BasicContext extends AbstractContext {
       Timer timer = new Timer();
 
       // Load "simple" types only - composite types are loaded on demand
-      String typeSQL = PgType.INSTANCE.getSQL(serverConnection.getServerInfo().getVersion());
-      List<PgType.Row> pgTypes = queryTable(typeSQL + " WHERE typrelid = 0", PgType.INSTANCE);
+      String typeSQL = PGTypeTable.INSTANCE.getSQL(serverConnection.getServerInfo().getVersion());
+      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, typeSQL + " WHERE typrelid = 0", INTERNAL_QUERY_TIMEOUT);
 
       // Load initial types without causing refresh queries...
       //
 
       // First, base types...
-      Set<PgType.Row> baseTypeRows = pgTypes.stream()
-          .filter(PgType.Row::isBase)
+      Set<PGTypeTable.Row> baseTypeRows = pgTypes.stream()
+          .filter(PGTypeTable.Row::isBase)
           .collect(toSet());
       Set<Integer> baseTypeOids = baseTypeRows.stream()
-          .map(PgType.Row::getOid)
+          .map(PGTypeTable.Row::getOid)
           .collect(toSet());
-      Set<PgType.Row> baseReferencingRows = pgTypes.stream()
+      Set<PGTypeTable.Row> baseReferencingRows = pgTypes.stream()
           .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
           .collect(toSet());
 
@@ -397,7 +395,7 @@ public class BasicContext extends AbstractContext {
 
       // Next, psuedo types
       List<Type> psuedoTypes = pgTypes.stream()
-          .filter(PgType.Row::isPsuedo)
+          .filter(PGTypeTable.Row::isPsuedo)
           .map(this::loadRaw)
           .collect(toList());
       registry.addTypes(psuedoTypes);
@@ -415,11 +413,11 @@ public class BasicContext extends AbstractContext {
 
     Version serverVersion = serverConnection.getServerInfo().getVersion();
 
-    prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
+    prepareUtilQuery("refresh-type", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
 
-    prepareUtilQuery("refresh-named-type", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1::text::regtype");
+    prepareUtilQuery("refresh-named-type", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1::text::regtype");
 
-    prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " WHERE t.typrelid = $1", "int4");
+    prepareUtilQuery("refresh-reltype", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.typrelid = $1", "int4");
 
   }
 
@@ -428,12 +426,12 @@ public class BasicContext extends AbstractContext {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-type", PgType.INSTANCE, typeId);
+      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-type", INTERNAL_QUERY_TIMEOUT, typeId);
       if (pgTypes.isEmpty()) {
         return null;
       }
 
-      PgType.Row pgType  = pgTypes.get(0);
+      PGTypeTable.Row pgType  = pgTypes.get(0);
 
       return loadRaw(pgType);
     }
@@ -449,12 +447,12 @@ public class BasicContext extends AbstractContext {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-named-type", PgType.INSTANCE, typeName);
+      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-named-type", INTERNAL_QUERY_TIMEOUT, typeName);
       if (pgTypes.isEmpty()) {
         return null;
       }
 
-      PgType.Row pgType  = pgTypes.get(0);
+      PGTypeTable.Row pgType  = pgTypes.get(0);
 
       return loadRaw(pgType);
     }
@@ -470,12 +468,12 @@ public class BasicContext extends AbstractContext {
     try {
 
       //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-reltype", PgType.INSTANCE, relationId);
+      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-reltype", INTERNAL_QUERY_TIMEOUT, relationId);
       if (pgTypes.isEmpty()) {
         return null;
       }
 
-      PgType.Row pgType = pgTypes.get(0);
+      PGTypeTable.Row pgType = pgTypes.get(0);
       if (pgType.getRelationId() == 0) {
         return null;
       }
@@ -492,7 +490,7 @@ public class BasicContext extends AbstractContext {
   /*
    * Materialize a type from the given "pg_type" and "pg_attribute" data
    */
-  private Type loadRaw(PgType.Row pgType) {
+  private Type loadRaw(PGTypeTable.Row pgType) {
 
     Type type;
 
@@ -578,15 +576,6 @@ public class BasicContext extends AbstractContext {
     return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
   }
 
-  private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {
-
-
-    try (ResultBatch resultBatch = queryBatchPrepared(queryTxt, params, INTERNAL_QUERY_TIMEOUT)) {
-      return Tables.convertRows(this, table, resultBatch);
-    }
-
-  }
-
   public void query(String queryTxt, long timeout) throws IOException, NoticeException {
 
     if (queryTxt.charAt(0) == '@') {
@@ -645,7 +634,7 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  protected ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
+  public ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
 
     QueryDescription pq = prepareQuery(queryTxt);
 

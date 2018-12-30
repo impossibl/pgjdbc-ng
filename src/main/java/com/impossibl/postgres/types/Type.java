@@ -31,7 +31,7 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
@@ -352,13 +352,12 @@ public abstract class Type implements TypeRef {
   }
 
   /**
-   * Load this type from a "pg_type" table entry and, if available, a
-   * collection of "pg_attribute" table entries.
+   * Load this type from a "pg_type" table row.
    *
    * @param source The "pg_type" table entry
    * @param registry The registry that is loading the type.
    */
-  public void load(PgType.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) {
     id = source.getOid();
     name = new QualifiedName(source.getNamespace(), source.getName());
     length = source.getLength() != -1 ? source.getLength() : null;
