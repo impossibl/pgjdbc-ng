@@ -737,5 +737,5 @@ abstract class PGStatement implements Statement {
   public boolean isWrapperFor(Class<?> iface) {
     return iface.isAssignableFrom(getClass());
   }
-  
+
 }

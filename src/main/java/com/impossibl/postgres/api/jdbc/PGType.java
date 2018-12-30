@@ -30,6 +30,8 @@ package com.impossibl.postgres.api.jdbc;
 
 public enum PGType implements PGAnyType {
 
+  //CHECKSTYLE:OFF: ParenPad|NoWhitespaceBefore
+
   BOOL                    (  16,  "bool"),
 
   BYTES                   (  17,  "bytea"),
@@ -94,6 +96,8 @@ public enum PGType implements PGAnyType {
   CITEXT                  (null,  ""),
 
   ;
+
+  //CHECKSTYLE:ON: ParenPad|NoWhitespaceBefore
 
   private int oid;
   private String name;
