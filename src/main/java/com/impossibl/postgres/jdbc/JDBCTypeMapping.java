@@ -33,6 +33,9 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -227,26 +230,31 @@ class JDBCTypeMapping {
       case Types.CLOB:
         return reg.loadBaseType("oid");
       case Types.ARRAY:
-        if (val instanceof PGArray) {
-          return ((PGArray) val).getType();
+        try {
+          if (val instanceof PGArray) {
+            return ((PGArray) val).getType();
+          }
+          else if (val != null) {
+            Type elementType;
+            if (java.lang.reflect.Array.getLength(val) > 0) {
+              Object element = java.lang.reflect.Array.get(val, 0);
+              elementType = getType(getSQLTypeCode(element.getClass()), element, reg);
+            }
+            else {
+              elementType = JavaTypeMapping.getType(val.getClass().getComponentType(), reg);
+            }
+            if (elementType == null) {
+              return null;
+            }
+            // Now that we have the most accurate element type we
+            // can determine, use that to find its actual array type.
+            return reg.loadType(elementType.getArrayTypeId());
+          }
+          return null;
         }
-        else if (val != null) {
-          Type elementType;
-          if (java.lang.reflect.Array.getLength(val) > 0) {
-            Object element = java.lang.reflect.Array.get(val, 0);
-            elementType = getType(getSQLTypeCode(element.getClass()), element, reg);
-          }
-          else {
-            elementType = JavaTypeMapping.getType(val.getClass().getComponentType(), reg);
-          }
-          if (elementType == null) {
-            return null;
-          }
-          // Now that we have the most accurate element type we
-          // can determine, use that to find its actual array type.
-          return reg.loadType(elementType.getArrayTypeId());
+        catch (IOException e) {
+          throw makeSQLException(e);
         }
-        return null;
       case Types.ROWID:
         return reg.loadBaseType("tid");
       case Types.SQLXML:
@@ -256,16 +264,21 @@ class JDBCTypeMapping {
       case Types.STRUCT:
       case Types.JAVA_OBJECT:
       case Types.OTHER:
-        if (val instanceof Struct) {
-          return reg.loadTransientType(((Struct) val).getSQLTypeName());
+        try {
+          if (val instanceof Struct) {
+            return reg.loadTransientType(((Struct) val).getSQLTypeName());
+          }
+          if (val instanceof SQLData) {
+            return reg.loadTransientType(((SQLData) val).getSQLTypeName());
+          }
+          if (val != null) {
+            return JavaTypeMapping.getExtendedType(val.getClass(), reg);
+          }
+          return null;
         }
-        if (val instanceof SQLData) {
-          return reg.loadTransientType(((SQLData) val).getSQLTypeName());
+        catch (IOException e) {
+          throw makeSQLException(e);
         }
-        if (val != null) {
-          return JavaTypeMapping.getExtendedType(val.getClass(), reg);
-        }
-        return null;
       case Types.REF:
       case Types.DATALINK:
       case Types.NCHAR:

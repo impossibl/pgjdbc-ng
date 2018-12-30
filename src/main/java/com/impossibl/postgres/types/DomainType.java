@@ -31,6 +31,7 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.tables.PGTypeTable;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -85,7 +86,7 @@ public class DomainType extends Type {
   }
 
   @Override
-  public void load(PGTypeTable.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
     super.load(source, registry);
     base = registry.loadType(source.getDomainBaseTypeId());
     nullable = !source.isDomainNotNull();

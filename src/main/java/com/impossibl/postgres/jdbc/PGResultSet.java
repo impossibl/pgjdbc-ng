@@ -43,6 +43,7 @@ import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_RESULT_SET;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.CURSOR_NOT_SCROLLABLE;
@@ -2385,7 +2386,13 @@ class CursorScroller extends Scroller {
 
     UpdatableRowData rowData = (UpdatableRowData) result;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    Type relType;
+    try {
+      relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     StringBuilder sb = new StringBuilder("INSERT INTO ");
 
@@ -2417,7 +2424,13 @@ class CursorScroller extends Scroller {
 
     UpdatableRowData rowData = (UpdatableRowData) result;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    Type relType;
+    try {
+      relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     StringBuilder sb = new StringBuilder("UPDATE ");
 
@@ -2448,7 +2461,13 @@ class CursorScroller extends Scroller {
     if (!isValidRow())
       throw ROW_INDEX_OUT_OF_BOUNDS;
 
-    Type relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    Type relType;
+    try {
+      relType = connection.getRegistry().loadRelationType(resultFields[0].getRelationId());
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     String sql = "DELETE FROM " + '"' + relType.getName() + '"' + " WHERE CURRENT OF " + cursorName;
     long rows = connection.executeForRowsAffected(sql);

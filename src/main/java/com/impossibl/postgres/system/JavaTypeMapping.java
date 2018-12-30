@@ -36,6 +36,7 @@ import com.impossibl.postgres.api.data.Range;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -60,7 +61,7 @@ import java.util.UUID;
  */
 public class JavaTypeMapping {
 
-  public static Type getType(Class<?> cls, Registry reg) {
+  public static Type getType(Class<?> cls, Registry reg) throws IOException {
     if (cls == Boolean.class) {
       return reg.loadBaseType("bool");
     }
@@ -139,7 +140,7 @@ public class JavaTypeMapping {
     return getExtendedType(cls, reg);
   }
 
-  public static Type getExtendedType(Class<?> cls, Registry reg) {
+  public static Type getExtendedType(Class<?> cls, Registry reg) throws IOException {
     if (cls == Interval.class) {
       return reg.loadBaseType("interval");
     }

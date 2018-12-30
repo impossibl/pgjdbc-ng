@@ -31,6 +31,8 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.tables.PGTypeTable.Row;
 
+import java.io.IOException;
+
 /**
  * A database enumeration type.
  *
@@ -57,7 +59,7 @@ public class EnumerationType extends Type {
   }
 
   @Override
-  public void load(Row source, Registry registry) {
+  public void load(Row source, Registry registry) throws IOException {
     super.load(source, registry);
     textType = registry.loadBaseType("text");
   }

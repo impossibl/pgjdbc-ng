@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static io.netty.util.ReferenceCountUtil.retain;
@@ -126,10 +125,15 @@ public class RequestExecutorHandlers {
     private TypeRef[] describedParameterTypes;
     private ResultField[] describedResultFields;
 
-    public Type[] getDescribedParameterTypes(Context context) {
+    public Type[] getDescribedParameterTypes(Context context) throws IOException {
       checkCompleted();
 
-      return stream(describedParameterTypes).map(ref -> context.getRegistry().resolve(ref)).toArray(Type[]::new);
+      List<Type> list = new ArrayList<>();
+      for (TypeRef ref : describedParameterTypes) {
+        Type resolve = context.getRegistry().resolve(ref);
+        list.add(resolve);
+      }
+      return list.toArray(new Type[0]);
     }
 
     public ResultField[] getDescribedResultFields() {

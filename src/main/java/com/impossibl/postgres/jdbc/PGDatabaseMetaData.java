@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
 
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
@@ -43,6 +44,7 @@ import static com.impossibl.postgres.system.Settings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PseudoColumnUsage;
@@ -929,6 +931,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
       }
     }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     return createResultSet(resultFields, results);
   }
@@ -1586,6 +1591,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         results.add(row);
       }
     }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     return createResultSet(resultFields, results);
   }
@@ -1810,6 +1818,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         results.add(row);
 
       }
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
     }
 
     return createResultSet(resultFields, results);
@@ -2127,43 +2138,46 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
     sql.append(" ORDER BY data_type, type_schem, type_name");
 
-    PGResultSet rs = execForResultSet(sql.toString(), params);
+    try (PGResultSet rs = execForResultSet(sql.toString(), params)) {
 
-    ResultField[] fields = new ResultField[7];
-    fields[0] = rs.getResultFields()[0];
-    fields[1] = rs.getResultFields()[1];
-    fields[2] = rs.getResultFields()[2];
-    fields[3] = rs.getResultFields()[3];
-    fields[4] = rs.getResultFields()[4];
-    fields[5] = rs.getResultFields()[5];
-    fields[6] = new ResultField("BASE_TYPE", 0, (short)0, reg.loadBaseType("int2"), (short)0, 0, FieldFormat.Binary);
+      ResultField[] fields = new ResultField[7];
+      fields[0] = rs.getResultFields()[0];
+      fields[1] = rs.getResultFields()[1];
+      fields[2] = rs.getResultFields()[2];
+      fields[3] = rs.getResultFields()[3];
+      fields[4] = rs.getResultFields()[4];
+      fields[5] = rs.getResultFields()[5];
+      fields[6] = new ResultField("BASE_TYPE", 0, (short) 0, reg.loadBaseType("int2"), (short) 0, 0, FieldFormat.Binary);
 
-    List<Object[]> results = new ArrayList<>();
-    while (rs.next()) {
+      List<Object[]> results = new ArrayList<>();
+      while (rs.next()) {
 
-      Object[] row = new Object[7];
+        Object[] row = new Object[7];
 
-      row[0] = rs.getObject(1);
-      row[1] = rs.getObject(2);
-      row[2] = rs.getObject(3);
-      row[3] = rs.getObject(4);
-      row[4] = rs.getObject(5);
-      row[5] = rs.getObject(6);
+        row[0] = rs.getObject(1);
+        row[1] = rs.getObject(2);
+        row[2] = rs.getObject(3);
+        row[3] = rs.getObject(4);
+        row[4] = rs.getObject(5);
+        row[5] = rs.getObject(6);
 
-      Type type = reg.loadType(rs.getInt(7));
-      if (type != null) {
-        row[6] = JDBCTypeMapping.getSQLTypeCode(type);
+        Type type = reg.loadType(rs.getInt(7));
+        if (type != null) {
+          row[6] = JDBCTypeMapping.getSQLTypeCode(type);
+        }
+        else {
+          row[6] = null;
+        }
+
+        results.add(row);
       }
-      else {
-        row[6] = null;
-      }
 
-      results.add(row);
+      return createResultSet(fields, results);
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
     }
 
-    rs.close();
-
-    return createResultSet(fields, results);
   }
 
   @Override
@@ -2232,6 +2246,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         attrsData.add(attrData);
       }
 
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
     }
 
     //Build result set (manually)

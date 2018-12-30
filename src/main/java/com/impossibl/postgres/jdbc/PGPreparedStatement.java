@@ -43,6 +43,7 @@ import com.impossibl.postgres.utils.guava.ByteStreams;
 import com.impossibl.postgres.utils.guava.CharStreams;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_ALLOWED_ON_PREP_STMT;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
@@ -476,14 +477,14 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           batchIdx++;
         }
       }
-      catch (SQLException se) {
+      catch (IOException | SQLException se) {
 
         int[] updateCounts = new int[batchIdx + 1];
         System.arraycopy(counts, 0, updateCounts, 0, updateCounts.length - 1);
 
         updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
 
-        throw new BatchUpdateException(updateCounts, se);
+        throw new BatchUpdateException(updateCounts, makeSQLException(se));
       }
 
       generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys, true, connection.getTypeMap());

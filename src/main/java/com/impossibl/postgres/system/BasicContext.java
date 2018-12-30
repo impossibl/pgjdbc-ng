@@ -72,6 +72,7 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -87,7 +88,6 @@ import java.util.regex.Pattern;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 import io.netty.buffer.ByteBuf;
@@ -150,22 +150,22 @@ public class BasicContext extends AbstractContext {
   private class RegistryTypeLoader implements Registry.TypeLoader {
 
     @Override
-    public Type load(int oid) {
+    public Type load(int oid) throws IOException {
       return BasicContext.this.loadType(oid);
     }
 
     @Override
-    public CompositeType loadRelation(int relationOid) {
+    public CompositeType loadRelation(int relationOid) throws IOException {
       return BasicContext.this.loadRelationType(relationOid);
     }
 
     @Override
-    public Type load(QualifiedName name) {
+    public Type load(QualifiedName name) throws IOException {
       return BasicContext.this.loadType(name.toString());
     }
 
     @Override
-    public Type load(String name) {
+    public Type load(String name) throws IOException {
       return BasicContext.this.loadType(name);
     }
 
@@ -380,24 +380,32 @@ public class BasicContext extends AbstractContext {
           .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
           .collect(toSet());
 
-      List<Type> baseTypes = baseTypeRows.stream()
-          .filter(row -> !row.isArray())
-          .map(this::loadRaw)
-          .collect(toList());
+      List<Type> baseTypes = new ArrayList<>();
+      for (PGTypeTable.Row row : baseTypeRows) {
+        if (!row.isArray()) {
+          Type type = loadRaw(row);
+          baseTypes.add(type);
+        }
+      }
       registry.addTypes(baseTypes);
 
       // Now, types that reference base types (arrays, ranges, domains, etc)
 
-      List<Type> baseReferencingTypes = baseReferencingRows.stream()
-          .map(this::loadRaw)
-          .collect(toList());
+      List<Type> baseReferencingTypes = new ArrayList<>();
+      for (PGTypeTable.Row baseReferencingRow : baseReferencingRows) {
+        Type type = loadRaw(baseReferencingRow);
+        baseReferencingTypes.add(type);
+      }
       registry.addTypes(baseReferencingTypes);
 
       // Next, psuedo types
-      List<Type> psuedoTypes = pgTypes.stream()
-          .filter(PGTypeTable.Row::isPsuedo)
-          .map(this::loadRaw)
-          .collect(toList());
+      List<Type> psuedoTypes = new ArrayList<>();
+      for (PGTypeTable.Row pgType : pgTypes) {
+        if (pgType.isPsuedo()) {
+          Type type = loadRaw(pgType);
+          psuedoTypes.add(type);
+        }
+      }
       registry.addTypes(psuedoTypes);
 
       logger.fine("Seed time: " + timer.getLap() + "ms");
@@ -421,76 +429,52 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  private Type loadType(int typeId) {
+  private Type loadType(int typeId) throws IOException {
 
-    try {
-
-      //Load types
-      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-type", INTERNAL_QUERY_TIMEOUT, typeId);
-      if (pgTypes.isEmpty()) {
-        return null;
-      }
-
-      PGTypeTable.Row pgType  = pgTypes.get(0);
-
-      return loadRaw(pgType);
-    }
-    catch (IOException e) {
-      //Ignore errors
+    //Load types
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-type", INTERNAL_QUERY_TIMEOUT, typeId);
+    if (pgTypes.isEmpty()) {
+      return null;
     }
 
-    return null;
+    PGTypeTable.Row pgType  = pgTypes.get(0);
+
+    return loadRaw(pgType);
   }
 
-  private Type loadType(String typeName) {
+  private Type loadType(String typeName) throws IOException {
 
-    try {
-
-      //Load types
-      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-named-type", INTERNAL_QUERY_TIMEOUT, typeName);
-      if (pgTypes.isEmpty()) {
-        return null;
-      }
-
-      PGTypeTable.Row pgType  = pgTypes.get(0);
-
-      return loadRaw(pgType);
-    }
-    catch (IOException e) {
-      //Ignore errors
+    //Load types
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-named-type", INTERNAL_QUERY_TIMEOUT, typeName);
+    if (pgTypes.isEmpty()) {
+      return null;
     }
 
-    return null;
+    PGTypeTable.Row pgType  = pgTypes.get(0);
+
+    return loadRaw(pgType);
   }
 
-  private CompositeType loadRelationType(int relationId) {
+  private CompositeType loadRelationType(int relationId) throws IOException {
 
-    try {
-
-      //Load types
-      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-reltype", INTERNAL_QUERY_TIMEOUT, relationId);
-      if (pgTypes.isEmpty()) {
-        return null;
-      }
-
-      PGTypeTable.Row pgType = pgTypes.get(0);
-      if (pgType.getRelationId() == 0) {
-        return null;
-      }
-
-      return (CompositeType) loadRaw(pgType);
-    }
-    catch (IOException e) {
-      //Ignore errors
+    //Load types
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-reltype", INTERNAL_QUERY_TIMEOUT, relationId);
+    if (pgTypes.isEmpty()) {
+      return null;
     }
 
-    return null;
+    PGTypeTable.Row pgType = pgTypes.get(0);
+    if (pgType.getRelationId() == 0) {
+      return null;
+    }
+
+    return (CompositeType) loadRaw(pgType);
   }
 
   /*
    * Materialize a type from the given "pg_type" and "pg_attribute" data
    */
-  private Type loadRaw(PGTypeTable.Row pgType) {
+  private Type loadRaw(PGTypeTable.Row pgType) throws IOException {
 
     Type type;
 

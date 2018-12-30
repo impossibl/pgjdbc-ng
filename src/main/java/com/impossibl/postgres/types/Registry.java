@@ -32,6 +32,7 @@ import com.impossibl.postgres.protocol.TypeRef;
 
 import static com.impossibl.postgres.types.Type.CATALOG_NAMESPACE;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,10 +45,12 @@ import java.util.Map;
 public class Registry {
 
   public interface TypeLoader {
-    Type load(int oid);
-    CompositeType loadRelation(int relationOid);
-    Type load(QualifiedName name);
-    Type load(String name);
+
+    Type load(int oid) throws IOException;
+    CompositeType loadRelation(int relationOid) throws IOException;
+    Type load(QualifiedName name) throws IOException;
+    Type load(String name) throws IOException;
+
   }
 
   private SharedRegistry sharedRegistry;
@@ -70,7 +73,7 @@ public class Registry {
    * @param typeRef Type reference to resolve
    * @return Resolved type object
    */
-  public Type resolve(TypeRef typeRef) {
+  public Type resolve(TypeRef typeRef) throws IOException {
 
     if (typeRef instanceof Type) {
       return (Type) typeRef;
@@ -85,12 +88,12 @@ public class Registry {
    * @param typeId The type's id
    * @return Type object or null, if none found
    */
-  public Type loadType(int typeId) {
+  public Type loadType(int typeId) throws IOException {
 
     if (typeId == 0)
       return null;
 
-    return sharedRegistry.findOrLoadType(typeId, loader::load);
+    return sharedRegistry.findOrLoadType(typeId, loader);
   }
 
   /**
@@ -105,7 +108,14 @@ public class Registry {
 
     QualifiedName name = new QualifiedName(CATALOG_NAMESPACE, localName);
 
-    Type type = sharedRegistry.findOrLoadType(name, loader::load);
+    Type type;
+    try {
+      type = sharedRegistry.findOrLoadType(name, loader);
+    }
+    catch (IOException e) {
+      throw new RuntimeException("Unable to load base type: " + localName);
+    }
+
     if (type == null) {
       throw new IllegalArgumentException("Unknown type");
     }
@@ -119,12 +129,12 @@ public class Registry {
    * @param relationId Relation ID of the type to load
    * @return Relation type or null
    */
-  public CompositeType loadRelationType(int relationId) {
+  public CompositeType loadRelationType(int relationId) throws IOException {
 
     if (relationId == 0)
       return null;
 
-    return sharedRegistry.findOrLoadRelationType(relationId, loader::loadRelation);
+    return sharedRegistry.findOrLoadRelationType(relationId, loader);
   }
 
   /**
@@ -143,9 +153,17 @@ public class Registry {
    * @param typeName Name of the type (can be anything accepted by the server)
    * @return Type object or null, if none found
    */
-  public Type loadStableType(String typeName) {
+  public Type loadStableType(String typeName) throws IOException {
 
-    return commonTypes.computeIfAbsent(typeName, this::loadTransientType);
+    Type type;
+    if ((type = commonTypes.get(typeName)) == null) {
+
+      type = loadTransientType(typeName);
+
+      commonTypes.put(typeName, type);
+    }
+
+    return type;
   }
 
   /**
@@ -157,7 +175,7 @@ public class Registry {
    * @param typeName Name of the type (can be anything accepted by the server)
    * @return Type object or null, if none found
    */
-  public Type loadTransientType(String typeName) {
+  public Type loadTransientType(String typeName) throws IOException {
 
     return loader.load(typeName);
   }

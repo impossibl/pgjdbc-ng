@@ -1171,21 +1171,22 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
-    Type elementType = getRegistry().loadTransientType(typeName);
-    if (elementType == null) {
-      throw new PGSQLSimpleException("Unknown element type");
-    }
-
-    Type type = getRegistry().loadType(elementType.getArrayTypeId());
-    if (!(type instanceof ArrayType)) {
-      throw new SQLException("Array type not found");
-    }
-
     try {
+
+      Type elementType = getRegistry().loadTransientType(typeName);
+      if (elementType == null) {
+        throw new PGSQLSimpleException("Unknown element type");
+      }
+
+      Type type = getRegistry().loadType(elementType.getArrayTypeId());
+      if (!(type instanceof ArrayType)) {
+        throw new SQLException("Array type not found");
+      }
+
       return PGBuffersArray.encode(this, (ArrayType) type, elements);
     }
     catch (IOException e) {
-      throw new PGSQLSimpleException("Error encoding array values", e);
+      throw makeSQLException("Error encoding array values", e);
     }
   }
 
@@ -1193,16 +1194,17 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
 
-    Type type = getRegistry().loadTransientType(typeName);
-    if (!(type instanceof CompositeType)) {
-      throw new SQLException("Invalid type for struct");
-    }
-
     try {
+
+      Type type = getRegistry().loadTransientType(typeName);
+      if (!(type instanceof CompositeType)) {
+        throw new SQLException("Invalid type for struct");
+      }
+
       return PGBuffersStruct.Binary.encode(this, (CompositeType) type, attributes);
     }
     catch (IOException e) {
-      throw new PGSQLSimpleException("Error encoding struct", e);
+      throw makeSQLException("Error encoding struct", e);
     }
   }
 
@@ -1346,7 +1348,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   interface StatementDescriptionLoader {
-    StatementDescription load() throws SQLException;
+    StatementDescription load() throws IOException, SQLException;
   }
 
   StatementDescription getCachedStatementDescription(String sql, StatementDescriptionLoader loader) throws SQLException {
@@ -1363,7 +1365,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     StatementDescription cached = descriptionCache.get(key);
     if (cached != null) return cached;
 
-    cached = loader.load();
+    try {
+      cached = loader.load();
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     descriptionCache.put(key, cached);
 
@@ -1372,13 +1379,18 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
 
   interface PreparedStatementDescriptionLoader {
-    PreparedStatementDescription load() throws SQLException;
+    PreparedStatementDescription load() throws IOException, SQLException;
   }
 
   PreparedStatementDescription getCachedPreparedStatement(StatementCacheKey key, PreparedStatementDescriptionLoader loader) throws SQLException {
 
     if (preparedStatementCache == null) {
-      return loader.load();
+      try {
+        return loader.load();
+      }
+      catch (IOException e) {
+        throw makeSQLException(e);
+      }
     }
 
     PreparedStatementDescription cached = preparedStatementCache.get(key);
@@ -1396,7 +1408,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       }
     }
 
-    cached = loader.load();
+    try {
+      cached = loader.load();
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     preparedStatementCache.put(key, cached);
 

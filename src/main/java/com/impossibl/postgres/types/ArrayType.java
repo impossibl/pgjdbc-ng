@@ -32,6 +32,8 @@ import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PGTypeTable;
 
+import java.io.IOException;
+
 /**
  * A database array type.
  *
@@ -84,7 +86,7 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public void load(PGTypeTable.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
     super.load(source, registry);
     this.elementType = registry.loadType(source.getElementTypeId());
   }

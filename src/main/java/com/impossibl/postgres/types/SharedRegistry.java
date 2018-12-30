@@ -49,7 +49,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
@@ -150,7 +149,7 @@ public class SharedRegistry {
    * @param typeId The type's id
    * @return Type object or null, if none found
    */
-  public Type findOrLoadType(int typeId, Function<Integer, Type> loader) {
+  public Type findOrLoadType(int typeId, Registry.TypeLoader loader) throws IOException {
 
     if (typeId == 0)
       return null;
@@ -164,7 +163,7 @@ public class SharedRegistry {
         lock.readLock().unlock();
         try {
 
-          type = loader.apply(typeId);
+          type = loader.load(typeId);
 
           updateType(type);
 
@@ -189,7 +188,7 @@ public class SharedRegistry {
    * @param name The type's qualified name
    * @return Type object or null, if none found
    */
-  public Type findOrLoadType(QualifiedName name, Function<QualifiedName, Type> loader) {
+  public Type findOrLoadType(QualifiedName name, Registry.TypeLoader loader) throws IOException {
 
     if (name == null)
       return null;
@@ -203,7 +202,7 @@ public class SharedRegistry {
         lock.readLock().unlock();
         try {
 
-          type = loader.apply(name);
+          type = loader.load(name);
 
           updateType(type);
 
@@ -228,7 +227,7 @@ public class SharedRegistry {
    * @param relationId Relation ID of the type to load
    * @return Relation type or null
    */
-  public CompositeType findOrLoadRelationType(int relationId, Function<Integer, CompositeType> loader) {
+  public CompositeType findOrLoadRelationType(int relationId, Registry.TypeLoader loader) throws IOException {
 
     if (relationId == 0)
       return null;
@@ -242,7 +241,7 @@ public class SharedRegistry {
         lock.readLock().unlock();
         try {
 
-          type = loader.apply(relationId);
+          type = loader.loadRelation(relationId);
 
           updateType(type);
 

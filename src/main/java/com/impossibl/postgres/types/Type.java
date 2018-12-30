@@ -357,7 +357,7 @@ public abstract class Type implements TypeRef {
    * @param source The "pg_type" table entry
    * @param registry The registry that is loading the type.
    */
-  public void load(PGTypeTable.Row source, Registry registry) {
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
     id = source.getOid();
     name = new QualifiedName(source.getNamespace(), source.getName());
     length = source.getLength() != -1 ? source.getLength() : null;
