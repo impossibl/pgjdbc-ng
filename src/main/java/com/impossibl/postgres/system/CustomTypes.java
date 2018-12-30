@@ -38,7 +38,7 @@ public class CustomTypes {
 
   public static Class<?> lookupCustomType(Type type, Map<String, Class<?>> map, Class<?> defaultType) {
 
-    Class<?> res = map.get(type.getNamespace() + "." + type.getName());
+    Class<?> res = map.get(type.getQualifiedName().toString(false));
     if (res != null) {
       return res;
     }
