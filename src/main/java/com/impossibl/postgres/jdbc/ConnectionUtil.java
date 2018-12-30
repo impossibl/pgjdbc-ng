@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
@@ -185,12 +184,9 @@ class ConnectionUtil {
       }
       catch (IOException e) {
 
-        lastException = new SQLException("Connection Error: " + e.getMessage(), "8001", e);
+        lastException = makeSQLException("Connection Error: " + e.getMessage(), "8001", e);
       }
-      catch (NoticeException e) {
 
-        lastException = makeSQLException("Connection Error: ", e.getNotice());
-      }
     }
 
     //Couldn't connect so report that last exception we saw

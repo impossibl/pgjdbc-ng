@@ -36,7 +36,6 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.Await;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
@@ -93,13 +92,10 @@ public class RequestExecutorHandlers {
       throw new IllegalStateException("Result has not completed.");
     }
 
-    private void rethrowError() throws IOException, NoticeException {
+    private void rethrowError() throws IOException {
       if (error == null) return;
       if (error instanceof IOException) {
         throw (IOException) error;
-      }
-      if (error instanceof NoticeException) {
-        throw (NoticeException) error;
       }
       if (error instanceof RuntimeException) {
         throw (RuntimeException) error;
@@ -107,7 +103,7 @@ public class RequestExecutorHandlers {
       throw new RuntimeException(error);
     }
 
-    public void await(long timeout, TimeUnit unit) throws IOException, NoticeException {
+    public void await(long timeout, TimeUnit unit) throws IOException {
       if (!Await.awaitUninterruptibly(timeout, unit, completed::await)) {
         throw new BlockingReadTimeoutException();
       }

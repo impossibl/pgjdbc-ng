@@ -188,7 +188,7 @@ public class BasicContext extends AbstractContext {
   private Map<String, QueryDescription> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings) throws IOException, NoticeException {
+  public BasicContext(SocketAddress address, Properties settings) throws IOException {
     this.typeMap = new HashMap<>();
     this.settings = settings;
     this.charset = UTF_8;
@@ -281,7 +281,7 @@ public class BasicContext extends AbstractContext {
     return currencyFormatter;
   }
 
-  protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException, NoticeException {
+  protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
 
     String database = getSetting(DATABASE, getSetting(SESSION_USER, String.class));
     ServerConnectionInfo serverConnectionInfo =
@@ -305,7 +305,7 @@ public class BasicContext extends AbstractContext {
     loadLocale();
   }
 
-  private void loadLocale() throws IOException, NoticeException {
+  private void loadLocale() throws IOException {
 
     try (ResultBatch resultBatch =
         queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", INTERNAL_QUERY_TIMEOUT)) {
@@ -354,7 +354,7 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  private void loadTypes() throws IOException, NoticeException {
+  private void loadTypes() throws IOException {
 
     SharedRegistry.Seeder seeder = registry -> {
 
@@ -409,7 +409,7 @@ public class BasicContext extends AbstractContext {
     }
   }
 
-  private void prepareRefreshTypeQueries() throws IOException, NoticeException {
+  private void prepareRefreshTypeQueries() throws IOException {
 
     Version serverVersion = serverConnection.getServerInfo().getVersion();
 
@@ -435,7 +435,7 @@ public class BasicContext extends AbstractContext {
 
       return loadRaw(pgType);
     }
-    catch (IOException | NoticeException e) {
+    catch (IOException e) {
       //Ignore errors
     }
 
@@ -456,7 +456,7 @@ public class BasicContext extends AbstractContext {
 
       return loadRaw(pgType);
     }
-    catch (IOException | NoticeException e) {
+    catch (IOException e) {
       //Ignore errors
     }
 
@@ -480,7 +480,7 @@ public class BasicContext extends AbstractContext {
 
       return (CompositeType) loadRaw(pgType);
     }
-    catch (IOException | NoticeException e) {
+    catch (IOException e) {
       //Ignore errors
     }
 
@@ -535,7 +535,7 @@ public class BasicContext extends AbstractContext {
     return utilQueries.containsKey(name);
   }
 
-  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException, NoticeException {
+  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
 
     Type[] parameterTypes = new Type[parameterTypeNames.length];
     for (int parameterIdx = 0; parameterIdx < parameterTypes.length; ++parameterIdx) {
@@ -545,7 +545,7 @@ public class BasicContext extends AbstractContext {
     prepareUtilQuery(name, sql, parameterTypes);
   }
 
-  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException, NoticeException {
+  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException {
 
     PrepareResult handler = new PrepareResult();
 
@@ -557,7 +557,7 @@ public class BasicContext extends AbstractContext {
     utilQueries.put(name, desc);
   }
 
-  private QueryDescription prepareQuery(String queryTxt) throws NoticeException, IOException {
+  private QueryDescription prepareQuery(String queryTxt) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
       QueryDescription util = utilQueries.get(queryTxt.substring(1));
@@ -576,7 +576,7 @@ public class BasicContext extends AbstractContext {
     return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
   }
 
-  public void query(String queryTxt, long timeout) throws IOException, NoticeException {
+  public void query(String queryTxt, long timeout) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
 
@@ -597,7 +597,7 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  protected String queryString(String queryTxt, long timeout) throws IOException, NoticeException {
+  protected String queryString(String queryTxt, long timeout) throws IOException {
 
     try (ResultBatch resultBatch = queryBatch(queryTxt, timeout)) {
       String val = resultBatch.borrowRows().borrow(0)
@@ -610,7 +610,7 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries for a single (the first) result batch. The batch must be released.
    */
-  protected ResultBatch queryBatch(String queryTxt, long timeout) throws IOException, NoticeException {
+  protected ResultBatch queryBatch(String queryTxt, long timeout) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
 
@@ -634,7 +634,7 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  public ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
+  public ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException {
 
     QueryDescription pq = prepareQuery(queryTxt);
 
@@ -686,7 +686,7 @@ public class BasicContext extends AbstractContext {
    */
   protected ResultBatch queryBatchPrepared(String queryTxt,
                                            FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
-                                           long timeout) throws IOException, NoticeException {
+                                           long timeout) throws IOException {
 
     QueryDescription pq = prepareQuery(queryTxt);
 
@@ -698,7 +698,7 @@ public class BasicContext extends AbstractContext {
    */
   private ResultBatch queryBatchPrepared(String statementName,
                                          FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
-                                         ResultField[] resultFields, long timeout) throws IOException, NoticeException {
+                                         ResultField[] resultFields, long timeout) throws IOException {
 
     ExecuteResult handler = new ExecuteResult(resultFields);
 

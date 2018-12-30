@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.system.BasicContext;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
 
 import java.io.IOException;
@@ -73,7 +72,7 @@ public interface Table<R extends Table.Row> {
 
   }
 
-  default List<R> query(BasicContext context, String queryTxt, long timeout, Object... params) throws IOException, NoticeException {
+  default List<R> query(BasicContext context, String queryTxt, long timeout, Object... params) throws IOException {
 
     try (ResultBatch resultBatch = context.queryBatchPrepared(queryTxt, params, timeout)) {
 

@@ -40,7 +40,6 @@ import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
@@ -204,7 +203,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   private static Map<String, SQLText> parsedSqlCache;
 
-  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
+  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException {
     super(address, settings);
 
     this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
@@ -282,7 +281,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException, NoticeException {
+  public void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
 
     super.init(sharedRegistryFactory);
 
@@ -446,7 +445,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
 
   interface QueryFunction {
-    void query(long timeout) throws IOException, NoticeException;
+    void query(long timeout) throws IOException;
   }
 
   /**
@@ -468,7 +467,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   interface QueryResultFunction<T> {
 
-    T query(long timeout) throws IOException, NoticeException;
+    T query(long timeout) throws IOException;
 
   }
 
@@ -507,15 +506,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         internalClose();
       }
 
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!serverConnection.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
+      throw makeSQLException(e);
     }
 
   }

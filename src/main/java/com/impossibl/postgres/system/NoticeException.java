@@ -30,7 +30,10 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.protocol.Notice;
 
-public class NoticeException extends Exception {
+import java.io.IOException;
+
+
+public class NoticeException extends IOException {
 
   private static final long serialVersionUID = 7459731038298685932L;
 

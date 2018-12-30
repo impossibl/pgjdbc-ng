@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.types;
 
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.procs.Procs;
@@ -262,11 +261,15 @@ public class SharedRegistry {
 
   }
 
+
+
   public interface Seeder {
-    void seed(SharedRegistry registry) throws IOException, NoticeException;
+
+    void seed(SharedRegistry registry) throws IOException;
+
   }
 
-  public boolean seed(Seeder seeder) throws IOException, NoticeException {
+  public boolean seed(Seeder seeder) throws IOException {
 
     if (seeded.getAndSet(true)) {
       return false;

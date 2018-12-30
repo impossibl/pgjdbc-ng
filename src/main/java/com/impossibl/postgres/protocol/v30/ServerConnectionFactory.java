@@ -126,14 +126,14 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   private static final long DEFAULT_SSL_TIMEOUT = 60;
 
 
-  public ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException, NoticeException {
+  public ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException {
 
     SSLMode sslMode = config.getSetting(SSL_MODE, SSL_MODE_DEFAULT, StringTransforms::capitalizeOption);
 
     return connect(config, sslMode, address, listener);
   }
 
-  private ServerConnection connect(Configuration config, SSLMode sslMode, SocketAddress address, ServerConnection.Listener listener) throws IOException, NoticeException {
+  private ServerConnection connect(Configuration config, SSLMode sslMode, SocketAddress address, ServerConnection.Listener listener) throws IOException {
 
     try {
 
@@ -324,7 +324,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return bootstrap;
   }
 
-  private static ServerConnection startup(Configuration config, Channel channel, Map<String, String> startupParameterStatuses, ServerConnectionShared.Ref sharedRef) throws IOException, NoticeException {
+  private static ServerConnection startup(Configuration config, Channel channel, Map<String, String> startupParameterStatuses, ServerConnectionShared.Ref sharedRef) throws IOException {
 
     Map<String, Object> params = new HashMap<>();
     params.put(APPLICATION_NAME, config.getSetting(APPLICATION_NAME, APPLICATION_NAME_DEFAULT));
@@ -409,7 +409,6 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     if (startupError.get() != null) {
       Throwable error = startupError.get();
       if (error instanceof IOException) throw (IOException) error;
-      if (error instanceof NoticeException) throw (NoticeException) error;
       if (error instanceof RuntimeException) throw (RuntimeException) error;
       throw new RuntimeException(error);
     }

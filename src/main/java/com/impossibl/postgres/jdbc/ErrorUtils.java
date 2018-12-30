@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.jdbc.PGSQLExceptionInfo;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers;
+import com.impossibl.postgres.system.NoticeException;
 
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -125,6 +126,41 @@ public class ErrorUtils {
 //    }
 
     return new SQLWarning(notice.getMessage(), notice.getCode());
+  }
+
+  public static SQLException makeSQLException(String message, String sqlState, Exception cause) {
+
+    if (cause instanceof NoticeException) {
+      return makeSQLException(message, ((NoticeException) cause).getNotice());
+    }
+
+    return new PGSQLSimpleException(message, sqlState, cause);
+  }
+
+  public static SQLException makeSQLException(String message, Exception cause) {
+
+    if (cause instanceof SQLException) {
+      return (SQLException) cause;
+    }
+
+    if (cause instanceof NoticeException) {
+      return makeSQLException(message, cause);
+    }
+
+    return new PGSQLSimpleException(message, cause);
+  }
+
+  public static SQLException makeSQLException(Exception cause) {
+
+    if (cause instanceof SQLException) {
+      return (SQLException) cause;
+    }
+
+    if (cause instanceof NoticeException) {
+      return makeSQLException(((NoticeException) cause).getNotice());
+    }
+
+    return new PGSQLSimpleException(cause.getMessage(), cause);
   }
 
   /**
