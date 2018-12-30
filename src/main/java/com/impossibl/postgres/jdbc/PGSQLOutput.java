@@ -210,7 +210,7 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
-    writeNextAttributeValue(JDBCType.OTHER, x);
+    writeNextAttributeValue(targetSqlType, x);
   }
 
   @Override
