@@ -161,6 +161,7 @@ public class SharedRegistry {
       if (type == null) {
 
         lock.readLock().unlock();
+        lock.writeLock().lock();
         try {
 
           type = loader.load(typeId);
@@ -170,6 +171,7 @@ public class SharedRegistry {
         }
         finally {
           lock.readLock().lock();
+          lock.writeLock().unlock();
         }
 
       }
@@ -200,6 +202,7 @@ public class SharedRegistry {
       if (type == null) {
 
         lock.readLock().unlock();
+        lock.writeLock().lock();
         try {
 
           type = loader.load(name);
@@ -209,6 +212,7 @@ public class SharedRegistry {
         }
         finally {
           lock.readLock().lock();
+          lock.writeLock().unlock();
         }
 
       }
@@ -239,6 +243,7 @@ public class SharedRegistry {
       if (type == null) {
 
         lock.readLock().unlock();
+        lock.writeLock().lock();
         try {
 
           type = loader.loadRelation(relationId);
@@ -248,6 +253,7 @@ public class SharedRegistry {
         }
         finally {
           lock.readLock().lock();
+          lock.writeLock().unlock();
         }
 
       }
