@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGAnyType;
 import com.impossibl.postgres.system.JavaTypeMapping;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
@@ -44,9 +45,11 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
 import java.sql.Ref;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
@@ -54,6 +57,31 @@ import java.sql.Timestamp;
 import java.sql.Types;
 
 class JDBCTypeMapping {
+
+  public static Type getType(SQLType sqlType, Object value, Registry reg) throws SQLException {
+
+    if (sqlType instanceof JDBCType) {
+
+      return JDBCTypeMapping.getType(sqlType.getVendorTypeNumber(), value, reg);
+    }
+    else if (sqlType instanceof PGAnyType) {
+
+      try {
+        if (sqlType.getVendorTypeNumber() != null) {
+
+          return reg.loadType(sqlType.getVendorTypeNumber());
+        }
+        else {
+          return reg.loadStableType(sqlType.getName());
+        }
+      }
+      catch (IOException e) {
+        throw makeSQLException(e);
+      }
+    }
+
+    throw new PGSQLSimpleException("Unsupported SQLType");
+  }
 
   static int getSQLTypeCode(Class<?> cls) {
     if (cls == Boolean.class) {
@@ -211,7 +239,7 @@ class JDBCTypeMapping {
         return reg.loadBaseType("char");
       case Types.VARCHAR:
       case Types.LONGVARCHAR:
-        return reg.loadBaseType("text");
+        return reg.loadBaseType("varchar");
       case Types.DATE:
         return reg.loadBaseType("date");
       case Types.TIME:

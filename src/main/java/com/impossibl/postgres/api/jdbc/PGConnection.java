@@ -29,6 +29,7 @@
 package com.impossibl.postgres.api.jdbc;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * Public API for PGConnection
@@ -114,4 +115,30 @@ public interface PGConnection extends Connection {
    * @return The value
    */
   int getDefaultFetchSize();
+
+
+  /**
+   * Resolves a name to an SQLType suitable for passing
+   * to any method that accepts one.
+   *
+   * As the method queries the server for the type information
+   * any type name acceptable to the server is allowed (i.e.
+   * qualified, unqualified, quoted, etc.)
+   *
+   * Using this method allows the resolution of a name to
+   * a type to be re-used; speeding up performance in
+   * cases where named types are used.
+   *
+   * NOTE: The possibility of DDL changing the name to type
+   * mapping means named types are always looked up when used.
+   * This ensures that the correct type is used always. When
+   * resolving a named type using this method it is only valid
+   * as long as no commands are issued that invalidate it (e.g.
+   * dropping and re-adding a type or extension).
+   *
+   * @param name Name of type to resolve (anything acceptable to the server)
+   * @return Type instance representing the current name to type mapping.
+   */
+  PGAnyType resolveType(String name) throws SQLException;
+
 }

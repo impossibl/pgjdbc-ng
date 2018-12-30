@@ -47,6 +47,7 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
@@ -58,7 +59,6 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,8 +83,14 @@ public class PGSQLOutput implements SQLOutput {
     return attributeValues.toArray(new Object[0]);
   }
 
-  private void writeNextAttributeValue(int sqlType, Object val) throws SQLException {
-    writeNextAttributeValue(JDBCTypeMapping.getType(sqlType, val, context.getRegistry()), val);
+  private void writeNextAttributeValue(SQLType sqlType, Object val) throws SQLException {
+
+    Type attributeType = JDBCTypeMapping.getType(sqlType, val, context.getRegistry());
+    if (attributeType == null) {
+      throw new PGSQLSimpleException("Unknown/Unsupported type");
+    }
+
+    writeNextAttributeValue(attributeType, val);
   }
 
   private void writeNextAttributeValue(Type type, Object val) {
@@ -94,73 +100,73 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeString(String x) throws SQLException {
-    writeNextAttributeValue(Types.VARCHAR, x);
+    writeNextAttributeValue(JDBCType.VARCHAR, x);
   }
 
   @Override
   public void writeBoolean(boolean x) throws SQLException {
-    writeNextAttributeValue(Types.BOOLEAN, x);
+    writeNextAttributeValue(JDBCType.BOOLEAN, x);
   }
 
   @Override
   public void writeByte(byte x) throws SQLException {
-    writeNextAttributeValue(Types.TINYINT, x);
+    writeNextAttributeValue(JDBCType.TINYINT, x);
   }
 
   @Override
   public void writeShort(short x) throws SQLException {
-    writeNextAttributeValue(Types.SMALLINT, x);
+    writeNextAttributeValue(JDBCType.SMALLINT, x);
   }
 
   @Override
   public void writeInt(int x) throws SQLException {
-    writeNextAttributeValue(Types.INTEGER, x);
+    writeNextAttributeValue(JDBCType.INTEGER, x);
   }
 
   @Override
   public void writeLong(long x) throws SQLException {
-    writeNextAttributeValue(Types.BIGINT, x);
+    writeNextAttributeValue(JDBCType.BIGINT, x);
   }
 
   @Override
   public void writeFloat(float x) throws SQLException {
-    writeNextAttributeValue(Types.FLOAT, x);
+    writeNextAttributeValue(JDBCType.FLOAT, x);
   }
 
   @Override
   public void writeDouble(double x) throws SQLException {
-    writeNextAttributeValue(Types.DOUBLE, x);
+    writeNextAttributeValue(JDBCType.DOUBLE, x);
   }
 
   @Override
   public void writeBigDecimal(BigDecimal x) throws SQLException {
-    writeNextAttributeValue(Types.DECIMAL, x);
+    writeNextAttributeValue(JDBCType.DECIMAL, x);
   }
 
   @Override
   public void writeBytes(byte[] x) throws SQLException {
-    writeNextAttributeValue(Types.VARBINARY, x);
+    writeNextAttributeValue(JDBCType.VARBINARY, x);
   }
 
   @Override
   public void writeDate(Date x) throws SQLException {
-    writeNextAttributeValue(Types.DATE, x);
+    writeNextAttributeValue(JDBCType.DATE, x);
   }
 
   @Override
   public void writeTime(Time x) throws SQLException {
-    writeNextAttributeValue(Types.TIME, x);
+    writeNextAttributeValue(JDBCType.TIME, x);
   }
 
   @Override
   public void writeTimestamp(Timestamp x) throws SQLException {
-    writeNextAttributeValue(Types.TIMESTAMP, x);
+    writeNextAttributeValue(JDBCType.TIMESTAMP, x);
   }
 
   @Override
   public void writeCharacterStream(Reader x) throws SQLException {
     try {
-      writeNextAttributeValue(Types.VARCHAR, CharStreams.toString(x));
+      writeNextAttributeValue(JDBCType.VARCHAR, CharStreams.toString(x));
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -170,7 +176,7 @@ public class PGSQLOutput implements SQLOutput {
   @Override
   public void writeAsciiStream(InputStream x) throws SQLException {
     try {
-      writeNextAttributeValue(Types.VARCHAR, new String(ByteStreams.toByteArray(x), StandardCharsets.US_ASCII));
+      writeNextAttributeValue(JDBCType.VARCHAR, new String(ByteStreams.toByteArray(x), StandardCharsets.US_ASCII));
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -180,7 +186,7 @@ public class PGSQLOutput implements SQLOutput {
   @Override
   public void writeBinaryStream(InputStream x) throws SQLException {
     try {
-      writeNextAttributeValue(Types.VARBINARY, ByteStreams.toByteArray(x));
+      writeNextAttributeValue(JDBCType.VARBINARY, ByteStreams.toByteArray(x));
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -189,47 +195,47 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeArray(Array x) throws SQLException {
-    writeNextAttributeValue(Types.ARRAY, x);
+    writeNextAttributeValue(JDBCType.ARRAY, x);
   }
 
   @Override
   public void writeURL(URL x) throws SQLException {
-    writeNextAttributeValue(Types.VARCHAR, x);
+    writeNextAttributeValue(JDBCType.VARCHAR, x);
   }
 
   @Override
   public void writeObject(SQLData x) throws SQLException {
-    writeNextAttributeValue(Types.OTHER, x);
+    writeNextAttributeValue(JDBCType.OTHER, x);
   }
 
   @Override
   public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
-    writeNextAttributeValue(Types.OTHER, x);
+    writeNextAttributeValue(JDBCType.OTHER, x);
   }
 
   @Override
   public void writeBlob(Blob x) throws SQLException {
-    writeNextAttributeValue(Types.BLOB, x);
+    writeNextAttributeValue(JDBCType.BLOB, x);
   }
 
   @Override
   public void writeClob(Clob x) throws SQLException {
-    writeNextAttributeValue(Types.CLOB, x);
+    writeNextAttributeValue(JDBCType.CLOB, x);
   }
 
   @Override
   public void writeStruct(Struct x) throws SQLException {
-    writeNextAttributeValue(Types.STRUCT, x);
+    writeNextAttributeValue(JDBCType.STRUCT, x);
   }
 
   @Override
   public void writeSQLXML(SQLXML x) throws SQLException {
-    writeNextAttributeValue(Types.SQLXML, x);
+    writeNextAttributeValue(JDBCType.SQLXML, x);
   }
 
   @Override
   public void writeRowId(RowId x) throws SQLException {
-    writeNextAttributeValue(Types.ROWID, x);
+    writeNextAttributeValue(JDBCType.ROWID, x);
   }
 
   @Override

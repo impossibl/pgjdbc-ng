@@ -54,6 +54,7 @@ import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
+import static com.impossibl.postgres.protocol.FieldFormat.Text;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.utils.ByteBufs.releaseAll;
 import static com.impossibl.postgres.utils.ByteBufs.retainedDuplicateAll;
@@ -70,6 +71,7 @@ import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -132,43 +134,52 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     this.wantsGeneratedKeys = true;
   }
 
-  void set(int parameterIdx, Object source, int targetSQLType) throws SQLException {
-    set(parameterIdx, source, null, targetSQLType);
-  }
-
-  void set(int parameterIdx, Object source, Object sourceContext, int targetSQLType) throws SQLException {
-    checkClosed();
-
-    describeIfNeeded();
+  private int checkParameterIndex(int parameterIdx) throws SQLException {
 
     if (parameterIdx < 1 || parameterIdx > parameterTypes.length) {
       throw PARAMETER_INDEX_OUT_OF_BOUNDS;
     }
 
-    parameterIdx -= 1;
+    return parameterIdx - 1;
+  }
 
-    parameterTypes[parameterIdx] = null;
+  private Type resolveType(int parameterIdx, SQLType sqlType, Object value) throws SQLException {
+
+    describeIfNeeded();
+
+    Type suggestedType = JDBCTypeMapping.getType(sqlType, value, connection.getRegistry());
+    Type parsedType = parameterTypesParsed[parameterIdx];
+
+    Type type = suggestedType;
+    if (suggestedType == null || parsedType.getCategory() != Type.Category.String) {
+      type = parsedType;
+    }
+
+    return type;
+  }
+
+  void set(int parameterIdx, Object source, SQLType sqlType) throws SQLException {
+    set(parameterIdx, source, null, sqlType);
+  }
+
+  void set(int parameterIdx, Object source, Object sourceContext, SQLType sqlType) throws SQLException {
+    checkClosed();
+    parameterIdx = checkParameterIndex(parameterIdx);
+
+    Type paramType = resolveType(parameterIdx, sqlType, source);
+
+    FieldFormat paramFormat = paramType.getCategory() == Type.Category.String ? Text : paramType.getParameterFormat();
+
+    parameterTypes[parameterIdx] = paramType;
+    parameterFormats[parameterIdx] = paramFormat;
+
     ReferenceCountUtil.release(parameterBuffers[parameterIdx]);
     parameterBuffers[parameterIdx] = null;
 
     if (source != null) {
 
-      Type paramType = JDBCTypeMapping.getType(targetSQLType, source, connection.getRegistry());
-      Type parsedParamType = parameterTypesParsed[parameterIdx];
-      if (paramType == null || !parsedParamType.getName().equals("text")) {
-        paramType = parsedParamType;
-      }
-
-      parameterTypes[parameterIdx] = paramType;
-
-      // If parsed and supplied types match we use binary transfer, if not we use text to allow server to coerce values
-      FieldFormat parameterFormat =
-          paramType.getId() != parsedParamType.getId() || paramType.getCategory() == Type.Category.String ?
-              FieldFormat.Text : paramType.getParameterFormat();
-      parameterFormats[parameterIdx] = parameterFormat;
-
       try {
-        switch (parameterFormat) {
+        switch (paramFormat) {
           case Text: {
             StringBuilder out = new StringBuilder();
             paramType.getTextCodec().getEncoder().encode(connection, paramType, source, sourceContext, out);
@@ -185,7 +196,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         }
       }
       catch (IOException e) {
-        throw new PGSQLSimpleException("Error encoding parameter", e);
+        throw makeSQLException(e);
       }
 
     }
@@ -553,57 +564,57 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    set(parameterIndex, null, Types.NULL);
+    set(parameterIndex, null, JDBCType.valueOf(sqlType));
   }
 
   @Override
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-    set(parameterIndex, x, Types.BOOLEAN);
+    set(parameterIndex, x, JDBCType.BOOLEAN);
   }
 
   @Override
   public void setByte(int parameterIndex, byte x) throws SQLException {
-    set(parameterIndex, x, Types.TINYINT);
+    set(parameterIndex, x, JDBCType.TINYINT);
   }
 
   @Override
   public void setShort(int parameterIndex, short x) throws SQLException {
-    set(parameterIndex, x, Types.SMALLINT);
+    set(parameterIndex, x, JDBCType.SMALLINT);
   }
 
   @Override
   public void setInt(int parameterIndex, int x) throws SQLException {
-    set(parameterIndex, x, Types.INTEGER);
+    set(parameterIndex, x, JDBCType.INTEGER);
   }
 
   @Override
   public void setLong(int parameterIndex, long x) throws SQLException {
-    set(parameterIndex, x, Types.BIGINT);
+    set(parameterIndex, x, JDBCType.BIGINT);
   }
 
   @Override
   public void setFloat(int parameterIndex, float x) throws SQLException {
-    set(parameterIndex, x, Types.FLOAT);
+    set(parameterIndex, x, JDBCType.FLOAT);
   }
 
   @Override
   public void setDouble(int parameterIndex, double x) throws SQLException {
-    set(parameterIndex, x, Types.DOUBLE);
+    set(parameterIndex, x, JDBCType.DOUBLE);
   }
 
   @Override
   public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-    set(parameterIndex, x, Types.DECIMAL);
+    set(parameterIndex, x, JDBCType.DECIMAL);
   }
 
   @Override
   public void setString(int parameterIndex, String x) throws SQLException {
-    set(parameterIndex, x, Types.VARCHAR);
+    set(parameterIndex, x, JDBCType.VARCHAR);
   }
 
   @Override
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-    set(parameterIndex, x, Types.BINARY);
+    set(parameterIndex, x, JDBCType.BINARY);
   }
 
   @Override
@@ -624,26 +635,26 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   @Override
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
 
-    set(parameterIndex, x, cal, Types.DATE);
+    set(parameterIndex, x, cal, JDBCType.DATE);
   }
 
   @Override
   public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
 
-    set(parameterIndex, x, cal, Types.TIME);
+    set(parameterIndex, x, cal, JDBCType.TIME);
   }
 
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
     checkClosed();
 
-    set(parameterIndex, x, cal, Types.TIMESTAMP);
+    set(parameterIndex, x, cal, JDBCType.TIMESTAMP);
   }
 
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
 
-    set(parameterIndex, x, Types.BINARY);
+    set(parameterIndex, x, JDBCType.BINARY);
   }
 
   @Override
@@ -657,7 +668,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    set(parameterIndex, x, (long) length, Types.BINARY);
+    set(parameterIndex, x, (long) length, JDBCType.BINARY);
   }
 
   @Override
@@ -671,7 +682,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    set(parameterIndex, x, length, Types.BINARY);
+    set(parameterIndex, x, length, JDBCType.BINARY);
   }
 
   @Override
@@ -722,7 +733,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException(e);
     }
 
-    set(parameterIndex, writer.toString(), Types.VARCHAR);
+    set(parameterIndex, writer.toString(), JDBCType.VARCHAR);
   }
 
   @Override
@@ -797,10 +808,10 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       setRef(parameterIndex, (Ref)x);
     }
     else if (x.getClass().isArray()) {
-      set(parameterIndex, x, Types.ARRAY);
+      set(parameterIndex, x, JDBCType.ARRAY);
     }
     else {
-      set(parameterIndex, x, Types.OTHER);
+      set(parameterIndex, x, JDBCType.OTHER);
     }
   }
 
@@ -808,21 +819,31 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
     checkClosed();
 
-    set(parameterIndex, unwrapObject(connection, x), null, targetSqlType);
+    set(parameterIndex, unwrapObject(connection, x), null, JDBCType.valueOf(targetSqlType));
   }
 
   @Override
   public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
     checkClosed();
 
+    set(parameterIndex, unwrapObject(connection, x), scaleOrLength, JDBCType.valueOf(targetSqlType));
+  }
+
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
     set(parameterIndex, unwrapObject(connection, x), scaleOrLength, targetSqlType);
+  }
+
+  @Override
+  public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+    set(parameterIndex, unwrapObject(connection, x), null, targetSqlType);
   }
 
   @Override
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
     checkClosed();
 
-    set(parameterIndex, unwrapBlob(connection, x), Types.BLOB);
+    set(parameterIndex, unwrapBlob(connection, x), JDBCType.BLOB);
   }
 
   @Override
@@ -843,14 +864,14 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException(e);
     }
 
-    set(parameterIndex, blob, Types.BLOB);
+    set(parameterIndex, blob, JDBCType.BLOB);
   }
 
   @Override
   public void setClob(int parameterIndex, Clob x) throws SQLException {
     checkClosed();
 
-    set(parameterIndex, unwrapClob(connection, x), Types.CLOB);
+    set(parameterIndex, unwrapClob(connection, x), JDBCType.CLOB);
   }
 
   @Override
@@ -871,22 +892,22 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException(e);
     }
 
-    set(parameterIndex, clob, Types.CLOB);
+    set(parameterIndex, clob, JDBCType.CLOB);
   }
 
   @Override
   public void setArray(int parameterIndex, Array x) throws SQLException {
-    set(parameterIndex, x, Types.ARRAY);
+    set(parameterIndex, x, JDBCType.ARRAY);
   }
 
   @Override
   public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-    set(parameterIndex, null, Types.NULL);
+    set(parameterIndex, null, JDBCType.valueOf(sqlType));
   }
 
   @Override
   public void setURL(int parameterIndex, URL x) throws SQLException {
-    set(parameterIndex, x, Types.VARCHAR);
+    set(parameterIndex, x, JDBCType.VARCHAR);
   }
 
   @Override
@@ -896,12 +917,12 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new PGSQLSimpleException("Invalid SQLXML object (not created by driver)");
     }
 
-    set(parameterIndex, ((PGSQLXML) xmlObject).getData(), Types.SQLXML);
+    set(parameterIndex, ((PGSQLXML) xmlObject).getData(), JDBCType.SQLXML);
   }
 
   @Override
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
-    set(parameterIndex, unwrapRowId(x), Types.ROWID);
+    set(parameterIndex, unwrapRowId(x), JDBCType.ROWID);
   }
 
   @Override
@@ -996,27 +1017,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     throw NOT_ALLOWED_ON_PREP_STMT;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public long executeLargeUpdate() throws SQLException {
     throw NOT_IMPLEMENTED;
   }
+
 }
