@@ -161,6 +161,7 @@
         <configuration>
           <argLine>-Dio.netty.leakDetection.level=advanced</argLine>
           <excludes>
+            <exclude>**/RequiredTests.java</exclude>
             <exclude>**/PerformanceTest.java</exclude>
             <exclude>**/GiantBlobTest.java</exclude>
             <exclude>**/SSL*.java</exclude>
