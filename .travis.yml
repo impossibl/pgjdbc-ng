@@ -2,14 +2,18 @@ dist: xenial
 language: java
 jdk:
   - openjdk10
-env:
-  - POSTGRESQL_VERSION=9.4
-  - POSTGRESQL_VERSION=9.5
-  - POSTGRESQL_VERSION=9.6
-  - POSTGRESQL_VERSION=10
+matrix:
+  include:
+    - addons:
+        postgresql: 9.4
+    - addons:
+        postgresql: 9.5
+    - addons:
+        postgresql: 9.6
+    - addons:
+        postgresql: 10
 before_install:
-  - sudo service postgresql stop && sudo service postgresql start $POSTGRESQL_VERSION
-  - sudo -u postgres psql -c "SELECT version();"
+  - sudo -u postgres psql -c "SHOW server_version;"
   - sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
   - sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;'
   - sudo -u postgres psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;'
