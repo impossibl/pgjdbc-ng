@@ -28,11 +28,17 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
+import com.impossibl.postgres.system.Version;
+
 import java.sql.SQLType;
 
 
 public interface PGAnyType extends SQLType  {
 
   String VENDOR_NAME = "PostgreSQL";
+
+  default Version getRequiredVersion() {
+    return null;
+  }
 
 }

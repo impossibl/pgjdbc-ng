@@ -66,6 +66,14 @@ class JDBCTypeMapping {
     }
     else if (sqlType instanceof PGAnyType) {
 
+      PGAnyType pgType = (PGAnyType) sqlType;
+
+      if (pgType.getRequiredVersion() != null) {
+        if (!reg.getShared().getServerVersion().isMinimum(pgType.getRequiredVersion())) {
+          throw new PGSQLSimpleException("PGType '" + pgType.getName() + "' requires server version " + pgType.getRequiredVersion());
+        }
+      }
+
       try {
         if (sqlType.getVendorTypeNumber() != null) {
 

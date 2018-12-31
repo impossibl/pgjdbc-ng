@@ -28,9 +28,13 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGAnyType;
+import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGType;
+import com.impossibl.postgres.system.Version;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -61,6 +65,37 @@ public class PGTypeTest {
     TestUtil.closeDB(conn);
   }
 
+  @Test(expected = SQLException.class)
+  public void testVersionCheckThrowsException() throws SQLException {
+
+    PGAnyType invalidType = new PGAnyType() {
+      @Override
+      public String getName() {
+        return "invalid";
+      }
+
+      @Override
+      public String getVendor() {
+        return "Nobody";
+      }
+
+      @Override
+      public Integer getVendorTypeNumber() {
+        return null;
+      }
+
+      @Override
+      public Version getRequiredVersion() {
+        return Version.parse("99");
+      }
+    };
+
+    try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT ?::text")) {
+      preparedStatement.setObject(1, null, invalidType);
+    }
+
+  }
+
   @Test
   public void testOidsMatch() throws SQLException {
 
@@ -75,6 +110,13 @@ public class PGTypeTest {
 
         for (PGType type : PGType.values()) {
           if (type.getVendorTypeNumber() == null) continue;
+
+          PGConnection conn = (PGConnection) this.conn;
+          if (!conn.isServerMinimumVersion(type.getRequiredVersion().getMajor(), type.getRequiredVersion().getMinor())) {
+            System.out.println("Skipping test for '" + type.getName() + "' - requires " + type.getRequiredVersion());
+            continue;
+          }
+
           String expectedName = typeOidMap.get(type.getVendorTypeNumber());
           assertNotNull("No type with OID="  + type.getVendorTypeNumber() + " found", expectedName);
           assertEquals("Type with OID=" + type.getVendorTypeNumber() + " has incorrect name", expectedName, type.getName());

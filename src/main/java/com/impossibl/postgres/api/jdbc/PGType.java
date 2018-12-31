@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
+import com.impossibl.postgres.system.Version;
+
 public enum PGType implements PGAnyType {
 
   //CHECKSTYLE:OFF: ParenPad|NoWhitespaceBefore
@@ -51,8 +53,8 @@ public enum PGType implements PGAnyType {
   VARCHAR                 (1043,  "varchar"),
   CSTRING                 (2275,  "cstring"),
 
-  JSON                    ( 114,  "json"),
-  JSONB                   (3802,  "jsonb"),
+  JSON                    ( 114,  "json",         "9.1"),
+  JSONB                   (3802,  "jsonb",        "9.4"),
   XML                     ( 142,  "xml"),
 
   DATE                    (1082,  "date"),
@@ -74,7 +76,7 @@ public enum PGType implements PGAnyType {
   CIRCLE                  ( 718,  "circle"),
 
   MACADDR                 ( 829,  "macaddr"),
-  MACADDR8                ( 774,  "macaddr8"),
+  MACADDR8                ( 774,  "macaddr8",     "10.0"),
   CIDR                    ( 650,  "cidr"),
   INET                    ( 869,  "inet"),
 
@@ -101,10 +103,21 @@ public enum PGType implements PGAnyType {
 
   private Integer oid;
   private String name;
+  private Version requiredVersion;
 
-  PGType(Integer oid, String name) {
+  PGType(Integer oid, String name, String requiredVersion) {
     this.oid = oid;
     this.name = name;
+    this.requiredVersion = Version.parse(requiredVersion);
+  }
+
+  PGType(Integer oid, String name) {
+    this(oid, name, "0.0");
+  }
+
+  @Override
+  public Version getRequiredVersion() {
+    return requiredVersion;
   }
 
   @Override
