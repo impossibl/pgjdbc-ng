@@ -184,7 +184,7 @@ class ConnectionUtil {
       }
       catch (IOException e) {
 
-        lastException = makeSQLException("Connection Error: " + e.getMessage(), "8001", e);
+        lastException = makeSQLException("Connection Error: ", "8001", e);
       }
 
     }
