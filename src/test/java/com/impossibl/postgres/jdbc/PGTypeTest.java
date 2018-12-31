@@ -101,7 +101,7 @@ public class PGTypeTest {
 
     try (Statement statement = conn.createStatement()) {
 
-      try (ResultSet resultSet = statement.executeQuery("SELECT oid, typname FROM pg_type WHERE typnamespace = 'pg_catalog'::regnamespace")) {
+      try (ResultSet resultSet = statement.executeQuery("SELECT oid, typname FROM pg_type")) {
 
         Map<Integer, String> typeOidMap = new HashMap<>();
         while (resultSet.next()) {
