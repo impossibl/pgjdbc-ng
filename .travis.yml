@@ -6,12 +6,20 @@ matrix:
   include:
     - addons:
         postgresql: 9.4
+      env:
+        - POSTGRES=9.4
     - addons:
         postgresql: 9.5
+      env:
+        - POSTGRES=9.5
     - addons:
         postgresql: 9.6
+      env:
+        - POSTGRES=9.6
     - addons:
         postgresql: 10
+      env:
+        - POSTGRES=10
 before_install:
   - sudo -u postgres psql -c "SHOW server_version;"
   - sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
