@@ -1,30 +1,96 @@
 dist: xenial
 language: java
-jdk:
-  - openjdk10
 matrix:
   include:
+    # 9.4
     - addons:
         postgresql: 9.4
       env:
         - POSTGRES=9.4
+      jdk: openjdk8
+    - addons:
+        postgresql: 9.4
+      env:
+        - POSTGRES=9.4
+      jdk: openjdk9
+    - addons:
+        postgresql: 9.4
+      env:
+        - POSTGRES=9.4
+      jdk: openjdk10
+    - addons:
+        postgresql: 9.4
+      env:
+        - POSTGRES=9.4
+      jdk: openjdk11
+    # 9.5
     - addons:
         postgresql: 9.5
       env:
         - POSTGRES=9.5
+      jdk: openjdk8
+    - addons:
+        postgresql: 9.5
+      env:
+        - POSTGRES=9.5
+      jdk: openjdk9
+    - addons:
+        postgresql: 9.5
+      env:
+        - POSTGRES=9.5
+      jdk: openjdk10
+    - addons:
+        postgresql: 9.5
+      env:
+        - POSTGRES=9.5
+      jdk: openjdk11
+    # 9.6
     - addons:
         postgresql: 9.6
       env:
         - POSTGRES=9.6
+      jdk: openjdk8
+    - addons:
+        postgresql: 9.6
+      env:
+        - POSTGRES=9.6
+      jdk: openjdk9
+    - addons:
+        postgresql: 9.6
+      env:
+        - POSTGRES=9.6
+      jdk: openjdk10
+    - addons:
+        postgresql: 9.6
+      env:
+        - POSTGRES=9.6
+      jdk: openjdk11
+    # 10
     - addons:
         postgresql: 10
       env:
         - POSTGRES=10
+      jdk: openjdk8
+    - addons:
+        postgresql: 10
+      env:
+        - POSTGRES=10
+      jdk: openjdk9
+    - addons:
+        postgresql: 10
+      env:
+        - POSTGRES=10
+      jdk: openjdk10
+    - addons:
+        postgresql: 10
+      env:
+        - POSTGRES=10
+      jdk: openjdk11
 before_install:
-  - sudo -u postgres psql -c "SHOW server_version;"
-  - sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
-  - sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;'
-  - sudo -u postgres psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;'
+  - psql -c "SHOW server_version;" -U postgres
+  - psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';" -U postgres
+  - psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;' -U postgres
+  - psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;' -U postgres
 script: mvn -e test
 after_failure:
   - ./.travis/print_surefire_reports
