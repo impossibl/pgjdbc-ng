@@ -35,6 +35,7 @@ import java.sql.BatchUpdateException;
 import java.util.Arrays;
 
 import static java.lang.Long.min;
+import static java.sql.Statement.EXECUTE_FAILED;
 import static java.sql.Statement.SUCCESS_NO_INFO;
 import static java.util.Arrays.fill;
 
@@ -68,7 +69,8 @@ class IntegerBatchResults implements BatchResults {
 
   @Override
   public BatchUpdateException getException(int batchIdx, String message, Exception cause) {
-    int[] counts = Arrays.copyOf(this.counts, batchIdx);
+    int[] counts = Arrays.copyOf(this.counts, batchIdx + 1);
+    counts[batchIdx] = EXECUTE_FAILED;
     return new BatchUpdateException(message, null, 0, counts, cause != null ? makeSQLException(cause) : null);
   }
 
@@ -91,7 +93,8 @@ class LongBatchResults implements BatchResults {
 
   @Override
   public BatchUpdateException getException(int batchIdx, String message, Exception cause) {
-    long[] counts = Arrays.copyOf(this.counts, batchIdx);
+    long[] counts = Arrays.copyOf(this.counts, batchIdx + 1);
+    counts[batchIdx] = EXECUTE_FAILED;
     return new BatchUpdateException(message, null, 0, counts, cause != null ? makeSQLException(cause) : null);
   }
 
