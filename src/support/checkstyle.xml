@@ -100,6 +100,15 @@
       <property name="arrayInitIndent" value="2"/>
     </module>
 
+    <module name="FileContentsHolder"/>
+
+  </module>
+
+  <!-- Allow selective suppression -->
+  <module name="SuppressionCommentFilter">
+    <property name="offCommentFormat" value="CHECKSTYLE\:OFF\: ([\w\|]+)"/>
+    <property name="onCommentFormat" value="CHECKSTYLE\:ON\: ([\w\|]+)"/>
+    <property name="checkFormat" value="$1"/>
   </module>
 
   <!-- Enforce License Header -->

@@ -184,7 +184,7 @@ class ConnectionUtil {
       }
       catch (IOException e) {
 
-        lastException = makeSQLException("Connection Error: " + e.getMessage(), "8001", e);
+        lastException = makeSQLException("Connection Error: ", "8001", e);
       }
 
     }
@@ -216,7 +216,7 @@ class ConnectionUtil {
 
     //Translate JDBC parameters to PostgreSQL parameters
     if (settings.getProperty(CREDENTIALS_USERNAME) == null)
-      settings.put(CREDENTIALS_USERNAME, "");
+      settings.put(CREDENTIALS_USERNAME, System.getProperty("user.name", ""));
     if (settings.getProperty(CREDENTIALS_PASSWORD) == null)
       settings.put(CREDENTIALS_PASSWORD, "");
     if (settings.getProperty(APPLICATION_NAME) == null && settings.getProperty(JDBC_APPLICATION_NAME_PARAM) != null)

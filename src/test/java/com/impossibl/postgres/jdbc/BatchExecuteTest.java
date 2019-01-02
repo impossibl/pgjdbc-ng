@@ -174,8 +174,9 @@ public class BatchExecuteTest {
     }
     catch (BatchUpdateException e) {
       int[] updateCounts = e.getUpdateCounts();
-      assertEquals(1, updateCounts.length);
+      assertEquals(2, updateCounts.length);
       assertEquals(1, updateCounts[0]);
+      assertEquals(Statement.EXECUTE_FAILED, e.getUpdateCounts()[1]);
     }
     catch (SQLException e) {
       fail("Should throw a BatchUpdateException instead of " + "a generic SQLException: " + e);

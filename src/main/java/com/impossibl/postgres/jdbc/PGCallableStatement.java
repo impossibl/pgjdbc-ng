@@ -297,11 +297,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   @Override
-  void set(int parameterIdx, Object val, int targetSQLType) throws SQLException {
+  void set(int parameterIdx, Object val, SQLType targetSQLType) throws SQLException {
     set(parameterIdx, val, null, targetSQLType);
   }
 
-  void set(int parameterIdx, Object source, Object sourceContext, int targetSQLType) throws SQLException {
+  void set(int parameterIdx, Object source, Object sourceContext, SQLType targetSQLType) throws SQLException {
 
     ParameterMode mode = allParameterModes.get(parameterIdx - 1);
     if (mode == ParameterMode.Out) {
@@ -867,7 +867,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   public void setCharacterStream(String parameterName, Reader reader, int length) throws SQLException {
-    set(findParameter(parameterName), reader, length);
+    setCharacterStream(findParameter(parameterName), reader, length);
   }
 
   @Override

@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGAnyType;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
@@ -637,6 +638,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setStrictMode(boolean v) {
     strict = v;
   }
@@ -644,6 +646,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public boolean isStrictMode() {
     return strict;
   }
@@ -651,6 +654,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void setDefaultFetchSize(int v) {
     defaultFetchSize = v;
   }
@@ -658,8 +662,20 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int getDefaultFetchSize() {
     return defaultFetchSize;
+  }
+
+  @Override
+  public PGAnyType resolveType(String name) throws SQLException {
+    try {
+      Type type = registry.loadTransientType(name);
+      return new PGResolvedType(type);
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
   }
 
   /**

@@ -96,7 +96,7 @@ public class JavaTypeMapping {
       return reg.loadBaseType("char");
     }
     if (cls == String.class) {
-      return reg.loadBaseType("text");
+      return reg.loadBaseType("varchar");
     }
     if (cls == Date.class) {
       return reg.loadBaseType("date");
@@ -114,7 +114,7 @@ public class JavaTypeMapping {
       return reg.loadBaseType("bytea");
     }
     if (Reader.class.isAssignableFrom(cls)) {
-      return reg.loadBaseType("text");
+      return reg.loadBaseType("varchar");
     }
     if (Blob.class.isAssignableFrom(cls)) {
       return reg.loadBaseType("loid");

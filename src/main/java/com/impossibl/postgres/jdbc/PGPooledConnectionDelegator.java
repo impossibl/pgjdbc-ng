@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGAnyType;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 
@@ -1006,6 +1007,13 @@ public class PGPooledConnectionDelegator implements PGConnection {
    */
   public int getDefaultFetchSize() {
     return delegator.getDefaultFetchSize();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public PGAnyType resolveType(String name) throws SQLException {
+    return delegator.resolveType(name);
   }
 
   void reset() {

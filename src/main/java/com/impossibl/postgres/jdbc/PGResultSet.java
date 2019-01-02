@@ -1102,6 +1102,26 @@ class PGResultSet implements ResultSet {
   }
 
   @Override
+  public void updateObject(int columnIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    set(columnIndex, x, scaleOrLength);
+  }
+
+  @Override
+  public void updateObject(String columnLabel, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    updateObject(findColumn(columnLabel), x, targetSqlType, scaleOrLength);
+  }
+
+  @Override
+  public void updateObject(int columnIndex, Object x, SQLType targetSqlType) throws SQLException {
+    set(columnIndex, x, null);
+  }
+
+  @Override
+  public void updateObject(String columnLabel, Object x, SQLType targetSqlType) throws SQLException {
+    updateObject(findColumn(columnLabel), x, targetSqlType);
+  }
+
+  @Override
   public Reader getNCharacterStream(String columnLabel) throws SQLException {
     return getNCharacterStream(findColumn(columnLabel));
   }
@@ -1691,37 +1711,6 @@ class PGResultSet implements ResultSet {
     return iface.isAssignableFrom(getClass());
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void updateObject(int columnIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void updateObject(String columnLabel, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void updateObject(int columnIndex, Object x, SQLType targetSqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void updateObject(String columnLabel, Object x, SQLType targetSqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
 }
 
 /**

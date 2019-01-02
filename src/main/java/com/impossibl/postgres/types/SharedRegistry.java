@@ -30,6 +30,7 @@ package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.ServerInfo;
+import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.types.Type.Category;
 import com.impossibl.postgres.types.Type.Codec;
@@ -96,6 +97,7 @@ public class SharedRegistry {
 
   private static final Map<ProcSharingKey, Procs> sharedProcs = new HashMap<>();
 
+  private Version serverVersion;
   private TreeMap<Integer, Type> oidMap;
   private Map<QualifiedName, Type> nameMap;
   private TreeMap<Integer, Type> relIdMap;
@@ -106,6 +108,8 @@ public class SharedRegistry {
 
 
   public SharedRegistry(ServerInfo serverInfo, ClassLoader classLoader) {
+
+    this.serverVersion = serverInfo.getVersion();
 
     synchronized (SharedRegistry.class) {
       this.procs = sharedProcs.computeIfAbsent(
@@ -141,6 +145,10 @@ public class SharedRegistry {
     oidMap.values().forEach(type -> nameMap.put(type.getQualifiedName(), type));
 
     relIdMap = new TreeMap<>();
+  }
+
+  public Version getServerVersion() {
+    return serverVersion;
   }
 
   /**

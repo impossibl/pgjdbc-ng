@@ -1,17 +1,105 @@
 dist: xenial
 language: java
-jdk:
-  - openjdk10
-env:
-  - POSTGRESQL_VERSION=9.4
-  - POSTGRESQL_VERSION=9.5
-  - POSTGRESQL_VERSION=9.6
-  - POSTGRESQL_VERSION=10
+matrix:
+  include:
+
+    # 9.4
+    - addons:
+        postgresql: 9.4
+      jdk: openjdk8
+      env:
+        - POSTGRES=9.4
+        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
+    - addons:
+        postgresql: 9.4
+      jdk: openjdk9
+      env:
+        - POSTGRES=9.4
+    - addons:
+        postgresql: 9.4
+      jdk: openjdk10
+      env:
+        - POSTGRES=9.4
+    - addons:
+        postgresql: 9.4
+      jdk: openjdk11
+      env:
+        - POSTGRES=9.4
+
+    # 9.5
+    - addons:
+        postgresql: 9.5
+      jdk: openjdk8
+      env:
+        - POSTGRES=9.5
+        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
+    - addons:
+        postgresql: 9.5
+      jdk: openjdk9
+      env:
+        - POSTGRES=9.5
+    - addons:
+        postgresql: 9.5
+      jdk: openjdk10
+      env:
+        - POSTGRES=9.5
+    - addons:
+        postgresql: 9.5
+      jdk: openjdk11
+      env:
+        - POSTGRES=9.5
+
+    # 9.6
+    - addons:
+        postgresql: 9.6
+      jdk: openjdk8
+      env:
+        - POSTGRES=9.6
+        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
+    - addons:
+        postgresql: 9.6
+      jdk: openjdk9
+      env:
+        - POSTGRES=9.6
+    - addons:
+        postgresql: 9.6
+      jdk: openjdk10
+      env:
+        - POSTGRES=9.6
+    - addons:
+        postgresql: 9.6
+      jdk: openjdk11
+      env:
+        - POSTGRES=9.6
+
+    # 10
+    - addons:
+        postgresql: 10
+      jdk: openjdk8
+      env:
+        - POSTGRES=10
+        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
+    - addons:
+        postgresql: 10
+      jdk: openjdk9
+      env:
+        - POSTGRES=10
+    - addons:
+        postgresql: 10
+      jdk: openjdk10
+      env:
+        - POSTGRES=10
+    - addons:
+        postgresql: 10
+      jdk: openjdk11
+      env:
+        - POSTGRES=10
+
 before_install:
-  - sudo service postgresql stop && sudo service postgresql start $POSTGRESQL_VERSION
-  - sudo -u postgres psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';"
-  - sudo -u postgres psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;'
-  - sudo -u postgres psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;'
+  - psql -c "SHOW server_version;" -U postgres
+  - psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';" -U postgres
+  - psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;' -U postgres
+  - psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;' -U postgres
 script: mvn -e test
 after_failure:
   - ./.travis/print_surefire_reports
