@@ -215,16 +215,17 @@ public class MultiSchemasStructsTest {
             "end;\n" +
             "$BODY$ LANGUAGE plpgsql";
 
-    Statement stmt = conn.createStatement();
+    try (Statement stmt = conn.createStatement()) {
 
-    stmt.execute(firstPutFunctionTemplate);
-    stmt.execute(secondPutFunctionTemplate);
+      stmt.execute(firstPutFunctionTemplate);
+      stmt.execute(secondPutFunctionTemplate);
 
-    stmt.execute(firstGetUsersAsArray);
-    stmt.execute(secondGetUsersAsArray);
+      stmt.execute(firstGetUsersAsArray);
+      stmt.execute(secondGetUsersAsArray);
 
-    stmt.execute(publicPutFunctionTemplate);
-    stmt.execute(publicGetUsersAsArray);
+      stmt.execute(publicPutFunctionTemplate);
+      stmt.execute(publicGetUsersAsArray);
+    }
   }
 
   @After
@@ -237,9 +238,10 @@ public class MultiSchemasStructsTest {
     TestUtil.dropSchema(conn, FIRST_SCHEMA);
     TestUtil.dropSchema(conn, SECOND_SCHEMA);
 
-    Statement stmt = conn.createStatement();
-    stmt.execute("DROP FUNCTION fn_put_user(t_user);");
-    stmt.execute("DROP FUNCTION fn_get_users();");
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP FUNCTION fn_put_user(t_user);");
+      stmt.execute("DROP FUNCTION fn_get_users();");
+    }
 
     TestUtil.dropTable(conn, TABLE_NAME);
     TestUtil.dropType(conn, TYPE_NAME);
