@@ -29,12 +29,19 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.types.SharedRegistry;
+
+import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING;
+import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DATASOURCE_DEFAULT;
 
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static java.lang.Boolean.parseBoolean;
@@ -75,6 +82,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
   private String sslKeyFile;
   private String sslRootCertificateFile;
 
+  private Map<ServerConnectionInfo, SharedRegistry> sharedRegistries;
+
   /**
    * Constructor
    */
@@ -102,6 +111,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     this.sslCertificateFile = null;
     this.sslKeyFile = null;
     this.sslRootCertificateFile = null;
+
+    this.sharedRegistries = new ConcurrentHashMap<>();
   }
 
   /**
@@ -720,7 +731,19 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (sslRootCertificateFile != null)
       props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
 
-    return ConnectionUtil.createConnection(url, props, housekeeper);
+    SharedRegistry.Factory sharedRegistryFactory;
+    if (!parseBoolean(props.getProperty(REGISTRY_SHARING, REGISTRY_SHARING_DATASOURCE_DEFAULT))) {
+
+      sharedRegistryFactory =
+          connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
+    }
+    else {
+
+      sharedRegistryFactory =
+          connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
+    }
+
+    return ConnectionUtil.createConnection(url, props, sharedRegistryFactory, housekeeper);
   }
 
   private String buildUrl() throws SQLException {
@@ -738,4 +761,5 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     return sb.toString();
   }
+
 }

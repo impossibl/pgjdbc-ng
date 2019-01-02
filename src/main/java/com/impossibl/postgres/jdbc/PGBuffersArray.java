@@ -250,7 +250,7 @@ public class PGBuffersArray extends PGArray {
     FieldFormat elementFormat;
     Type elementType;
     if (stride > 1) {
-      elementType = new NestedArrayType(type.getName(), type.getElementType(), this.elementFormat, copyOfRange(dimensions, 1, dimensions.length));
+      elementType = new NestedArrayType(type, type.getElementType(), this.elementFormat, copyOfRange(dimensions, 1, dimensions.length));
       elementFormat = FieldFormat.Binary;
     }
     else {
@@ -259,7 +259,7 @@ public class PGBuffersArray extends PGArray {
     }
 
     ResultField[] fields = new ResultField[] {
-        new ResultField("INDEX", 0, (short) 0, reg.loadType("int4"), (short) 0, 0, FieldFormat.Binary),
+        new ResultField("INDEX", 0, (short) 0, reg.loadBaseType("int4"), (short) 0, 0, FieldFormat.Binary),
         new ResultField("VALUE", 0, (short) 0, elementType, (short) 0, 0, elementFormat)
     };
 

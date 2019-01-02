@@ -30,10 +30,10 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
 import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
 import static com.impossibl.postgres.system.procs.DatesTimes.timeFromParsed;
 import static com.impossibl.postgres.types.PrimitiveType.TimeTZ;
@@ -59,7 +59,7 @@ import io.netty.buffer.ByteBuf;
 public class TimesWithTZ extends SettingSelectProcProvider {
 
   public TimesWithTZ() {
-    super(FIELD_DATETIME_FORMAT_CLASS, Integer.class,
+    super(ServerInfo::hasIntegerDateTimes,
         new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(),
         new TxtEncoder(), new TxtDecoder(), null, null,
         "timetz_");

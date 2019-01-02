@@ -31,16 +31,16 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF;
 import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF_DEFAULT;
+import static com.impossibl.postgres.system.Settings.getSystemProperty;
+import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.util.Collection;
 
 import io.netty.buffer.ByteBuf;
 
@@ -57,6 +57,9 @@ import io.netty.buffer.ByteBuf;
  *
  */
 public abstract class Type implements TypeRef {
+
+  public static final String CATALOG_NAMESPACE = "pg_catalog";
+  public static final String PUBLIC_NAMESPACE = "public";
 
   public enum Category {
     Array('A'),
@@ -175,8 +178,7 @@ public abstract class Type implements TypeRef {
   }
 
   private int id;
-  private String name;
-  private String namespace;
+  private QualifiedName name;
   private Short length;
   private Byte alignment;
   private Category category;
@@ -192,17 +194,18 @@ public abstract class Type implements TypeRef {
   public Type() {
   }
 
-  public Type(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+  public Type(int id, String name, String namespace, Short length, Byte alignment, Category category, Character delimeter, Integer arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
     super();
     this.id = id;
-    this.name = name;
+    this.name = new QualifiedName(namespace, name);
     this.length = length;
     this.alignment = alignment;
-    this.category = category;
+    this.category = checkNotNull(category);
     this.delimeter = delimeter;
     this.arrayTypeId = arrayTypeId;
     this.binaryCodec = binaryCodec;
     this.textCodec = textCodec;
+    this.modifierParser = modifierParser;
     this.preferredParameterFormat = preferredParameterFormat;
     this.preferredResultFormat = preferredResultFormat;
   }
@@ -216,80 +219,60 @@ public abstract class Type implements TypeRef {
     return id;
   }
 
-  public void setId(int id) {
-    this.id = id;
-  }
-
   public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
+    return name.getLocalName();
   }
 
   public String getNamespace() {
-    return namespace;
+    return name.getNamespace();
   }
 
-  public void setNamespace(String namespace) {
-    this.namespace = namespace;
+  public QualifiedName getQualifiedName() {
+    return name;
   }
 
   public Short getLength() {
     return length;
   }
 
-  public void setLength(Short length) {
-    this.length = length;
-  }
-
   public Byte getAlignment() {
     return alignment;
-  }
-
-  public void setAlignment(Byte alignment) {
-    this.alignment = alignment;
   }
 
   public Category getCategory() {
     return category;
   }
 
-  public void setCategory(Category category) {
-    this.category = category;
-  }
-
   public char getDelimeter() {
     return delimeter;
-  }
-
-  public void setDelimeter(char delimeter) {
-    this.delimeter = delimeter;
   }
 
   public int getArrayTypeId() {
     return arrayTypeId;
   }
 
-  public void setArrayTypeId(int arrayTypeId) {
-    this.arrayTypeId = arrayTypeId;
+  public Boolean isNullable() {
+    return null;
+  }
+
+  public String getDefaultValue() {
+    return null;
+  }
+
+  public boolean isAutoIncrement() {
+    return isAutoIncrement(getDefaultValue());
+  }
+
+  public static boolean isAutoIncrement(String defaultValue) {
+    return defaultValue != null && defaultValue.startsWith("nextval(");
   }
 
   public BinaryCodec getBinaryCodec() {
     return binaryCodec;
   }
 
-  public void setBinaryCodec(BinaryCodec binaryCodec) {
-    this.binaryCodec = binaryCodec;
-  }
-
   public TextCodec getTextCodec() {
     return textCodec;
-  }
-
-  public void setTextCodec(TextCodec textCodec) {
-    this.textCodec = textCodec;
   }
 
   public Codec<?, ?> getCodec(FieldFormat format) {
@@ -305,16 +288,8 @@ public abstract class Type implements TypeRef {
     return modifierParser;
   }
 
-  public void setModifierParser(Modifiers.Parser modifierParser) {
-    this.modifierParser = modifierParser;
-  }
-
   public int getRelationId() {
     return relationId;
-  }
-
-  public void setRelationId(int relationId) {
-    this.relationId = relationId;
   }
 
   /**
@@ -377,29 +352,25 @@ public abstract class Type implements TypeRef {
   }
 
   /**
-   * Load this type from a "pg_type" table entry and, if available, a
-   * collection of "pg_attribute" table entries.
+   * Load this type from a "pg_type" table row.
    *
    * @param source The "pg_type" table entry
-   * @param attrs Associated "pg_attribute" table entries, if available.
    * @param registry The registry that is loading the type.
    */
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
     id = source.getOid();
-    name = source.getName();
-    namespace = source.getNamespace();
+    name = new QualifiedName(source.getNamespace(), source.getName());
     length = source.getLength() != -1 ? source.getLength() : null;
     alignment = getAlignment(source.getAlignment() != null ? source.getAlignment().charAt(0) : null);
     category = Category.findValue(source.getCategory());
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    textCodec = registry.loadTextCodec(source.getInputId(), source.getOutputId());
-    binaryCodec = registry.loadBinaryCodec(source.getReceiveId(), source.getSendId());
-    modifierParser = registry.loadModifierParser(source.getModInId());
-    preferredParameterFormat = FieldFormat.valueOf(registry.getContext().getSetting(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
-    preferredResultFormat = FieldFormat.valueOf(registry.getContext().getSetting(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
+    textCodec = registry.getShared().loadTextCodec(source.getInputId(), source.getOutputId());
+    binaryCodec = registry.getShared().loadBinaryCodec(source.getReceiveId(), source.getSendId());
+    modifierParser = registry.getShared().loadModifierParser(source.getModInId());
+    preferredParameterFormat = FieldFormat.valueOf(getSystemProperty(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
+    preferredResultFormat = FieldFormat.valueOf(getSystemProperty(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
   }
 
   /**
@@ -429,7 +400,7 @@ public abstract class Type implements TypeRef {
 
   @Override
   public String toString() {
-    return name + '(' + id + ')';
+    return name.toString() + '(' + id + ')';
   }
 
   @Override

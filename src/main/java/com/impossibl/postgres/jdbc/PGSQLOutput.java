@@ -83,8 +83,8 @@ public class PGSQLOutput implements SQLOutput {
     return attributeValues.toArray(new Object[0]);
   }
 
-  private void writeNextAttributeValue(int sqlType, Object val) {
-    writeNextAttributeValue(SQLTypeMetaData.getType(val, sqlType, context.getRegistry()), val);
+  private void writeNextAttributeValue(int sqlType, Object val) throws SQLException {
+    writeNextAttributeValue(JDBCTypeMapping.getType(sqlType, val, context.getRegistry()), val);
   }
 
   private void writeNextAttributeValue(Type type, Object val) {
@@ -93,67 +93,67 @@ public class PGSQLOutput implements SQLOutput {
   }
 
   @Override
-  public void writeString(String x) {
+  public void writeString(String x) throws SQLException {
     writeNextAttributeValue(Types.VARCHAR, x);
   }
 
   @Override
-  public void writeBoolean(boolean x) {
+  public void writeBoolean(boolean x) throws SQLException {
     writeNextAttributeValue(Types.BOOLEAN, x);
   }
 
   @Override
-  public void writeByte(byte x) {
+  public void writeByte(byte x) throws SQLException {
     writeNextAttributeValue(Types.TINYINT, x);
   }
 
   @Override
-  public void writeShort(short x) {
+  public void writeShort(short x) throws SQLException {
     writeNextAttributeValue(Types.SMALLINT, x);
   }
 
   @Override
-  public void writeInt(int x) {
+  public void writeInt(int x) throws SQLException {
     writeNextAttributeValue(Types.INTEGER, x);
   }
 
   @Override
-  public void writeLong(long x) {
+  public void writeLong(long x) throws SQLException {
     writeNextAttributeValue(Types.BIGINT, x);
   }
 
   @Override
-  public void writeFloat(float x) {
+  public void writeFloat(float x) throws SQLException {
     writeNextAttributeValue(Types.FLOAT, x);
   }
 
   @Override
-  public void writeDouble(double x) {
+  public void writeDouble(double x) throws SQLException {
     writeNextAttributeValue(Types.DOUBLE, x);
   }
 
   @Override
-  public void writeBigDecimal(BigDecimal x) {
+  public void writeBigDecimal(BigDecimal x) throws SQLException {
     writeNextAttributeValue(Types.DECIMAL, x);
   }
 
   @Override
-  public void writeBytes(byte[] x) {
+  public void writeBytes(byte[] x) throws SQLException {
     writeNextAttributeValue(Types.VARBINARY, x);
   }
 
   @Override
-  public void writeDate(Date x) {
+  public void writeDate(Date x) throws SQLException {
     writeNextAttributeValue(Types.DATE, x);
   }
 
   @Override
-  public void writeTime(Time x) {
+  public void writeTime(Time x) throws SQLException {
     writeNextAttributeValue(Types.TIME, x);
   }
 
   @Override
-  public void writeTimestamp(Timestamp x) {
+  public void writeTimestamp(Timestamp x) throws SQLException {
     writeNextAttributeValue(Types.TIMESTAMP, x);
   }
 
@@ -188,47 +188,47 @@ public class PGSQLOutput implements SQLOutput {
   }
 
   @Override
-  public void writeArray(Array x) {
+  public void writeArray(Array x) throws SQLException {
     writeNextAttributeValue(Types.ARRAY, x);
   }
 
   @Override
-  public void writeURL(URL x) {
+  public void writeURL(URL x) throws SQLException {
     writeNextAttributeValue(Types.VARCHAR, x);
   }
 
   @Override
-  public void writeObject(SQLData x) {
+  public void writeObject(SQLData x) throws SQLException {
     writeNextAttributeValue(Types.OTHER, x);
   }
 
   @Override
-  public void writeObject(Object x, SQLType targetSqlType) {
+  public void writeObject(Object x, SQLType targetSqlType) throws SQLException {
     writeNextAttributeValue(Types.OTHER, x);
   }
 
   @Override
-  public void writeBlob(Blob x) {
+  public void writeBlob(Blob x) throws SQLException {
     writeNextAttributeValue(Types.BLOB, x);
   }
 
   @Override
-  public void writeClob(Clob x) {
+  public void writeClob(Clob x) throws SQLException {
     writeNextAttributeValue(Types.CLOB, x);
   }
 
   @Override
-  public void writeStruct(Struct x) {
+  public void writeStruct(Struct x) throws SQLException {
     writeNextAttributeValue(Types.STRUCT, x);
   }
 
   @Override
-  public void writeSQLXML(SQLXML x) {
+  public void writeSQLXML(SQLXML x) throws SQLException {
     writeNextAttributeValue(Types.SQLXML, x);
   }
 
   @Override
-  public void writeRowId(RowId x) {
+  public void writeRowId(RowId x) throws SQLException {
     writeNextAttributeValue(Types.ROWID, x);
   }
 

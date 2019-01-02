@@ -33,9 +33,13 @@ import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Authentication;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.BackendKeyData;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.NegotiateProtocolVersion;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Version;
+
+import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -57,11 +61,14 @@ public class StartupRequest implements ServerRequest {
     ByteBuf authenticateSSPI(ByteBuf data) throws IOException;
     ByteBuf authenticateContinue(ByteBuf data) throws IOException;
 
+    void handleNegotiate(Version maxProtocolVersion, List<String> unrecognizedParameters) throws IOException;
+
     void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) throws IOException;
     void handleError(Throwable cause, List<Notice> notices) throws IOException;
 
   }
 
+  private Version protocolVersion;
   private Map<String, Object> startupParameters;
   private CompletionHandler handler;
   private Integer backendProcessId;
@@ -69,18 +76,27 @@ public class StartupRequest implements ServerRequest {
   private Map<String, String> parameterStatuses;
   private List<Notice> notices;
 
-  StartupRequest(Map<String, Object> startupParameters, CompletionHandler handler) {
+  StartupRequest(Version protocolVersion, Map<String, Object> startupParameters, CompletionHandler handler) {
+    checkArgument(protocolVersion.getRevision() == null, "Protocol version cannot have a revision");
+    this.protocolVersion = protocolVersion;
     this.startupParameters = startupParameters;
     this.handler = handler;
     this.parameterStatuses = new HashMap<>();
     this.notices = new ArrayList<>();
   }
 
-  private class Handler implements Authentication, BackendKeyData, ParameterStatus, ReadyForQuery, CommandError {
+  private class Handler implements Authentication, BackendKeyData, ParameterStatus, NegotiateProtocolVersion, ReadyForQuery, CommandError {
 
     @Override
     public String toString() {
       return "Startup";
+    }
+
+    @Override
+    public Action negotiate(int maxSupportedMinorVersion, List<String> unrecognizedParameters) throws IOException {
+      Version maxSupportedVersion = Version.get(protocolVersion.getMajor(), maxSupportedMinorVersion, null);
+      handler.handleNegotiate(maxSupportedVersion, unrecognizedParameters);
+      return Action.Resume;
     }
 
     @Override
@@ -190,7 +206,6 @@ public class StartupRequest implements ServerRequest {
     public void exception(Throwable cause) throws IOException {
       handler.handleError(cause, notices);
     }
-
   }
 
   @Override
@@ -202,7 +217,7 @@ public class StartupRequest implements ServerRequest {
   public void execute(ProtocolChannel channel) throws IOException {
 
     channel
-        .writeStartup(startupParameters)
+        .writeStartup(protocolVersion.getMajor(), protocolVersion.getMinorValue(), startupParameters)
         .flush();
 
   }

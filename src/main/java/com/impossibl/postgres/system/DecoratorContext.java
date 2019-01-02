@@ -30,6 +30,7 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
@@ -66,7 +67,12 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public KeyData getKeyData() {
+  public ServerInfo getServerInfo() {
+    return base.getServerInfo();
+  }
+
+  @Override
+  public ServerConnection.KeyData getKeyData() {
     return base.getKeyData();
   }
 
@@ -103,16 +109,6 @@ class DecoratorContext extends AbstractContext {
   @Override
   public Map<String, Class<?>> getCustomTypeMap() {
     return base.getCustomTypeMap();
-  }
-
-  @Override
-  public void refreshType(int typeId) {
-    base.refreshType(typeId);
-  }
-
-  @Override
-  public void refreshRelationType(int relationId) {
-    base.refreshRelationType(relationId);
   }
 
   @Override

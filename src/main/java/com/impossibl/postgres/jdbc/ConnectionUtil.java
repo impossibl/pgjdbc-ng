@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER;
@@ -139,7 +139,7 @@ class ConnectionUtil {
     }
   }
 
-  static PGDirectConnection createConnection(String url, Properties info, boolean allowHousekeeper) throws SQLException {
+  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry.Factory sharedRegistryFactory, boolean allowHousekeeper) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -177,19 +177,16 @@ class ConnectionUtil {
 
         PGDirectConnection conn = new PGDirectConnection(address, settings, housekeeper);
 
-        conn.init();
+        conn.init(sharedRegistryFactory);
 
         return conn;
 
       }
       catch (IOException e) {
 
-        lastException = new SQLException("Connection Error: " + e.getMessage(), "8001", e);
+        lastException = makeSQLException("Connection Error: " + e.getMessage(), "8001", e);
       }
-      catch (NoticeException e) {
 
-        lastException = makeSQLException("Connection Error: ", e.getNotice());
-      }
     }
 
     //Couldn't connect so report that last exception we saw

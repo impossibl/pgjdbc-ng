@@ -28,14 +28,14 @@
  */
 package com.impossibl.postgres.protocol.ssl;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Configuration;
 
 import javax.security.auth.callback.CallbackHandler;
 
 
 
-public interface ContextCallbackHandler extends CallbackHandler {
+public interface ConfiguredCallbackHandler extends CallbackHandler {
 
-  void init(Context context);
+  void init(Configuration config);
 
 }

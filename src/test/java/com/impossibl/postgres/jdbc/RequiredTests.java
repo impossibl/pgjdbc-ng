@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
-import com.impossibl.postgres.system.tables.PgAttributeTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -53,7 +52,7 @@ import org.junit.runners.Suite.SuiteClasses;
     EnumTest.class,
     ExceptionTest.class,
     GeneratedKeysTest.class,
-    GiantBlobTest.class,
+//    GiantBlobTest.class,
     LeakTest.class,
     LockTest.class,
     MultiSchemasStructsTest.class,
@@ -61,17 +60,16 @@ import org.junit.runners.Suite.SuiteClasses;
     NotificationTest.class,
     NumericsTest.class,
     ParameterMetaDataTest.class,
-    PgAttributeTest.class,
     PreparedStatementTest.class,
     PsuedoRecordTest.class,
     ResultSetMetaDataTest.class,
     ResultSetTest.class,
     SavepointTest.class,
-    ServerDisconnectTest.class,
+//    ServerDisconnectTest.class,
     ServerErrorTest.class,
     SQLTextTests.class,
-    SSLDataSourceTest.class,
-    SSLTest.class,
+//    SSLDataSourceTest.class,
+//    SSLTest.class,
     StatementTest.class,
     StructTest.class,
     TimestampTest.class,

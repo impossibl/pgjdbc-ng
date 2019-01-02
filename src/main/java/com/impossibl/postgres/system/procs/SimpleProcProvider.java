@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type.Codec;
 
@@ -67,11 +67,11 @@ public class SimpleProcProvider extends BaseProcProvider {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, Context context, Class<? extends Buffer> bufferType) {
-    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", context)) {
+  public <Buffer> Codec.Encoder<Buffer> findEncoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("recv") && hasName(name, "recv", serverInfo)) {
       return (Codec.Encoder<Buffer>) binEncoder;
     }
-    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", context)) {
+    else if (bufferType == StringBuilder.class && name.endsWith("in") && hasName(name, "in", serverInfo)) {
       return (Codec.Encoder<Buffer>) txtEncoder;
     }
     return null;
@@ -79,22 +79,22 @@ public class SimpleProcProvider extends BaseProcProvider {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, Context context, Class<? extends Buffer> bufferType) {
-    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", context)) {
+  public <Buffer> Codec.Decoder<Buffer> findDecoder(String name, ServerInfo serverInfo, Class<? extends Buffer> bufferType) {
+    if (bufferType == ByteBuf.class && name.endsWith("send") && hasName(name, "send", serverInfo)) {
       return (Codec.Decoder<Buffer>) binDecoder;
     }
-    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", context)) {
+    else if (bufferType == CharSequence.class && name.endsWith("out") && hasName(name, "out", serverInfo)) {
       return (Codec.Decoder<Buffer>) txtDecoder;
     }
     return null;
   }
 
   @Override
-  public Modifiers.Parser findModifierParser(String name, Context context) {
-    if (name.endsWith("typmodin") && hasName(name, "typmodin", context)) {
+  public Modifiers.Parser findModifierParser(String name, ServerInfo serverInfo) {
+    if (name.endsWith("typmodin") && hasName(name, "typmodin", serverInfo)) {
       return modParser;
     }
-    if (name.endsWith("typmodout") && hasName(name, "typmodout", context)) {
+    if (name.endsWith("typmodout") && hasName(name, "typmodout", serverInfo)) {
       return modParser;
     }
     return null;

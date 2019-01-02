@@ -28,47 +28,13 @@
  */
 package com.impossibl.postgres.system;
 
-import java.util.function.Function;
+import static com.impossibl.postgres.system.Settings.getSystemProperty;
 
 public abstract class AbstractContext implements Context {
+
   @Override
   public Object getSetting(String name) {
-    return System.getProperty(name);
-  }
-
-  @Override
-  public <T> T getSetting(String name, Class<T> type) {
-    return type.cast(getSetting(name));
-  }
-
-  public <T> T getSetting(String name, Function<Object, T> converter) {
-    return converter.apply(getSetting(name));
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T> T getSetting(String name, T defaultValue) {
-    Object val = getSetting(name);
-    if (val == null)
-      return defaultValue;
-    if ((defaultValue.getClass() == int.class || defaultValue.getClass() == Integer.class) && val instanceof String) {
-      return (T) Integer.valueOf((String) val);
-    }
-    if ((defaultValue.getClass() == long.class || defaultValue.getClass() == Long.class) && val instanceof String) {
-      return (T) Long.valueOf((String) val);
-    }
-    if ((defaultValue.getClass() == boolean.class || defaultValue.getClass() == Boolean.class) && val instanceof String) {
-      return (T) Boolean.valueOf((String) val);
-    }
-    return (T) defaultValue.getClass().cast(val);
-  }
-
-  @Override
-  public boolean isSettingEnabled(String name) {
-    Object val = getSetting(name);
-    if (val instanceof String)
-      return ((String) val).equalsIgnoreCase("on");
-    return val instanceof Boolean && (Boolean) val;
+    return getSystemProperty(name);
   }
 
 }

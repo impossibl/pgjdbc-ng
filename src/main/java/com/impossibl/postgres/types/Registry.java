@@ -29,103 +29,56 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.procs.Procs;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgProc;
-import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.types.Type.Category;
-import com.impossibl.postgres.types.Type.Codec;
 
-import static com.impossibl.postgres.protocol.FieldFormat.Binary;
-import static com.impossibl.postgres.system.procs.Procs.DEFAULT_BINARY_DECODER;
-import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_DECODER;
-import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_ENCODER;
+import static com.impossibl.postgres.types.Type.CATALOG_NAMESPACE;
 
-import java.lang.ref.WeakReference;
-import java.util.Collection;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Logger;
-
-import io.netty.buffer.ByteBuf;
 
 /**
- * Storage and loading for all the known types of a given context.
+ * Storage and loading for all the known types of a given connection.
  *
  * @author kdubb
  *
  */
 public class Registry {
 
-  private static Logger logger = Logger.getLogger(Registry.class.getName());
+  public interface TypeLoader {
 
-  private TreeMap<Integer, Type> oidMap;
-  private Map<String, Type> nameMap;
-  private TreeMap<Integer, Type> relIdMap;
+    Type load(int oid) throws IOException;
+    CompositeType loadRelation(int relationOid) throws IOException;
+    Type load(QualifiedName name) throws IOException;
+    Type load(String name) throws IOException;
 
-  private TreeMap<Integer, PgType.Row> pgTypeData;
-  private TreeMap<Integer, Collection<PgAttribute.Row>> pgAttrData;
-  private TreeMap<Integer, PgProc.Row> pgProcData;
-  private Map<String, PgProc.Row> pgProcNameMap;
-
-  private WeakReference<Context> context;
-  private Procs procs;
-  private ReadWriteLock lock = new ReentrantReadWriteLock();
-
-  private Map<String, String> typeNameAliases;
-
-
-  public Registry(Context context) {
-
-    this.context = new WeakReference<>(context);
-
-    this.procs = new Procs(context.getClass().getClassLoader());
-
-    pgTypeData = new TreeMap<>();
-    pgAttrData = new TreeMap<>();
-    pgProcData = new TreeMap<>();
-    pgProcNameMap = new HashMap<>();
-
-    // Required initial types for bootstrapping
-    oidMap = new TreeMap<>();
-    oidMap.put(16, new BaseType(16, "bool",     (short) 1,  (byte) 0, Category.Boolean, ',', 0, "bool", procs, Binary, Binary));
-    oidMap.put(17, new BaseType(17, "bytea",    (short) 1,  (byte) 0, Category.User,    ',', 0, "bytea", procs, Binary, Binary));
-    oidMap.put(18, new BaseType(18, "char",     (short) 1,  (byte) 0, Category.String,  ',', 0, "char", procs, Binary, Binary));
-    oidMap.put(19, new BaseType(19, "name",     (short) 64, (byte) 0, Category.String,  ',', 0, "name", procs, Binary, Binary));
-    oidMap.put(21, new BaseType(21, "int2",     (short) 2,  (byte) 0, Category.Numeric, ',', 0, "int2", procs, Binary, Binary));
-    oidMap.put(23, new BaseType(23, "int4",     (short) 4,  (byte) 0, Category.Numeric, ',', 0, "int4", procs, Binary, Binary));
-    oidMap.put(24, new BaseType(24, "regproc",  (short) 4,  (byte) 0, Category.Numeric, ',', 0, "regproc", procs, Binary, Binary));
-    oidMap.put(25, new BaseType(25, "text",     (short) 1,  (byte) 0, Category.String,  ',', 0, "text", procs, Binary, Binary));
-    oidMap.put(26, new BaseType(26, "oid",      (short) 4,  (byte) 0, Category.Numeric, ',', 0, "oid", procs, Binary, Binary));
-
-    relIdMap = new TreeMap<>();
-    nameMap = new HashMap<>();
-
-    typeNameAliases = new HashMap<>();
-    typeNameAliases.put("smallint", "int2");
-    typeNameAliases.put("integer", "int4");
-    typeNameAliases.put("bigint", "int8");
-    typeNameAliases.put("decimal", "numeric");
-    typeNameAliases.put("real", "float4");
-    typeNameAliases.put("double precision", "float8");
-    typeNameAliases.put("smallserial", "int2");
-    typeNameAliases.put("serial", "int4");
-    typeNameAliases.put("bigserial", "int8");
   }
 
-  public Context getContext() {
-    return context.get();
+  private SharedRegistry sharedRegistry;
+  private Map<String, Type> commonTypes;
+  private Registry.TypeLoader loader;
+
+  public Registry(SharedRegistry sharedRegistry, Registry.TypeLoader loader) {
+    this.sharedRegistry = sharedRegistry;
+    this.commonTypes = new HashMap<>();
+    this.loader = loader;
   }
 
-  public Type loadType(TypeRef typeRef) {
+  public SharedRegistry getShared() {
+    return sharedRegistry;
+  }
+
+  /**
+   * Resolves a type reference to an actual type object.
+   *
+   * @param typeRef Type reference to resolve
+   * @return Resolved type object
+   */
+  public Type resolve(TypeRef typeRef) throws IOException {
+
     if (typeRef instanceof Type) {
       return (Type) typeRef;
     }
+
     return loadType(typeRef.getOid());
   }
 
@@ -135,93 +88,39 @@ public class Registry {
    * @param typeId The type's id
    * @return Type object or null, if none found
    */
-  public Type loadType(int typeId) {
+  public Type loadType(int typeId) throws IOException {
 
     if (typeId == 0)
       return null;
 
-    lock.readLock().lock();
-    try {
-
-      Type type = oidMap.get(typeId);
-      if (type == null) {
-
-        lock.readLock().unlock();
-        try {
-
-          type = loadRaw(typeId);
-
-          if (type == null) {
-
-            getContext().refreshType(typeId);
-
-          }
-
-        }
-        finally {
-          lock.readLock().lock();
-        }
-
-        type = oidMap.get(typeId);
-
-      }
-
-      return type;
-
-    }
-    finally {
-      lock.readLock().unlock();
-    }
-
+    return sharedRegistry.findOrLoadType(typeId, loader);
   }
 
   /**
-   * Loads a type by its name
+   * Loads a base type from the postgres schema catalog
    *
-   * @param name The type's name
-   * @return Type object or null, if none found
+   *
+   * @param localName Name of the type in the <code>pg_catalog</code> namespace.
+   * @throws IllegalArgumentException When a type cannot be found.
+   * @return Type object
    */
-  public Type loadType(String name) {
+  public Type loadBaseType(String localName) {
 
-    boolean isArray = false;
-    if (name .endsWith("[]")) {
-      isArray = true;
-      name = name.substring(0, name.length() - 2);
-    }
+    QualifiedName name = new QualifiedName(CATALOG_NAMESPACE, localName);
 
-
-    String alias = typeNameAliases.get(name);
-    if (alias != null) {
-      name = alias;
-    }
-
-
-    Type res;
-
-    lock.readLock().lock();
+    Type type;
     try {
-      res = nameMap.get(name);
+      type = sharedRegistry.findOrLoadType(name, loader);
     }
-    finally {
-      lock.readLock().unlock();
-    }
-
-    if (res == null) {
-      getContext().refreshType(getLatestKnownTypeId() + 1);
-      lock.readLock().lock();
-      try {
-        res = nameMap.get(name);
-      }
-      finally {
-        lock.readLock().unlock();
-      }
+    catch (IOException e) {
+      throw new RuntimeException("Unable to load base type: " + localName);
     }
 
-    if (isArray && res != null) {
-      res = loadType(res.getArrayTypeId());
+    if (type == null) {
+      throw new IllegalArgumentException("Unknown type");
     }
 
-    return res;
+    return type;
   }
 
   /**
@@ -230,374 +129,55 @@ public class Registry {
    * @param relationId Relation ID of the type to load
    * @return Relation type or null
    */
-  public CompositeType loadRelationType(int relationId) {
+  public CompositeType loadRelationType(int relationId) throws IOException {
 
     if (relationId == 0)
       return null;
 
-    lock.readLock().lock();
-    try {
-
-      CompositeType type = (CompositeType) relIdMap.get(relationId);
-      if (type == null) {
-
-        lock.readLock().unlock();
-        try {
-
-          type = loadRelationRaw(relationId);
-
-          if (type == null) {
-
-            getContext().refreshRelationType(relationId);
-
-          }
-
-        }
-        finally {
-          lock.readLock().lock();
-        }
-
-        type = (CompositeType) relIdMap.get(relationId);
-
-      }
-
-      return type;
-    }
-    finally {
-      lock.readLock().unlock();
-    }
-
+    return sharedRegistry.findOrLoadRelationType(relationId, loader);
   }
 
   /**
-   * Looks up a procedures name given it's proc-id (aka OID)
+   * Loads a type by name.
    *
-   * @param procId The procedure's id
-   * @return The text name of the procedure or null, if none found
-   */
-  private String lookupProcName(int procId) {
-
-    lock.readLock().lock();
-    try {
-
-      PgProc.Row pgProc = pgProcData.get(procId);
-      if (pgProc == null)
-        return null;
-
-      return pgProc.getName();
-    }
-    finally {
-      lock.readLock().unlock();
-    }
-  }
-
-  /**
-   * Looks up a procedure id (aka OID) given it's name.
+   * As it is resolved by the server, the name can be a qualified, unqualified or
+   * alias name; anything acceptable to the server.
    *
-   * @param procName The procedure's name
-   * @return The id of the procedure (aka OID) or null, if none found
-   */
-  public int lookupProcId(String procName) {
-
-    lock.readLock().lock();
-    try {
-
-      PgProc.Row pgProc = pgProcNameMap.get(procName);
-      if (pgProc == null)
-        return 0;
-
-      return pgProc.getOid();
-    }
-    finally {
-      lock.readLock().unlock();
-    }
-
-  }
-
-  public int getLatestKnownTypeId() {
-    return oidMap.lastKey();
-  }
-
-  /**
-   * Updates the type information from the given catalog data. Any
-   * information not specifically mentioned in the given updated
-   * data will be retained and untouched.
+   * Stable types are those that are expected to be available and not to change;
+   * an example being "hstore".
    *
-   * @param pgTypeRows "pg_type" table rows
-   * @param pgAttrRows "pg_attribute" table rows
-   * @param pgProcRows "pg_proc" table rows
+   * This method caches the type in the non-shared registry. Any changes
+   * to the type (e.g. dropping and re-creating the "hstore" extension) will
+   * cause the cache to become stale.
+   *
+   * @param typeName Name of the type (can be anything accepted by the server)
+   * @return Type object or null, if none found
    */
-  public void update(Collection<PgType.Row> pgTypeRows, Collection<PgAttribute.Row> pgAttrRows, Collection<PgProc.Row> pgProcRows) {
-
-    lock.writeLock().lock();
-    try {
-      /*
-       * Update attribute info
-       */
-
-      //Remove attribute info for updating types
-      for (PgType.Row pgType : pgTypeRows) {
-        pgAttrData.remove(pgType.getRelationId());
-      }
-
-      //Add updated info
-      for (PgAttribute.Row pgAttrRow : pgAttrRows) {
-
-        Collection<PgAttribute.Row> relRows = pgAttrData.computeIfAbsent(pgAttrRow.getRelationId(), k -> new HashSet<>());
-
-        relRows.add(pgAttrRow);
-      }
-
-      /*
-       * Update proc info
-       */
-
-      for (PgProc.Row pgProcRow : pgProcRows) {
-        pgProcData.put(pgProcRow.getOid(), pgProcRow);
-        pgProcNameMap.put(pgProcRow.getName(), pgProcRow);
-      }
-
-
-      /*
-       * Update type info
-       */
-      for (PgType.Row pgTypeRow : pgTypeRows) {
-        pgTypeData.put(pgTypeRow.getOid(), pgTypeRow);
-        oidMap.remove(pgTypeRow.getOid());
-        nameMap.remove(pgTypeRow.getName());
-        relIdMap.remove(pgTypeRow.getRelationId());
-      }
-
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-
-    /*
-     * (re)load all types just updated
-     */
-    for (PgType.Row pgType : pgTypeRows) {
-      loadType(pgType.getOid());
-    }
-
-  }
-
-  /*
-   * Materialize the requested type from the raw catalog data
-   */
-  private Type loadRaw(int typeId) {
-
-    if (typeId == 0)
-      return null;
-
-    lock.writeLock().lock();
-    try {
-
-      PgType.Row pgType = pgTypeData.get(typeId);
-      if (pgType == null)
-        return null;
-
-      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(pgType.getRelationId());
-
-      Type type;
-
-      lock.writeLock().unlock();
-      try {
-        type = loadRaw(pgType, pgAttrs);
-      }
-      finally {
-        lock.writeLock().lock();
-      }
-
-      if (type != null) {
-        oidMap.put(typeId, type);
-        nameMap.put(type.getName(), type);
-        relIdMap.put(type.getRelationId(), type);
-      }
-
-      return type;
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  /*
-   * Materialize the requested type from the raw catalog data
-   */
-  private CompositeType loadRelationRaw(int relationId) {
-
-    if (relationId == 0)
-      return null;
-
-    lock.writeLock().lock();
-    try {
-
-      CompositeType type = null;
-
-      Collection<PgAttribute.Row> pgAttrs = pgAttrData.get(relationId);
-      if (pgAttrs != null && !pgAttrs.isEmpty()) {
-
-        PgType.Row pgType = pgTypeData.get(pgAttrs.iterator().next().getRelationTypeId());
-        if (pgType == null)
-          return null;
-
-        lock.writeLock().unlock();
-        try {
-          type = (CompositeType) loadRaw(pgType, pgAttrs);
-        }
-        finally {
-          lock.writeLock().lock();
-        }
-
-        if (type != null) {
-          oidMap.put(pgType.getOid(), type);
-          nameMap.put(type.getName(), type);
-          relIdMap.put(type.getRelationId(), type);
-        }
-      }
-
-      return type;
-    }
-    finally {
-      lock.writeLock().unlock();
-    }
-
-  }
-
-  /*
-   * Materialize a type from the given "pg_type" and "pg_attribute" data
-   */
-  private Type loadRaw(PgType.Row pgType, Collection<PgAttribute.Row> pgAttrs) {
+  public Type loadStableType(String typeName) throws IOException {
 
     Type type;
+    if ((type = commonTypes.get(typeName)) == null) {
 
-    if (pgType.getElementTypeId() != 0 && pgType.getCategory().equals("A")) {
+      type = loadTransientType(typeName);
 
-      type = new ArrayType(loadType(pgType.getElementTypeId()));
-    }
-    else {
-
-      switch (pgType.getDiscriminator().charAt(0)) {
-        case 'b':
-          type = new BaseType();
-          break;
-        case 'c':
-          type = new CompositeType();
-          break;
-        case 'd':
-          type = new DomainType();
-          break;
-        case 'e':
-          type = new EnumerationType();
-          break;
-        case 'p':
-          type = new PsuedoType();
-          break;
-        case 'r':
-          type = new RangeType();
-          break;
-        default:
-          logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
-          return null;
-      }
-
-    }
-
-    try {
-
-      lock.writeLock().lock();
-      try {
-        oidMap.put(pgType.getOid(), type);
-      }
-      finally {
-        lock.writeLock().unlock();
-      }
-
-      type.load(pgType, pgAttrs, this);
-
-    }
-    catch (Exception e) {
-
-      e.printStackTrace();
-
-      lock.writeLock().lock();
-      try {
-        oidMap.remove(pgType.getOid());
-      }
-      finally {
-        lock.writeLock().unlock();
-      }
+      commonTypes.put(typeName, type);
     }
 
     return type;
   }
 
   /**
-   * Loads a matching Codec given the proc-id of its encoder and decoder
+   * Loads a type by name.
    *
-   * @param encoderId proc-id of the encoder
-   * @param decoderId proc-id of the decoder
-   * @return A matching Codec instance
-   */
-  Type.TextCodec loadTextCodec(int encoderId, int decoderId) {
-    return new Type.TextCodec(
-        loadDecoderProc(decoderId, DEFAULT_TEXT_DECODER, CharSequence.class),
-        loadEncoderProc(encoderId, DEFAULT_TEXT_ENCODER, StringBuilder.class)
-    );
-  }
-
-  /**
-   * Loads a matching Codec given the proc-id of its encoder and decoder
+   * As it is resolved by the server, the name can be a qualified, unqualified or
+   * alias name; anything acceptable to the server.
    *
-   * @param encoderId proc-id of the encoder
-   * @param decoderId proc-id of the decoder
-   * @return A matching Codec instance
+   * @param typeName Name of the type (can be anything accepted by the server)
+   * @return Type object or null, if none found
    */
-  Type.BinaryCodec loadBinaryCodec(int encoderId, int decoderId) {
-    return new Type.BinaryCodec(
-        loadDecoderProc(decoderId, DEFAULT_BINARY_DECODER, ByteBuf.class),
-        loadEncoderProc(encoderId, Procs.DEFAULT_BINARY_ENCODER, ByteBuf.class)
-    );
-  }
+  public Type loadTransientType(String typeName) throws IOException {
 
-  /*
-   * Loads a matching encoder given its proc-id
-   */
-  private <Buffer> Codec.Encoder<Buffer> loadEncoderProc(int procId, Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
-
-    String name = lookupProcName(procId);
-    if (name == null) {
-      return defaultEncoder;
-    }
-
-    return procs.loadEncoderProc(name, getContext(), defaultEncoder, bufferType);
-  }
-
-  /*
-   * Loads a matching decoder given its proc-id
-   */
-  private <Buffer> Codec.Decoder<Buffer> loadDecoderProc(int procId, Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
-
-    String name = lookupProcName(procId);
-    if (name == null) {
-      return defaultDecoder;
-    }
-
-    return procs.loadDecoderProc(name, getContext(), defaultDecoder, bufferType);
-  }
-
-  /*
-   * Loads a matching parser given mod-in and mod-out ids
-   */
-  Modifiers.Parser loadModifierParser(int modInId) {
-
-    String name = lookupProcName(modInId);
-    if (name == null) {
-      name = ""; //get the default proc
-    }
-
-    return procs.loadModifierParserProc(name, getContext());
+    return loader.load(typeName);
   }
 
 }

@@ -29,10 +29,9 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgType;
+import com.impossibl.postgres.system.tables.PGTypeTable;
 
-import java.util.Collection;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -46,20 +45,29 @@ public class DomainType extends Type {
   private Type base;
   private boolean nullable;
   private Map<String, Object> modifiers;
-  private int numberOfDimensions;
   private String defaultValue;
 
   public Type getBase() {
     return base;
   }
-  public void setBase(Type base) {
-    this.base = base;
+
+  @Override
+  public PrimitiveType getPrimitiveType() {
+    return PrimitiveType.Domain;
   }
-  public boolean isNullable() {
+
+  @Override
+  public Boolean isNullable() {
     return nullable;
   }
-  public void setNullable(boolean nullable) {
-    this.nullable = nullable;
+
+  public Map<String, Object> getModifiers() {
+    return modifiers;
+  }
+
+  @Override
+  public String getDefaultValue() {
+    return defaultValue;
   }
 
   @Override
@@ -73,36 +81,13 @@ public class DomainType extends Type {
   }
 
   @Override
-  public PrimitiveType getPrimitiveType() {
-    return PrimitiveType.Domain;
-  }
-
-  public Map<String, Object> getModifiers() {
-    return modifiers;
-  }
-
-  public void setModifiers(Map<String, Object> modifiers) {
-    this.modifiers = modifiers;
-  }
-
-  public String getDefaultValue() {
-    return defaultValue;
-  }
-
-  public void setDefaultValue(String defaultValue) {
-    this.defaultValue = defaultValue;
-  }
-
-  @Override
   public Type unwrap() {
     return base.unwrap();
   }
 
   @Override
-  public void load(PgType.Row source, Collection<PgAttribute.Row> attrs, Registry registry) {
-
-    super.load(source, attrs, registry);
-
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
+    super.load(source, registry);
     base = registry.loadType(source.getDomainBaseTypeId());
     nullable = !source.isDomainNotNull();
     modifiers = base.getModifierParser().parse(source.getDomainTypeMod());

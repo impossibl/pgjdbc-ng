@@ -45,9 +45,11 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -128,7 +130,14 @@ public class DirectQuery implements Query {
     resultBatches = results.getBatches();
 
     // Cache referenced types...
-    resultBatches.forEach(resultBatch -> transformFieldTypes(resultBatch, connection.getRegistry()::loadType));
+    try {
+      for (ResultBatch resultBatch : resultBatches) {
+        transformFieldTypes(resultBatch, connection.getRegistry()::resolve);
+      }
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     return chainWarnings(null, results);
   }
@@ -173,7 +182,12 @@ public class DirectQuery implements Query {
     ResultBatch resultBatch = result.getBatch();
 
     // Cache referenced types...
-    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+    try {
+      transformFieldTypes(resultBatch, connection.getRegistry()::resolve);
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     resultBatches = new ArrayList<>(singletonList(resultBatch));
 

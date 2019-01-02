@@ -28,10 +28,12 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.types.Type.Codec;
+
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
 import java.util.ServiceLoader;
 
@@ -48,9 +50,11 @@ public class Procs {
 
   public static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
 
+  private ServerInfo serverInfo;
   private ServiceLoader<ProcProvider> providers;
 
-  public Procs(ClassLoader classLoader) {
+  public Procs(ServerInfo serverInfo, ClassLoader classLoader) {
+    this.serverInfo = serverInfo;
     try {
       providers = ServiceLoader.load(ProcProvider.class, classLoader);
     }
@@ -59,27 +63,27 @@ public class Procs {
     }
   }
 
-  public Type.TextCodec loadNamedTextCodec(String baseName, Context context) {
+  public Type.TextCodec loadNamedTextCodec(String baseName) {
     return new Type.TextCodec(
-        loadDecoderProc(baseName + "out", context, DEFAULT_TEXT_DECODER, CharSequence.class),
-        loadEncoderProc(baseName + "in",  context, DEFAULT_TEXT_ENCODER, StringBuilder.class)
+        loadDecoderProc(baseName + "out", DEFAULT_TEXT_DECODER, CharSequence.class),
+        loadEncoderProc(baseName + "in", DEFAULT_TEXT_ENCODER, StringBuilder.class)
     );
   }
 
-  public Type.BinaryCodec loadNamedBinaryCodec(String baseName, Context context) {
+  public Type.BinaryCodec loadNamedBinaryCodec(String baseName) {
     return new Type.BinaryCodec(
-        loadDecoderProc(baseName + "send", context, DEFAULT_BINARY_DECODER, ByteBuf.class),
-        loadEncoderProc(baseName + "recv", context, DEFAULT_BINARY_ENCODER, ByteBuf.class)
+        loadDecoderProc(baseName + "send", DEFAULT_BINARY_DECODER, ByteBuf.class),
+        loadEncoderProc(baseName + "recv", DEFAULT_BINARY_ENCODER, ByteBuf.class)
     );
   }
 
-  public <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String name, Context context, Type.Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
+  public <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String name, Type.Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
 
     if (!name.isEmpty()) {
       Codec.Encoder<Buffer> h;
 
       for (ProcProvider pp : providers) {
-        if ((h = pp.findEncoder(name, context, bufferType)) != null)
+        if ((h = pp.findEncoder(name, serverInfo, bufferType)) != null)
           return h;
       }
     }
@@ -87,12 +91,12 @@ public class Procs {
     return defaultEncoder;
   }
 
-  public <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String name, Context context, Type.Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
+  public <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String name, Type.Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
     if (!name.isEmpty()) {
       Codec.Decoder<Buffer> h;
 
       for (ProcProvider pp : providers) {
-        if ((h = pp.findDecoder(name, context, bufferType)) != null)
+        if ((h = pp.findDecoder(name, serverInfo, bufferType)) != null)
           return h;
       }
     }
@@ -100,13 +104,13 @@ public class Procs {
     return defaultDecoder;
   }
 
-  public Modifiers.Parser loadModifierParserProc(String name, Context context) {
+  public Modifiers.Parser loadModifierParserProc(String name) {
 
-    if (!name.isEmpty()) {
+    if (!isNullOrEmpty(name) && !name.equals("-")) {
       Modifiers.Parser p;
 
       for (ProcProvider pp : providers) {
-        if ((p = pp.findModifierParser(name, context)) != null)
+        if ((p = pp.findModifierParser(name, serverInfo)) != null)
           return p;
       }
     }

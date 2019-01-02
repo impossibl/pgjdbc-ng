@@ -44,6 +44,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import org.junit.After;
 import org.junit.Before;
@@ -55,6 +56,7 @@ import org.junit.runners.JUnit4;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -227,7 +229,7 @@ public class ConnectionTest {
 
     // Finally test clearWarnings() this time there must be something to delete
     con.clearWarnings();
-    assertTrue(con.getWarnings() == null);
+    assertNull(con.getWarnings());
   }
 
   /*
@@ -415,7 +417,10 @@ public class ConnectionTest {
   }
 
   /**
-   * Abort connection
+   * Abort connection - original abort test
+   * where the {@link PGDirectConnection#abort(Executor)}
+   * executes before the thread, and therefore query,
+   * begin executing.
    */
   @Test
   public void testAbort() throws Exception {
@@ -454,7 +459,53 @@ public class ConnectionTest {
 
     assertTrue(System.currentTimeMillis() - start < 30000);
     assertTrue(con.isClosed());
+  }
 
+  /**
+   * Abort connection - same test as above except
+   * a sleep is added to ensure the query begins
+   * execution before the abort is issued
+   */
+  @Test
+  public void testAbortAfterQueryStart() throws Exception {
+
+    con = TestUtil.openDB();
+    con.setNetworkTimeout(null, 40000);
+
+    Thread queryThread = new Thread() {
+
+      @Override
+      public void run() {
+
+        try {
+
+          try (Statement stmt = con.createStatement()) {
+
+            stmt.execute("SELECT pg_sleep(30);");
+            fail("Query should have been aborted");
+          }
+
+        }
+        catch (SQLException e) {
+        }
+
+      }
+
+    };
+
+    queryThread.start();
+
+    // Wait for query to start...
+    Thread.sleep(100);
+
+    long start = System.currentTimeMillis();
+
+    con.abort(Runnable::run);
+
+    queryThread.join();
+
+    assertTrue(System.currentTimeMillis() - start < 30000);
+    assertTrue(con.isClosed());
   }
 
 }

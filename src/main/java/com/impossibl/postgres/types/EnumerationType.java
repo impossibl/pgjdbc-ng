@@ -29,9 +29,9 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.system.tables.PgType.Row;
+import com.impossibl.postgres.system.tables.PGTypeTable.Row;
 
-import java.util.Collection;
+import java.io.IOException;
 
 /**
  * A database enumeration type.
@@ -41,7 +41,7 @@ import java.util.Collection;
  */
 public class EnumerationType extends Type {
 
-  Type textType;
+  private Type textType;
 
   @Override
   public boolean isParameterFormatSupported(FieldFormat format) {
@@ -59,9 +59,9 @@ public class EnumerationType extends Type {
   }
 
   @Override
-  public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
-    textType = registry.loadType("text");
+  public void load(Row source, Registry registry) throws IOException {
+    super.load(source, registry);
+    textType = registry.loadBaseType("text");
   }
 
 }

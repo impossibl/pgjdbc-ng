@@ -42,7 +42,7 @@ import io.netty.buffer.ByteBuf;
 public class Int4s extends SimpleProcProvider {
 
   public Int4s() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "xid", "cid", "regproc");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4", "xid", "cid", "regproc", "regtype", "regclass", "regoper");
   }
 
   static class BinDecoder extends NumericBinaryDecoder<Integer> {

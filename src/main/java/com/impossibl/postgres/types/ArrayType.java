@@ -29,6 +29,10 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.system.procs.Procs;
+import com.impossibl.postgres.system.tables.PGTypeTable;
+
+import java.io.IOException;
 
 /**
  * A database array type.
@@ -40,7 +44,20 @@ public class ArrayType extends Type {
 
   private Type elementType;
 
-  public ArrayType(Type elementType) {
+  public ArrayType() {
+  }
+
+  public ArrayType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat, Type elementType) {
+    super(id, name, CATALOG_NAMESPACE, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName), procs.loadNamedTextCodec(procName), procs.loadModifierParserProc(procName), preferredParameterFormat, preferredResultFormat);
+    this.elementType = elementType;
+  }
+
+  public ArrayType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat, Type elementType) {
+    this(id, name, length, alignment, category, delimeter, arrayTypeId, "array_", procs, preferredParameterFormat, preferredResultFormat, elementType);
+  }
+
+  public ArrayType(int id, String name, String namespace, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, Modifiers.Parser modifierParser, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat, Type elementType) {
+    super(id, name, namespace, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec, modifierParser, preferredParameterFormat, preferredResultFormat);
     this.elementType = elementType;
   }
 
@@ -66,6 +83,12 @@ public class ArrayType extends Type {
   @Override
   public Type unwrap() {
     return elementType;
+  }
+
+  @Override
+  public void load(PGTypeTable.Row source, Registry registry) throws IOException {
+    super.load(source, registry);
+    this.elementType = registry.loadType(source.getElementTypeId());
   }
 
 }

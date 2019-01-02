@@ -31,37 +31,75 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
 
+import static com.impossibl.postgres.system.tables.PGTypeTable.INSTANCE;
+import static com.impossibl.postgres.system.tables.PGTypeTable.SQL;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * Created by dstipp on 12/8/15.
  */
-public class PgProcTest {
+public class PGTypeTableTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
 
   @Test
-  public void testGetSQLVersionEqual() throws Exception {
-    assertEquals(PgProc.INSTANCE.getSQL(Version.parse("9.0.0")), SQL[1]);
+  public void testGetSQLVersionEqual() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.2.0")), SQL[1]);
+    assertNotEquals(INSTANCE.getSQL(Version.parse("9.1.0")), INSTANCE.getSQL(Version.parse("9.2.0")));
   }
 
   @Test
-  public void testGetSQLVersionGreater() throws Exception {
-    assertEquals(PgProc.INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
+  public void testGetSQLVersionGreater() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.4.5")), SQL[1]);
   }
 
   @Test
-  public void testGetSQLVersionLess() throws Exception {
+  public void testGetSQLVersionLess() {
+    assertEquals(INSTANCE.getSQL(Version.parse("9.1.9")), SQL[3]);
+  }
+
+  @Test
+  public void testGetSQLVersionInvalid() {
     thrown.expect(UnsupportedServerVersion.class);
-    assertEquals(PgProc.INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
+    assertEquals(INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
   }
 
-  // copy-paste from PgProc.  Has to be a better way than this, but IDE and dp4j don't seem to get along.
-  private static final Object[] SQL = {Version.get(9, 0, 0), " select " + "    \"oid\", proname as \"name\"" + " from" + "   pg_proc"};
+  @Test
+  public void testHashCode() {
+    PGTypeTable.Row pgAttrOne = createRow(12345);
+    PGTypeTable.Row pgAttrOneAgain = createRow(12345);
+    PGTypeTable.Row pgAttrTwo = createRow(54321);
+
+    assertEquals(pgAttrOne.hashCode(), pgAttrOne.hashCode());
+    assertEquals(pgAttrOne.hashCode(), pgAttrOneAgain.hashCode());
+    assertNotEquals(pgAttrOne.hashCode(), pgAttrTwo.hashCode());
+  }
+
+  @Test
+  public void testEquals() {
+    PGTypeTable.Row pgAttrOne = createRow(12345);
+    PGTypeTable.Row pgAttrOneAgain = createRow(12345);
+    PGTypeTable.Row pgAttrTwo = createRow(54321);
+
+    assertEquals(pgAttrOne, pgAttrOne);
+    assertNotEquals(null, pgAttrOne);
+    assertNotEquals("testStringNotSameClass", pgAttrOne);
+    assertNotEquals(pgAttrOne, pgAttrTwo);
+    assertEquals(pgAttrOne, pgAttrOneAgain);
+
+  }
+
+  private PGTypeTable.Row createRow(int oid) {
+    PGTypeTable.Row pgTypeRow = new PGTypeTable.Row();
+    pgTypeRow.setOid(oid);
+    return pgTypeRow;
+  }
 
 }

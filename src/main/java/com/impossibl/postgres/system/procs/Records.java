@@ -35,7 +35,6 @@ import com.impossibl.postgres.jdbc.PGStruct;
 import com.impossibl.postgres.jdbc.PGValuesStruct;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -52,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.Character.isWhitespace;
+import static java.util.Arrays.fill;
 
 import io.netty.buffer.ByteBuf;
 
@@ -107,7 +107,7 @@ public class Records extends SimpleProcProvider {
 
       try {
         PGSQLInput<Buffer> input = inputFactory.create(context, attributeTypes, attributeBuffers);
-        data.readSQL(input, type.getName());
+        data.readSQL(input, type.getQualifiedName().toString());
       }
       catch (SQLException e) {
         throw new IOException(e);
@@ -116,7 +116,7 @@ public class Records extends SimpleProcProvider {
       result = data;
     }
     else if (targetClass == PGStruct.class) {
-      result = structFactory.create(context, type.getName(), attributeTypes, attributeBuffers);
+      result = structFactory.create(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
     }
     else {
       throw new ConversionException(Record, targetClass);
@@ -158,7 +158,7 @@ public class Records extends SimpleProcProvider {
         int attributeLen = buffer.readInt();
         if (attributeLen != -1) {
           ByteBuf attributeBuffer = PGBuffersStruct.Binary.ALLOC.buffer(attributeLen);
-          buffer.readSlice(attributeLen).writeBytes(attributeBuffer);
+          buffer.readBytes(attributeBuffer, attributeLen);
           attributeBuffers[c] = attributeBuffer;
         }
       }
@@ -216,13 +216,11 @@ public class Records extends SimpleProcProvider {
     @Override
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
-      Type[] attributeTypes = null;
-      if (type instanceof CompositeType) {
-        attributeTypes = ((CompositeType) type).getAttributesTypes();
-      }
-
       List<CharSequence> attributeBuffers = new ArrayList<>();
       parseAttributeBuffers(type.getDelimeter(), buffer, attributeBuffers);
+
+      Type[] attributeTypes = new Type[attributeBuffers.size()];
+      fill(attributeTypes, context.getRegistry().loadBaseType("text"));
 
       return convertOutput(context, type, attributeTypes, attributeBuffers.toArray(new CharSequence[0]), targetClass, PGSQLInput.Text::new, PGBuffersStruct.Text::new);
     }

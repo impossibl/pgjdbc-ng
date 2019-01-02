@@ -35,14 +35,18 @@
  */
 package com.impossibl.postgres.protocol;
 
+import java.io.IOException;
 import java.util.List;
-import java.util.function.Function;
 
 public class ResultBatches {
 
-  public static void transformFieldTypes(ResultBatch resultBatch, Function<TypeRef, TypeRef> consumer) {
+  public interface Transformer {
+    TypeRef apply(TypeRef typeRef) throws IOException;
+  }
+
+  public static void transformFieldTypes(ResultBatch resultBatch, Transformer transformer) throws IOException {
     for (ResultField field : resultBatch.getFields()) {
-      field.setTypeRef(consumer.apply(field.getTypeRef()));
+      field.setTypeRef(transformer.apply(field.getTypeRef()));
     }
   }
 

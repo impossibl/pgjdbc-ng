@@ -35,6 +35,9 @@
  */
 package com.impossibl.postgres.protocol;
 
+import com.impossibl.postgres.system.ServerInfo;
+import com.impossibl.postgres.system.Version;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,6 +46,35 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 
 public interface ServerConnection {
+
+  interface Listener {
+    void parameterStatusChanged(String name, String value);
+    void notificationReceived(int processId, String channelName, String payload);
+  }
+
+  class KeyData {
+    private int processId;
+    private int secretKey;
+
+    public KeyData(int processId, int secretKey) {
+      this.processId = processId;
+      this.secretKey = secretKey;
+    }
+
+    public int getProcessId() {
+      return processId;
+    }
+
+    public int getSecretKey() {
+      return secretKey;
+    }
+  }
+
+  ServerInfo getServerInfo();
+
+  Version getProtocolVersion();
+
+  KeyData getKeyData();
 
   ByteBufAllocator getAllocator();
 

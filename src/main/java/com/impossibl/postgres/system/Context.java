@@ -30,6 +30,7 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
+import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
@@ -40,25 +41,7 @@ import java.util.TimeZone;
 
 import io.netty.buffer.ByteBufAllocator;
 
-public interface Context {
-
-  class KeyData {
-    private int processId;
-    private int secretKey;
-
-    KeyData(int processId, int secretKey) {
-      this.processId = processId;
-      this.secretKey = secretKey;
-    }
-
-    public int getProcessId() {
-      return processId;
-    }
-
-    public int getSecretKey() {
-      return secretKey;
-    }
-  }
+public interface Context extends Configuration {
 
   RequestExecutor getRequestExecutor();
 
@@ -70,7 +53,9 @@ public interface Context {
 
   Charset getCharset();
 
-  KeyData getKeyData();
+  ServerInfo getServerInfo();
+
+  ServerConnection.KeyData getKeyData();
 
   NumberFormat getIntegerFormatter();
 
@@ -85,18 +70,6 @@ public interface Context {
   DateTimeFormat getTimestampFormatter();
 
   Map<String, Class<?>> getCustomTypeMap();
-
-  void refreshType(int typeId);
-
-  void refreshRelationType(int relationId);
-
-  Object getSetting(String name);
-
-  <T> T getSetting(String name, Class<T> type);
-
-  <T> T getSetting(String name, T defaultValue);
-
-  boolean isSettingEnabled(String name);
 
   Context unwrap();
 

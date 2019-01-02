@@ -30,32 +30,33 @@ package com.impossibl.postgres.utils;
 
 public class Types {
 
-  public static Class<?> boxType(Class<?> type) {
+  @SuppressWarnings("unchecked")
+  public static <T, U> Class<U> boxType(Class<T> type) {
     if (type == boolean.class) {
-      return Boolean.class;
+      return (Class<U>) Boolean.class;
     }
     else if (type == char.class) {
-      return Character.class;
+      return (Class<U>) Character.class;
     }
     else if (type == byte.class) {
-      return Byte.class;
+      return (Class<U>) Byte.class;
     }
     else if (type == short.class) {
-      return Short.class;
+      return (Class<U>) Short.class;
     }
     else if (type == int.class) {
-      return Integer.class;
+      return (Class<U>) Integer.class;
     }
     else if (type == long.class) {
-      return Long.class;
+      return (Class<U>) Long.class;
     }
     else if (type == float.class) {
-      return Float.class;
+      return (Class<U>) Float.class;
     }
     else if (type == double.class) {
-      return Double.class;
+      return (Class<U>) Double.class;
     }
-    return type;
+    return (Class<U>) type;
   }
 
 }

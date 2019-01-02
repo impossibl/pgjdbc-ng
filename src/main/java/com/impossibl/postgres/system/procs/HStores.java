@@ -72,7 +72,7 @@ public class HStores extends SimpleProcProvider {
     @Override
     protected Map<String, String> decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      Type textType = context.getRegistry().loadType("text");
+      Type textType = context.getRegistry().loadBaseType("text");
 
       int numElements = buffer.readInt();
       Map<String, String> m = newMap(numElements);
@@ -106,7 +106,7 @@ public class HStores extends SimpleProcProvider {
     @Override
     protected void encodeNativeValue(Context context, Type type, Map<String, String> value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      Type textType = context.getRegistry().loadType("text");
+      Type textType = context.getRegistry().loadBaseType("text");
 
       // nb elements
       buffer.writeInt(value.size());

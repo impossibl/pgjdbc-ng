@@ -30,9 +30,6 @@ package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.procs.Procs;
-import com.impossibl.postgres.system.tables.PgType.Row;
-
-import java.util.Collection;
 
 /**
  * A database primitive type
@@ -45,17 +42,12 @@ public class BaseType extends Type {
   public BaseType() {
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, BinaryCodec binaryCodec, TextCodec textCodec, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, binaryCodec, textCodec, preferredParameterFormat, preferredResultFormat);
+  public BaseType(int id, String name, String namespace, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    super(id, name, namespace, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName), procs.loadNamedTextCodec(procName), procs.loadModifierParserProc(procName), preferredParameterFormat, preferredResultFormat);
   }
 
-  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, String procName, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
-    super(id, name, length, alignment, category, delimeter, arrayTypeId, procs.loadNamedBinaryCodec(procName, null), procs.loadNamedTextCodec(procName, null), preferredParameterFormat, preferredResultFormat);
-  }
-
-  @Override
-  public void load(Row source, Collection<com.impossibl.postgres.system.tables.PgAttribute.Row> attrs, Registry registry) {
-    super.load(source, attrs, registry);
+  public BaseType(int id, String name, Short length, Byte alignment, Category category, char delimeter, int arrayTypeId, Procs procs, FieldFormat preferredParameterFormat, FieldFormat preferredResultFormat) {
+    this(id, name, CATALOG_NAMESPACE, length, alignment, category, delimeter, arrayTypeId, name, procs, preferredParameterFormat, preferredResultFormat);
   }
 
 }

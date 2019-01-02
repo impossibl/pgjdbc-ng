@@ -36,7 +36,6 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.Await;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
@@ -47,7 +46,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static io.netty.util.ReferenceCountUtil.retain;
@@ -93,13 +91,10 @@ public class RequestExecutorHandlers {
       throw new IllegalStateException("Result has not completed.");
     }
 
-    private void rethrowError() throws IOException, NoticeException {
+    private void rethrowError() throws IOException {
       if (error == null) return;
       if (error instanceof IOException) {
         throw (IOException) error;
-      }
-      if (error instanceof NoticeException) {
-        throw (NoticeException) error;
       }
       if (error instanceof RuntimeException) {
         throw (RuntimeException) error;
@@ -107,7 +102,7 @@ public class RequestExecutorHandlers {
       throw new RuntimeException(error);
     }
 
-    public void await(long timeout, TimeUnit unit) throws IOException, NoticeException {
+    public void await(long timeout, TimeUnit unit) throws IOException {
       if (!Await.awaitUninterruptibly(timeout, unit, completed::await)) {
         throw new BlockingReadTimeoutException();
       }
@@ -130,10 +125,15 @@ public class RequestExecutorHandlers {
     private TypeRef[] describedParameterTypes;
     private ResultField[] describedResultFields;
 
-    public Type[] getDescribedParameterTypes(Context context) {
+    public Type[] getDescribedParameterTypes(Context context) throws IOException {
       checkCompleted();
 
-      return stream(describedParameterTypes).map(ref -> context.getRegistry().loadType(ref)).toArray(Type[]::new);
+      List<Type> list = new ArrayList<>();
+      for (TypeRef ref : describedParameterTypes) {
+        Type resolve = context.getRegistry().resolve(ref);
+        list.add(resolve);
+      }
+      return list.toArray(new Type[0]);
     }
 
     public ResultField[] getDescribedResultFields() {

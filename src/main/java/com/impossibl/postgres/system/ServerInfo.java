@@ -28,25 +28,54 @@
  */
 package com.impossibl.postgres.system;
 
-/**
- * Created by kdubb on 7/10/16.
- */
-public interface PrimitiveSink {
+import java.util.Objects;
 
-  void writeBytes(byte[] val);
+public class ServerInfo {
 
-  void writeBool(boolean val);
+  private Version version;
+  private String encoding;
+  private boolean integerDateTimes;
 
-  void writeByte(byte val);
+  public ServerInfo(Version version, String encoding, boolean integerDateTimes) {
+    this.version = version;
+    this.encoding = encoding;
+    this.integerDateTimes = integerDateTimes;
+  }
 
-  void writeShort(short val);
+  public Version getVersion() {
+    return version;
+  }
 
-  void writeInt(int val);
+  public String getEncoding() {
+    return encoding;
+  }
 
-  void writeLong(long val);
+  public boolean hasIntegerDateTimes() {
+    return integerDateTimes;
+  }
 
-  void writeFloat(float val);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ServerInfo that = (ServerInfo) o;
+    return integerDateTimes == that.integerDateTimes &&
+        version.equals(that.version) &&
+        Objects.equals(encoding, that.encoding);
+  }
 
-  void writeDouble(double val);
+  @Override
+  public int hashCode() {
+    return Objects.hash(version, encoding, integerDateTimes);
+  }
+
+  @Override
+  public String toString() {
+    return "ServerInfo{" +
+        "version=" + version +
+        ", encoding='" + encoding + '\'' +
+        ", integerDateTimes=" + integerDateTimes +
+        '}';
+  }
 
 }

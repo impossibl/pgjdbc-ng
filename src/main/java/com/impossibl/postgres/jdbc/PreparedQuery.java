@@ -42,9 +42,11 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -142,7 +144,12 @@ public class PreparedQuery implements Query {
     resultBatch = result.getBatch();
 
     // Cache referenced types...
-    transformFieldTypes(resultBatch, connection.getRegistry()::loadType);
+    try {
+      transformFieldTypes(resultBatch, connection.getRegistry()::resolve);
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     if (result.isSuspended()) {
       status = Status.Suspended;

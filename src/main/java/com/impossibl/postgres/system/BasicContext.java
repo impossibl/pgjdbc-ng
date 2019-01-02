@@ -43,12 +43,17 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.ServerConnectionFactory;
-import com.impossibl.postgres.system.tables.PgAttribute;
-import com.impossibl.postgres.system.tables.PgProc;
-import com.impossibl.postgres.system.tables.PgType;
-import com.impossibl.postgres.system.tables.Table;
-import com.impossibl.postgres.system.tables.Tables;
+import com.impossibl.postgres.system.tables.PGTypeTable;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.BaseType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.DomainType;
+import com.impossibl.postgres.types.EnumerationType;
+import com.impossibl.postgres.types.PsuedoType;
+import com.impossibl.postgres.types.QualifiedName;
+import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.ByteBufs;
 import com.impossibl.postgres.utils.Locales;
@@ -57,7 +62,8 @@ import com.impossibl.postgres.utils.Timer;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
-import static com.impossibl.postgres.system.Settings.FIELD_DATETIME_FORMAT_CLASS;
+import static com.impossibl.postgres.system.Settings.DATABASE;
+import static com.impossibl.postgres.system.Settings.SESSION_USER;
 import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -66,22 +72,23 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.logging.Level.WARNING;
+import static java.util.stream.Collectors.toSet;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -98,11 +105,13 @@ public class BasicContext extends AbstractContext {
   private static class QueryDescription {
 
     String name;
+    String sql;
     Type[] parameterTypes;
     ResultField[] resultFields;
 
-    QueryDescription(String name, Type[] parameterTypes, ResultField[] resultFields) {
+    QueryDescription(String name, String sql, Type[] parameterTypes, ResultField[] resultFields) {
       this.name = name;
+      this.sql = sql;
       this.parameterTypes = parameterTypes;
       this.resultFields = resultFields;
     }
@@ -124,6 +133,44 @@ public class BasicContext extends AbstractContext {
 
   }
 
+  private class ServerConnectionListener implements ServerConnection.Listener {
+
+    @Override
+    public void parameterStatusChanged(String name, String value) {
+      updateSystemParameter(name, value);
+    }
+
+    @Override
+    public void notificationReceived(int processId, String channelName, String payload) {
+      reportNotification(processId, channelName, payload);
+    }
+
+  }
+
+  private class RegistryTypeLoader implements Registry.TypeLoader {
+
+    @Override
+    public Type load(int oid) throws IOException {
+      return BasicContext.this.loadType(oid);
+    }
+
+    @Override
+    public CompositeType loadRelation(int relationOid) throws IOException {
+      return BasicContext.this.loadRelationType(relationOid);
+    }
+
+    @Override
+    public Type load(QualifiedName name) throws IOException {
+      return BasicContext.this.loadType(name.toString());
+    }
+
+    @Override
+    public Type load(String name) throws IOException {
+      return BasicContext.this.loadType(name);
+    }
+
+  }
+
 
   protected Registry registry;
   protected Map<String, Class<?>> typeMap;
@@ -136,15 +183,13 @@ public class BasicContext extends AbstractContext {
   private DecimalFormat decimalFormatter;
   private DecimalFormat currencyFormatter;
   protected Properties settings;
-  private Version serverVersion;
-  private KeyData keyData;
   protected ServerConnection serverConnection;
   protected Map<NotificationKey, NotificationListener> notificationListeners;
   private Map<String, QueryDescription> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings, Map<String, Class<?>> typeMap) throws IOException, NoticeException {
-    this.typeMap = new HashMap<>(typeMap);
+  public BasicContext(SocketAddress address, Properties settings) throws IOException {
+    this.typeMap = new HashMap<>();
     this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
@@ -152,17 +197,12 @@ public class BasicContext extends AbstractContext {
     this.timeFormatter = new ISOTimeFormat();
     this.timestampFormatter = new ISOTimestampFormat();
     this.notificationListeners = new ConcurrentHashMap<>();
-    this.registry = new Registry(this);
-    this.serverConnection = ServerConnectionFactory.getDefault().connect(address, this);
+    this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, new ServerConnectionListener());
     this.utilQueries = new HashMap<>();
   }
 
   protected ChannelFuture shutdown() {
     return serverConnection.shutdown();
-  }
-
-  public Version getServerVersion() {
-    return serverVersion;
   }
 
   public ByteBufAllocator getAllocator() {
@@ -203,8 +243,13 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public KeyData getKeyData() {
-    return keyData;
+  public ServerInfo getServerInfo() {
+    return serverConnection.getServerInfo();
+  }
+
+  @Override
+  public ServerConnection.KeyData getKeyData() {
+    return serverConnection.getKeyData();
   }
 
   @Override
@@ -236,7 +281,13 @@ public class BasicContext extends AbstractContext {
     return currencyFormatter;
   }
 
-  protected void init() throws IOException, NoticeException {
+  protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
+
+    String database = getSetting(DATABASE, getSetting(SESSION_USER, String.class));
+    ServerConnectionInfo serverConnectionInfo =
+        new ServerConnectionInfo(serverConnection.getServerInfo(), serverConnection.getRemoteAddress(), database);
+
+    registry = new Registry(sharedRegistryFactory.get(serverConnectionInfo), new RegistryTypeLoader());
 
     integerFormatter = NumberFormat.getIntegerInstance();
     integerFormatter.setGroupingUsed(false);
@@ -254,7 +305,7 @@ public class BasicContext extends AbstractContext {
     loadLocale();
   }
 
-  private void loadLocale() throws IOException, NoticeException {
+  private void loadLocale() throws IOException {
 
     try (ResultBatch resultBatch =
         queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", INTERNAL_QUERY_TIMEOUT)) {
@@ -303,145 +354,182 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  private void loadTypes() throws IOException, NoticeException {
+  private void loadTypes() throws IOException {
 
-    Timer timer = new Timer();
+    SharedRegistry.Seeder seeder = registry -> {
+
+      logger.config("Seeding registry");
+
+      Timer timer = new Timer();
+
+      // Load "simple" types only - composite types are loaded on demand
+      String typeSQL = PGTypeTable.INSTANCE.getSQL(serverConnection.getServerInfo().getVersion());
+      List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, typeSQL + " WHERE typrelid = 0", INTERNAL_QUERY_TIMEOUT);
+
+      // Load initial types without causing refresh queries...
+      //
+
+      // First, base types...
+      Set<PGTypeTable.Row> baseTypeRows = pgTypes.stream()
+          .filter(PGTypeTable.Row::isBase)
+          .collect(toSet());
+      Set<Integer> baseTypeOids = baseTypeRows.stream()
+          .map(PGTypeTable.Row::getOid)
+          .collect(toSet());
+      Set<PGTypeTable.Row> baseReferencingRows = pgTypes.stream()
+          .filter(row -> baseTypeOids.contains(row.getReferencingTypeOid()))
+          .collect(toSet());
+
+      List<Type> baseTypes = new ArrayList<>();
+      for (PGTypeTable.Row row : baseTypeRows) {
+        if (!row.isArray()) {
+          Type type = loadRaw(row);
+          baseTypes.add(type);
+        }
+      }
+      registry.addTypes(baseTypes);
+
+      // Now, types that reference base types (arrays, ranges, domains, etc)
+
+      List<Type> baseReferencingTypes = new ArrayList<>();
+      for (PGTypeTable.Row baseReferencingRow : baseReferencingRows) {
+        Type type = loadRaw(baseReferencingRow);
+        baseReferencingTypes.add(type);
+      }
+      registry.addTypes(baseReferencingTypes);
+
+      // Next, psuedo types
+      List<Type> psuedoTypes = new ArrayList<>();
+      for (PGTypeTable.Row pgType : pgTypes) {
+        if (pgType.isPsuedo()) {
+          Type type = loadRaw(pgType);
+          psuedoTypes.add(type);
+        }
+      }
+      registry.addTypes(psuedoTypes);
+
+      logger.fine("Seed time: " + timer.getLap() + "ms");
+
+    };
+
+    if (!registry.getShared().seed(seeder)) {
+      logger.config("Using pre-seeded registry");
+    }
+  }
+
+  private void prepareRefreshTypeQueries() throws IOException {
+
+    Version serverVersion = serverConnection.getServerInfo().getVersion();
+
+    prepareUtilQuery("refresh-type", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1");
+
+    prepareUtilQuery("refresh-named-type", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.oid = $1::text::regtype");
+
+    prepareUtilQuery("refresh-reltype", PGTypeTable.INSTANCE.getSQL(serverVersion) + " WHERE t.typrelid = $1", "int4");
+
+  }
+
+  private Type loadType(int typeId) throws IOException {
 
     //Load types
-    String typeSQL = PgType.INSTANCE.getSQL(serverVersion);
-    List<PgType.Row> pgTypes = queryTable(typeSQL, PgType.INSTANCE);
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-type", INTERNAL_QUERY_TIMEOUT, typeId);
+    if (pgTypes.isEmpty()) {
+      return null;
+    }
 
-    //Load attributes
-    String attrsSQL = PgAttribute.INSTANCE.getSQL(serverVersion);
-    List<PgAttribute.Row> pgAttrs = queryTable(attrsSQL, PgAttribute.INSTANCE);
+    PGTypeTable.Row pgType  = pgTypes.get(0);
 
-    //Load procs
-    String procsSQL = PgProc.INSTANCE.getSQL(serverVersion);
-    List<PgProc.Row> pgProcs = queryTable(procsSQL, PgProc.INSTANCE);
-
-    logger.fine("query time: " + timer.getLap() + "ms");
-
-    //Update the registry with known types
-    registry.update(pgTypes, pgAttrs, pgProcs);
-
-    logger.fine("load time: " + timer.getLap() + "ms");
+    return loadRaw(pgType);
   }
 
-  private void prepareRefreshTypeQueries() throws IOException, NoticeException {
+  private Type loadType(String typeName) throws IOException {
 
-    prepareUtilQuery("refresh-type", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid = $1");
+    //Load types
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-named-type", INTERNAL_QUERY_TIMEOUT, typeName);
+    if (pgTypes.isEmpty()) {
+      return null;
+    }
 
-    prepareUtilQuery("refresh-type-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = $1", "int4");
+    PGTypeTable.Row pgType  = pgTypes.get(0);
 
-    prepareUtilQuery("refresh-types", PgType.INSTANCE.getSQL(serverVersion) + " where t.oid > $1", "int4");
-
-    prepareUtilQuery("refresh-types-attrs", PgAttribute.INSTANCE.getSQL(serverVersion) + " and a.attrelid = any( $1 )", "int4[]");
-
-    prepareUtilQuery("refresh-reltype", PgType.INSTANCE.getSQL(serverVersion) + " where t.typrelid = $1", "int4");
-
+    return loadRaw(pgType);
   }
 
-  @Override
-  public void refreshType(int typeId) {
+  private CompositeType loadRelationType(int relationId) throws IOException {
 
-    int latestKnownTypeId = registry.getLatestKnownTypeId();
-    if (latestKnownTypeId >= typeId) {
-      //Refresh this specific type
-      refreshSpecificType(typeId);
+    //Load types
+    List<PGTypeTable.Row> pgTypes = PGTypeTable.INSTANCE.query(this, "@refresh-reltype", INTERNAL_QUERY_TIMEOUT, relationId);
+    if (pgTypes.isEmpty()) {
+      return null;
+    }
+
+    PGTypeTable.Row pgType = pgTypes.get(0);
+    if (pgType.getRelationId() == 0) {
+      return null;
+    }
+
+    return (CompositeType) loadRaw(pgType);
+  }
+
+  /*
+   * Materialize a type from the given "pg_type" and "pg_attribute" data
+   */
+  private Type loadRaw(PGTypeTable.Row pgType) throws IOException {
+
+    Type type;
+
+    if (pgType.getElementTypeId() != 0 && pgType.getCategory().equals("A")) {
+
+      type = new ArrayType();
     }
     else {
-      //Load all new types we haven't seen
-      refreshTypes(latestKnownTypeId);
-    }
 
-  }
-
-  private void refreshSpecificType(int typeId) {
-
-    try {
-
-      //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-type", PgType.INSTANCE, typeId);
-
-      if (pgTypes.isEmpty()) {
-        return;
+      switch (pgType.getDiscriminator().charAt(0)) {
+        case 'b':
+          type = new BaseType();
+          break;
+        case 'c':
+          type = new CompositeType();
+          break;
+        case 'd':
+          type = new DomainType();
+          break;
+        case 'e':
+          type = new EnumerationType();
+          break;
+        case 'p':
+          type = new PsuedoType();
+          break;
+        case 'r':
+          type = new RangeType();
+          break;
+        default:
+          logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");
+          return null;
       }
 
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, pgTypes.get(0).getRelationId());
-
-      registry.update(pgTypes, pgAttrs, emptyList());
-    }
-    catch (IOException | NoticeException e) {
-      //Ignore errors
     }
 
-  }
+    type.load(pgType, registry);
 
-  private void refreshTypes(int latestTypeId) {
-
-    try {
-
-      //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-types", PgType.INSTANCE, latestTypeId);
-
-      if (pgTypes.isEmpty()) {
-        return;
-      }
-
-      Integer[] typeIds = new Integer[pgTypes.size()];
-      for (int c = 0; c < pgTypes.size(); ++c)
-        typeIds[c] = pgTypes.get(c).getRelationId();
-
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-types-attrs", PgAttribute.INSTANCE, (Object) typeIds);
-
-      registry.update(pgTypes, pgAttrs, emptyList());
-    }
-    catch (IOException | NoticeException e) {
-      logger.log(WARNING, "Error refreshing types", e);
-    }
-
-  }
-
-  @Override
-  public void refreshRelationType(int relationId) {
-
-    try {
-
-      //Load types
-      List<PgType.Row> pgTypes = queryTable("@refresh-reltype", PgType.INSTANCE, relationId);
-
-      if (pgTypes.isEmpty()) {
-        return;
-      }
-
-      //Load attributes
-      List<PgAttribute.Row> pgAttrs = queryTable("@refresh-type-attrs", PgAttribute.INSTANCE, relationId);
-
-      registry.update(pgTypes, pgAttrs, emptyList());
-    }
-    catch (IOException | NoticeException e) {
-      //Ignore errors
-    }
-
+    return type;
   }
 
   public boolean isUtilQueryPrepared(String name) {
     return utilQueries.containsKey(name);
   }
 
-  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException, NoticeException {
+  public void prepareUtilQuery(String name, String sql, String... parameterTypeNames) throws IOException {
 
     Type[] parameterTypes = new Type[parameterTypeNames.length];
     for (int parameterIdx = 0; parameterIdx < parameterTypes.length; ++parameterIdx) {
-      parameterTypes[parameterIdx] = registry.loadType(parameterTypeNames[parameterIdx]);
+      parameterTypes[parameterIdx] = registry.loadBaseType(parameterTypeNames[parameterIdx]);
     }
 
     prepareUtilQuery(name, sql, parameterTypes);
   }
 
-  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException, NoticeException {
+  private void prepareUtilQuery(String name, String sql, Type[] parameterTypes) throws IOException {
 
     PrepareResult handler = new PrepareResult();
 
@@ -449,11 +537,11 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    QueryDescription desc = new QueryDescription(name, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    QueryDescription desc = new QueryDescription(name, sql, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
     utilQueries.put(name, desc);
   }
 
-  private QueryDescription prepareQuery(String queryTxt) throws NoticeException, IOException {
+  private QueryDescription prepareQuery(String queryTxt) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
       QueryDescription util = utilQueries.get(queryTxt.substring(1));
@@ -469,19 +557,10 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new QueryDescription(null, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
   }
 
-  private <R extends Table.Row, T extends Table<R>> List<R> queryTable(String queryTxt, T table, Object... params) throws IOException, NoticeException {
-
-
-    try (ResultBatch resultBatch = queryBatchPrepared(queryTxt, params, INTERNAL_QUERY_TIMEOUT)) {
-      return Tables.convertRows(this, table, resultBatch);
-    }
-
-  }
-
-  public void query(String queryTxt, long timeout) throws IOException, NoticeException {
+  public void query(String queryTxt, long timeout) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
 
@@ -502,7 +581,7 @@ public class BasicContext extends AbstractContext {
 
   }
 
-  protected String queryString(String queryTxt, long timeout) throws IOException, NoticeException {
+  protected String queryString(String queryTxt, long timeout) throws IOException {
 
     try (ResultBatch resultBatch = queryBatch(queryTxt, timeout)) {
       String val = resultBatch.borrowRows().borrow(0)
@@ -515,7 +594,7 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries for a single (the first) result batch. The batch must be released.
    */
-  protected ResultBatch queryBatch(String queryTxt, long timeout) throws IOException, NoticeException {
+  protected ResultBatch queryBatch(String queryTxt, long timeout) throws IOException {
 
     if (queryTxt.charAt(0) == '@') {
 
@@ -539,7 +618,7 @@ public class BasicContext extends AbstractContext {
   /**
    * Queries a single result batch (the first) via a parameterized query. The batch must be released.
    */
-  protected ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException, NoticeException {
+  public ResultBatch queryBatchPrepared(String queryTxt, Object[] paramValues, long timeout) throws IOException {
 
     QueryDescription pq = prepareQuery(queryTxt);
 
@@ -591,7 +670,7 @@ public class BasicContext extends AbstractContext {
    */
   protected ResultBatch queryBatchPrepared(String queryTxt,
                                            FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
-                                           long timeout) throws IOException, NoticeException {
+                                           long timeout) throws IOException {
 
     QueryDescription pq = prepareQuery(queryTxt);
 
@@ -603,7 +682,7 @@ public class BasicContext extends AbstractContext {
    */
   private ResultBatch queryBatchPrepared(String statementName,
                                          FieldFormatRef[] paramFormats, ByteBuf[] paramBuffers,
-                                         ResultField[] resultFields, long timeout) throws IOException, NoticeException {
+                                         ResultField[] resultFields, long timeout) throws IOException {
 
     ExecuteResult handler = new ExecuteResult(resultFields);
 
@@ -615,20 +694,11 @@ public class BasicContext extends AbstractContext {
     return handler.getBatch();
   }
 
-  public void setKeyData(int processId, int secretKey) {
-    keyData = new KeyData(processId, secretKey);
-  }
-
-  public void updateSystemParameter(String name, String value) {
+  private void updateSystemParameter(String name, String value) {
 
     logger.config("system parameter: " + name + "=" + value);
 
     switch (name) {
-
-      case "server_version":
-
-        serverVersion = Version.parse(value);
-        break;
 
       case "DateStyle":
 
@@ -670,11 +740,6 @@ public class BasicContext extends AbstractContext {
         timeZone = TimeZone.getTimeZone(value);
         break;
 
-      case "integer_datetimes":
-
-        settings.put(FIELD_DATETIME_FORMAT_CLASS, Integer.class);
-        break;
-
       case "client_encoding":
 
         charset = Charset.forName(value);
@@ -684,6 +749,9 @@ public class BasicContext extends AbstractContext {
 
         settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
         break;
+
+      case SESSION_USER:
+        settings.put(SESSION_USER, value);
 
       default:
         break;
@@ -736,7 +804,7 @@ public class BasicContext extends AbstractContext {
     }
   }
 
-  public synchronized void reportNotification(int processId, String channelName, String payload) {
+  private synchronized void reportNotification(int processId, String channelName, String payload) {
 
     for (Map.Entry<NotificationKey, NotificationListener> entry : notificationListeners.entrySet()) {
 

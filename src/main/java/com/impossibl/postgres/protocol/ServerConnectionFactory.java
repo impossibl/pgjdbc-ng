@@ -28,15 +28,14 @@
  */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.system.BasicContext;
-import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.Configuration;
 
 import java.io.IOException;
 import java.net.SocketAddress;
 
 public interface ServerConnectionFactory {
 
-  ServerConnection connect(SocketAddress address, BasicContext context) throws IOException, NoticeException;
+  ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException;
 
   static ServerConnectionFactory getDefault() {
     return new com.impossibl.postgres.protocol.v30.ServerConnectionFactory();

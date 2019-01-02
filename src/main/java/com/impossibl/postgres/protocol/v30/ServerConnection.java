@@ -40,14 +40,13 @@ import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.protocol.ServerObjectType;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Configuration;
+import com.impossibl.postgres.system.ServerInfo;
+import com.impossibl.postgres.system.Version;
 
-import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.SQL_TRACE;
 import static com.impossibl.postgres.system.Settings.SQL_TRACE_DEFAULT;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -69,24 +68,41 @@ import io.netty.channel.ChannelPromise;
 class ServerConnection implements com.impossibl.postgres.protocol.ServerConnection, RequestExecutor {
 
   private Channel channel;
+  private ServerInfo serverInfo;
+  private Version protocolVersion;
+  private KeyData keyData;
   private ServerConnectionShared.Ref sharedRef;
   private SQLTrace sqlTrace;
 
-  ServerConnection(Context context, Channel channel, ServerConnectionShared.Ref sharedRef) {
+  ServerConnection(Configuration config, Channel channel, ServerInfo serverInfo, Version protocolVersion, KeyData keyData, ServerConnectionShared.Ref sharedRef) {
     this.channel = channel;
+    this.serverInfo = serverInfo;
+    this.protocolVersion = protocolVersion;
+    this.keyData = keyData;
     this.sharedRef = sharedRef;
 
-    if (context.getSetting(SQL_TRACE, SQL_TRACE_DEFAULT)) {
+    if (config.getSetting(SQL_TRACE, SQL_TRACE_DEFAULT)) {
       sqlTrace = new SQLTrace(new OutputStreamWriter(System.out));
-    }
-
-    if (context.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
-      getMessageDispatchHandler().setTraceWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
     }
   }
 
-  private MessageDispatchHandler getMessageDispatchHandler() {
+  MessageDispatchHandler getMessageDispatchHandler() {
     return (MessageDispatchHandler) channel.pipeline().context(MessageDispatchHandler.class).handler();
+  }
+
+  @Override
+  public ServerInfo getServerInfo() {
+    return serverInfo;
+  }
+
+  @Override
+  public Version getProtocolVersion() {
+    return protocolVersion;
+  }
+
+  @Override
+  public KeyData getKeyData() {
+    return keyData;
   }
 
   @Override
@@ -167,7 +183,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, QueryHandler handler) {
+  public void query(String sql, QueryHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(sql);
     }
@@ -175,7 +191,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) {
+  public void query(String sql, String portalName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(sql);
     }
@@ -183,7 +199,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) {
+  public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.prepare(statementName, sql);
     }
@@ -191,7 +207,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) {
+  public void execute(String portalName, String statementName, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, FieldFormatRef[] resultFieldFormats, int maxRows, ExecuteHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.execute(statementName);
     }
@@ -199,17 +215,17 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void resume(String portalName, int maxRows, ResumeHandler handler) {
+  public void resume(String portalName, int maxRows, ResumeHandler handler) throws IOException {
     submit(new ResumePortalRequest(portalName, maxRows, handler));
   }
 
   @Override
-  public void finish(String portalName, SynchronizedHandler handler) {
+  public void finish(String portalName, SynchronizedHandler handler) throws IOException {
     submit(new CloseRequest(ServerObjectType.Portal, portalName, handler));
   }
 
   @Override
-  public void lazyExecute(String statementName) {
+  public void lazyExecute(String statementName) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(statementName);
     }
@@ -217,7 +233,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) {
+  public void call(int functionId, FieldFormatRef[] parameterFormats, ByteBuf[] parameterBuffers, RequestExecutor.FunctionCallHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query("CALL: " + functionId);
     }
@@ -225,13 +241,14 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void close(ServerObjectType objectType, String objectName) {
+  public void close(ServerObjectType objectType, String objectName) throws IOException {
     submit(new CloseRequest(objectType, objectName, null));
   }
 
-  synchronized void submit(ServerRequest request) {
+  @SuppressWarnings("RedundantThrows")
+  private synchronized void submit(ServerRequest request) throws IOException {
 
-    channel.writeAndFlush(request, channel.voidPromise());
+    channel.writeAndFlush(request).syncUninterruptibly();
   }
 
 }

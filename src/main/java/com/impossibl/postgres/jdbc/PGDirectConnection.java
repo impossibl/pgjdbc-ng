@@ -40,10 +40,10 @@ import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
-import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
@@ -83,6 +83,7 @@ import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SI
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD;
 import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT;
+import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
@@ -202,8 +203,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   private static Map<String, SQLText> parsedSqlCache;
 
-  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException, NoticeException {
-    super(address, settings, Collections.emptyMap());
+  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException {
+    super(address, settings);
 
     this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
@@ -280,9 +281,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void init() throws IOException, NoticeException {
+  public void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
 
-    super.init();
+    super.init(sharedRegistryFactory);
 
     applySettings(settings);
   }
@@ -421,7 +422,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   SQLText parseSQL(String sqlText) throws SQLException {
 
     try {
-      final boolean standardConformingStrings = getSetting(Settings.STANDARD_CONFORMING_STRINGS, false);
+      final boolean standardConformingStrings = getSetting(STANDARD_CONFORMING_STRINGS, false);
 
       if (parsedSqlCache == null) {
         return new SQLText(sqlText, standardConformingStrings);
@@ -444,7 +445,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
 
   interface QueryFunction {
-    void query(long timeout) throws IOException, NoticeException;
+    void query(long timeout) throws IOException;
   }
 
   /**
@@ -466,7 +467,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   interface QueryResultFunction<T> {
 
-    T query(long timeout) throws IOException, NoticeException;
+    T query(long timeout) throws IOException;
 
   }
 
@@ -505,15 +506,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         internalClose();
       }
 
-      throw new SQLException(e);
-    }
-    catch (NoticeException e) {
-
-      if (!serverConnection.isConnected()) {
-        internalClose();
-      }
-
-      throw makeSQLException(e.getNotice());
+      throw makeSQLException(e);
     }
 
   }
@@ -692,7 +685,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   @Override
   public boolean isServerMinimumVersion(int major, int minor) {
-    return getServerVersion().isMinimum(major, minor);
+    return serverConnection.getServerInfo().getVersion().isMinimum(major, minor);
   }
 
   @Override
@@ -1178,16 +1171,22 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
-    Type type = getRegistry().loadType(typeName + "[]");
-    if (!(type instanceof ArrayType)) {
-      throw new SQLException("Array type not found");
-    }
-
     try {
+
+      Type elementType = getRegistry().loadTransientType(typeName);
+      if (elementType == null) {
+        throw new PGSQLSimpleException("Unknown element type");
+      }
+
+      Type type = getRegistry().loadType(elementType.getArrayTypeId());
+      if (!(type instanceof ArrayType)) {
+        throw new SQLException("Array type not found");
+      }
+
       return PGBuffersArray.encode(this, (ArrayType) type, elements);
     }
     catch (IOException e) {
-      throw new PGSQLSimpleException("Error encoding array values", e);
+      throw makeSQLException("Error encoding array values", e);
     }
   }
 
@@ -1195,16 +1194,17 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
 
-    Type type = getRegistry().loadType(typeName);
-    if (!(type instanceof CompositeType)) {
-      throw new SQLException("Invalid type for struct");
-    }
-
     try {
+
+      Type type = getRegistry().loadTransientType(typeName);
+      if (!(type instanceof CompositeType)) {
+        throw new SQLException("Invalid type for struct");
+      }
+
       return PGBuffersStruct.Binary.encode(this, (CompositeType) type, attributes);
     }
     catch (IOException e) {
-      throw new PGSQLSimpleException("Error encoding struct", e);
+      throw makeSQLException("Error encoding struct", e);
     }
   }
 
@@ -1348,7 +1348,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   interface StatementDescriptionLoader {
-    StatementDescription load() throws SQLException;
+    StatementDescription load() throws IOException, SQLException;
   }
 
   StatementDescription getCachedStatementDescription(String sql, StatementDescriptionLoader loader) throws SQLException {
@@ -1365,7 +1365,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     StatementDescription cached = descriptionCache.get(key);
     if (cached != null) return cached;
 
-    cached = loader.load();
+    try {
+      cached = loader.load();
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     descriptionCache.put(key, cached);
 
@@ -1374,13 +1379,18 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
 
   interface PreparedStatementDescriptionLoader {
-    PreparedStatementDescription load() throws SQLException;
+    PreparedStatementDescription load() throws IOException, SQLException;
   }
 
   PreparedStatementDescription getCachedPreparedStatement(StatementCacheKey key, PreparedStatementDescriptionLoader loader) throws SQLException {
 
     if (preparedStatementCache == null) {
-      return loader.load();
+      try {
+        return loader.load();
+      }
+      catch (IOException e) {
+        throw makeSQLException(e);
+      }
     }
 
     PreparedStatementDescription cached = preparedStatementCache.get(key);
@@ -1398,7 +1408,12 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       }
     }
 
-    cached = loader.load();
+    try {
+      cached = loader.load();
+    }
+    catch (IOException e) {
+      throw makeSQLException(e);
+    }
 
     preparedStatementCache.put(key, cached);
 

@@ -35,8 +35,6 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.PrimitiveType;
 
-import static com.impossibl.postgres.system.Settings.BLOB_TYPE;
-import static com.impossibl.postgres.system.Settings.CLOB_TYPE;
 import static com.impossibl.postgres.types.PrimitiveType.Oid;
 
 import java.io.IOException;
@@ -48,11 +46,6 @@ public class Oids extends SimpleProcProvider {
 
   public Oids() {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oid");
-  }
-
-  @Override
-  protected boolean hasName(String name, String suffix, Context context) {
-    return (context != null && (name.equals(context.getSetting(BLOB_TYPE, String.class) + suffix) || name.equals(context.getSetting(CLOB_TYPE, String.class) + suffix))) || super.hasName(name, suffix, context);
   }
 
   static class BinDecoder extends Int4s.BinDecoder {

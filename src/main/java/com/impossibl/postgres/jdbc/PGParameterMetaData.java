@@ -88,11 +88,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    if (SQLTypeMetaData.isNullable(paramType) == parameterNoNulls) {
-      return parameterNoNulls;
-    }
-
-    return ParameterMetaData.parameterNullable;
+    return paramType.isNullable() != null ? (paramType.isNullable() ? parameterNullable : parameterNoNulls) : parameterNullableUnknown;
   }
 
   @Override
@@ -100,7 +96,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type type = getType(param);
 
-    return SQLTypeMetaData.isSigned(type);
+    return JDBCTypeMetaData.isSigned(type);
   }
 
   @Override
@@ -108,7 +104,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return SQLTypeMetaData.getPrecision(paramType, 0, 0);
+    return JDBCTypeMetaData.getPrecision(paramType, 0, 0);
   }
 
   @Override
@@ -116,7 +112,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return SQLTypeMetaData.getScale(paramType, 0);
+    return JDBCTypeMetaData.getScale(paramType, 0);
   }
 
   @Override
@@ -124,7 +120,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return SQLTypeMetaData.getSQLType(paramType);
+    return JDBCTypeMapping.getSQLTypeCode(paramType);
   }
 
   @Override

@@ -28,25 +28,55 @@
  */
 package com.impossibl.postgres.system;
 
-/**
- * Created by kdubb on 7/10/16.
- */
-public interface PrimitiveSource {
+import java.net.SocketAddress;
+import java.util.Objects;
 
-  byte[] readBytes();
+public class ServerConnectionInfo {
 
-  boolean readBool();
+  private ServerInfo serverInfo;
+  private SocketAddress host;
+  private String database;
 
-  byte readByte();
+  public ServerConnectionInfo(ServerInfo serverInfo, SocketAddress host, String database) {
+    this.serverInfo = serverInfo;
+    this.host = host;
+    this.database = database;
+  }
 
-  short readShort();
+  public ServerInfo getServerInfo() {
+    return serverInfo;
+  }
 
-  int readInt();
+  public SocketAddress getHost() {
+    return host;
+  }
 
-  long readLong();
+  public String getDatabase() {
+    return database;
+  }
 
-  float readFloat();
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ServerConnectionInfo that = (ServerConnectionInfo) o;
+    return serverInfo.equals(that.serverInfo) &&
+        host.equals(that.host) &&
+        database.equals(that.database);
+  }
 
-  double readDouble();
+  @Override
+  public int hashCode() {
+    return Objects.hash(serverInfo, host, database);
+  }
+
+  @Override
+  public String toString() {
+    return "ServerConnectionInfo{" +
+        "serverInfo=" + serverInfo +
+        ", host=" + host +
+        ", database='" + database + '\'' +
+        '}';
+  }
 
 }

@@ -28,12 +28,11 @@
  */
 package com.impossibl.postgres.protocol.ssl;
 
-import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.Configuration;
 
 import static com.impossibl.postgres.system.Settings.SSL_PASSWORD;
 
 import java.io.Console;
-import java.io.IOException;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.PasswordCallback;
@@ -41,14 +40,14 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 
 
 
-public class ConsolePasswordCallbackHandler implements ContextCallbackHandler {
+public class ConsolePasswordCallbackHandler implements ConfiguredCallbackHandler {
 
   private char[] password;
 
   @Override
-  public void init(Context conn) {
+  public void init(Configuration config) {
 
-    String password = conn.getSetting(SSL_PASSWORD, String.class);
+    String password = config.getSetting(SSL_PASSWORD, String.class);
     if (password != null) {
       this.password = password.toCharArray();
     }
@@ -56,7 +55,7 @@ public class ConsolePasswordCallbackHandler implements ContextCallbackHandler {
   }
 
   @Override
-  public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+  public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
 
     Console cons = System.console();
     if (cons == null && password == null) {
