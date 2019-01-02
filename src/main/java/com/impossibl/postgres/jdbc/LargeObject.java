@@ -28,7 +28,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.utils.guava.ByteStreams;
+
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -85,6 +88,9 @@ class LargeObject {
       }
       catch (IOException e) {
         throw new SQLException(e);
+      }
+      catch (NoticeException e) {
+        throw makeSQLException(e.getNotice());
       }
     }
   }

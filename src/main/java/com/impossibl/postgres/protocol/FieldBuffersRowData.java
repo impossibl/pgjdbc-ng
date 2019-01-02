@@ -30,47 +30,42 @@ package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.guava.Preconditions;
 
 import java.io.IOException;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.util.AbstractReferenceCounted;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ReferenceCounted;
 
 
-public class FieldBuffersRowData implements UpdatableRowData {
+public class FieldBuffersRowData extends AbstractReferenceCounted implements UpdatableRowData, ReferenceCounted {
 
-  private ResultField[] fields;
   private ByteBuf[] fieldBuffers;
+  private ByteBufAllocator alloc;
 
-  public FieldBuffersRowData(ResultField[] fields) {
-    this(fields, new ByteBuf[fields.length]);
+  public FieldBuffersRowData(ResultField[] fields, ByteBufAllocator alloc) {
+    this(new ByteBuf[fields.length], alloc);
   }
 
-  public FieldBuffersRowData(ResultField[] fields, ByteBuf[] fieldBuffers) {
-    Preconditions.checkArgument(fieldBuffers.length == fields.length);
-    this.fields = fields;
+  public FieldBuffersRowData(ByteBuf[] fieldBuffers, ByteBufAllocator alloc) {
     this.fieldBuffers = fieldBuffers;
+    this.alloc = alloc;
   }
 
   @Override
-  public ResultField[] getColumnFields() {
-    return fields;
+  public int getFieldCount() {
+    return fieldBuffers.length;
   }
 
   @Override
-  public int getColumnCount() {
-    return fields.length;
-  }
+  public Object getField(int fieldIdx, ResultField field, Context context, Class<?> targetClass, Object targetContext) throws IOException {
 
-  @Override
-  public Object getColumn(int columnIndex, Context context, Class<?> targetClass, Object targetContext) throws IOException {
+    Type type = context.getRegistry().loadType(field.getTypeRef());
 
-    ResultField field = fields[columnIndex];
-    Type type = field.getTypeRef().get();
-
-    ByteBuf fieldBuffer = fieldBuffers[columnIndex];
+    ByteBuf fieldBuffer = fieldBuffers[fieldIdx];
     fieldBuffer.resetReaderIndex();
 
     Object result;
@@ -97,12 +92,12 @@ public class FieldBuffersRowData implements UpdatableRowData {
   }
 
   @Override
-  public void updateColumn(int columnIndex, Context context, Object source, Object sourceContext) throws IOException {
+  public void updateField(int columnIndex, ResultField field, Context context, Object source, Object sourceContext) throws IOException {
 
     ByteBuf byteBuf = fieldBuffers[columnIndex];
     if (byteBuf == null) {
       if (source == null) return;
-      byteBuf = context.getProtocol().getChannel().alloc().buffer();
+      byteBuf = alloc.buffer();
       fieldBuffers[columnIndex] = byteBuf;
     }
     else {
@@ -115,8 +110,7 @@ public class FieldBuffersRowData implements UpdatableRowData {
       return;
     }
 
-    ResultField field = fields[columnIndex];
-    Type type = field.getTypeRef().get();
+    Type type = context.getRegistry().loadType(field.getTypeRef());
 
     switch (field.getFormat()) {
       case Text: {
@@ -137,30 +131,23 @@ public class FieldBuffersRowData implements UpdatableRowData {
   }
 
   @Override
-  public ByteBuf[] getColumnBuffers() {
+  public ByteBuf[] getFieldBuffers() {
     return fieldBuffers;
   }
 
   @Override
-  public FieldBuffersRowData retain() {
-    for (ByteBuf fieldBuffer : fieldBuffers) {
-      ReferenceCountUtil.retain(fieldBuffer);
-    }
-    return this;
-  }
-
-  @Override
-  public void release() {
+  protected void deallocate() {
     for (ByteBuf fieldBuffer : fieldBuffers) {
       ReferenceCountUtil.release(fieldBuffer);
     }
   }
 
   @Override
-  public void touch(Object hint) {
+  public FieldBuffersRowData touch(Object hint) {
     for (ByteBuf fieldBuffer : fieldBuffers) {
       ReferenceCountUtil.touch(fieldBuffer, hint);
     }
+    return this;
   }
 
   @Override
@@ -169,7 +156,7 @@ public class FieldBuffersRowData implements UpdatableRowData {
     for (ByteBuf fieldBuffer : fieldBuffers) {
       ReferenceCountUtil.retain(fieldBuffer);
     }
-    return new FieldBuffersRowData(fields, fieldBuffers);
+    return new FieldBuffersRowData(fieldBuffers, alloc);
   }
 
 }

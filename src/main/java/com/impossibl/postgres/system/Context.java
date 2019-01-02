@@ -29,7 +29,7 @@
 package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.protocol.Protocol;
+import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
@@ -37,6 +37,8 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Map;
 import java.util.TimeZone;
+
+import io.netty.buffer.ByteBufAllocator;
 
 public interface Context {
 
@@ -58,6 +60,9 @@ public interface Context {
     }
   }
 
+  RequestExecutor getRequestExecutor();
+
+  ByteBufAllocator getAllocator();
 
   Registry getRegistry();
 
@@ -92,10 +97,6 @@ public interface Context {
   <T> T getSetting(String name, T defaultValue);
 
   boolean isSettingEnabled(String name);
-
-  Protocol getProtocol();
-
-  void reportNotification(int processId, String channelName, String payload);
 
   Context unwrap();
 

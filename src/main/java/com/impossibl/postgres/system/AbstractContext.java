@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.utils.Converter;
+import java.util.function.Function;
 
 public abstract class AbstractContext implements Context {
   @Override
@@ -41,7 +41,7 @@ public abstract class AbstractContext implements Context {
     return type.cast(getSetting(name));
   }
 
-  public <T> T getSetting(String name, Converter<T> converter) {
+  public <T> T getSetting(String name, Function<Object, T> converter) {
     return converter.apply(getSetting(name));
   }
 

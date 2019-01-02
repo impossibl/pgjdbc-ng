@@ -37,9 +37,8 @@ import io.netty.buffer.ByteBuf;
 
 public interface UpdatableRowData extends RowData {
 
-  void updateColumn(int columnIndex, Context context, Object source, Object sourceContext) throws IOException;
+  void updateField(int columnIndex, ResultField field, Context context, Object source, Object sourceContext) throws IOException;
 
-  ResultField[] getColumnFields();
-  ByteBuf[] getColumnBuffers();
+  ByteBuf[] getFieldBuffers();
 
 }

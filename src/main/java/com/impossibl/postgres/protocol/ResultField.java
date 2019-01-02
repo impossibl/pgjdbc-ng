@@ -30,7 +30,7 @@ package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.types.Type;
 
-public class ResultField {
+public class ResultField implements FieldFormatRef {
 
   private String name;
   private int relationId;
@@ -44,7 +44,7 @@ public class ResultField {
     this.name = name;
     this.relationId = relationId;
     this.relationAttributeNumber = relationAttributeNumber;
-    this.typeRef = TypeRef.from(type);
+    this.typeRef = type;
     this.typeLength = typeLength;
     this.typeModifier = typeModifier;
     this.format = format;
@@ -74,6 +74,10 @@ public class ResultField {
 
   public TypeRef getTypeRef() {
     return typeRef;
+  }
+
+  public void setTypeRef(TypeRef typeRef) {
+    this.typeRef = typeRef;
   }
 
   public short getTypeLength() {

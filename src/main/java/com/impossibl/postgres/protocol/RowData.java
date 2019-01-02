@@ -34,20 +34,8 @@ import java.io.IOException;
 
 public interface RowData {
 
-  int getColumnCount();
-  Object getColumn(int columnIndex, Context context, Class<?> targetClass, Object targetContext) throws IOException;
-
-  /**
-   * INTERNAL USE ONLY
-   */
-  default <T> T getColumn(int columnIndex, Context context, Class<T> targetClass) throws IOException {
-    return targetClass.cast(getColumn(columnIndex, context, targetClass, null));
-  }
-
-  RowData retain();
-  void release();
-
-  void touch(Object hint);
+  int getFieldCount();
+  Object getField(int fieldIdx, ResultField field, Context context, Class<?> targetClass, Object targetContext) throws IOException;
 
   UpdatableRowData duplicateForUpdate();
 

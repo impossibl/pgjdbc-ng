@@ -28,7 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.QueryCommand;
+import com.impossibl.postgres.protocol.ResultBatch;
+import com.impossibl.postgres.protocol.ResultBatches;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.types.Type;
@@ -36,7 +37,6 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
@@ -73,6 +73,8 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.fill;
 import static java.util.Collections.nCopies;
+
+import io.netty.util.ReferenceCountUtil;
 
 
 public class PGCallableStatement extends PGPreparedStatement implements CallableStatement {
@@ -118,10 +120,8 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   void internalClose() throws SQLException {
     super.internalClose();
 
-    if (outParameterData != null) {
-      outParameterData.release();
-      outParameterData = null;
-    }
+    ReferenceCountUtil.release(outParameterData);
+    outParameterData = null;
   }
 
   @Override
@@ -166,11 +166,9 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public boolean execute() throws SQLException {
 
-    resultBatches = releaseResultBatches(resultBatches);
-    if (outParameterData != null) {
-      outParameterData.release();
-      outParameterData = null;
-    }
+    resultBatches = ResultBatches.releaseAll(resultBatches);
+    ReferenceCountUtil.release(outParameterData);
+    outParameterData = null;
 
     boolean res = super.execute();
 
@@ -178,21 +176,17 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
       if (!resultBatches.isEmpty()) {
 
-        QueryCommand.ResultBatch returnValuesBatch = resultBatches.remove(0);
-        try {
+        try (ResultBatch returnValuesBatch = resultBatches.remove(0)) {
 
-          if (returnValuesBatch.getFields().length != outParameterSQLTypes.size()) {
+          if (returnValuesBatch.getFields().length != outParameterSQLTypes.size() || returnValuesBatch.borrowRows().size() > 1) {
             throw new SQLException("incorrect number of out parameters");
           }
 
-          if (returnValuesBatch.getResults() != null && !returnValuesBatch.getResults().isEmpty()) {
+          if (!returnValuesBatch.isEmpty()) {
             outParameterFields = returnValuesBatch.getFields();
-            outParameterData = returnValuesBatch.getResults().get(0).retain();
+            outParameterData = returnValuesBatch.borrowRows().take(0);
           }
 
-        }
-        finally {
-          returnValuesBatch.release();
         }
       }
       else {
@@ -202,17 +196,19 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     }
 
-    return res;
+    if (!resultBatches.isEmpty()) {
+      resultBatches.get(0).clearRowsAffected();
+    }
+
+    return false;
   }
 
   @Override
   public void clearParameters() throws SQLException {
     super.clearParameters();
 
-    if (outParameterData != null) {
-      outParameterData.release();
-      outParameterData = null;
-    }
+    ReferenceCountUtil.release(outParameterData);
+    outParameterData = null;
   }
 
   private int mapToInParameterIndex(int parameterIdx) {
@@ -270,7 +266,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   private Object getObj(int parameterIdx, Class<?> targetClass, Object targetContext) throws SQLException {
 
-    if (command == null) {
+    if (query == null) {
       throw new PGSQLSimpleException("statement not executed");
     }
 
@@ -289,7 +285,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     Object val;
     try {
-      val = outParameterData.getColumn(parameterIdx, connection, targetClass, targetContext);
+      val = outParameterData.getField(parameterIdx, outParameterFields[parameterIdx], connection, targetClass, targetContext);
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -324,8 +320,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     fill(parameterTypesParsed, connection.getRegistry().loadType("text"));
     parameterFormats = copyOf(parameterFormats, parameterFormats.length + needed);
     parameterBuffers = copyOf(parameterBuffers, parameterBuffers.length + needed);
-
-    parsed = true;
 
     super.set(parameterIdx, source, sourceContext, targetSQLType);
 

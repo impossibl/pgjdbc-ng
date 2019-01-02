@@ -46,9 +46,17 @@ public class Settings {
 
   public static final String PREPARED_STATEMENT_CACHE_SIZE = "preparedStatementCacheSize";
   public static final int PREPARED_STATEMENT_CACHE_SIZE_DEFAULT = 50;
+  public static final String PREPARED_STATEMENT_CACHE_THRESHOLD = "preparedStatementCacheThreshold";
+  public static final int PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT = 0;
+
+  public static final String DESCRIPTION_CACHE_SIZE = "descriptionCacheSize";
+  public static final int DESCRIPTION_CACHE_SIZE_DEFAULT = 200;
 
   public static final String CLIENT_ENCODING = "client_encoding";
+  public static final String CLIENT_ENCODING_DEFAULT = "UTF8";
+
   public static final String APPLICATION_NAME = "application_name";
+  public static final String APPLICATION_NAME_DEFAULT = "PG-JDBC (NG)";
 
   public static final String CREDENTIALS_USERNAME = "user";
   public static final String CREDENTIALS_PASSWORD = "password";
@@ -101,5 +109,23 @@ public class Settings {
 
   public static final String SEND_BUFFER_SIZE = "sendBufferSize";
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
+
+  public static final String ALLOCATOR = "allocator.pooled";
+  public static final boolean ALLOCATOR_DEFAULT = true;
+
+  public static final String MAX_MESSAGE_SIZE = "protocol.message.max";
+  public static final int MAX_MESSAGE_SIZE_DEFAULT = 15 * 1024 * 1024;
+
+  public static final String PROTOCOL_TRACE = "protocol.trace";
+  public static final boolean PROTOCOL_TRACE_DEFAULT = false;
+
+  public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
+  public static final String PROTOCOL_SOCKET_IO_DEFAULT = "nio";
+
+  public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
+  public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;
+
+  public static final String SQL_TRACE = "sql.trace";
+  public static final boolean SQL_TRACE_DEFAULT = false;
 
 }

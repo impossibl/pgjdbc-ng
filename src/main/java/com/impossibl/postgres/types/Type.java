@@ -29,6 +29,7 @@
 package com.impossibl.postgres.types;
 
 import com.impossibl.postgres.protocol.FieldFormat;
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PgAttribute;
 import com.impossibl.postgres.system.tables.PgType;
@@ -55,7 +56,7 @@ import io.netty.buffer.ByteBuf;
  * @author kdubb
  *
  */
-public abstract class Type {
+public abstract class Type implements TypeRef {
 
   public enum Category {
     Array('A'),
@@ -206,6 +207,11 @@ public abstract class Type {
     this.preferredResultFormat = preferredResultFormat;
   }
 
+  @Override
+  public int getOid() {
+    return id;
+  }
+
   public int getId() {
     return id;
   }
@@ -339,6 +345,10 @@ public abstract class Type {
 
   public FieldFormat getParameterFormat() {
 
+    if (category == Category.String) {
+      return FieldFormat.Text;
+    }
+
     if (isParameterFormatSupported(preferredParameterFormat))
       return preferredParameterFormat;
 
@@ -355,6 +365,10 @@ public abstract class Type {
   }
 
   public FieldFormat getResultFormat() {
+
+    if (category == Category.String) {
+      return FieldFormat.Text;
+    }
 
     if (isResultFormatSupported(preferredResultFormat))
       return preferredResultFormat;

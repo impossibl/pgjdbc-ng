@@ -435,6 +435,7 @@ public class BatchExecuteTest {
     stmt = con.createStatement();
     stmt.addBatch("INSERT INTO multiplebatch VALUES (1)");
     stmt.addBatch("INSERT INTO multiplebatch VALUES (1)");
+    stmt.addBatch("INSERT INTO multiplebatch VALUES (2)");
 
     try {
       int[] result = stmt.executeBatch();

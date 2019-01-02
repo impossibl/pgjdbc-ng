@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system.tables;
 
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
 
@@ -62,13 +62,17 @@ public interface Table<R extends Table.Row> {
    *
    * @return An instance of the table's row type
    */
-  R createRow(Context context, RowData rowData) throws IOException;
+  R createRow(Context context, ResultBatch resultBatch, int rowIdx) throws IOException;
 
 
   interface Row {
 
-    void load(Context context, RowData rowData) throws IOException;
+    void load(Context context, ResultBatch resultBatch, int rowIdx) throws IOException;
 
+  }
+
+  static <T> T getFieldOfRow(ResultBatch resultBatch, int rowIdx, int fieldIdx, Context context, Class<T> targetType) throws IOException {
+    return targetType.cast(resultBatch.borrowRows().borrow(rowIdx).getField(fieldIdx, resultBatch.getFields()[fieldIdx], context, targetType, null));
   }
 
 }

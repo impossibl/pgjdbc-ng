@@ -28,9 +28,11 @@
  */
 package com.impossibl.postgres.system.tables;
 
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.Version;
+
+import static com.impossibl.postgres.system.tables.Table.getFieldOfRow;
 
 import java.io.IOException;
 
@@ -71,29 +73,29 @@ public class PgType implements Table<PgType.Row> {
     public Row() {
     }
 
-    public void load(Context context, RowData rowData) throws IOException {
-      this.oid = rowData.getColumn(OID, context, Integer.class);
-      this.name = rowData.getColumn(NAME, context, String.class);
-      this.length = rowData.getColumn(LENGTH, context, Short.class);
-      this.discriminator = rowData.getColumn(DISCRIMINATOR, context, String.class);
-      this.category = rowData.getColumn(CATEGORY, context, String.class);
-      this.deliminator = rowData.getColumn(DELIMINATOR, context, String.class);
-      this.relationId = rowData.getColumn(RELATION_ID, context, Integer.class);
-      this.elementTypeId = rowData.getColumn(ELEMENT_TYPE_ID, context, Integer.class);
-      this.arrayTypeId = rowData.getColumn(ARRAY_TYPE_ID, context, Integer.class);
-      this.inputId = rowData.getColumn(INPUT_ID, context, Integer.class);
-      this.outputId = rowData.getColumn(OUTPUT_ID, context, Integer.class);
-      this.receiveId = rowData.getColumn(RECEIVE_ID, context, Integer.class);
-      this.sendId = rowData.getColumn(SEND_ID, context, Integer.class);
-      this.modInId = rowData.getColumn(MOD_IN_ID, context, Integer.class);
-      this.modOutId = rowData.getColumn(MOD_OUT_ID, context, Integer.class);
-      this.alignment = rowData.getColumn(ALIGNMENT, context, String.class);
-      this.domainBaseTypeId = rowData.getColumn(DOMAIN_BASE_TYPE_ID, context, Integer.class);
-      this.domainTypeMod = rowData.getColumn(DOMAIN_TYPE_MOD, context, Integer.class);
-      this.domainNotNull = rowData.getColumn(DOMAIN_NOT_NULL, context, Boolean.class);
-      this.namespace = rowData.getColumn(NAMESPACE, context, String.class);
-      this.domainDefault = rowData.getColumn(DOMAIN_DEFAULT, context, String.class);
-      this.rangeBaseTypeId = rowData.getColumn(RANGE_BASE_TYPE_ID, context, Integer.class);
+    public void load(Context context, ResultBatch resultBatch, int rowIdx) throws IOException {
+      this.oid = getFieldOfRow(resultBatch, rowIdx, OID, context, Integer.class);
+      this.name = getFieldOfRow(resultBatch, rowIdx, NAME, context, String.class);
+      this.length = getFieldOfRow(resultBatch, rowIdx, LENGTH, context, Short.class);
+      this.discriminator = getFieldOfRow(resultBatch, rowIdx, DISCRIMINATOR, context, String.class);
+      this.category = getFieldOfRow(resultBatch, rowIdx, CATEGORY, context, String.class);
+      this.deliminator = getFieldOfRow(resultBatch, rowIdx, DELIMINATOR, context, String.class);
+      this.relationId = getFieldOfRow(resultBatch, rowIdx, RELATION_ID, context, Integer.class);
+      this.elementTypeId = getFieldOfRow(resultBatch, rowIdx, ELEMENT_TYPE_ID, context, Integer.class);
+      this.arrayTypeId = getFieldOfRow(resultBatch, rowIdx, ARRAY_TYPE_ID, context, Integer.class);
+      this.inputId = getFieldOfRow(resultBatch, rowIdx, INPUT_ID, context, Integer.class);
+      this.outputId = getFieldOfRow(resultBatch, rowIdx, OUTPUT_ID, context, Integer.class);
+      this.receiveId = getFieldOfRow(resultBatch, rowIdx, RECEIVE_ID, context, Integer.class);
+      this.sendId = getFieldOfRow(resultBatch, rowIdx, SEND_ID, context, Integer.class);
+      this.modInId = getFieldOfRow(resultBatch, rowIdx, MOD_IN_ID, context, Integer.class);
+      this.modOutId = getFieldOfRow(resultBatch, rowIdx, MOD_OUT_ID, context, Integer.class);
+      this.alignment = getFieldOfRow(resultBatch, rowIdx, ALIGNMENT, context, String.class);
+      this.domainBaseTypeId = getFieldOfRow(resultBatch, rowIdx, DOMAIN_BASE_TYPE_ID, context, Integer.class);
+      this.domainTypeMod = getFieldOfRow(resultBatch, rowIdx, DOMAIN_TYPE_MOD, context, Integer.class);
+      this.domainNotNull = getFieldOfRow(resultBatch, rowIdx, DOMAIN_NOT_NULL, context, Boolean.class);
+      this.namespace = getFieldOfRow(resultBatch, rowIdx, NAMESPACE, context, String.class);
+      this.domainDefault = getFieldOfRow(resultBatch, rowIdx, DOMAIN_DEFAULT, context, String.class);
+      this.rangeBaseTypeId = getFieldOfRow(resultBatch, rowIdx, RANGE_BASE_TYPE_ID, context, Integer.class);
     }
 
     public int getOid() {
@@ -330,9 +332,9 @@ public class PgType implements Table<PgType.Row> {
   }
 
   @Override
-  public Row createRow(Context context, RowData rowData) throws IOException {
+  public Row createRow(Context context, ResultBatch resultBatch, int rowIdx) throws IOException {
     Row row = new Row();
-    row.load(context, rowData);
+    row.load(context, resultBatch, rowIdx);
     return row;
   }
 

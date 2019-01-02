@@ -42,6 +42,11 @@ public class NoticeException extends Exception {
     this.notice = notice;
   }
 
+  public NoticeException(Notice notice) {
+    super(notice.getMessage());
+    this.notice = notice;
+  }
+
   public Notice getNotice() {
     return notice;
   }

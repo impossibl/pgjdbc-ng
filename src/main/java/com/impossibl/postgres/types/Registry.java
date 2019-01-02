@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PgAttribute;
@@ -41,6 +42,7 @@ import static com.impossibl.postgres.system.procs.Procs.DEFAULT_BINARY_DECODER;
 import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_DECODER;
 import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_ENCODER;
 
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,7 +73,7 @@ public class Registry {
   private TreeMap<Integer, PgProc.Row> pgProcData;
   private Map<String, PgProc.Row> pgProcNameMap;
 
-  private Context context;
+  private WeakReference<Context> context;
   private Procs procs;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -80,7 +82,7 @@ public class Registry {
 
   public Registry(Context context) {
 
-    this.context = context;
+    this.context = new WeakReference<>(context);
 
     this.procs = new Procs(context.getClass().getClassLoader());
 
@@ -117,7 +119,14 @@ public class Registry {
   }
 
   public Context getContext() {
-    return context;
+    return context.get();
+  }
+
+  public Type loadType(TypeRef typeRef) {
+    if (typeRef instanceof Type) {
+      return (Type) typeRef;
+    }
+    return loadType(typeRef.getOid());
   }
 
   /**
@@ -144,7 +153,7 @@ public class Registry {
 
           if (type == null) {
 
-            context.refreshType(typeId);
+            getContext().refreshType(typeId);
 
           }
 
@@ -198,7 +207,7 @@ public class Registry {
     }
 
     if (res == null) {
-      context.refreshType(getLatestKnownTypeId() + 1);
+      getContext().refreshType(getLatestKnownTypeId() + 1);
       lock.readLock().lock();
       try {
         res = nameMap.get(name);
@@ -239,7 +248,7 @@ public class Registry {
 
           if (type == null) {
 
-            context.refreshRelationType(relationId);
+            getContext().refreshRelationType(relationId);
 
           }
 
@@ -562,7 +571,7 @@ public class Registry {
       return defaultEncoder;
     }
 
-    return procs.loadEncoderProc(name, context, defaultEncoder, bufferType);
+    return procs.loadEncoderProc(name, getContext(), defaultEncoder, bufferType);
   }
 
   /*
@@ -575,7 +584,7 @@ public class Registry {
       return defaultDecoder;
     }
 
-    return procs.loadDecoderProc(name, context, defaultDecoder, bufferType);
+    return procs.loadDecoderProc(name, getContext(), defaultDecoder, bufferType);
   }
 
   /*
@@ -588,7 +597,7 @@ public class Registry {
       name = ""; //get the default proc
     }
 
-    return procs.loadModifierParserProc(name, context);
+    return procs.loadModifierParserProc(name, getContext());
   }
 
 }

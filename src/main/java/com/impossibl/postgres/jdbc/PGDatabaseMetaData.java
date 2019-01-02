@@ -29,10 +29,10 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.data.ACLItem;
-import com.impossibl.postgres.protocol.BufferRowData;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.protocol.RowDataSet;
+import com.impossibl.postgres.protocol.v30.BufferRowData;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Registry;
@@ -116,7 +116,7 @@ class PGDatabaseMetaData implements DatabaseMetaData {
 
   private PGResultSet createResultSet(ResultField[] resultFields, List<Object[]> results) throws SQLException {
 
-    List<RowData> rows = new ArrayList<>(results.size());
+    RowDataSet rows = new RowDataSet(results.size());
     for (Object[] resultValues : results) {
       try {
         rows.add(BufferRowData.encode(connection, resultFields, resultValues));

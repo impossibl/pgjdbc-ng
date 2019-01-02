@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.protocol.QueryCommand;
-import com.impossibl.postgres.protocol.ServerObjectType;
+import com.impossibl.postgres.protocol.ResultBatch;
+import com.impossibl.postgres.protocol.ResultBatches;
 
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
@@ -37,7 +37,6 @@ import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
-import static com.impossibl.postgres.protocol.QueryCommand.ResultBatch.releaseResultBatches;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -45,6 +44,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import static java.lang.Integer.max;
 import static java.util.Arrays.asList;
 
 
@@ -56,10 +56,10 @@ class PGSimpleStatement extends PGStatement {
     super(connection, type, concurrency, holdability, null, null);
   }
 
-  private boolean setup(SQLText sqlText) {
+  private void setup(SQLText sqlText) {
 
     if (sqlText.getStatementCount() > 1) {
-      return true;
+      return;
     }
 
     if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
@@ -75,14 +75,13 @@ class PGSimpleStatement extends PGStatement {
 
     }
 
-    return name == null && !needsNamedPortal();
   }
 
   boolean execute(SQLText sqlText) throws SQLException {
 
     if (name != null) {
 
-      dispose(connection, ServerObjectType.Statement, name);
+      dispose(connection, name);
 
       name = null;
     }
@@ -91,22 +90,15 @@ class PGSimpleStatement extends PGStatement {
       SQLTextEscapes.processEscapes(sqlText, connection);
     }
 
-    if (setup(sqlText)) {
+    setup(sqlText);
 
-      return executeSimple(sqlText.toString());
+    boolean result = executeDirect(sqlText.toString());
 
+    if (cursorName != null) {
+      result = executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName);
     }
-    else {
 
-      boolean res = executeExtended(sqlText.toString());
-
-      if (cursorName != null) {
-        res = super.executeSimple("FETCH ABSOLUTE 0 FROM " + cursorName);
-      }
-
-      return res;
-
-    }
+    return result;
   }
 
   @Override
@@ -180,7 +172,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -190,7 +182,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -200,7 +192,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -210,7 +202,7 @@ class PGSimpleStatement extends PGStatement {
       throw NO_RESULT_COUNT_AVAILABLE;
     }
 
-    return getUpdateCount();
+    return max(getUpdateCount(), 0);
   }
 
   @Override
@@ -248,17 +240,17 @@ class PGSimpleStatement extends PGStatement {
       }
 
       execute(batchCommands);
+
       counts = new int[resultBatches.size()];
 
       for (c = 0; c < resultBatches.size(); ++c) {
 
-        QueryCommand.ResultBatch resultBatch = resultBatches.get(c);
+        ResultBatch resultBatch = resultBatches.get(c);
 
         if (resultBatch.getCommand().equals("SELECT")) {
           throw new BatchUpdateException("SELECT in executeBatch", Arrays.copyOf(counts, c));
         }
-
-        if (resultBatch.getRowsAffected() != null) {
+        else if (resultBatch.getRowsAffected() != null) {
           counts[c] = (int)(long)resultBatches.get(c).getRowsAffected();
         }
         else {
@@ -275,10 +267,9 @@ class PGSimpleStatement extends PGStatement {
       throw new BatchUpdateException(Arrays.copyOf(counts, c), se);
     }
     finally {
-
-      resultBatches = releaseResultBatches(resultBatches);
+      resultBatches = ResultBatches.releaseAll(resultBatches);
       batchCommands = null;
-      command = null;
+      query = null;
     }
 
   }

@@ -191,7 +191,7 @@ class SQLTypeMetaData {
       return reg.loadType("char");
     }
     if (cls == String.class) {
-      return reg.loadType("varchar");
+      return reg.loadType("text");
     }
     if (cls == Date.class) {
       return reg.loadType("date");
@@ -261,7 +261,7 @@ class SQLTypeMetaData {
         return reg.loadType("char");
       case Types.VARCHAR:
       case Types.LONGVARCHAR:
-        return reg.loadType("varchar");
+        return reg.loadType("text");
       case Types.DATE:
         return reg.loadType("date");
       case Types.TIME:
