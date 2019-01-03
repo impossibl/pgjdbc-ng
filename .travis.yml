@@ -100,7 +100,7 @@ before_install:
   - psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';" -U postgres
   - psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;' -U postgres
   - psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;' -U postgres
-script: mvn -e test
+script: mvn -e test -DtrimStackTrace=false
 after_failure:
   - ./.travis/print_surefire_reports
 after_success:
