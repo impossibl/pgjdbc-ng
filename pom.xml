@@ -262,7 +262,7 @@
     </profile>
   </profiles>
 
-  <name>PGJDBC-NG</name>
+  <name>PostgreSQL JDBC - NG</name>
   <url>http://impossibl.github.io/pgjdbc-ng/</url>
   <description>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres.
   </description>

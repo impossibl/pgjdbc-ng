@@ -178,7 +178,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
   @Override
   public String getDriverName() throws SQLException {
-    return "PostgreSQL JDBC - NG";
+    return PGDriver.NAME;
   }
 
   @Override
