@@ -547,6 +547,16 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     }
 
     @Override
+    public void exception(Channel channel, Throwable cause) {
+      if (!channel.isOpen()) {
+        ServerConnection.Listener listener = getListener();
+        if (listener != null) {
+          listener.closed();
+        }
+      }
+    }
+
+    @Override
     public void exception(Throwable cause) {
       if (cause instanceof ClosedChannelException) return;
       logger.log(Level.WARNING, "Unhandled connection exception", cause);

@@ -145,6 +145,10 @@ public class BasicContext extends AbstractContext {
       reportNotification(processId, channelName, payload);
     }
 
+    @Override
+    public void closed() {
+      connectionClosed();
+    }
   }
 
   private class RegistryTypeLoader implements Registry.TypeLoader {
@@ -203,6 +207,14 @@ public class BasicContext extends AbstractContext {
 
   protected ChannelFuture shutdown() {
     return serverConnection.shutdown();
+  }
+
+  /**
+   * Called when {@link #serverConnection} was closed
+   * externally (i.e. without calling {@link #shutdown()}
+   */
+  protected void connectionClosed() {
+    shutdown().awaitUninterruptibly();
   }
 
   public ByteBufAllocator getAllocator() {
