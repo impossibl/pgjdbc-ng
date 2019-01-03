@@ -88,6 +88,7 @@ import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS
 import static com.impossibl.postgres.system.Settings.STRICT_MODE;
 import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -122,6 +123,9 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -143,6 +147,8 @@ import io.netty.channel.ChannelFuture;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 public class PGDirectConnection extends BasicContext implements PGConnection {
+
+  private static final Logger logger = Logger.getLogger(PGDirectConnection.class.getName());
 
   /**
    * Cleans up server resources in the event of leaking connections
@@ -184,7 +190,6 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   }
 
-
   boolean strict;
   private long statementId = 0L;
   private long portalId = 0L;
@@ -199,6 +204,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private int preparedStatementCacheThreshold;
   private Map<StatementCacheKey, Integer> preparedStatementHeat;
   private int defaultFetchSize;
+  private Map<NotificationKey, PGNotificationListener> notificationListeners;
   final Housekeeper.Ref housekeeper;
   private final Object cleanupKey;
 
@@ -210,6 +216,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
     this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
     this.activeStatements = new ArrayList<>();
+    this.notificationListeners = new ConcurrentHashMap<>();
 
     final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE, DESCRIPTION_CACHE_SIZE_DEFAULT);
     if (descriptionCacheSize > 0) {
@@ -679,21 +686,27 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   /**
-   * Closes all statements and shuts down the protocol
+   * Release all resources and shut down the protocol using network timeout
    *
    */
   private void internalClose() {
 
     closeStatements();
 
-    notificationListeners.clear();
-
     shutdown().awaitUninterruptibly(networkTimeout > 0 ? networkTimeout : Integer.MAX_VALUE);
+
+    reportClosed();
+    notificationListeners.clear();
 
     if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
       housekeeper.release();
     }
+  }
+
+  @Override
+  protected void connectionClosed() {
+    internalClose();
   }
 
   /**
@@ -1337,27 +1350,99 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener) {
-    super.addNotificationListener(name, channelNameFilter, listener);
-  }
-
-  @Override
-  public void addNotificationListener(String channelNameFilter, PGNotificationListener listener) {
-    super.addNotificationListener(null, channelNameFilter, listener);
+  protected void connectionNotificationReceived(int processId, String channelName, String payload) {
+    reportNotification(processId, channelName, payload);
   }
 
   @Override
   public void addNotificationListener(PGNotificationListener listener) {
-    super.addNotificationListener(null, null, listener);
+    addNotificationListener(null, null, listener);
   }
 
   @Override
-  public void removeNotificationListener(PGNotificationListener listener) {
-    super.removeNotificationListener(listener);
+  public void addNotificationListener(String channelNameFilter, PGNotificationListener listener) {
+    addNotificationListener(null, channelNameFilter, listener);
   }
 
+  public void addNotificationListener(String name, String channelNameFilter, PGNotificationListener listener) {
 
+    name = nullToEmpty(name);
+    channelNameFilter = channelNameFilter != null ? channelNameFilter : ".*";
 
+    Pattern channelNameFilterPattern = Pattern.compile(channelNameFilter);
+
+    NotificationKey key = new NotificationKey(name, channelNameFilterPattern);
+
+    notificationListeners.put(key, listener);
+  }
+
+  public void removeNotificationListener(PGNotificationListener listener) {
+
+    Iterator<Map.Entry<NotificationKey, PGNotificationListener>> iter = notificationListeners.entrySet().iterator();
+    while (iter.hasNext()) {
+
+      Map.Entry<NotificationKey, PGNotificationListener> entry = iter.next();
+
+      PGNotificationListener iterListener = entry.getValue();
+      if (iterListener == null || iterListener.equals(listener)) {
+
+        iter.remove();
+      }
+
+    }
+  }
+
+  public void removeNotificationListener(String listenerName) {
+
+    Iterator<Map.Entry<NotificationKey, PGNotificationListener>> iter = notificationListeners.entrySet().iterator();
+    while (iter.hasNext()) {
+
+      Map.Entry<NotificationKey, PGNotificationListener> entry = iter.next();
+
+      String iterListenerName = entry.getKey().name;
+      PGNotificationListener iterListener = entry.getValue();
+      if (iterListenerName.equals(listenerName) || iterListener == null) {
+
+        iter.remove();
+      }
+
+    }
+  }
+
+  private void reportNotification(int processId, String channelName, String payload) {
+
+    for (Map.Entry<NotificationKey, PGNotificationListener> entry : notificationListeners.entrySet()) {
+
+      PGNotificationListener listener = entry.getValue();
+      if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
+
+        try {
+          listener.notification(processId, channelName, payload);
+        }
+        catch (Throwable t) {
+          logger.log(Level.WARNING, "Exception in connection listener", t);
+        }
+      }
+
+    }
+
+  }
+
+  private void reportClosed() {
+
+    for (Map.Entry<NotificationKey, PGNotificationListener> entry : notificationListeners.entrySet()) {
+
+      PGNotificationListener listener = entry.getValue();
+
+      try {
+        listener.closed();
+      }
+      catch (Throwable t) {
+        logger.log(Level.WARNING, "Exception in connection listener", t);
+      }
+    }
+
+  }
 
   boolean isCacheEnabled() {
     return preparedStatementCache != null;
@@ -1517,6 +1602,22 @@ class PreparedStatementDescription extends StatementDescription {
   PreparedStatementDescription(String statementName, Type[] parameterTypes, ResultField[] resultFields) {
     super(parameterTypes, resultFields);
     this.name = statementName;
+  }
+
+}
+
+class NotificationKey {
+
+  String name;
+  Pattern channelNameFilter;
+
+  NotificationKey(String name, Pattern channelNameFilter) {
+    this.name = name;
+    this.channelNameFilter = channelNameFilter;
+  }
+
+  String getName() {
+    return name;
   }
 
 }

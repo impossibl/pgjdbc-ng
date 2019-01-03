@@ -28,16 +28,18 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
-import com.impossibl.postgres.system.NotificationListener;
-
-
-
 /**
  * PostgreSQL asynchronous notification listener
  *
  * @author kdubb
  *
  */
-public interface PGNotificationListener extends NotificationListener {
+public interface PGNotificationListener {
+
+  default void notification(int processId, String channelName, String payload) {
+  }
+
+  default void closed() {
+  }
 
 }

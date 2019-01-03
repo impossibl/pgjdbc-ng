@@ -31,6 +31,9 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -45,6 +48,59 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(JUnit4.class)
 public class NotificationTest {
+
+  @Test
+  public void testExplicitCloseReportsClose() throws Exception {
+
+    AtomicBoolean flag = new AtomicBoolean();
+    try (PGConnection connection = (PGConnection) TestUtil.openDB()) {
+
+      connection.addNotificationListener(new PGNotificationListener() {
+        @Override
+        public void closed() {
+          flag.set(true);
+        }
+      });
+
+    }
+
+    assertTrue(flag.get());
+
+  }
+
+  @Test
+  public void testImplicitCloseReportsClose() throws Exception {
+
+    AtomicBoolean flag = new AtomicBoolean();
+    PGConnection conn = (PGConnection) TestUtil.openDB();
+
+    conn.addNotificationListener(new PGNotificationListener() {
+      @Override
+      public void closed() {
+        flag.set(true);
+      }
+    });
+
+
+    long connPid;
+    try (PreparedStatement ps = conn.prepareStatement("SELECT pg_backend_pid()")) {
+      ResultSet rs = ps.executeQuery();
+      rs.next();
+      connPid = rs.getLong(1);
+      rs.close();
+    }
+
+    try (Connection conn2 = TestUtil.openDB()) {
+      try (Statement statement = conn2.createStatement()) {
+        statement.execute("SELECT pg_terminate_backend(" + connPid + ")");
+      }
+    }
+
+    Thread.sleep(100);
+
+    assertTrue(flag.get());
+    assertTrue(conn.isClosed());
+  }
 
   @Test
   public void testSimpleNotification() throws Exception {

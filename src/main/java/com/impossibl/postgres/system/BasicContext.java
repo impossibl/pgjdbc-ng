@@ -74,16 +74,13 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -117,22 +114,6 @@ public class BasicContext extends AbstractContext {
     }
   }
 
-  private static class NotificationKey {
-
-    private String name;
-    private Pattern channelNameFilter;
-
-    NotificationKey(String name, Pattern channelNameFilter) {
-      this.name = name;
-      this.channelNameFilter = channelNameFilter;
-    }
-
-    String getName() {
-      return name;
-    }
-
-  }
-
   private class ServerConnectionListener implements ServerConnection.Listener {
 
     @Override
@@ -142,7 +123,7 @@ public class BasicContext extends AbstractContext {
 
     @Override
     public void notificationReceived(int processId, String channelName, String payload) {
-      reportNotification(processId, channelName, payload);
+      connectionNotificationReceived(processId, channelName, payload);
     }
 
     @Override
@@ -188,7 +169,6 @@ public class BasicContext extends AbstractContext {
   private DecimalFormat currencyFormatter;
   protected Properties settings;
   protected ServerConnection serverConnection;
-  protected Map<NotificationKey, NotificationListener> notificationListeners;
   private Map<String, QueryDescription> utilQueries;
 
 
@@ -200,12 +180,12 @@ public class BasicContext extends AbstractContext {
     this.dateFormatter = new ISODateFormat();
     this.timeFormatter = new ISOTimeFormat();
     this.timestampFormatter = new ISOTimestampFormat();
-    this.notificationListeners = new ConcurrentHashMap<>();
     this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, new ServerConnectionListener());
     this.utilQueries = new HashMap<>();
   }
 
   protected ChannelFuture shutdown() {
+
     return serverConnection.shutdown();
   }
 
@@ -215,6 +195,13 @@ public class BasicContext extends AbstractContext {
    */
   protected void connectionClosed() {
     shutdown().awaitUninterruptibly();
+  }
+
+  /**
+   * Called when {@link #serverConnection} received
+   * an asynchronous notification
+   */
+  protected void connectionNotificationReceived(int processId, String channelName, String payload) {
   }
 
   public ByteBufAllocator getAllocator() {
@@ -767,65 +754,6 @@ public class BasicContext extends AbstractContext {
 
       default:
         break;
-    }
-
-  }
-
-  protected void addNotificationListener(String name, String channelNameFilter, NotificationListener listener) {
-
-    name = nullToEmpty(name);
-    channelNameFilter = channelNameFilter != null ? channelNameFilter : ".*";
-
-    Pattern channelNameFilterPattern = Pattern.compile(channelNameFilter);
-
-    NotificationKey key = new NotificationKey(name, channelNameFilterPattern);
-
-    notificationListeners.put(key, listener);
-  }
-
-  protected synchronized void removeNotificationListener(NotificationListener listener) {
-
-    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
-    while (iter.hasNext()) {
-
-      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
-
-      NotificationListener iterListener = entry.getValue();
-      if (iterListener == null || iterListener.equals(listener)) {
-
-        iter.remove();
-      }
-
-    }
-  }
-
-  public synchronized void removeNotificationListener(String listenerName) {
-
-    Iterator<Map.Entry<NotificationKey, NotificationListener>> iter = notificationListeners.entrySet().iterator();
-    while (iter.hasNext()) {
-
-      Map.Entry<NotificationKey, NotificationListener> entry = iter.next();
-
-      String iterListenerName = entry.getKey().name;
-      NotificationListener iterListener = entry.getValue();
-      if (iterListenerName.equals(listenerName) || iterListener == null) {
-
-        iter.remove();
-      }
-
-    }
-  }
-
-  private synchronized void reportNotification(int processId, String channelName, String payload) {
-
-    for (Map.Entry<NotificationKey, NotificationListener> entry : notificationListeners.entrySet()) {
-
-      NotificationListener listener = entry.getValue();
-      if (entry.getKey().channelNameFilter.matcher(channelName).matches()) {
-
-        listener.notification(processId, channelName, payload);
-      }
-
     }
 
   }
