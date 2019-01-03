@@ -59,11 +59,20 @@ import static java.lang.Boolean.parseBoolean;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 public class PGDriver implements Driver, DriverAction {
+
+  /** The name of the driver */
+  public static final String NAME;
+  static {
+    String name = PGDriver.class.getPackage().getImplementationTitle();
+    name = name != null ? name : "DEVELOP"; // Ensure it works when in IDE
+    NAME = name;
+  }
+
   /** The version of the driver */
   public static final Version VERSION;
   static {
     String version = PGDriver.class.getPackage().getImplementationVersion();
-    version = version != null ? version : "0.0.0-DEVELOP";
+    version = version != null ? version : "0.0.0-DEVELOP"; // Ensure it works when in IDE
     VERSION = Version.parse(version);
   }
 
