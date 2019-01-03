@@ -50,6 +50,7 @@ public interface ServerConnection {
   interface Listener {
     void parameterStatusChanged(String name, String value);
     void notificationReceived(int processId, String channelName, String payload);
+    void closed();
   }
 
   class KeyData {
