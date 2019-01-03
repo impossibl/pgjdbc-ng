@@ -132,21 +132,27 @@ class PGResultSet implements ResultSet {
     @Override
     public void run() {
 
-      try {
-        query.dispose(statement.connection);
-      }
-      catch (SQLException e) {
-        //Ignore...
-      }
-
-      try {
-        statement.handleResultSetClosure(null);
-      }
-      catch (SQLException e) {
-        //Ignore...
+      if (query != null) {
+        try {
+          query.dispose(statement.connection);
+        }
+        catch (SQLException e) {
+          //Ignore...
+        }
+        query = null;
       }
 
-      statement = null;
+      if (statement != null) {
+        try {
+          statement.handleResultSetClosure(null);
+        }
+        catch (SQLException e) {
+          //Ignore...
+        }
+
+        statement = null;
+      }
+
     }
 
   }
