@@ -55,7 +55,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   public class Ref implements Housekeeper.Ref {
 
-    private boolean released;
+    private AtomicBoolean released = new AtomicBoolean(false);
 
     @Override
     public ThreadedHousekeeper get() {
@@ -64,10 +64,8 @@ public class ThreadedHousekeeper implements Housekeeper {
 
     @Override
     public void release() {
-      if (!released) {
-        released = true;
-        ThreadedHousekeeper.release();
-      }
+      if (released.getAndSet(true)) return;
+      ThreadedHousekeeper.release();
     }
 
     @Override
@@ -92,6 +90,9 @@ public class ThreadedHousekeeper implements Housekeeper {
   }
 
   private static synchronized void release() {
+    if (instanceRefs <= 0) {
+      throw new IllegalStateException("Release when reference count 0");
+    }
 
     --instanceRefs;
     if (instanceRefs == 0) {
