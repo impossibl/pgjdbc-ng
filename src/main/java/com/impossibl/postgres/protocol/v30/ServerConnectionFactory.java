@@ -424,7 +424,9 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
         firstNonNull(startupParameterStatuses.remove("integer_datetimes"), "on").equalsIgnoreCase("on")
     );
 
-    return new ServerConnection(config, channel, serverInfo, startupProtocolVersion.get(), startupKeyData.get(), sharedRef);
+    protocolVersion = startupProtocolVersion.get() != null ? startupProtocolVersion.get() : protocolVersion;
+
+    return new ServerConnection(config, channel, serverInfo, protocolVersion, startupKeyData.get(), sharedRef);
   }
 
   private void verifyHostname(String hostname, SSLSession session) throws SSLPeerUnverifiedException {
