@@ -34,7 +34,6 @@ import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeOid;
 import com.impossibl.postgres.protocol.TypeRef;
-import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 
 import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
@@ -44,6 +43,7 @@ import static com.impossibl.postgres.utils.ByteBufs.readCString;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -72,7 +72,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     this.traceWriter = traceWriter;
   }
 
-  public void setDefaultHandler(ProtocolHandler defaultHandler) {
+  void setDefaultHandler(ProtocolHandler defaultHandler) {
     this.defaultHandler = defaultHandler;
   }
 
@@ -142,7 +142,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
       // Dispatch to current request handler
 
-      ProtocolHandler protocolHandler = protocolHandlers.element();
+      ProtocolHandler protocolHandler = protocolHandlers.peek();
 
       dispatch(ctx, id, data, protocolHandler);
 
@@ -162,18 +162,7 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   @Override
   public void channelInactive(ChannelHandlerContext ctx) {
 
-    // Dispatch to current request handler (if any)
-
-    ProtocolHandler protocolHandler;
-    while ((protocolHandler = protocolHandlers.poll()) != null) {
-      try {
-        protocolHandler.exception(new BlockingReadTimeoutException());
-      }
-      catch (IOException ignored) {
-        // No need to report here...
-      }
-    }
-
+    exceptionCaught(ctx, new ClosedChannelException());
   }
 
   @Override
@@ -181,11 +170,11 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
     // Dispatch to current request handler (if any)
 
-    ProtocolHandler protocolHandler = protocolHandlers.poll();
-    if (protocolHandler == null) return;
+    ProtocolHandler handler = protocolHandlers.poll();
+    handler = handler != null ? handler : defaultHandler;
 
     try {
-      protocolHandler.exception(cause);
+      handler.exception(ctx.channel(), cause);
     }
     catch (IOException ignored) {
     }
@@ -194,18 +183,21 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
   private void dispatch(ChannelHandlerContext ctx, byte id, ByteBuf data, ProtocolHandler protocolHandler) throws IOException {
 
-    ProtocolHandler.Action action;
-    try {
-      action = parseAndDispatch(ctx, id, data, protocolHandler);
-    }
-    catch (IOException e) {
+    ProtocolHandler.Action action = null;
+
+    if (protocolHandler != null) {
       try {
-        protocolHandler.exception(e);
+        action = parseAndDispatch(ctx, id, data, protocolHandler);
       }
-      catch (IOException sub) {
-        // Failing now will have no real effect, we always sync on pipeline exception
+      catch (IOException e) {
+        try {
+          protocolHandler.exception(e);
+        }
+        catch (IOException sub) {
+          // Failing now will have no real effect, we always sync on pipeline exception
+        }
+        action = isReadyForQuery(id) ? ProtocolHandler.Action.Complete : ProtocolHandler.Action.Sync;
       }
-      action = isReadyForQuery(id) ? ProtocolHandler.Action.Complete : ProtocolHandler.Action.Sync;
     }
 
     if (action == null) {

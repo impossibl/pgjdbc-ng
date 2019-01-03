@@ -44,8 +44,13 @@ import java.io.IOException;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 
 public interface ProtocolHandler {
+
+  default void exception(Channel channel, Throwable cause) throws IOException {
+    exception(cause);
+  }
 
   void exception(Throwable cause) throws IOException;
 

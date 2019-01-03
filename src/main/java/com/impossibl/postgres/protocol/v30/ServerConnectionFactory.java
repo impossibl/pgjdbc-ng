@@ -38,6 +38,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Notification;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
@@ -84,6 +85,7 @@ import java.io.Writer;
 import java.lang.ref.WeakReference;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -91,6 +93,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -510,7 +514,9 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return io;
   }
 
-  static class DefaultHandler implements ParameterStatus, ReportNotice, Notification {
+  static class DefaultHandler implements ParameterStatus, ReportNotice, Notification, CommandError {
+
+    private static final Logger logger = Logger.getLogger(ServerConnection.class.getName());
 
     private WeakReference<ServerConnection.Listener> listener;
 
@@ -540,6 +546,8 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     @Override
     public void exception(Throwable cause) {
+      if (cause instanceof ClosedChannelException) return;
+      logger.log(Level.WARNING, "Unhandled connection exception", cause);
     }
 
     @Override
@@ -547,6 +555,11 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       return null;
     }
 
+    @Override
+    public Action error(Notice notice) {
+      logger.warning(notice.getMessage());
+      return Action.Resume;
+    }
   }
 
 }
