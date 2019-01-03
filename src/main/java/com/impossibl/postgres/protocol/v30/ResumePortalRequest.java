@@ -38,11 +38,13 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.ResumeHandler;
 import com.impossibl.postgres.protocol.RowDataSet;
+import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.DataRow;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.EmptyQuery;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.PortalSuspended;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.system.NoticeException;
 
 import java.io.IOException;
@@ -70,7 +72,11 @@ public class ResumePortalRequest implements ServerRequest {
     this.notices = new ArrayList<>();
   }
 
-  private class Handler implements DataRow, EmptyQuery, PortalSuspended, CommandComplete, CommandError {
+  boolean isSynced() {
+    return maxRows < 1;
+  }
+
+  private class Handler implements DataRow, EmptyQuery, PortalSuspended, CommandComplete, ReadyForQuery, CommandError {
 
     @Override
     public String toString() {
@@ -111,7 +117,7 @@ public class ResumePortalRequest implements ServerRequest {
         release(rows);
       }
 
-      return Action.Complete;
+      return isSynced() ? Action.Resume : Action.Complete;
     }
 
     @Override
@@ -124,6 +130,11 @@ public class ResumePortalRequest implements ServerRequest {
         release(rows);
       }
 
+      return isSynced() ? Action.Resume : Action.Complete;
+    }
+
+    @Override
+    public Action readyForQuery(TransactionStatus txnStatus) {
       return Action.Complete;
     }
 
@@ -151,11 +162,11 @@ public class ResumePortalRequest implements ServerRequest {
 
     channel.writeExecute(portalName, maxRows);
 
-    if (maxRows > 0) {
-      channel.writeFlush();
+    if (isSynced()) {
+      channel.writeSync();
     }
     else {
-      channel.writeSync();
+      channel.writeFlush();
     }
 
     channel.flush();
