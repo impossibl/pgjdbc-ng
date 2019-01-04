@@ -50,8 +50,8 @@ import com.impossibl.postgres.utils.MD5Authentication;
 import com.impossibl.postgres.utils.StringTransforms;
 
 import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
-import static com.impossibl.postgres.system.Settings.ALLOCATOR;
-import static com.impossibl.postgres.system.Settings.ALLOCATOR_DEFAULT;
+import static com.impossibl.postgres.system.Settings.ALLOCATOR_POOLED;
+import static com.impossibl.postgres.system.Settings.ALLOCATOR_POOLED_DEFAULT;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.Settings.APPLICATION_NAME_DEFAULT;
 import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
@@ -117,9 +117,18 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueDomainSocketChannel;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.unix.DomainSocketAddress;
+import io.netty.channel.unix.DomainSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.ssl.SslHandler;
 
@@ -129,6 +138,15 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   private static final long DEFAULT_STARTUP_TIMEOUT = 60;
   private static final long DEFAULT_SSL_TIMEOUT = 60;
 
+  static class CreatedChannel {
+    ServerConnectionShared.Ref sharedRef;
+    ChannelFuture channelFuture;
+
+    CreatedChannel(ServerConnectionShared.Ref sharedRef, ChannelFuture channelFuture) {
+      this.sharedRef = sharedRef;
+      this.channelFuture = channelFuture;
+    }
+  }
 
   public ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException {
 
@@ -141,16 +159,10 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     try {
 
-      ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire();
+      CreatedChannel createdChannel = createChannel(address, config);
 
-      int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
-      boolean usePooledAllocator = config.getSetting(ALLOCATOR, ALLOCATOR_DEFAULT);
-      Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
-
-      Channel channel =
-          createChannel(address, config, sharedRef, clientEncoding, maxMessageSize, usePooledAllocator)
-              .syncUninterruptibly()
-              .channel();
+      ServerConnectionShared.Ref sharedRef = createdChannel.sharedRef;
+      Channel channel = createdChannel.channelFuture.syncUninterruptibly().channel();
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
@@ -253,25 +265,24 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   }
 
-  private ChannelFuture createChannel(SocketAddress address, Configuration config, ServerConnectionShared.Ref sharedRef,
-                                      Charset clientEncoding, int maxMessageSize, boolean usePooledAllocator) {
+  private CreatedChannel createChannel(SocketAddress address, Configuration config) {
 
-    Bootstrap bootstrap;
     if (address instanceof InetSocketAddress) {
-      bootstrap = bootstrapSocket(config, sharedRef, clientEncoding, maxMessageSize);
+      return createInetSocketChannel((InetSocketAddress) address, config);
+    }
+    else if (address instanceof DomainSocketAddress) {
+      return createDomainSocketChannel((DomainSocketAddress) address, config);
     }
     else {
       throw new IllegalArgumentException("Unsupported socket address: " + address.getClass().getSimpleName());
     }
-
-    bootstrap
-        .option(ChannelOption.ALLOCATOR, usePooledAllocator ? PooledByteBufAllocator.DEFAULT : UnpooledByteBufAllocator.DEFAULT);
-
-    return bootstrap.connect(address);
   }
 
   @SuppressWarnings("deprecation")
-  private Bootstrap bootstrapSocket(Configuration config, ServerConnectionShared.Ref sharedRef, Charset clientEncoding, int maxMessageSize) {
+  private CreatedChannel createInetSocketChannel(InetSocketAddress address, Configuration config) {
+
+    int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
+    Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
 
     Class<? extends SocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
@@ -291,21 +302,31 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
         maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
         break;
 
+      case "native":
+        if (KQueue.isAvailable()) {
+          channelType = KQueueSocketChannel.class;
+          groupType = KQueueEventLoopGroup.class;
+        }
+        else if (Epoll.isAvailable()) {
+          channelType = EpollSocketChannel.class;
+          groupType = KQueueEventLoopGroup.class;
+        }
+        else {
+          throw new IllegalStateException("Unsupported io mode: native: no native library loaded");
+        }
+        maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+        break;
+
       default:
         throw new IllegalStateException("Unsupported io mode: " + ioMode);
     }
 
+    ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire(groupType, maxThreads);
 
-    Writer protocolTraceWriter;
-    if (config.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
-      protocolTraceWriter = new BufferedWriter(new OutputStreamWriter(System.out));
-    }
-    else {
-      protocolTraceWriter = null;
-    }
+    Writer protocolTraceWriter = createProtocolTracer(config);
 
     Bootstrap bootstrap = new Bootstrap()
-            .group(sharedRef.get().getEventLoopGroup(groupType, maxThreads))
+            .group(sharedRef.get().getEventLoopGroup())
             .channel(channelType)
             .handler(new ChannelInitializer<SocketChannel>() {
               @Override
@@ -318,6 +339,60 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
             })
             .option(ChannelOption.TCP_NODELAY, true);
 
+    configureChannelOptions(config, bootstrap);
+
+    ChannelFuture channelFuture = bootstrap.connect(address);
+
+    return new CreatedChannel(sharedRef, channelFuture);
+  }
+
+  private CreatedChannel createDomainSocketChannel(DomainSocketAddress address, Configuration config) {
+
+    int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
+    Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
+
+    Class<? extends DomainSocketChannel> channelType;
+    Class<? extends EventLoopGroup> groupType;
+    if (KQueue.isAvailable()) {
+      channelType = KQueueDomainSocketChannel.class;
+      groupType = KQueueEventLoopGroup.class;
+    }
+    else if (Epoll.isAvailable()) {
+      channelType = EpollDomainSocketChannel.class;
+      groupType = KQueueEventLoopGroup.class;
+    }
+    else {
+      throw new IllegalArgumentException("Unix domain sockets not supported: missing native libraries");
+    }
+
+    int maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+
+    ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire(groupType, maxThreads);
+
+    Writer protocolTraceWriter = createProtocolTracer(config);
+
+    Bootstrap bootstrap = new Bootstrap()
+        .group(sharedRef.get().getEventLoopGroup())
+        .channel(channelType)
+        .handler(new ChannelInitializer<DomainSocketChannel>() {
+          @Override
+          protected void initChannel(DomainSocketChannel ch) {
+            ch.pipeline().addLast(
+                new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
+                new MessageDispatchHandler(clientEncoding, protocolTraceWriter)
+            );
+          }
+        });
+
+    configureChannelOptions(config, bootstrap);
+
+    ChannelFuture channelFuture = bootstrap.connect(address);
+
+    return new CreatedChannel(sharedRef, channelFuture);
+  }
+
+  private void configureChannelOptions(Configuration config, Bootstrap bootstrap) {
+
     if (config.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
       bootstrap.option(ChannelOption.SO_RCVBUF, config.getSetting(RECEIVE_BUFFER_SIZE, int.class));
     }
@@ -325,7 +400,15 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       bootstrap.option(ChannelOption.SO_SNDBUF, config.getSetting(SEND_BUFFER_SIZE, int.class));
     }
 
-    return bootstrap;
+    boolean usePooledAllocator = config.getSetting(ALLOCATOR_POOLED, ALLOCATOR_POOLED_DEFAULT);
+    bootstrap.option(ChannelOption.ALLOCATOR, usePooledAllocator ? PooledByteBufAllocator.DEFAULT : UnpooledByteBufAllocator.DEFAULT);
+  }
+
+  private Writer createProtocolTracer(Configuration config) {
+    if (config.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
+      return new BufferedWriter(new OutputStreamWriter(System.out));
+    }
+    return null;
   }
 
   private static ServerConnection startup(Configuration config, Channel channel, Map<String, String> startupParameterStatuses, ServerConnectionShared.Ref sharedRef) throws IOException {

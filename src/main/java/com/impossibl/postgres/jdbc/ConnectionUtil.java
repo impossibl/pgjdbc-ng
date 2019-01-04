@@ -39,9 +39,12 @@ import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -53,6 +56,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.Boolean.parseBoolean;
 
+import io.netty.channel.unix.DomainSocketAddress;
+
 /**
  * Utility class for connection
  * @author <a href="mailto:kdubb@me.com">Kevin Wooten</a>
@@ -61,13 +66,16 @@ import static java.lang.Boolean.parseBoolean;
 class ConnectionUtil {
   private static final String JDBC_APPLICATION_NAME_PARAM = "applicationName";
   private static final String JDBC_CLIENT_ENCODING_PARAM = "clientEncoding";
-  private static Logger log = Logger.getLogger(ConnectionUtil.class.getName());
+  private static final String POSTGRES_UNIX_SOCKET_BASE_NAME = ".s.PGSQL";
+  private static final String POSTGRES_UNIX_SOCKET_INVALID_EXT = ".lock";
+
+  private static Logger logger = Logger.getLogger(ConnectionUtil.class.getName());
 
   static class ConnectionSpecifier {
 
-    private List<InetSocketAddress> addresses = new ArrayList<>();
+    private List<SocketAddress> addresses;
     private String database;
-    private Properties parameters = new Properties();
+    private Properties parameters;
 
     ConnectionSpecifier() {
       addresses = new ArrayList<>();
@@ -83,11 +91,15 @@ class ConnectionUtil {
       database = v;
     }
 
-    List<InetSocketAddress> getAddresses() {
+    List<SocketAddress> getAddresses() {
       return addresses;
     }
 
-    void addAddress(InetSocketAddress v) {
+    void prependAddress(SocketAddress v) {
+      addresses.add(0, v);
+    }
+
+    void appendAddress(SocketAddress v) {
       addresses.add(v);
     }
 
@@ -103,16 +115,27 @@ class ConnectionUtil {
 
       StringBuilder hosts = new StringBuilder();
 
-      Iterator<InetSocketAddress> addrIter = addresses.iterator();
+      Iterator<SocketAddress> addrIter = addresses.iterator();
       while (addrIter.hasNext()) {
 
-        InetSocketAddress addr = addrIter.next();
+        SocketAddress addr = addrIter.next();
 
-        hosts.append(addr.getHostString());
+        if (addr instanceof InetSocketAddress) {
+          InetSocketAddress inetAddr = (InetSocketAddress) addr;
 
-        if (addr.getPort() != 5432) {
-          hosts.append(':');
-          hosts.append(addr.getPort());
+          hosts.append(inetAddr.getHostString());
+
+          if (inetAddr.getPort() != 5432) {
+            hosts.append(':');
+            hosts.append(inetAddr.getPort());
+          }
+        }
+        else if (addr instanceof DomainSocketAddress) {
+          DomainSocketAddress domainAddr = (DomainSocketAddress) addr;
+          hosts.append("unix:").append(domainAddr.path());
+        }
+        else {
+          throw new IllegalStateException("Unsupported socket address");
         }
 
         if (addrIter.hasNext()) {
@@ -166,11 +189,25 @@ class ConnectionUtil {
 
     // Try to connect to each provided address in turn returning the first
     // successful connection
-    for (InetSocketAddress address : connSpec.getAddresses()) {
+    for (SocketAddress address : connSpec.getAddresses()) {
 
-      if (address.isUnresolved()) {
-        lastException = new SQLException("Connection Error: address '" + address.getHostString() + "' is unresolved", "8001");
-        continue;
+      if (address instanceof InetSocketAddress) {
+        InetSocketAddress inetAddress = (InetSocketAddress) address;
+
+        if (inetAddress.isUnresolved()) {
+          lastException = new SQLException("Connection Error: address '" + inetAddress.getHostString() + "' is unresolved", "8001");
+          continue;
+        }
+
+      }
+      else if (address instanceof DomainSocketAddress) {
+        DomainSocketAddress domainAddress = (DomainSocketAddress) address;
+
+        File socketFile = new File(domainAddress.path());
+        if (!socketFile.exists()) {
+          lastException = new SQLException("Connection Error: unix socket '" + socketFile + "' does not exist", "8001");
+          continue;
+        }
       }
 
       try {
@@ -238,7 +275,7 @@ class ConnectionUtil {
    *    3 = parameters            (optional)
    */
   private static final Pattern URL_PATTERN =
-      Pattern.compile("jdbc:pgsql:(?://((?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?([^?&]+)(?:[?&](.*))?");
+      Pattern.compile("jdbc:pgsql:(?://((?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?([^?&/]+)(?:[?&](.*))?");
 
   private static final Pattern ADDRESS_PATTERN = Pattern.compile("(?:([a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(\\d+))?)");
 
@@ -269,13 +306,8 @@ class ConnectionUtil {
       //
       ConnectionSpecifier spec = new ConnectionSpecifier();
 
-      //Get hosts, if provided, or use the default "localhost:5432"
-      String hosts = urlMatcher.group(1);
-      if (hosts == null || hosts.isEmpty()) {
-        hosts = "localhost";
-      }
-
       //Parse hosts into list of addresses
+      String hosts = nullToEmpty(urlMatcher.group(1));
       Matcher hostsMatcher = ADDRESS_PATTERN.matcher(hosts);
       while (hostsMatcher.find()) {
 
@@ -287,7 +319,7 @@ class ConnectionUtil {
         }
 
         InetSocketAddress address = new InetSocketAddress(name, Integer.parseInt(port));
-        spec.addAddress(address);
+        spec.appendAddress(address);
       }
 
 
@@ -314,7 +346,36 @@ class ConnectionUtil {
         }
       }
 
-      log.fine("parseURL: " + url + " => " + spec);
+      // Add unix socket address (if specified)
+      String unixSocketPath = spec.parameters.getProperty("unixsocket");
+      if (unixSocketPath != null) {
+        spec.parameters.remove("unixsocket");
+
+        File unixSocketFile = new File(unixSocketPath);
+
+        // If path is to a directory, try to find and append the PG socket
+        String[] files = unixSocketFile.list((dir, name) -> name.startsWith(POSTGRES_UNIX_SOCKET_BASE_NAME) && !name.endsWith(POSTGRES_UNIX_SOCKET_INVALID_EXT));
+        if (files != null && files.length != 0) {
+          if (files.length != 1) {
+            logger.warning("Multiple PostgreSQL unix sockets found in " + unixSocketPath + ", chose " + files[0] + " at random. Specify socket file to remove this warning.");
+          }
+          unixSocketFile = new File(unixSocketFile, files[0]);
+        }
+
+        // Prepend the address with the thought that if you're attempting to
+        // search multiple addresses, you're preferring the unix socket.
+        //
+        // This can be changed to allow the address in the regular hosts list
+        // if needed; an appropriate syntax will need to be determined.
+        spec.prependAddress(new DomainSocketAddress(unixSocketFile));
+      }
+
+      // If no addresses specified, add localhost
+      if (spec.addresses.isEmpty()) {
+        spec.appendAddress(new InetSocketAddress("localhost", 5432));
+      }
+
+      logger.fine("parseURL: " + url + " => " + spec);
 
       return spec;
 

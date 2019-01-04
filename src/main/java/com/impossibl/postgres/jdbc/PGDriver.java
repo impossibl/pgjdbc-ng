@@ -175,7 +175,7 @@ public class PGDriver implements Driver, DriverAction {
       }
     }
 
-    ServerConnectionShared.acquire().get().waitForShutdown();
+    ServerConnectionShared.waitForShutdown();
   }
 
 }

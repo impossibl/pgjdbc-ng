@@ -113,8 +113,8 @@ public class Settings {
   public static final String SEND_BUFFER_SIZE = "sendBufferSize";
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
 
-  public static final String ALLOCATOR = "allocator.pooled";
-  public static final boolean ALLOCATOR_DEFAULT = true;
+  public static final String ALLOCATOR_POOLED = "allocator.pooled";
+  public static final boolean ALLOCATOR_POOLED_DEFAULT = true;
 
   public static final String PROTOCOL_VERSION = "protocol.version";
   public static final String PROTOCOL_VERSION_DEFAULT = "3.0";

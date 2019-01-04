@@ -9,7 +9,7 @@
           <property key="Bundle-DocURL" value="http://www.impossibl.com" />
           <property key="Import-Package" value="!com.impossibl.postgres*,io.netty.*;version=&quot;[4.0,4.1)&quot;,*" />
           <property key="Bundle-Name" value="PGJDBC-NG" />
-          <property key="Include-Resource" value="META-INF/services/com.impossibl.postgres.system.procs.ProcProvider=$MODULE_DIR$/src/main/resources/META-INF/services/com.impossibl.postgres.system.procs.ProcProvider,META-INF/services/java.sql.Driver=$MODULE_DIR$/src/main/resources/META-INF/services/java.sql.Driver" />
+          <property key="Include-Resource" value="META-INF/services/com.impossibl.postgres.system.procs.ProcProvider=/Users/kdubb/Projects/pgjdbc-ng/src/main/resources/META-INF/services/com.impossibl.postgres.system.procs.ProcProvider,META-INF/services/java.sql.Driver=/Users/kdubb/Projects/pgjdbc-ng/src/main/resources/META-INF/services/java.sql.Driver" />
         </additionalProperties>
         <additionalJARContents />
       </configuration>
@@ -35,5 +35,8 @@
     <orderEntry type="library" name="Maven: io.netty:netty-resolver:4.1.32.Final" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-codec:4.1.32.Final" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-handler:4.1.32.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-native-unix-common:4.1.32.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-native-kqueue:4.1.32.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport-native-epoll:4.1.32.Final" level="project" />
   </component>
 </module>

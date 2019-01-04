@@ -38,10 +38,12 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.system.Settings;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
 
+import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -51,6 +53,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /*
  * Tests the dynamically created class PGDriver
@@ -72,10 +75,11 @@ public class DriverTest {
     // These are always correct
     verifyUrl(drv, "jdbc:pgsql:test", "test", "localhost", 5432);
     verifyUrl(drv, "jdbc:pgsql://localhost/test", "test", "localhost", 5432);
-    verifyUrl(drv, "jdbc:pgsql://localhost:5432/test", "test", "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://localhost:5432/test", "test",  "localhost", 5432);
     verifyUrl(drv, "jdbc:pgsql://127.0.0.1/anydbname", "anydbname", "127.0.0.1", 5432);
     verifyUrl(drv, "jdbc:pgsql://127.0.0.1:5433/hidden", "hidden", "127.0.0.1", 5433);
     verifyUrl(drv, "jdbc:pgsql://[::1]:5740/db", "db", "0:0:0:0:0:0:0:1", 5740);
+    verifyUrl(drv, "jdbc:pgsql:test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", null);
 
     // Badly formatted url's
     assertTrue(!drv.acceptsURL("jdbc:postgres:test"));
@@ -88,6 +92,7 @@ public class DriverTest {
     verifyUrl(drv, "jdbc:pgsql://localhost:5433,127.0.0.1:5432/test", "test", "localhost", 5433, "127.0.0.1", 5432);
     verifyUrl(drv, "jdbc:pgsql://[::1],[::1]:5432/db", "db", "0:0:0:0:0:0:0:1", 5432, "0:0:0:0:0:0:0:1", 5432);
     verifyUrl(drv, "jdbc:pgsql://[::1]:5740,127.0.0.1:5432/db", "db", "0:0:0:0:0:0:0:1", 5740, "127.0.0.1", 5432);
+    verifyUrl(drv, "jdbc:pgsql://localhost,127.0.0.1:5432/test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", null, "localhost", 5432, "127.0.0.1", 5432);
   }
 
   private void verifyUrl(PGDriver drv, String url, String dbName, Object... hosts) throws Exception {
@@ -96,9 +101,17 @@ public class DriverTest {
     assertEquals(url, dbName, connSpec.getDatabase());
     assertEquals(url, hosts.length / 2, connSpec.getAddresses().size());
     for (int c = 0; c < hosts.length / 2; ++c) {
-      InetSocketAddress addr = connSpec.getAddresses().get(c);
-      assertEquals(url, hosts[c * 2 + 0], addr.getHostString());
-      assertEquals(url, hosts[c * 2 + 1], addr.getPort());
+      SocketAddress addr = connSpec.getAddresses().get(c);
+      if (addr instanceof InetSocketAddress) {
+        assertEquals(url, hosts[c * 2], ((InetSocketAddress) addr).getHostString());
+        assertEquals(url, hosts[c * 2 + 1], ((InetSocketAddress) addr).getPort());
+      }
+      else if (addr instanceof DomainSocketAddress) {
+        assertEquals(url, hosts[c * 2], ((DomainSocketAddress) addr).path());
+      }
+      else {
+        fail("Unknown socket address: " + addr);
+      }
     }
   }
 
