@@ -130,6 +130,14 @@ The 'sslKeyFile' parameter specifies the SSL key file as a path.
 The 'sslRootCertificateFile' parameter specifies the SSL root certificate file as a path.
 
 
+    unixsocket      (String)
+    
+The 'unixsocket' parameter specifies a unix domain socket directory or file that a connection should be attempted to.
+If the parameter refers to a directory it will be searched for a valid PostgreSQL unix domain socket file.
+
+*NOTE:* Connection via unix domain sockets requires that Netty native transport library for your platform be provided.
+Information can be found [on Netty's wiki](https://netty.io/wiki/native-transports.html) 
+
 ## License
 
 pgjdbc-ng is released under the 3 clause BSD license.
