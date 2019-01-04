@@ -503,8 +503,11 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       if (io.getCause() instanceof IOException) {
         io = (IOException) io.getCause();
       }
-      else {
+      else if (io.getCause() != null) {
         io = new SSLException(io.getCause().getMessage(), io.getCause());
+      }
+      else {
+        io = new SSLException(io.getMessage(), io);
       }
     }
 
@@ -537,13 +540,19 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     @Override
     public Action parameterStatus(String name, String value) {
-      getListener().parameterStatusChanged(name, value);
+      ServerConnection.Listener listener = getListener();
+      if (listener != null) {
+        listener.parameterStatusChanged(name, value);
+      }
       return Action.Resume;
     }
 
     @Override
     public void notification(int processId, String channelName, String payload) {
-      getListener().notificationReceived(processId, channelName, payload);
+      ServerConnection.Listener listener = getListener();
+      if (listener != null) {
+        listener.notificationReceived(processId, channelName, payload);
+      }
     }
 
     @Override

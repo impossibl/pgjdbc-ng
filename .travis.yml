@@ -1,110 +1,30 @@
 dist: xenial
 language: java
-matrix:
-  include:
-
-    # 9.4
-    - addons:
-        postgresql: 9.4
-      jdk: openjdk8
-      env:
-        - POSTGRES=9.4
-        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
-    - addons:
-        postgresql: 9.4
-      jdk: openjdk9
-      env:
-        - POSTGRES=9.4
-    - addons:
-        postgresql: 9.4
-      jdk: openjdk10
-      env:
-        - POSTGRES=9.4
-    - addons:
-        postgresql: 9.4
-      jdk: openjdk11
-      env:
-        - POSTGRES=9.4
-
-    # 9.5
-    - addons:
-        postgresql: 9.5
-      jdk: openjdk8
-      env:
-        - POSTGRES=9.5
-        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
-    - addons:
-        postgresql: 9.5
-      jdk: openjdk9
-      env:
-        - POSTGRES=9.5
-    - addons:
-        postgresql: 9.5
-      jdk: openjdk10
-      env:
-        - POSTGRES=9.5
-    - addons:
-        postgresql: 9.5
-      jdk: openjdk11
-      env:
-        - POSTGRES=9.5
-
-    # 9.6
-    - addons:
-        postgresql: 9.6
-      jdk: openjdk8
-      env:
-        - POSTGRES=9.6
-        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
-    - addons:
-        postgresql: 9.6
-      jdk: openjdk9
-      env:
-        - POSTGRES=9.6
-    - addons:
-        postgresql: 9.6
-      jdk: openjdk10
-      env:
-        - POSTGRES=9.6
-    - addons:
-        postgresql: 9.6
-      jdk: openjdk11
-      env:
-        - POSTGRES=9.6
-
-    # 10
-    - addons:
-        postgresql: 10
-      jdk: openjdk8
-      env:
-        - POSTGRES=10
-        - _JAVA_OPTIONS=-Djdk.net.URLClassPath.disableClassPathURLCheck=true
-    - addons:
-        postgresql: 10
-      jdk: openjdk9
-      env:
-        - POSTGRES=10
-    - addons:
-        postgresql: 10
-      jdk: openjdk10
-      env:
-        - POSTGRES=10
-    - addons:
-        postgresql: 10
-      jdk: openjdk11
-      env:
-        - POSTGRES=10
-
+services:
+  - docker
+env:
+  - PGVERSION=9.4
+  - PGVERSION=9.5
+  - PGVERSION=9.6
+  - PGVERSION=10
+  - PGVERSION=11
+jdk:
+  - openjdk8
+  - openjdk9
+  - openjdk10
+  - openjdk11
 before_install:
-  - psql -c "SHOW server_version;" -U postgres
-  - psql -c "CREATE USER pgjdbc WITH PASSWORD 'test';" -U postgres
-  - psql -c 'CREATE DATABASE test WITH OWNER pgjdbc;' -U postgres
-  - psql test -c 'CREATE EXTENSION hstore; CREATE EXTENSION citext;' -U postgres
+  - \[ $TRAVIS_JDK_VERSION = 'openjdk8' ] && _JAVA_OPTIONS="$_JAVA_OPTIONS -Djdk.net.URLClassPath.disableClassPathURLCheck=true" || _JAVA_OPTIONS="$_JAVA_OPTIONS"
+  # PostgreSQL requires specific permissions... this meets the requirements
+  # when running via docker in Travis
+  - chmod 0400 ./src/test/resources/certdir/server/server.key
+  - sudo chown 70:70 ./src/test/resources/certdir/server/server.key
+  - ./start-test-container.sh
 script: mvn -e test -DtrimStackTrace=false
 after_failure:
   - ./.travis/print_surefire_reports
 after_success:
-  - "test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'develop' && test $TRAVIS_JDK_VERSION == 'oraclejdk8' && test $PGVERSION == '9.5' && ./.travis/travis-maven-deploy"
+  - "test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'develop' && test $TRAVIS_JDK_VERSION == 'openjdk8' && test $PGVERSION == '10' && ./.travis/travis-maven-deploy"
 cache:
   directories:
     - '$HOME/.m2/repository'
