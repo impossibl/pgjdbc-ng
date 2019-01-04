@@ -164,7 +164,6 @@
             <exclude>**/RequiredTests.java</exclude>
             <exclude>**/PerformanceTest.java</exclude>
             <exclude>**/GiantBlobTest.java</exclude>
-            <exclude>**/SSL*.java</exclude>
             <exclude>**/ServerDisconnectTest.java</exclude>
           </excludes>
         </configuration>
@@ -219,6 +218,16 @@
         </plugin>
       </plugins>
     </pluginManagement>
+
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <excludes>
+          <exclude>**/server/*.*</exclude>
+        </excludes>
+      </testResource>
+    </testResources>
+
   </build>
 
   <reporting>

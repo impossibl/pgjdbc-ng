@@ -105,7 +105,7 @@ public class TestUtil {
   }
 
   public static String getUser() {
-    return System.getProperty("pgjdbc.test.user", "pgjdbc");
+    return System.getProperty("pgjdbc.test.user", "test");
   }
 
   public static String getPassword() {

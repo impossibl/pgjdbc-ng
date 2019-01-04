@@ -173,6 +173,8 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
     ProtocolHandler handler = protocolHandlers.poll();
     handler = handler != null ? handler : defaultHandler;
 
+    if (handler == null) return;
+
     try {
       handler.exception(ctx.channel(), cause);
     }

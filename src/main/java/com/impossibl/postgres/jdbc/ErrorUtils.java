@@ -134,7 +134,7 @@ public class ErrorUtils {
       return makeSQLException(message, ((NoticeException) cause).getNotice());
     }
 
-    return new PGSQLSimpleException(message, sqlState, cause);
+    return new PGSQLSimpleException(message + (cause != null ? cause.getMessage() : ""), sqlState, cause);
   }
 
   public static SQLException makeSQLException(String message, Exception cause) {

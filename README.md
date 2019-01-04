@@ -149,7 +149,7 @@ The unit tests need a PostgreSQL database to execute against. The tests assume t
 	SERVER:     localhost
 	PORT:       5432
 	DATABASE:   test
-	USERNAME:   pgjdbc
+	USERNAME:   test
 	PASSWORD:   test
 
 The following system properties are supported in order to customize the setup
