@@ -28,42 +28,45 @@
  */
 package com.impossibl.postgres.system;
 
+import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
+
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Version {
 
-  private static final Pattern VERSION_SPLIT_PATTERN = Pattern.compile("[^0-9]");
+  private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?([\\sa-zA-Z-][\\s\\w_-]+)?");
   private static final HashMap<Version, Version> all = new HashMap<>();
 
   private int major;
   private Integer minor;
   private Integer revision;
+  private String tag;
 
   public static Version parse(String versionString) {
-    String[] version = VERSION_SPLIT_PATTERN.split(versionString);
 
-    int major = parsePart(version, 0);
-    Integer minor = parsePart(version, 1);
-    Integer revision = parsePart(version, 2);
+    Matcher matcher = VERSION_PATTERN.matcher(versionString);
+    if (!matcher.matches()) {
+      throw new IllegalArgumentException("Invalid version string: " + versionString);
+    }
 
-    return get(major, minor, revision);
-  }
+    int major = Integer.parseInt(matcher.group(1));
+    Integer minor = !isNullOrEmpty(matcher.group(2)) ? Integer.parseInt(matcher.group(2)) : null;
+    Integer revision = !isNullOrEmpty(matcher.group(3)) ? Integer.parseInt(matcher.group(3)) : null;
+    String tag = !isNullOrEmpty(matcher.group(4)) ? matcher.group(4) : null;
 
-  private static Integer parsePart(String[] version, int idx) {
-    if (version.length <= idx)
-      return null;
-
-    String part = version[idx];
-    if (part == null || part.isEmpty())
-      return null;
-
-    return Integer.valueOf(part);
+    return get(major, minor, revision, tag);
   }
 
   public static synchronized Version get(int major, Integer minor, Integer revision) {
+    return get(major, minor, revision, null);
+  }
 
-    Version test = new Version(major, minor, revision);
+  public static synchronized Version get(int major, Integer minor, Integer revision, String tag) {
+
+    Version test = new Version(major, minor, revision, tag);
 
     Version found = all.get(test);
     if (found == null) {
@@ -75,7 +78,7 @@ public class Version {
     return found;
   }
 
-  private Version(int major, Integer minor, Integer revision) {
+  private Version(int major, Integer minor, Integer revision, String tag) {
     if (minor == null && revision != null) {
       throw new IllegalArgumentException("revision cannot have value when minor does not");
     }
@@ -83,6 +86,7 @@ public class Version {
     this.major = major;
     this.minor = minor;
     this.revision = revision;
+    this.tag = tag;
   }
 
   public int getMajor() {
@@ -103,6 +107,10 @@ public class Version {
 
   public int getRevisionValue() {
     return revision != null ? revision : 0;
+  }
+
+  public String getTag() {
+    return tag != null ? tag.trim() : null;
   }
 
   public boolean isMinimum(int major) {
@@ -159,43 +167,26 @@ public class Version {
         sb.append('.').append(revision);
       }
     }
+    if (tag != null) {
+      sb.append(tag);
+    }
     return sb.toString();
   }
 
   @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + major;
-    result = prime * result + ((minor == null) ? 0 : minor.hashCode());
-    result = prime * result + ((revision == null) ? 0 : revision.hashCode());
-    return result;
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Version version = (Version) o;
+    return major == version.major &&
+        Objects.equals(minor, version.minor) &&
+        Objects.equals(revision, version.revision) &&
+        Objects.equals(tag, version.tag);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    Version other = (Version) obj;
-    if (major != other.major)
-      return false;
-    if (minor == null) {
-      if (other.minor != null)
-        return false;
-    }
-    else if (!minor.equals(other.minor))
-      return false;
-    if (revision == null) {
-      if (other.revision != null)
-        return false;
-    }
-    else if (!revision.equals(other.revision))
-      return false;
-    return true;
+  public int hashCode() {
+    return Objects.hash(major, minor, revision, tag);
   }
 
 }

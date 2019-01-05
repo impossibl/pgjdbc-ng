@@ -48,48 +48,80 @@ public class VersionTest {
 
     ver = Version.parse("1");
 
-    assertEquals(ver.getMajor(), 1);
-    assertEquals(ver.getMinor(), null);
-    assertEquals(ver.getMinorValue(), 0);
-    assertEquals(ver.getRevision(), null);
-    assertEquals(ver.getRevisionValue(), 0);
+    assertEquals(1, ver.getMajor());
+    assertNull(ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1", ver.toString());
 
     ver = Version.parse("1.2");
 
-    assertEquals(ver.getMajor(), 1);
-    assertEquals((int)ver.getMinor(), 2);
-    assertEquals(ver.getRevision(), null);
-    assertEquals(ver.getRevisionValue(), 0);
+    assertEquals(1, ver.getMajor());
+    assertEquals((Integer) 2, ver.getMinor());
+    assertEquals(2, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1.2", ver.toString());
 
-    ver = Version.parse("1.2.3.1.2");
+    ver = Version.parse("1.2.3");
 
-    assertEquals(ver.getMajor(), 1);
-    assertEquals((int)ver.getMinor(), 2);
-    assertEquals((int)ver.getRevision(), 3);
+    assertEquals(1, ver.getMajor());
+    assertEquals((Integer) 2, ver.getMinor());
+    assertEquals(2, ver.getMinorValue());
+    assertEquals((Integer) 3, ver.getRevision());
+    assertEquals(3, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1.2.3", ver.toString());
 
-    ver = Version.parse("1.");
+    ver = Version.parse("10devel");
 
-    assertEquals(ver.getMajor(), 1);
-    assertEquals(ver.getMinor(), null);
-    assertEquals(ver.getMinorValue(), 0);
-    assertEquals(ver.getRevision(), null);
-    assertEquals(ver.getRevisionValue(), 0);
+    assertEquals(ver.getMajor(), 10);
+    assertNull(ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("devel", ver.getTag());
+    assertEquals("10devel", ver.toString());
 
-    ver = Version.parse("1.2.");
+    ver = Version.parse("11.1rc1");
 
-    assertEquals(ver.getMajor(), 1);
-    assertEquals((int)ver.getMinor(), 2);
-    assertEquals(ver.getRevision(), null);
-    assertEquals(ver.getRevisionValue(), 0);
+    assertEquals(ver.getMajor(), 11);
+    assertEquals((Integer) 1, ver.getMinor());
+    assertEquals(1, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("rc1", ver.getTag());
+    assertEquals("11.1rc1", ver.toString());
 
-    ver = Version.parse("9.4devel");
+    ver = Version.parse("12.0  beta");
 
-    assertEquals(ver.getMajor(), 9);
-    assertEquals((int)ver.getMinor(), 4);
-    assertEquals(ver.getRevision(), null);
+    assertEquals(ver.getMajor(), 12);
+    assertEquals((Integer) 0, ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("beta", ver.getTag());
+    assertEquals("12.0  beta", ver.toString());
 
     try {
-      ver = Version.parse("1..3.");
+      Version.parse("1.");
+      fail("Version shouldn't be allowed");
+    }
+    catch (IllegalArgumentException ignore) {
+    }
+
+    try {
+      Version.parse("1.2.");
+      fail("Version shouldn't be allowed");
+    }
+    catch (IllegalArgumentException ignore) {
+    }
+
+    try {
+      Version.parse("1..3.");
       fail("Version shouldn't be allowed");
     }
     catch (IllegalArgumentException e) {
