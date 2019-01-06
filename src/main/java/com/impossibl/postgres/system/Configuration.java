@@ -92,7 +92,18 @@ public interface Configuration {
         return type.cast(Double.valueOf(str));
       }
       if (type.isEnum()) {
-        return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str));
+        try {
+          return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str));
+        }
+        catch (IllegalArgumentException e) {
+          // Try cased versions of the constant
+          try {
+            return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str.toUpperCase()));
+          }
+          catch (IllegalArgumentException e2) {
+            return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str.toLowerCase()));
+          }
+        }
       }
     }
     throw new IllegalArgumentException("Value not convertible to requested type");
