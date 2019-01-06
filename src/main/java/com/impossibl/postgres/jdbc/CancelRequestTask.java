@@ -37,11 +37,15 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.ServerConnection;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+
+import io.netty.channel.unix.DomainSocketAddress;
 
 public class CancelRequestTask extends ExecutionTimerTask {
 
@@ -71,11 +75,31 @@ public class CancelRequestTask extends ExecutionTimerTask {
         }
 
       }
-      else {
+      else if (serverAddress instanceof DomainSocketAddress) {
 
-        // Implement non IP socket when server connection supports it
+        io.netty.channel.unix.Socket unixSocket = io.netty.channel.unix.Socket.newSocketDomain();
+        try {
+          unixSocket.connect(serverAddress);
+
+          try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+
+            writeCancelRequest(new DataOutputStream(os));
+
+            byte[] request = os.toByteArray();
+            ByteBuffer buffer = ByteBuffer.allocateDirect(request.length);
+            buffer.put(request, 0, request.length);
+            buffer.flip();
+
+            unixSocket.write(buffer, 0, buffer.limit());
+          }
+
+        }
+        finally {
+          unixSocket.close();
+        }
 
       }
+
     }
     catch (IOException ignored) {
       // All exceptions during a cancellation attempt are ignored...

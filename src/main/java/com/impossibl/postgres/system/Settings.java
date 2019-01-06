@@ -33,7 +33,6 @@ import com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 
 
-
 public class Settings {
 
   public static final String SYSTEM_SETTING_PREFIX = "pgjdbc";
@@ -113,8 +112,8 @@ public class Settings {
   public static final String SEND_BUFFER_SIZE = "sendBufferSize";
   public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
 
-  public static final String ALLOCATOR = "allocator.pooled";
-  public static final boolean ALLOCATOR_DEFAULT = true;
+  public static final String ALLOCATOR_POOLED = "allocator.pooled";
+  public static final boolean ALLOCATOR_POOLED_DEFAULT = true;
 
   public static final String PROTOCOL_VERSION = "protocol.version";
   public static final String PROTOCOL_VERSION_DEFAULT = "3.0";
@@ -126,7 +125,14 @@ public class Settings {
   public static final boolean PROTOCOL_TRACE_DEFAULT = false;
 
   public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
-  public static final String PROTOCOL_SOCKET_IO_DEFAULT = "nio";
+  public static final SocketIO PROTOCOL_SOCKET_IO_DEFAULT = SocketIO.ANY;
+
+  public enum SocketIO {
+    ANY,
+    NIO,
+    NATIVE,
+    OIO,
+  }
 
   public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
   public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;
