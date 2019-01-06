@@ -30,11 +30,24 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ServerConnectionInfo;
-import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.SharedRegistry;
 
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING;
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DATASOURCE_DEFAULT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_FETCH_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_NETWORK_TIMEOUT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.HOUSEKEEPER;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PARSED_SQL_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
+import static com.impossibl.postgres.jdbc.JDBCSettings.STRICT_MODE;
+import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_ENCODING;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.SSL_MODE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_ROOT_CRT_FILE;
 
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -43,8 +56,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-
-import static java.lang.Boolean.parseBoolean;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
@@ -59,21 +70,21 @@ import javax.sql.CommonDataSource;
 public abstract class AbstractDataSource implements CommonDataSource {
   private int loginTimeout;
 
-  private String host;
-  private int port;
-  private String database;
+  private String serverName;
+  private int portNumber;
+  private String databaseName;
   private String user;
   private String password;
   private boolean housekeeper;
-  private int parsedSqlCacheSize;
-  private int preparedStatementCacheSize;
+  private Integer parsedSqlCacheSize;
+  private Integer preparedStatementCacheSize;
   private String applicationName;
   private String clientEncoding;
-  private int networkTimeout;
+  private Integer networkTimeout;
   private boolean strictMode;
-  private int defaultFetchSize;
-  private int receiveBufferSize;
-  private int sendBufferSize;
+  private Integer defaultFetchSize;
+  private Integer receiveBufferSize;
+  private Integer sendBufferSize;
 
   private boolean ssl;
   private String sslMode;
@@ -89,21 +100,21 @@ public abstract class AbstractDataSource implements CommonDataSource {
    */
   protected AbstractDataSource() {
     this.loginTimeout = 0;
-    this.host = "localhost";
-    this.port = 5432;
-    this.database = null;
+    this.serverName = "localhost";
+    this.portNumber = 5432;
+    this.databaseName = null;
     this.user = null;
     this.password = null;
-    this.housekeeper = parseBoolean(PGSettings.HOUSEKEEPER_DEFAULT_DATASOURCE);
-    this.parsedSqlCacheSize = Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
-    this.preparedStatementCacheSize = Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
+    this.housekeeper = HOUSEKEEPER.getDefault();
+    this.parsedSqlCacheSize = PARSED_SQL_CACHE_SIZE.getDefault();
+    this.preparedStatementCacheSize = PREPARED_STATEMENT_CACHE_SIZE.getDefault();
     this.applicationName = null;
     this.clientEncoding = null;
-    this.networkTimeout = Settings.NETWORK_TIMEOUT_DEFAULT;
-    this.strictMode = Settings.STRICT_MODE_DEFAULT;
-    this.defaultFetchSize = Settings.DEFAULT_FETCH_SIZE_DEFAULT;
-    this.receiveBufferSize = Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
-    this.sendBufferSize = Settings.SEND_BUFFER_SIZE_DEFAULT;
+    this.networkTimeout = DEFAULT_NETWORK_TIMEOUT.getDefault();
+    this.strictMode = STRICT_MODE.getDefault();
+    this.defaultFetchSize = DEFAULT_FETCH_SIZE.getDefault();
+    this.receiveBufferSize = PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getDefault();
+    this.sendBufferSize = PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getDefault();
 
     this.ssl = false;
     this.sslMode = null;
@@ -114,6 +125,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
     this.sharedRegistries = new ConcurrentHashMap<>();
   }
+
+  public abstract String getDescription();
 
   /**
    * {@inheritDoc}
@@ -168,14 +181,14 @@ public abstract class AbstractDataSource implements CommonDataSource {
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
 
-    if (host != null)
-      ref.add(new StringRefAddr("host", host));
+    if (serverName != null)
+      ref.add(new StringRefAddr("serverName", serverName));
 
-    if (port != 5432)
-      ref.add(new StringRefAddr("port", Integer.toString(port)));
+    if (portNumber != 5432)
+      ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
 
-    if (database != null)
-      ref.add(new StringRefAddr("database", database));
+    if (databaseName != null)
+      ref.add(new StringRefAddr("databaseName", databaseName));
 
     if (user != null)
       ref.add(new StringRefAddr("user", user));
@@ -183,13 +196,13 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (password != null)
       ref.add(new StringRefAddr("password", password));
 
-    if (housekeeper != parseBoolean(PGSettings.HOUSEKEEPER_DEFAULT_DATASOURCE))
+    if (housekeeper != HOUSEKEEPER.getDefault())
       ref.add(new StringRefAddr("housekeeper", Boolean.toString(housekeeper)));
 
-    if (parsedSqlCacheSize != Settings.PARSED_SQL_CACHE_SIZE_DEFAULT)
+    if (parsedSqlCacheSize != PARSED_SQL_CACHE_SIZE.getDefault())
       ref.add(new StringRefAddr("parsedSqlCacheSize", Integer.toString(parsedSqlCacheSize)));
 
-    if (preparedStatementCacheSize != Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT)
+    if (preparedStatementCacheSize != PREPARED_STATEMENT_CACHE_SIZE.getDefault())
       ref.add(new StringRefAddr("preparedStatementCacheSize", Integer.toString(preparedStatementCacheSize)));
 
     if (applicationName != null)
@@ -201,16 +214,16 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (networkTimeout != 0)
       ref.add(new StringRefAddr("networkTimeout", Integer.toString(networkTimeout)));
 
-    if (strictMode != Settings.STRICT_MODE_DEFAULT)
+    if (strictMode != STRICT_MODE.getDefault())
       ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
 
-    if (defaultFetchSize != Settings.DEFAULT_FETCH_SIZE_DEFAULT)
+    if (defaultFetchSize != DEFAULT_FETCH_SIZE.getDefault())
       ref.add(new StringRefAddr("defaultFetchSize", Integer.toString(defaultFetchSize)));
 
-    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
+    if (receiveBufferSize != PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getDefault())
       ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
 
-    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
+    if (sendBufferSize != PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getDefault())
       ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
 
     if (sslMode != null)
@@ -238,17 +251,17 @@ public abstract class AbstractDataSource implements CommonDataSource {
   public void init(Reference reference) {
     String value;
 
-    value = getReferenceValue(reference, "host");
+    value = getReferenceValue(reference, "serverName");
     if (value != null)
-      host = value;
+      serverName = value;
 
-    value = getReferenceValue(reference, "port");
+    value = getReferenceValue(reference, "portNumber");
     if (value != null)
-      port = Integer.valueOf(value);
+      portNumber = Integer.valueOf(value);
 
-    value = getReferenceValue(reference, "database");
+    value = getReferenceValue(reference, "databaseName");
     if (value != null)
-      database = value;
+      databaseName = value;
 
     value = getReferenceValue(reference, "user");
     if (value != null)
@@ -341,51 +354,51 @@ public abstract class AbstractDataSource implements CommonDataSource {
   }
 
   /**
-   * Get the host
+   * Get the serverName
    * @return The value
    */
-  public String getHost() {
-    return host;
+  public String getServerName() {
+    return serverName;
   }
 
   /**
-   * Set the host
+   * Set the serverName
    * @param v The value
    */
-  public void setHost(String v) {
-    host = v;
+  public void setServerName(String v) {
+    serverName = v;
   }
 
   /**
-   * Get the port
+   * Get the portNumber
    * @return The value
    */
-  public int getPort() {
-    return port;
+  public int getPortNumber() {
+    return portNumber;
   }
 
   /**
-   * Set the port
+   * Set the portNumber
    * @param v The value
    */
-  public void setPort(int v) {
-    port = v;
+  public void setPortNumber(int v) {
+    portNumber = v;
   }
 
   /**
-   * Get the database
+   * Get the databaseName
    * @return The value
    */
-  public String getDatabase() {
-    return database;
+  public String getDatabaseName() {
+    return databaseName;
   }
 
   /**
-   * Set the database
+   * Set the databaseName
    * @param v The value
    */
-  public void setDatabase(String v) {
-    database = v;
+  public void setDatabaseName(String v) {
+    databaseName = v;
   }
 
   /**
@@ -681,58 +694,64 @@ public abstract class AbstractDataSource implements CommonDataSource {
     Properties props = new Properties();
 
     if (u != null) {
-      props.put("user", u);
+      props.setProperty("user", u);
     }
     else if (user != null) {
-      props.put("user", user);
+      props.setProperty("user", user);
     }
     else {
-      props.put("user", "");
+      props.setProperty("user", "");
     }
 
     if (p != null) {
-      props.put("password", p);
+      props.setProperty("password", p);
     }
     else if (password != null) {
-      props.put("password", password);
+      props.setProperty("password", password);
     }
     else {
-      props.put("password", "");
+      props.setProperty("password", "");
     }
 
-    props.put(Settings.PARSED_SQL_CACHE_SIZE, parsedSqlCacheSize);
-    props.put(Settings.PREPARED_STATEMENT_CACHE_SIZE, preparedStatementCacheSize);
+    if (parsedSqlCacheSize != null)
+      props.setProperty(PARSED_SQL_CACHE_SIZE.getName(), Integer.toString(parsedSqlCacheSize));
+    if (preparedStatementCacheSize != null)
+      props.setProperty(PREPARED_STATEMENT_CACHE_SIZE.getName(), Integer.toString(preparedStatementCacheSize));
     if (applicationName != null)
-      props.put(Settings.APPLICATION_NAME, applicationName);
+      props.setProperty(APPLICATION_NAME.getName(), applicationName);
     if (clientEncoding != null)
-      props.put(Settings.CLIENT_ENCODING, clientEncoding);
-    props.put(Settings.NETWORK_TIMEOUT, Integer.toString(networkTimeout));
-    props.put(Settings.STRICT_MODE, Boolean.toString(strictMode));
-    props.put(Settings.DEFAULT_FETCH_SIZE, Integer.toString(defaultFetchSize));
+      props.setProperty(PROTOCOL_ENCODING.getName(), clientEncoding);
+    if (networkTimeout != null)
+      props.setProperty(DEFAULT_NETWORK_TIMEOUT.getName(), Integer.toString(networkTimeout));
+    props.setProperty(STRICT_MODE.getName(), Boolean.toString(strictMode));
+    if (defaultFetchSize != null)
+      props.setProperty(DEFAULT_FETCH_SIZE.getName(), Integer.toString(defaultFetchSize));
 
-    if (receiveBufferSize != Settings.RECEIVE_BUFFER_SIZE_DEFAULT)
-      props.put(Settings.RECEIVE_BUFFER_SIZE, Integer.toString(receiveBufferSize));
+    if (receiveBufferSize != null)
+      props.setProperty(PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getName(), Integer.toString(receiveBufferSize));
 
-    if (sendBufferSize != Settings.SEND_BUFFER_SIZE_DEFAULT)
-      props.put(Settings.SEND_BUFFER_SIZE, Integer.toString(sendBufferSize));
+    if (sendBufferSize != null)
+      props.setProperty(PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getName(), Integer.toString(sendBufferSize));
 
     if (sslMode != null)
-      props.put(Settings.SSL_MODE, sslMode);
+      props.setProperty(SSL_MODE.getName(), sslMode);
 
     if (sslPassword != null)
-      props.put(Settings.SSL_PASSWORD, sslPassword);
+      props.setProperty(SSL_KEY_FILE_PASSWORD.getName(), sslPassword);
 
     if (sslCertificateFile != null)
-      props.put(Settings.SSL_CERT_FILE, sslCertificateFile);
+      props.setProperty(SSL_CRT_FILE.getName(), sslCertificateFile);
 
     if (sslKeyFile != null)
-      props.put(Settings.SSL_KEY_FILE, sslKeyFile);
+      props.setProperty(SSL_KEY_FILE.getName(), sslKeyFile);
 
     if (sslRootCertificateFile != null)
-      props.put(Settings.SSL_ROOT_CERT_FILE, sslRootCertificateFile);
+      props.setProperty(SSL_ROOT_CRT_FILE.getName(), sslRootCertificateFile);
+
+    props.setProperty(HOUSEKEEPER.getName(), Boolean.toString(housekeeper));
 
     SharedRegistry.Factory sharedRegistryFactory;
-    if (!parseBoolean(props.getProperty(REGISTRY_SHARING, REGISTRY_SHARING_DATASOURCE_DEFAULT))) {
+    if (!REGISTRY_SHARING.get(props)) {
 
       sharedRegistryFactory =
           connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
@@ -743,21 +762,21 @@ public abstract class AbstractDataSource implements CommonDataSource {
           connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
     }
 
-    return ConnectionUtil.createConnection(url, props, sharedRegistryFactory, housekeeper);
+    return ConnectionUtil.createConnection(url, props, sharedRegistryFactory);
   }
 
   private String buildUrl() throws SQLException {
     StringBuilder sb = new StringBuilder();
 
-    if (getDatabase() == null)
-       throw new SQLException("Database parameter mandatory for " + getHost() + ":" + getPort());
+    if (getDatabaseName() == null)
+       throw new SQLException("'databaseName' parameter mandatory for " + getServerName() + ":" + getPortNumber());
 
     sb.append("jdbc:pgsql://")
-        .append(getHost())
+        .append(getServerName())
         .append(":")
-        .append(getPort())
+        .append(getPortNumber())
         .append("/")
-        .append(getDatabase());
+        .append(getDatabaseName());
 
     return sb.toString();
   }

@@ -32,7 +32,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.Settings.FIELD_MONEY_FRACTIONAL_DIGITS;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_MONEY_FRACTIONAL_DIGITS;
 import static com.impossibl.postgres.types.PrimitiveType.Money;
 
 import java.io.IOException;
@@ -73,7 +73,7 @@ public class Moneys extends SimpleProcProvider {
 
       long val = buffer.readLong();
 
-      int fracDigits = getFractionalDigits(context);
+      int fracDigits = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
 
       return new BigDecimal(BigInteger.valueOf(val), fracDigits);
     }
@@ -99,7 +99,7 @@ public class Moneys extends SimpleProcProvider {
     @Override
     protected void encodeNativeValue(Context context, Type type, BigDecimal value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      int fracDigits = getFractionalDigits(context);
+      int fracDigits = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
 
       value = value.setScale(fracDigits, HALF_UP);
 
@@ -157,15 +157,6 @@ public class Moneys extends SimpleProcProvider {
       buffer.append(context.getCurrencyFormatter().format(value));
     }
 
-  }
-
-  private static int getFractionalDigits(Context context) {
-
-    Object val = context.getSetting(FIELD_MONEY_FRACTIONAL_DIGITS);
-    if (val == null)
-      return 2;
-
-    return (Integer) val;
   }
 
 }

@@ -36,7 +36,7 @@ import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
 import java.io.IOException;

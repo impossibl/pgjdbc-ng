@@ -39,8 +39,8 @@ import com.impossibl.postgres.utils.guava.Joiner;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -127,10 +127,10 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
   @Override
   public String getURL() throws SQLException {
-    Object val = connection.getSetting(DATABASE_URL);
+    String val = connection.getSetting(DATABASE_URL);
     if (val == null)
       throw new SQLException("invalid connection");
-    return val.toString();
+    return val;
   }
 
   @Override

@@ -55,6 +55,14 @@ import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERAT
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_FETCH_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_NETWORK_TIMEOUT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DESCRIPTION_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PARSED_SQL_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_THRESHOLD;
+import static com.impossibl.postgres.jdbc.JDBCSettings.READ_ONLY;
+import static com.impossibl.postgres.jdbc.JDBCSettings.STRICT_MODE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
@@ -71,22 +79,8 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.isTrue;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
-import static com.impossibl.postgres.system.Settings.CONNECTION_READONLY;
-import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE;
-import static com.impossibl.postgres.system.Settings.DEFAULT_FETCH_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.DESCRIPTION_CACHE_SIZE;
-import static com.impossibl.postgres.system.Settings.DESCRIPTION_CACHE_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT;
-import static com.impossibl.postgres.system.Settings.NETWORK_TIMEOUT_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE;
-import static com.impossibl.postgres.system.Settings.PARSED_SQL_CACHE_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD;
-import static com.impossibl.postgres.system.Settings.PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT;
-import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
-import static com.impossibl.postgres.system.Settings.STRICT_MODE;
-import static com.impossibl.postgres.system.Settings.STRICT_MODE_DEFAULT;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -127,7 +121,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -203,22 +196,22 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private Map<StatementCacheKey, PreparedStatementDescription> preparedStatementCache;
   private int preparedStatementCacheThreshold;
   private Map<StatementCacheKey, Integer> preparedStatementHeat;
-  private int defaultFetchSize;
+  private Integer defaultFetchSize;
   private Map<NotificationKey, PGNotificationListener> notificationListeners;
   final Housekeeper.Ref housekeeper;
   private final Object cleanupKey;
 
   private static Map<String, SQLText> parsedSqlCache;
 
-  PGDirectConnection(SocketAddress address, Properties settings, Housekeeper.Ref housekeeper) throws IOException {
+  PGDirectConnection(SocketAddress address, Settings settings, Housekeeper.Ref housekeeper) throws IOException {
     super(address, settings);
 
-    this.strict = getSetting(STRICT_MODE, STRICT_MODE_DEFAULT);
-    this.networkTimeout = getSetting(NETWORK_TIMEOUT, NETWORK_TIMEOUT_DEFAULT);
+    this.strict = getSetting(STRICT_MODE);
+    this.networkTimeout = getSetting(DEFAULT_NETWORK_TIMEOUT);
     this.activeStatements = new ArrayList<>();
     this.notificationListeners = new ConcurrentHashMap<>();
 
-    final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE, DESCRIPTION_CACHE_SIZE_DEFAULT);
+    final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE);
     if (descriptionCacheSize > 0) {
       this.descriptionCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, StatementDescription>(descriptionCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
@@ -230,7 +223,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       });
     }
 
-    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE, PREPARED_STATEMENT_CACHE_SIZE_DEFAULT);
+    final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE);
     if (statementCacheSize > 0) {
       preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, PreparedStatementDescription>(statementCacheSize + 1, 1.1f, true) {
         private static final long serialVersionUID = 1L;
@@ -253,13 +246,13 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       });
     }
 
-    final int statementCacheThreshold = getSetting(PREPARED_STATEMENT_CACHE_THRESHOLD, PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT);
+    final int statementCacheThreshold = getSetting(PREPARED_STATEMENT_CACHE_THRESHOLD);
     if (statementCacheThreshold > 0) {
       preparedStatementCacheThreshold = statementCacheThreshold;
       preparedStatementHeat = new ConcurrentHashMap<>();
     }
 
-    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE_SIZE, PARSED_SQL_CACHE_SIZE_DEFAULT);
+    final int sqlCacheSize = getSetting(PARSED_SQL_CACHE_SIZE);
     if (sqlCacheSize > 0) {
       synchronized (PGDirectConnection.class) {
         if (parsedSqlCache == null) {
@@ -275,7 +268,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       }
     }
 
-    this.defaultFetchSize = getSetting(DEFAULT_FETCH_SIZE, DEFAULT_FETCH_SIZE_DEFAULT);
+    this.defaultFetchSize = getSetting(DEFAULT_FETCH_SIZE);
 
     prepareUtilQuery("TB", getBeginText());
     prepareUtilQuery("TC", getCommitText());
@@ -283,7 +276,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = this.housekeeper.add(this, new Cleanup(serverConnection, activeStatements, settings.getProperty(Settings.DATABASE_URL)));
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(serverConnection, activeStatements, getSetting(DATABASE_URL)));
     else
       this.cleanupKey = null;
   }
@@ -296,9 +289,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     applySettings(settings);
   }
 
-  private void applySettings(Properties settings) throws IOException {
+  private void applySettings(Settings settings) throws IOException {
 
-    if (parseBoolean(settings.getProperty(CONNECTION_READONLY, "false"))) {
+    if (settings.enabled(READ_ONLY)) {
       try {
         setReadOnly(true);
       }
@@ -662,7 +655,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    * {@inheritDoc}
    */
   @Override
-  public void setDefaultFetchSize(int v) {
+  public void setDefaultFetchSize(Integer v) {
     defaultFetchSize = v;
   }
 
@@ -670,7 +663,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    * {@inheritDoc}
    */
   @Override
-  public int getDefaultFetchSize() {
+  public Integer getDefaultFetchSize() {
     return defaultFetchSize;
   }
 

@@ -28,13 +28,11 @@
  */
 package com.impossibl.postgres.system;
 
-import static com.impossibl.postgres.system.Settings.getSystemProperty;
-
 public abstract class AbstractContext implements Context {
 
   @Override
-  public Object getSetting(String name) {
-    return getSystemProperty(name);
+  public <T> T getSetting(Setting<T> setting) {
+    return setting.getSystem();
   }
 
 }

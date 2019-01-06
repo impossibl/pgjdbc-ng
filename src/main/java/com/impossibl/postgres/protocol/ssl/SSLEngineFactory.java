@@ -29,17 +29,12 @@
 package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Configuration;
-import com.impossibl.postgres.utils.Factory;
-import com.impossibl.postgres.utils.Paths;
 
-import static com.impossibl.postgres.system.Settings.SSL_CERT_FILE;
-import static com.impossibl.postgres.system.Settings.SSL_CERT_FILE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SSL_KEY_FILE;
-import static com.impossibl.postgres.system.Settings.SSL_KEY_FILE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SSL_PASSWORD_CALLBACK;
-import static com.impossibl.postgres.system.Settings.SSL_PASSWORD_CALLBACK_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SSL_ROOT_CERT_FILE;
-import static com.impossibl.postgres.system.Settings.SSL_ROOT_CERT_FILE_DEFAULT;
+import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE_PASSWORD_CALLBACK;
+import static com.impossibl.postgres.system.SystemSettings.SSL_ROOT_CRT_FILE;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,13 +65,10 @@ public class SSLEngineFactory {
   private static final String TRUST_MANAGER_FACTORY_TYPE = "PKIX";
   private static final String SSL_PROTOCOL = "TLS";
   private static final String KEY_STORE_TYPE = "JKS";
-  private static final String SSL_DIR_NAME = "postgresql";
   private static final String CERTIFICATE_FACTORY_TYPE = "X.509";
 
 
   public static SSLEngine create(SSLMode sslMode, Configuration config) throws IOException {
-
-    String sslDir = Paths.getHome(SSL_DIR_NAME);
 
     /*
      * Load client's certificate and key file paths
@@ -84,30 +76,26 @@ public class SSLEngineFactory {
 
     boolean sslFileIsDefault = false;
 
-    String sslCertFile = config.getSetting(SSL_CERT_FILE, String.class);
-    if (sslCertFile == null) {
-      sslCertFile = SSL_CERT_FILE_DEFAULT;
-      sslFileIsDefault = true;
-    }
+    String sslCertFile = config.getSetting(SSL_CRT_FILE);
+    sslFileIsDefault = sslFileIsDefault || SSL_CRT_FILE.getDefault().equals(sslCertFile);
 
-    String sslKeyFile = config.getSetting(SSL_KEY_FILE, String.class);
-    if (sslKeyFile == null) {
-      sslKeyFile = SSL_KEY_FILE_DEFAULT;
-      sslFileIsDefault = true;
-    }
+    String sslKeyFile = config.getSetting(SSL_KEY_FILE);
+    sslFileIsDefault = sslFileIsDefault || SSL_KEY_FILE.getDefault().equals(sslKeyFile);
 
     /*
      * Initialize Key Manager
      */
 
-    String sslPasswordCallbackClassName = config.getSetting(SSL_PASSWORD_CALLBACK, SSL_PASSWORD_CALLBACK_DEFAULT);
+    @SuppressWarnings("unchecked")
+    Class<? extends CallbackHandler> sslPasswordCallbackClass =
+        (Class<? extends CallbackHandler>) config.getSetting(SSL_KEY_FILE_PASSWORD_CALLBACK);
 
     CallbackHandler sslPasswordCallback;
     try {
-      sslPasswordCallback = Factory.createInstance(sslPasswordCallbackClassName);
+      sslPasswordCallback = sslPasswordCallbackClass.newInstance();
     }
-    catch (RuntimeException e) {
-      throw new IOException("cannot instantiate provided password callback: " + sslPasswordCallbackClassName);
+    catch (InstantiationException | IllegalAccessException e) {
+      throw new IOException("Cannot instantiate provided password callback: " + sslPasswordCallbackClass.getName());
     }
 
     if (sslPasswordCallback instanceof ConfiguredCallbackHandler) {
@@ -144,9 +132,9 @@ public class SSLEngineFactory {
        * Load root certificates into a new key store (for Trust Manager)
        */
 
-      String sslRootCertFile = config.getSetting(SSL_ROOT_CERT_FILE, String.class);
-      if (sslRootCertFile == null) {
-        sslRootCertFile = sslDir + File.separator + SSL_ROOT_CERT_FILE_DEFAULT;
+      String sslRootCertFile = config.getSetting(SSL_ROOT_CRT_FILE);
+      if (SSL_ROOT_CRT_FILE.getDefault().equals(sslRootCertFile)) {
+        sslRootCertFile = config.getSetting(SSL_HOME_DIR) + File.separator + sslRootCertFile;
       }
 
       try (FileInputStream sslRootCertInputStream = new FileInputStream(sslRootCertFile)) {

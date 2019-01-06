@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 
 public class StringTransforms {
 
-  static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-(\\w)|^(\\w)");
+  private static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-(\\w)|^(\\w)");
 
   public static String capitalizeOption(String val) {
 

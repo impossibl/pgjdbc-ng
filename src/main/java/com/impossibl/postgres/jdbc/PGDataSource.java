@@ -50,6 +50,11 @@ public class PGDataSource extends AbstractDataSource implements DataSource, Refe
     super();
   }
 
+  @Override
+  public String getDescription() {
+    return PGDriver.NAME + " - Data Source";
+  }
+
   /**
    * {@inheritDoc}
    */

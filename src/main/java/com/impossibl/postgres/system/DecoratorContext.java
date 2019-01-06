@@ -112,8 +112,8 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public Object getSetting(String name) {
-    return base.getSetting(name);
+  public <T> T getSetting(Setting<T> setting) {
+    return base.getSetting(setting);
   }
 
   @Override

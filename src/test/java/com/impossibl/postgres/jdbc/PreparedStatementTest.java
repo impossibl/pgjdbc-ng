@@ -59,6 +59,7 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +82,8 @@ public class PreparedStatementTest {
 
   @Before
   public void before() throws Exception {
-    conn = TestUtil.openDB();
+    Properties properties = new Properties();
+    conn = TestUtil.openDB(properties);
     TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
     TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
     TestUtil.createTable(conn, "intervaltable", "i interval");
@@ -1267,9 +1269,9 @@ public class PreparedStatementTest {
   @Test
   public void testNoCache() throws SQLException {
     PGDataSource ds = new PGDataSource();
-    ds.setHost(TestUtil.getServer());
-    ds.setPort(Integer.valueOf(TestUtil.getPort()));
-    ds.setDatabase(TestUtil.getDatabase());
+    ds.setServerName(TestUtil.getServer());
+    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabaseName(TestUtil.getDatabase());
     ds.setUser(TestUtil.getUser());
     ds.setPassword(TestUtil.getPassword());
     ds.setPreparedStatementCacheSize(0);

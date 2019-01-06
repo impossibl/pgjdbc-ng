@@ -26,45 +26,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.utils;
+package com.impossibl.postgres.system;
 
-import java.lang.reflect.Array;
+public class ParameterNames {
 
-public class Factory {
-
-  public static <T> T createInstance(String typeName) {
-
-    try {
-
-      @SuppressWarnings("unchecked")
-      Class<T> type = (Class<T>) Class.forName(typeName);
-
-      return createInstance(type, 0);
-
-    }
-    catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
-  }
-
-  public static <T> T createInstance(Class<T> type, int sizeIfArray) {
-
-    try {
-
-      if (type.isArray()) {
-        return type.cast(Array.newInstance(type.getComponentType(), sizeIfArray));
-      }
-
-      return type.newInstance();
-    }
-    catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    }
-    catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
-
-  }
+  public static final String DATABASE = "database";
+  public static final String USER = "user";
+  public static final String PASSWORD = "password";
+  public static final String APPLICATION_NAME = "application_name";
+  public static final String CLIENT_ENCODING = "client_encoding";
+  public static final String SESSION_USER = "session_authorization";
+  public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
+  public static final String TIME_ZONE = "TimeZone";
+  public static final String DATE_STYLE = "DateStyle";
 
 }

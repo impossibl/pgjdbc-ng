@@ -28,17 +28,16 @@
  */
 package com.impossibl.postgres.system;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class SettingsContext extends DecoratorContext {
 
-  private Map<String, Object> settings;
+  private Settings settings;
   private Map<String, Class<?>> typeMap;
 
   public SettingsContext(Context context, Map<String, Class<?>> typeMap) {
     super(context);
-    this.settings = new HashMap<>();
+    this.settings = new Settings();
     this.typeMap = typeMap;
   }
 
@@ -49,15 +48,14 @@ public class SettingsContext extends DecoratorContext {
   }
 
   @Override
-  public Object getSetting(String name) {
-    Object value = settings.get(name);
-    if (value != null)
-      return value;
-    return super.getSetting(name);
+  public <T> T getSetting(Setting<T> setting) {
+    T value = settings.getStored(setting);
+    if (value != null) return value;
+    return super.getSetting(setting);
   }
 
-  public void setSetting(String name, Object value) {
-    settings.put(name, value);
+  public <T> void setSetting(Setting<T> setting, T value) {
+    settings.set(setting, value);
   }
 
 }

@@ -87,39 +87,39 @@ public class SSLDataSourceTest {
 
   private DataSource makeDataSource() {
     PGDataSource ds = new PGDataSource();
-    ds.setHost("localhost");
-    ds.setPort(Integer.valueOf(TestUtil.getPort()));
+    ds.setServerName("localhost");
+    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
 
     if ("sslhostnossl".equals(db)) {
-      ds.setDatabase("hostnossldb");
+      ds.setDatabaseName("hostnossldb");
     }
     else if ("sslhostgh".equals(db)) {
-      ds.setDatabase("hostdb");
+      ds.setDatabaseName("hostdb");
     }
     else if ("sslhostbh".equals(db)) {
-      ds.setHost("127.0.0.1");
-      ds.setDatabase("hostdb");
+      ds.setServerName("127.0.0.1");
+      ds.setDatabaseName("hostdb");
     }
     else if ("sslhostsslgh".equals(db)) {
-      ds.setDatabase("hostssldb");
+      ds.setDatabaseName("hostssldb");
     }
     else if ("sslhostsslbh".equals(db)) {
-      ds.setHost("127.0.0.1");
-      ds.setDatabase("hostssldb");
+      ds.setServerName("127.0.0.1");
+      ds.setDatabaseName("hostssldb");
     }
     else if ("sslhostsslcertgh".equals(db)) {
-      ds.setDatabase("hostsslcertdb");
+      ds.setDatabaseName("hostsslcertdb");
     }
     else if ("sslhostsslcertbh".equals(db)) {
-      ds.setHost("127.0.0.1");
-      ds.setDatabase("hostsslcertdb");
+      ds.setServerName("127.0.0.1");
+      ds.setDatabaseName("hostsslcertdb");
     }
     else if ("sslcertgh".equals(db)) {
-      ds.setDatabase("certdb");
+      ds.setDatabaseName("certdb");
     }
     else if ("sslcertbh".equals(db)) {
-      ds.setHost("127.0.0.1");
-      ds.setDatabase("certdb");
+      ds.setServerName("127.0.0.1");
+      ds.setDatabaseName("certdb");
     }
 
     ds.setUser(TestUtil.getUser());

@@ -28,124 +28,178 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.protocol.FieldFormat;
-import com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler;
-import com.impossibl.postgres.protocol.ssl.SSLMode;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 
+/**
+ * Managed bag of textual settings that can be read & updated.
+ *
+ * The values for each setting are stored as text and converted as necessary.
+ *
+ * The settings are store via their primary name (see {@link Setting}). When
+ * setting values via one of a setting's alternate names the name is mapped
+ * back to the primary before storage.
+ *
+ * Values set via raw text are validated using {@link Setting#fromString(String)}
+ * before they are stored; an error is logged if validation fails.
+ *
+ * If a setting name is unrecognized, a warning is logged before storing the value.
+ *
+ */
 public class Settings {
 
-  public static final String SYSTEM_SETTING_PREFIX = "pgjdbc";
+  private static final Logger logger = Logger.getLogger(Settings.class.getName());
 
-  public static final String DATABASE = "database";
-  public static final String DATABASE_URL = "databaseUrl";
 
-  public static final String CONNECTION_READONLY = "readOnly";
+  private Map<String, Setting<?>> known = new HashMap<>();
+  private Map<String, String> values = new HashMap<>();
 
-  public static final String PARSED_SQL_CACHE_SIZE = "parsedSqlCacheSize";
-  public static final int PARSED_SQL_CACHE_SIZE_DEFAULT = 250;
-
-  public static final String PREPARED_STATEMENT_CACHE_SIZE = "preparedStatementCacheSize";
-  public static final int PREPARED_STATEMENT_CACHE_SIZE_DEFAULT = 50;
-  public static final String PREPARED_STATEMENT_CACHE_THRESHOLD = "preparedStatementCacheThreshold";
-  public static final int PREPARED_STATEMENT_CACHE_THRESHOLD_DEFAULT = 0;
-
-  public static final String DESCRIPTION_CACHE_SIZE = "descriptionCacheSize";
-  public static final int DESCRIPTION_CACHE_SIZE_DEFAULT = 200;
-
-  public static final String CLIENT_ENCODING = "client_encoding";
-  public static final String CLIENT_ENCODING_DEFAULT = "UTF8";
-
-  public static final String SESSION_USER = "session_authorization";
-
-  public static final String APPLICATION_NAME = "application_name";
-  public static final String APPLICATION_NAME_DEFAULT = "PG-JDBC (NG)";
-
-  public static final String CREDENTIALS_USERNAME = "user";
-  public static final String CREDENTIALS_PASSWORD = "password";
-
-  public static final String FIELD_VARYING_LENGTH_MAX       = "field.varying.length.max";
-  public static final String FIELD_MONEY_FRACTIONAL_DIGITS  = "field.money.fractionalDigits";
-
-  public static final String FIELD_FORMAT_PREF              = "field.format.preference";
-  public static final String FIELD_FORMAT_PREF_DEFAULT      = FieldFormat.Binary.name();
-  public static final String PARAM_FORMAT_PREF              = "param.format.preference";
-  public static final String PARAM_FORMAT_PREF_DEFAULT      = FieldFormat.Binary.name();
-
-  public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
-
-  public static final String BLOB_TYPE = "blob.type";
-  public static final String BLOB_TYPE_DEFAULT = "blobid";
-
-  public static final String CLOB_TYPE = "clob.type";
-  public static final String CLOB_TYPE_DEFAULT = "clobid";
-
-  public static final String SSL_MODE = "sslMode";
-  public static final SSLMode SSL_MODE_DEFAULT = SSLMode.Disable;
-
-  public static final String SSL_CERT_FILE = "sslCertificateFile";
-  public static final String SSL_CERT_FILE_DEFAULT = "postgresql.crt";
-
-  public static final String SSL_KEY_FILE = "sslKeyFile";
-  public static final String SSL_KEY_FILE_DEFAULT = "postgresql.pk8";
-
-  public static final String SSL_PASSWORD = "sslPassword";
-
-  public static final String SSL_PASSWORD_CALLBACK = "sslPasswordCallback";
-  public static final String SSL_PASSWORD_CALLBACK_DEFAULT = ConsolePasswordCallbackHandler.class.getName();
-
-  public static final String SSL_ROOT_CERT_FILE = "sslRootCertificateFile";
-  public static final String SSL_ROOT_CERT_FILE_DEFAULT = "root.crt";
-
-  public static final String NETWORK_TIMEOUT = "networkTimeout";
-  public static final int NETWORK_TIMEOUT_DEFAULT = 0;
-
-  public static final String STRICT_MODE = "strictMode";
-  public static final boolean STRICT_MODE_DEFAULT = false;
-
-  public static final String DEFAULT_FETCH_SIZE = "defaultFetchSize";
-  public static final int DEFAULT_FETCH_SIZE_DEFAULT = 0;
-
-  public static final String RECEIVE_BUFFER_SIZE = "receiveBufferSize";
-  public static final int RECEIVE_BUFFER_SIZE_DEFAULT = -1;
-
-  public static final String SEND_BUFFER_SIZE = "sendBufferSize";
-  public static final int SEND_BUFFER_SIZE_DEFAULT = -1;
-
-  public static final String ALLOCATOR_POOLED = "allocator.pooled";
-  public static final boolean ALLOCATOR_POOLED_DEFAULT = true;
-
-  public static final String PROTOCOL_VERSION = "protocol.version";
-  public static final String PROTOCOL_VERSION_DEFAULT = "3.0";
-
-  public static final String MAX_MESSAGE_SIZE = "protocol.message.max";
-  public static final int MAX_MESSAGE_SIZE_DEFAULT = 15 * 1024 * 1024;
-
-  public static final String PROTOCOL_TRACE = "protocol.trace";
-  public static final boolean PROTOCOL_TRACE_DEFAULT = false;
-
-  public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
-  public static final SocketIO PROTOCOL_SOCKET_IO_DEFAULT = SocketIO.ANY;
-
-  public enum SocketIO {
-    ANY,
-    NIO,
-    NATIVE,
-    OIO,
+  /**
+   * Creates a bag of settings that recognizes any setting defined.
+   */
+  public Settings() {
+    known = Setting.getAll();
   }
 
-  public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
-  public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;
-
-  public static final String SQL_TRACE = "sql.trace";
-  public static final boolean SQL_TRACE_DEFAULT = false;
-
-  public static String getSystemProperty(String key, String def) {
-    return System.getProperty(SYSTEM_SETTING_PREFIX + "." + key, def);
+  /**
+   * Creates a bag of settings that recognizes only settings from
+   * the provided groups.
+   *
+   * @param groups Array of setting groups to recognize.
+   */
+  public Settings(Setting.Group... groups) {
+    for (Setting.Group group : groups) {
+      known.putAll(group.getAllSettings());
+    }
   }
 
-  public static String getSystemProperty(String key) {
-    return System.getProperty(SYSTEM_SETTING_PREFIX + "." + key);
+  /**
+   * Retrieve a boolean value from a setting.
+   *
+   * If no value is set, and there is no default for the setting,
+   * false is returned.
+   *
+   * @param setting Boolean setting to retrieve.
+   * @return Stored value of setting, its default value or {@code false}.
+   */
+  public boolean enabled(Setting<Boolean> setting) {
+    Boolean value = get(setting);
+    return value != null && value;
+  }
+
+  /**
+   * Retrieve a value for a setting.
+   *
+   * @param setting Setting to retrieve.
+   * @param <T> Type of the setting (inferred by {@code setting}
+   * @return Stored value of setting or its default value.
+   */
+  public <T> T get(Setting<T> setting) {
+    String value = values.get(setting.getName());
+    if (value != null) {
+      return setting.fromString(value);
+    }
+    return setting.getDefault();
+  }
+
+  /**
+   * Retrieve a stored value for the setting, returning null
+   * if no value was explicitly stored.
+   *
+   * @param setting Setting to retrieve.
+   * @param <T> Type of the setting (inferred by {@code setting}
+   * @return Stored value of setting or null.
+   */
+  public <T> T getStored(Setting<T> setting) {
+    String value = values.get(setting.getName());
+    if (value != null) {
+      return setting.fromString(value);
+    }
+    return null;
+  }
+
+  public <T> void set(Setting<T> setting, T value) {
+    if (!known.containsKey(setting.getName())) {
+      logger.warning("Applying unknown setting: " + setting.getName());
+    }
+    if (value == null) {
+      values.remove(setting.getName());
+    }
+    else {
+      values.put(setting.getName(), setting.toString(value));
+    }
+  }
+
+  /**
+   * Transfers all settings from given settings bag
+   * into this instance.
+   *
+   * @param settings Settings to transfer
+   */
+  public void setAll(Settings settings) {
+    settings.values.forEach(this::set);
+  }
+
+  /**
+   * Sets a setting via string name and text value.
+   *
+   * If the name provided does not match any defined primary or
+   * alternate name know to the settings bag a warning is logged.
+   *
+   * If the value provided does cannot be validated via the associated
+   * setting's {@link Setting#fromString(String)} method, an error is
+   * logged.
+   *
+   * @param name Name of the setting to store
+   * @param text Value of the store to store
+   */
+  public void set(String name, String text) {
+    Setting<?> setting = known.get(name);
+    if (setting == null) {
+      logger.warning("Applying unknown setting: " + name);
+      values.put(name, text);
+      return;
+    }
+
+    // Validate setting value
+    try {
+      setting.fromString(text);
+    }
+    catch (Exception e) {
+      logger.severe("Setting '" + name + "' to an invalid value: " + text);
+    }
+
+    // Map name to setting's primary name
+    name = setting.getName();
+
+    values.put(name, text);
+  }
+
+  /**
+   * Sets all values from the given map as settings via
+   * the {@link #set(String, String)} method. All validation
+   * applies.
+   *
+   * @param settings Map of values to apply as settings.
+   */
+  public void setAll(Map<String, String> settings) {
+    settings.forEach(this::set);
+  }
+
+  /**
+   * Sets all properties from the given instance as settings via
+   * the {@link #set(String, String)} method. All validation
+   * applies.
+   *
+   * @param properties Properties to apply as settings.
+   */
+  public void setAll(Properties properties) {
+    for (String propertyName : properties.stringPropertyNames()) {
+      set(propertyName, properties.getProperty(propertyName));
+    }
   }
 
 }

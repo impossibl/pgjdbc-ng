@@ -28,17 +28,13 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
-import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER;
-import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_DEFAULT_DRIVER;
-import static com.impossibl.postgres.jdbc.PGSettings.HOUSEKEEPER_ENABLED_LEGACY;
-import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+import static com.impossibl.postgres.jdbc.JDBCSettings.HOUSEKEEPER;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.File;
@@ -54,8 +50,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.lang.Boolean.parseBoolean;
-
 import io.netty.channel.unix.DomainSocketAddress;
 
 /**
@@ -64,8 +58,6 @@ import io.netty.channel.unix.DomainSocketAddress;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 class ConnectionUtil {
-  private static final String JDBC_APPLICATION_NAME_PARAM = "applicationName";
-  private static final String JDBC_CLIENT_ENCODING_PARAM = "clientEncoding";
   private static final String POSTGRES_UNIX_SOCKET_BASE_NAME = ".s.PGSQL";
   private static final String POSTGRES_UNIX_SOCKET_INVALID_EXT = ".lock";
 
@@ -108,7 +100,7 @@ class ConnectionUtil {
     }
 
     void addParameter(String key, String value) {
-      parameters.put(key, value);
+      parameters.setProperty(key, value);
     }
 
     String getHosts() {
@@ -162,7 +154,7 @@ class ConnectionUtil {
     }
   }
 
-  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry.Factory sharedRegistryFactory, boolean allowHousekeeper) throws SQLException {
+  static PGDirectConnection createConnection(String url, Properties info, SharedRegistry.Factory sharedRegistryFactory) throws SQLException {
     ConnectionSpecifier connSpec = parseURL(url);
     if (connSpec == null) {
       return null;
@@ -170,21 +162,12 @@ class ConnectionUtil {
 
     SQLException lastException = null;
 
-    Properties settings = buildSettings(connSpec, info);
+    Settings settings = buildSettings(connSpec, info);
 
     // Select housekeeper for connection
     Housekeeper.Ref housekeeper = null;
-    if (allowHousekeeper) {
-      boolean enableHousekeeper = true;
-      if (settings.getProperty(HOUSEKEEPER_ENABLED_LEGACY) != null &&
-          !parseBoolean(settings.getProperty(HOUSEKEEPER_ENABLED_LEGACY))) {
-        enableHousekeeper = false;
-      }
-      else if (!parseBoolean(settings.getProperty(HOUSEKEEPER, HOUSEKEEPER_DEFAULT_DRIVER))) {
-        enableHousekeeper = false;
-      }
-      if (enableHousekeeper)
-        housekeeper = ThreadedHousekeeper.acquire();
+    if (settings.enabled(HOUSEKEEPER)) {
+      housekeeper = ThreadedHousekeeper.acquire();
     }
 
     // Try to connect to each provided address in turn returning the first
@@ -232,37 +215,27 @@ class ConnectionUtil {
 
   /**
    * Combines multiple sources of properties into one group. Connection info
-   * parameters take precedence over URL query parameters. Also, it ensure
+   * parameters take precedence over URL query parameters. Also, ensure
    * that all required parameters has some default value.
    *
    * @param connSpec Connection specification as parsed
    * @param connectInfo Connection info properties passed to connect
    * @return Single group of settings
    */
-  private static Properties buildSettings(ConnectionSpecifier connSpec, Properties connectInfo) {
-    Properties settings = new Properties();
+  private static Settings buildSettings(ConnectionSpecifier connSpec, Properties connectInfo) {
+    Settings settings = new Settings();
 
     //Start by adding all parameters from the URL query string
-    settings.putAll(connSpec.getParameters());
+    settings.setAll(connSpec.getParameters());
 
     //Add (or overwrite) parameters from the connection info
-    settings.putAll(connectInfo);
+    settings.setAll(connectInfo);
 
     //Set PostgreSQL's database parameter from connSpec
-    settings.put("database", connSpec.getDatabase());
-
-    //Translate JDBC parameters to PostgreSQL parameters
-    if (settings.getProperty(CREDENTIALS_USERNAME) == null)
-      settings.put(CREDENTIALS_USERNAME, System.getProperty("user.name", ""));
-    if (settings.getProperty(CREDENTIALS_PASSWORD) == null)
-      settings.put(CREDENTIALS_PASSWORD, "");
-    if (settings.getProperty(APPLICATION_NAME) == null && settings.getProperty(JDBC_APPLICATION_NAME_PARAM) != null)
-      settings.put(APPLICATION_NAME, settings.getProperty(JDBC_APPLICATION_NAME_PARAM));
-    if (settings.getProperty(CLIENT_ENCODING) == null && settings.getProperty(JDBC_CLIENT_ENCODING_PARAM) != null)
-      settings.put(CLIENT_ENCODING, settings.getProperty(JDBC_CLIENT_ENCODING_PARAM));
+    settings.set(DATABASE_NAME, connSpec.getDatabase());
 
     //Create & store URL
-    settings.put(DATABASE_URL, "jdbc:pgsql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());
+    settings.set(DATABASE_URL, "jdbc:pgsql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());
 
     return settings;
   }

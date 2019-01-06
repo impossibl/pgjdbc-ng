@@ -108,13 +108,13 @@ public interface PGConnection extends Connection {
    * Set the default fetch size
    * @param v The value
    */
-  void setDefaultFetchSize(int v);
+  void setDefaultFetchSize(Integer v);
 
   /**
    * Get the default fetch size
    * @return The value
    */
-  int getDefaultFetchSize();
+  Integer getDefaultFetchSize();
 
 
   /**

@@ -51,9 +51,9 @@ public class DataSourceTest {
   @Before
   public void before() throws Exception {
     PGDataSource ds = new PGDataSource();
-    ds.setHost(TestUtil.getServer());
-    ds.setPort(Integer.valueOf(TestUtil.getPort()));
-    ds.setDatabase(TestUtil.getDatabase());
+    ds.setServerName(TestUtil.getServer());
+    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabaseName(TestUtil.getDatabase());
     ds.setUser(TestUtil.getUser());
     ds.setPassword(TestUtil.getPassword());
     ds.setNetworkTimeout(10000);

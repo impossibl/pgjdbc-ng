@@ -30,14 +30,13 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Configuration;
 
-import static com.impossibl.postgres.system.Settings.SSL_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE_PASSWORD;
 
 import java.io.Console;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-
 
 
 public class ConsolePasswordCallbackHandler implements ConfiguredCallbackHandler {
@@ -47,7 +46,7 @@ public class ConsolePasswordCallbackHandler implements ConfiguredCallbackHandler
   @Override
   public void init(Configuration config) {
 
-    String password = config.getSetting(SSL_PASSWORD, String.class);
+    String password = config.getSetting(SSL_KEY_FILE_PASSWORD);
     if (password != null) {
       this.password = password.toCharArray();
     }

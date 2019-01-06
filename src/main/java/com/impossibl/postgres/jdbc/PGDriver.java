@@ -34,8 +34,7 @@ import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.types.SharedRegistry;
 
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING;
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DRIVER_DEFAULT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
 
 import java.sql.Driver;
 import java.sql.DriverAction;
@@ -50,8 +49,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.lang.Boolean.parseBoolean;
 
 /**
  * Driver implementation
@@ -101,7 +98,7 @@ public class PGDriver implements Driver, DriverAction {
   public PGConnection connect(String url, Properties info) throws SQLException {
 
     SharedRegistry.Factory sharedRegistryFactory;
-    if (parseBoolean(info.getProperty(REGISTRY_SHARING, REGISTRY_SHARING_DRIVER_DEFAULT))) {
+    if (REGISTRY_SHARING.get(info)) {
       sharedRegistryFactory =
           connInfo ->
               sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDriver.class.getClassLoader()));
@@ -111,7 +108,7 @@ public class PGDriver implements Driver, DriverAction {
           connInfo -> new SharedRegistry(connInfo.getServerInfo(), Thread.currentThread().getContextClassLoader());
     }
 
-    return ConnectionUtil.createConnection(url, info, sharedRegistryFactory, true);
+    return ConnectionUtil.createConnection(url, info, sharedRegistryFactory);
   }
 
   @Override

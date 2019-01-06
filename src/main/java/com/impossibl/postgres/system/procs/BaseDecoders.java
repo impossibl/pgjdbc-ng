@@ -32,7 +32,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_VARYING_LENGTH_MAX;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
 import java.io.ByteArrayInputStream;
@@ -157,7 +157,7 @@ abstract class AutoConvertingBinaryDecoder<N> extends BaseBinaryDecoder implemen
     if (isBinary(targetClass)) {
       int length = buffer.readableBytes();
       if (shouldRespectMaxLength()) {
-        Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX, Integer.class);
+        Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX);
         length = maxLength != null ? maxLength : length;
       }
 
@@ -257,7 +257,7 @@ abstract class AutoConvertingTextDecoder<N> extends BaseTextDecoder implements A
     if (isBinary(targetClass)) {
       int length = buffer.length();
       if (shouldRespectMaxLength()) {
-        Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX, Integer.class);
+        Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX);
         length = maxLength != null ? maxLength : length;
       }
 

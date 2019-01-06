@@ -28,85 +28,13 @@
  */
 package com.impossibl.postgres.system;
 
-import static com.impossibl.postgres.utils.Types.boxType;
-import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
-
-import java.util.function.Function;
-
 public interface Configuration {
 
-  Object getSetting(String name);
+  <T> T getSetting(Setting<T> setting);
 
-  default  <T> T getSetting(String name, Class<T> type) {
-    return getSetting(name, type, Function.identity());
-  }
-
-  default  <T> T getSetting(String name, Class<T> type, Function<String, String> transformer) {
-    checkNotNull(type, "Type required, use getSetting(String) instead");
-    Object value = getSetting(name);
-    if (value == null) {
-      return null;
-    }
-    return convert(value, type, transformer);
-  }
-
-  default  <T> T getSetting(String name, T defaultValue) {
-    return getSetting(name, defaultValue, Function.identity());
-  }
-
-  default <T> T getSetting(String name, T defaultValue, Function<String, String> transformer) {
-    checkNotNull(defaultValue, "Default value required, use getSetting(String) instead");
-    Object value = getSetting(name);
-    if (value == null) {
-      return defaultValue;
-    }
-    @SuppressWarnings("unchecked")
-    Class<T> type = (Class<T>) defaultValue.getClass();
-    return convert(value, type, transformer);
-  }
-
-  @SuppressWarnings("unchecked")
-  static <T> T convert(Object value, Class<T> type, Function<String, String> transformer) {
-    type = boxType(type);
-    if (type.isInstance(value)) {
-      return type.cast(value);
-    }
-    if (value instanceof String) {
-      String str = transformer.apply(value.toString());
-      if (type == Boolean.class) {
-        return type.cast(Boolean.valueOf(str));
-      }
-      if (type == Short.class) {
-        return type.cast(Short.valueOf(str));
-      }
-      if (type == Integer.class) {
-        return type.cast(Integer.valueOf(str));
-      }
-      if (type == Long.class) {
-        return type.cast(Long.valueOf(str));
-      }
-      if (type == Float.class) {
-        return type.cast(Float.valueOf(str));
-      }
-      if (type == Double.class) {
-        return type.cast(Double.valueOf(str));
-      }
-      if (type.isEnum()) {
-        try {
-          return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str));
-        }
-        catch (IllegalArgumentException e) {
-          // Try cased versions of the constant
-          try {
-            return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str.toUpperCase()));
-          }
-          catch (IllegalArgumentException e2) {
-            return type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), str.toLowerCase()));
-          }
-        }
-      }
-    }
-    throw new IllegalArgumentException("Value not convertible to requested type");
+  default <T> T getSetting(Setting<T> setting, T fallback) {
+    T value = getSetting(setting);
+    return value != null ? value : fallback;
   }
 
 }
