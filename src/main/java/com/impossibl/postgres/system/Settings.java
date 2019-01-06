@@ -33,7 +33,6 @@ import com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 
 
-
 public class Settings {
 
   public static final String SYSTEM_SETTING_PREFIX = "pgjdbc";
@@ -126,7 +125,14 @@ public class Settings {
   public static final boolean PROTOCOL_TRACE_DEFAULT = false;
 
   public static final String PROTOCOL_SOCKET_IO = "protocol.socket.io";
-  public static final String PROTOCOL_SOCKET_IO_DEFAULT = "nio";
+  public static final SocketIO PROTOCOL_SOCKET_IO_DEFAULT = SocketIO.ANY;
+
+  public enum SocketIO {
+    ANY,
+    NIO,
+    NATIVE,
+    OIO,
+  }
 
   public static final String PROTOCOL_SOCKET_IO_THREADS = "protocol.socket.io.threads";
   public static final int PROTOCOL_SOCKET_IO_THREADS_DEFAULT = 3;

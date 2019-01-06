@@ -45,6 +45,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.ServerInfo;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.utils.MD5Authentication;
 import com.impossibl.postgres.utils.StringTransforms;
@@ -286,39 +287,44 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     Class<? extends SocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
-    int maxThreads;
 
-    String ioMode = config.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT).toLowerCase();
-    switch (ioMode) {
-      case "oio":
+    int maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+
+    Settings.SocketIO socketIO = config.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT);
+    switch (socketIO) {
+      case OIO:
         channelType = io.netty.channel.socket.oio.OioSocketChannel.class;
         groupType = io.netty.channel.oio.OioEventLoopGroup.class;
         maxThreads = 0;
         break;
 
-      case "nio":
+      case ANY:
+
+        // Fallthrough to try in order...
+
+      case NATIVE:
+        if (KQueue.isAvailable()) {
+          channelType = KQueueSocketChannel.class;
+          groupType = KQueueEventLoopGroup.class;
+          break;
+        }
+        else if (Epoll.isAvailable()) {
+          channelType = EpollSocketChannel.class;
+          groupType = KQueueEventLoopGroup.class;
+          break;
+        }
+        else if (socketIO != Settings.SocketIO.ANY) {
+          throw new IllegalStateException("Unsupported io mode: native: no native library loaded");
+        }
+
+      case NIO:
         channelType = NioSocketChannel.class;
         groupType = NioEventLoopGroup.class;
         maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
         break;
 
-      case "native":
-        if (KQueue.isAvailable()) {
-          channelType = KQueueSocketChannel.class;
-          groupType = KQueueEventLoopGroup.class;
-        }
-        else if (Epoll.isAvailable()) {
-          channelType = EpollSocketChannel.class;
-          groupType = KQueueEventLoopGroup.class;
-        }
-        else {
-          throw new IllegalStateException("Unsupported io mode: native: no native library loaded");
-        }
-        maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
-        break;
-
       default:
-        throw new IllegalStateException("Unsupported io mode: " + ioMode);
+        throw new IllegalStateException("Unsupported io mode: " + socketIO);
     }
 
     ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire(groupType, maxThreads);
