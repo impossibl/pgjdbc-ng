@@ -451,6 +451,16 @@ public class Setting<T> {
     return getDefault();
   }
 
+  public String getText(Properties properties) {
+    for (String name : names) {
+      String value = properties.getProperty(name);
+      if (value != null) {
+        return value;
+      }
+    }
+    return getDefaultText();
+  }
+
   @Override
   public String toString() {
     String defaultValue = getDefaultText();
