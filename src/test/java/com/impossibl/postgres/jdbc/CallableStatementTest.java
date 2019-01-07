@@ -1757,7 +1757,7 @@ public class CallableStatementTest {
         }
       }
       finally {
-        statement.execute("DROP FUNCTION fn_test_in_out_index;");
+        statement.execute("DROP FUNCTION fn_test_in_out_index(text);");
       }
 
     }
