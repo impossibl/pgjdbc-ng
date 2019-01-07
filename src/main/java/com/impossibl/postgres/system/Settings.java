@@ -60,10 +60,10 @@ public class Settings {
   private Map<String, String> values = new HashMap<>();
 
   /**
-   * Creates a bag of settings that recognizes any setting defined.
+   * Creates a bag of settings that recognizes any global setting defined.
    */
   public Settings() {
-    known = Setting.getAll();
+    known = Setting.getAllGlobal();
   }
 
   /**
@@ -74,7 +74,7 @@ public class Settings {
    */
   public Settings(Setting.Group... groups) {
     for (Setting.Group group : groups) {
-      known.putAll(group.getAllSettings());
+      known.putAll(group.getAllNamedSettings());
     }
   }
 
@@ -90,6 +90,11 @@ public class Settings {
     return copy;
   }
 
+  /**
+   * Retrieves a list of settings known to this instance.
+   *
+   * @return Set of all known settings.
+   */
   public Set<Setting<?>> knownSet() {
     return new HashSet<>(known.values());
   }
@@ -289,10 +294,33 @@ public class Settings {
     set(name, null);
   }
 
+  public Setting<?> mapUnknownSetting(Setting<?> setting) {
+    for (String name : setting.getNames()) {
+      Setting<?> mapped = known.get(name);
+      if (mapped != null) {
+        return mapped;
+      }
+    }
+    return null;
+  }
+
   public Properties asProperties() {
     Properties properties = new Properties();
     values.forEach(properties::setProperty);
     return properties;
+  }
+
+  public Settings addMappedUnknownSetting(Setting<?> setting, Properties to) {
+
+    setting = mapUnknownSetting(setting);
+    if (setting == null) return this;
+
+    String text = getText(setting);
+    if (text != null) {
+      to.setProperty(setting.getName(), text);
+    }
+
+    return this;
   }
 
 }

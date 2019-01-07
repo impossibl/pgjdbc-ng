@@ -35,6 +35,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.JDBCSettings.CI_APPLICATION_NAME;
+import static com.impossibl.postgres.jdbc.JDBCSettings.CI_CLIENT_USER;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -44,6 +47,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.Executor;
 
 import org.junit.After;
@@ -506,6 +510,28 @@ public class ConnectionTest {
 
     assertTrue(System.currentTimeMillis() - start < 30000);
     assertTrue(con.isClosed());
+  }
+
+  @Test
+  public void testClientInfo() throws Exception {
+
+    con = TestUtil.openDB();
+
+    // Test ApplicationNAme
+
+    con.setClientInfo(CI_APPLICATION_NAME.getName(), "PGJDBC-NG Tests");
+    assertEquals("PGJDBC-NG Tests", con.getClientInfo(CI_APPLICATION_NAME.getName()));
+
+    // Test ClientUser
+    try (Statement statement = con.createStatement()) {
+      String testRole = "test" + Integer.toHexString(new Random().nextInt());
+      statement.execute("CREATE ROLE " + testRole);
+
+      con.setClientInfo(CI_CLIENT_USER.getName(), testRole);
+      assertEquals(testRole, con.getClientInfo(CI_CLIENT_USER.getName()));
+    }
+
+
   }
 
 }

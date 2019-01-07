@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.ParameterNames;
 import com.impossibl.postgres.system.Setting;
 
 public class JDBCSettings implements Setting.Provider {
@@ -94,6 +95,24 @@ public class JDBCSettings implements Setting.Provider {
       "Enables or disables registry sharing",
       true,
       "registry.sharing", "registrySharing"
+  );
+
+
+  public static final Setting.Group CLIENT_INFO = new Setting.Group(
+      "client-info", "Settings allowed to be referenced as connection client-info", false
+  );
+
+  public static final Setting<String> CI_APPLICATION_NAME = CLIENT_INFO.add(
+      "The name of the application currently utilizing the connection",
+      (String) null,
+      "ApplicationName", ParameterNames.APPLICATION_NAME
+  );
+
+  public static final Setting<String> CI_CLIENT_USER = CLIENT_INFO.add(
+      "The name of the user that the application using the connection is performing work for. This may " +
+          "not be the same as the user that was used in establishing the connection.",
+      (String) null,
+      "ClientUser", ParameterNames.SESSION_AUTHORIZATION
   );
 
 }

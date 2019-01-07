@@ -221,7 +221,7 @@ public class SystemSettings implements Setting.Provider {
 
 
   public static final Setting.Group SERVER = new Setting.Group(
-      "server", "Server reported settings"
+      "server", "Server reported settings", false
   );
 
   public static final Setting<String> SESSION_USER = SERVER.add(

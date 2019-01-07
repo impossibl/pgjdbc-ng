@@ -41,6 +41,8 @@ import com.impossibl.postgres.protocol.RowData;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.system.BasicContext;
+import com.impossibl.postgres.system.ParameterNames;
+import com.impossibl.postgres.system.Setting;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
@@ -52,9 +54,11 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_CONNECTION;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
-import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
+import static com.impossibl.postgres.jdbc.JDBCSettings.CI_APPLICATION_NAME;
+import static com.impossibl.postgres.jdbc.JDBCSettings.CI_CLIENT_USER;
+import static com.impossibl.postgres.jdbc.JDBCSettings.CLIENT_INFO;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_FETCH_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_NETWORK_TIMEOUT;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DESCRIPTION_CACHE_SIZE;
@@ -65,6 +69,7 @@ import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_
 import static com.impossibl.postgres.jdbc.JDBCSettings.READ_ONLY;
 import static com.impossibl.postgres.jdbc.JDBCSettings.STRICT_MODE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
+import static com.impossibl.postgres.jdbc.SQLTextUtils.escapeLiteral;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getBeginText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getCommitText;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.getGetSessionIsolationLevelText;
@@ -96,12 +101,14 @@ import java.nio.channels.ClosedChannelException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.ClientInfoStatus;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
@@ -112,6 +119,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -125,6 +133,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import static java.sql.ClientInfoStatus.REASON_UNKNOWN;
+import static java.sql.ClientInfoStatus.REASON_UNKNOWN_PROPERTY;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -1235,27 +1245,106 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void setClientInfo(String name, String value) {
-    // TODO: implement
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setClientInfo(Properties properties) {
-    // TODO: implement
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    // Check if setting exists in related setting group...
+
+    Setting<?> setting = CLIENT_INFO.getAllNamedSettings().get(name);
+    if (setting == null) {
+      return null;
+    }
+
+    setting = settings.mapUnknownSetting(setting);
+
+    // Currently, all relevant properties are reported by
+    // the server as they are updated and stored in settings,
+    // we just need to return the current value.
+
+    return settings.getText(setting);
   }
 
   @Override
   public Properties getClientInfo() throws SQLException {
     checkClosed();
-    throw NOT_IMPLEMENTED;
+
+    Properties clientInfo = new Properties();
+
+    settings
+        .addMappedUnknownSetting(CI_APPLICATION_NAME, clientInfo)
+        .addMappedUnknownSetting(CI_CLIENT_USER, clientInfo);
+
+    return clientInfo;
+  }
+
+  private void setClientInfo(Setting<?> setting, String value) throws SQLException {
+
+    if (setting == CI_APPLICATION_NAME) {
+
+      String sqlValue = escapeLiteral(value, settings.enabled(STANDARD_CONFORMING_STRINGS));
+
+      execute("SET " + ParameterNames.APPLICATION_NAME + " = '"  + sqlValue + "'");
+
+      // Server sends out parameter status, which updates our settings
+    }
+    else if (setting == CI_CLIENT_USER) {
+
+      String sqlValue = escapeLiteral(value, settings.enabled(STANDARD_CONFORMING_STRINGS));
+
+      execute("SET " + ParameterNames.SESSION_AUTHORIZATION + " = '"  + sqlValue + "'");
+
+      // Server sends out parameter status, which updates our settings
+    }
+
+  }
+
+  @Override
+  public void setClientInfo(String name, String value) throws SQLClientInfoException {
+
+    Setting<?> setting = CLIENT_INFO.getAllNamedSettings().get(name);
+    if (setting == null) {
+      logger.warning("Unknown client info: " + name);
+      return;
+    }
+
+    try {
+      checkClosed();
+
+      setClientInfo(setting, value);
+    }
+    catch (SQLException e) {
+      Map<String, ClientInfoStatus> results = new HashMap<>();
+      results.put(name, REASON_UNKNOWN);
+      throw new SQLClientInfoException(e.getMessage(), results, e);
+    }
+
+  }
+
+  @Override
+  public void setClientInfo(Properties properties) throws SQLClientInfoException {
+    if (isClosed()) {
+      return;
+    }
+
+    Map<String, ClientInfoStatus> results = new HashMap<>();
+
+    for (String name : properties.stringPropertyNames()) {
+
+      Setting<?> setting = CLIENT_INFO.getAllNamedSettings().get(name);
+      if (setting == null) {
+        results.put(name, REASON_UNKNOWN_PROPERTY);
+        continue;
+      }
+
+      try {
+        setClientInfo(setting, properties.getProperty(name));
+      }
+      catch (SQLException e) {
+        results.put(name, REASON_UNKNOWN);
+      }
+    }
+
+    throw new SQLClientInfoException(results);
   }
 
   @Override

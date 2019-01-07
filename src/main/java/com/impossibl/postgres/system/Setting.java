@@ -34,9 +34,11 @@ import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -46,6 +48,10 @@ import java.util.regex.Pattern;
  * Completely defined setting that can be transformed to/from text, use alternate
  * names, carries a description and optional default value.
  *
+ * Settings belong to {@link Setting.Group groups} that determine where they are
+ * valid. Groups can be global or local. If a group is global, all of its settings
+ * are global.
+ *
  * Each setting requires a "primary" name (available via {@link #getName()}. This name
  * is used when storing settings and when displaying information about the setting.
  *
@@ -54,10 +60,12 @@ import java.util.regex.Pattern;
  * in the system properties by looking up the primary name & then alternate names in turn
  * until it finds a non-null value.
  *
- * All settings are required to have unique names (including their alternate names); it
- * is enforced during instantiation and will throw an exception is duplicates are found.
+ * All settings in global groups are required to have unique names (including their alternate
+ * names); it is enforced during instantiation and will throw an exception is duplicates are
+ * found.
  *
- * A global map of setting names to setting instances is provided via {@link #getAll()};
+ * A map of all global setting names to setting instances is provided via
+ * {@link #getAllGlobal()}.
  *
  * @param <T> Type of the setting
  */
@@ -68,7 +76,11 @@ public class Setting<T> {
   /**
    * Setting group.
    *
-   * Should be defined as constant then use the {@link #add} methods
+   * A group can be global or local. All settings in a global group are required
+   * to be unique system wide, while settings in a local group only need to be
+   * unique within the group. Nothing else is unique about local groups.
+   *
+   * Should be defined as a constant, then use the {@link #add} methods
    * to add setting definitions to the group.
    *
    * <code>
@@ -91,11 +103,18 @@ public class Setting<T> {
 
     private String name;
     private String description;
-    private Map<String, Setting<?>> all = new HashMap<>();
+    private boolean global;
+    private Map<String, Setting<?>> allNamed = new HashMap<>();
+    private Set<Setting<?>> all = new HashSet<>();
 
     public Group(String name, String description) {
+      this(name, description, true);
+    }
+
+    public Group(String name, String description, boolean global) {
       this.name = name;
       this.description = description;
+      this.global = global;
       synchronized (Group.class) {
         ALL.putIfAbsent(name, this);
       }
@@ -115,8 +134,12 @@ public class Setting<T> {
      *
      * @return Map of all settings.
      */
-    public Map<String, Setting<?>> getAllSettings() {
-      return Collections.unmodifiableMap(all);
+    public Map<String, Setting<?>> getAllNamedSettings() {
+      return Collections.unmodifiableMap(allNamed);
+    }
+
+    public Set<Setting<?>> getAllSettings() {
+      return Collections.unmodifiableSet(all);
     }
 
     /**
@@ -124,7 +147,8 @@ public class Setting<T> {
      */
     public <T> Setting<T> add(Setting<T> setting) {
       for (String name : setting.getNames()) {
-        all.put(name, setting);
+        allNamed.put(name, setting);
+        all.add(setting);
       }
       return setting;
     }
@@ -251,7 +275,7 @@ public class Setting<T> {
 
   }
 
-  private static final Map<String, Setting<?>> ALL = new HashMap<>();
+  private static final Map<String, Setting<?>> ALL_GLOBAL = new HashMap<>();
 
   /**
    * Get a name based map of all defined settings.
@@ -261,8 +285,8 @@ public class Setting<T> {
    *
    * @return Map of all defined settings.
    */
-  public static Map<String, Setting<?>> getAll() {
-    return Collections.unmodifiableMap(ALL);
+  public static Map<String, Setting<?>> getAllGlobal() {
+    return Collections.unmodifiableMap(ALL_GLOBAL);
   }
 
   /**
@@ -291,7 +315,6 @@ public class Setting<T> {
 
   private Setting(Group group, String description, Class<T> type, Converter<T> fromString, Function<T, String> toString, String[] names) {
     checkArgument(names.length > 0);
-    checkArgument(isSimpleNameFormat(names[0]));
     this.group = group;
     this.names = names;
     this.type = type;
@@ -299,12 +322,16 @@ public class Setting<T> {
     this.toString = toString;
     this.description = description;
     synchronized (Setting.class) {
-      addAll(ALL, this);
-      addAll(group.all, this);
+      if (group.global) {
+        checkArgument(isSimpleNameFormat(names[0]));
+        addAll(ALL_GLOBAL, this);
+      }
+      addAll(group.allNamed, this);
+      group.all.add(this);
     }
   }
 
-  private static final Pattern SIMPLE_NAME_PATTERN = Pattern.compile("(?:[a-z][a-z0-9\\-_]+)(?:\\.[a-z0-9][a-z0-9\\-_]+)*");
+  private static final Pattern SIMPLE_NAME_PATTERN = Pattern.compile("(?:[a-z][a-z0-9\\-]+)(?:\\.[a-z0-9][a-z0-9\\-]+)*");
 
   /**
    * Validate primary name as being all lowercase and compatible with generating
