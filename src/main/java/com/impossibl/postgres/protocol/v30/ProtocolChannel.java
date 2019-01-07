@@ -295,7 +295,10 @@ public class ProtocolChannel {
 
   ChannelFuture writeTerminate() {
 
-    ByteBuf msg = beginMessage(TERMINATE_MSG_ID);
+    ByteBuf msg = alloc.buffer(5);
+
+    msg.writeByte(TERMINATE_MSG_ID);
+    msg.writeInt(4);
 
     return channel.writeAndFlush(msg);
   }
