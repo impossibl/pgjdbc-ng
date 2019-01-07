@@ -62,6 +62,7 @@ import com.impossibl.postgres.utils.Timer;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
+import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 import static com.impossibl.postgres.system.SystemSettings.SESSION_USER;
 import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_STRINGS;
@@ -750,7 +751,14 @@ public class BasicContext extends AbstractContext {
         break;
 
       case ParameterNames.SESSION_AUTHORIZATION:
+
         settings.set(SESSION_USER, value);
+        break;
+
+      case ParameterNames.APPLICATION_NAME:
+
+        settings.set(APPLICATION_NAME, value);
+        break;
 
       default:
         break;
