@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
@@ -334,6 +335,52 @@ class SQLTextUtils {
     }
 
     return sb.toString();
+  }
+  /**
+   * Escape the literal text.
+
+   * @param value value to append
+   * @param standardConformingStrings If the server has standard_conforming_strings enabled
+   * @return Escaped version of {@code value} text
+   */
+  public static String escapeLiteral(String value, boolean standardConformingStrings) {
+    StringBuilder builder = new StringBuilder(value.length() * 2);
+    try {
+      escapeLiteral(value, standardConformingStrings, builder);
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return builder.toString();
+  }
+
+  /**
+   * Escape the literal text, appending new text to {@code out}
+   *
+   * @param value value to append
+   * @param standardConformingStrings If the server has standard_conforming_strings enabled
+   */
+  private static void escapeLiteral(String value, boolean standardConformingStrings, Appendable out) throws IOException {
+    if (standardConformingStrings) {
+      // Escape only single-quotes.
+      for (int i = 0; i < value.length(); ++i) {
+        char ch = value.charAt(i);
+        if (ch == '\'') {
+          out.append('\'');
+        }
+        out.append(ch);
+      }
+    }
+    else {
+      // Escape backslashes and single-quotes
+      for (int i = 0; i < value.length(); ++i) {
+        char ch = value.charAt(i);
+        if (ch == '\\' || ch == '\'') {
+          out.append(ch);
+        }
+        out.append(ch);
+      }
+    }
   }
 
 }
