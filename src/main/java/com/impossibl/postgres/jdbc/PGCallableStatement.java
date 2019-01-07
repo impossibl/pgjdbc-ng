@@ -32,6 +32,8 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultBatches;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
+import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.TypeMapContext;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
@@ -90,7 +92,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   private Map<Integer, Integer> outParameterSQLTypes;
   private ResultField[] outParameterFields;
   private RowData outParameterData;
-  private Map<String, Class<?>> typeMap;
   private Boolean nullFlag;
 
   private static final Map<Integer, Pattern> PARAM_REPLACE_REGEXES = new ConcurrentHashMap<>();
@@ -98,10 +99,11 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   private static final Pattern CLEANUP_MIDDLE_COMMAS_REGEX = Pattern.compile(",\\s*,");
   private static final Pattern CLEANUP_TAILING_COMMAS_REGEX = Pattern.compile(",+\\s*\\)");
 
+  private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
+
   PGCallableStatement(PGDirectConnection connection, int type, int concurrency, int holdability, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
     super(connection, type, concurrency, holdability, sqlText, 0, cursorName);
 
-    typeMap = connection.getTypeMap();
     fullSqlText = sqlText;
     allParameterModes = new ArrayList<>(nCopies(parameterCount, null));
     parameterTypes = EMPTY_TYPES;
@@ -170,7 +172,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     ReferenceCountUtil.release(outParameterData);
     outParameterData = null;
 
-    boolean res = super.execute();
+    super.execute();
 
     if (!outParameterSQLTypes.isEmpty()) {
 
@@ -261,10 +263,15 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   }
 
   private <R> R getVal(int parameterIdx, Class<R> targetClass, Object targetContext) throws SQLException {
-    return targetClass.cast(getObj(parameterIdx, targetClass, targetContext));
+    return targetClass.cast(getObj(parameterIdx, connection, targetClass, targetContext));
   }
 
-  private Object getObj(int parameterIdx, Class<?> targetClass, Object targetContext) throws SQLException {
+  private Object getObj(int parameterIdx, Context context, Class<?> targetClass, Object targetContext) throws SQLException {
+
+    int outParameterIdx = mapToOutParameterIndex(parameterIdx);
+
+    parameterIdx--;
+    outParameterIdx--;
 
     if (query == null) {
       throw new PGSQLSimpleException("statement not executed");
@@ -273,8 +280,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     if (outParameterData == null) {
       throw new PGSQLSimpleException("No parameter results");
     }
-
-    parameterIdx--;
 
     if (targetClass == null) {
       Type type = JDBCTypeMapping.getType(outParameterSQLTypes.get(parameterIdx), null, connection.getRegistry());
@@ -285,7 +290,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     Object val;
     try {
-      val = outParameterData.getField(parameterIdx, outParameterFields[parameterIdx], connection, targetClass, targetContext);
+      val = outParameterData.getField(outParameterIdx, outParameterFields[outParameterIdx], context, targetClass, targetContext);
     }
     catch (IOException e) {
       throw new SQLException(e);
@@ -402,7 +407,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public String getString(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return getVal(parameterIndex, String.class, null);
   }
@@ -410,7 +414,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public boolean getBoolean(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Boolean.class, null), true);
   }
@@ -418,7 +421,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public byte getByte(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Byte.class, null), (byte) 0);
   }
@@ -426,7 +428,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public short getShort(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Short.class, null), (short) 0);
   }
@@ -434,7 +435,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public int getInt(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Integer.class, null), 0);
   }
@@ -442,7 +442,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public long getLong(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Long.class, null), (long) 0);
   }
@@ -450,7 +449,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public float getFloat(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Float.class, null), (float) 0);
   }
@@ -458,7 +456,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Override
   public double getDouble(int parameterIndex) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, Double.class, null), (double) 0);
   }
@@ -467,7 +464,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
   @Deprecated
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     checkClosed();
-    parameterIndex = mapToOutParameterIndex(parameterIndex);
 
     return firstNonNull(getVal(parameterIndex, BigDecimal.class, scale), BigDecimal.ZERO);
   }
@@ -572,14 +568,19 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   public Object getObject(int parameterIndex) throws SQLException {
-    return getObject(parameterIndex, typeMap);
+    checkClosed();
+
+    return getObj(parameterIndex, connection, null, null);
   }
 
   @Override
   public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
     checkClosed();
 
-    return getObj(parameterIndex, null, map);
+    TypeMapContext context = TYPE_MAP_CONTEXTS.get();
+    context.reset(this.connection, map);
+
+    return getObj(parameterIndex, context, null, null);
   }
 
   @Override

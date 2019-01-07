@@ -36,6 +36,8 @@
 package com.impossibl.postgres.jdbc;
 
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -43,8 +45,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.sql.SQLXML;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Date;
+import java.util.UUID;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -53,6 +62,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -1649,4 +1659,108 @@ public class CallableStatementTest {
     assertNotNull(cs.getTimestamp(1));
     cs.close();
   }
+
+  @Test
+  public void testLotsOfOutParameters() throws SQLException, MalformedURLException {
+
+    try (Statement statement = con.createStatement()) {
+
+      statement.execute("" +
+          "CREATE OR REPLACE FUNCTION fn_test_in_out_index(\n" +
+          "    IN txt text,\n" +
+          "    OUT a text,\n" +
+          "    OUT b text,\n" +
+          "    OUT c timestamp without time zone,\n" +
+          "    OUT d timestamp with time zone,\n" +
+          "    OUT e time without time zone,\n" +
+          "    OUT f time with time zone,\n" +
+          "    OUT g date,\n" +
+          "    OUT h decimal,\n" +
+          "    OUT i bytea,\n" +
+          "    OUT j xml,\n" +
+          "    OUT k uuid,\n" +
+          "    OUT l text,\n" +
+          "    OUT m text,\n" +
+          "    OUT n bigint)\n" +
+          "  RETURNS record AS\n" +
+          "$BODY$\n" +
+          "DECLARE \n" +
+          "BEGIN\n" +
+          "a := 'a-test'; \n" +
+          "b := 'b-test'; \n" +
+          "c := LOCALTIMESTAMP;\n" +
+          "d := LOCALTIMESTAMP;\n" +
+          "e := LOCALTIME;\n" +
+          "f := LOCALTIME;\n" +
+          "g := current_date;\n" +
+          "h := 9999999.12233445566778899;\n" +
+          "i := 'yo'::bytea;\n" +
+          "j := '<a></a>';\n" +
+          "k := '42009FB2-2FE5-4ED5-BE10-F3C9894018AB'::uuid;\n" +
+          "l := 'http://example.com';\n" +
+          "m := 'hi nikhil';\n" +
+          "n := 111;\n" +
+          "END;\n" +
+          "$BODY$\n" +
+          "LANGUAGE plpgsql VOLATILE COST 100;");
+      try {
+
+        // Procedure call
+        try (CallableStatement cstmt = con
+            .prepareCall("{call fn_test_in_out_index(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+
+          cstmt.setString(1, "test");
+
+          cstmt.registerOutParameter(2, Types.VARCHAR);
+          cstmt.registerOutParameter(3, Types.VARCHAR);
+          cstmt.registerOutParameter(4, Types.TIMESTAMP);
+          cstmt.registerOutParameter(5, Types.TIMESTAMP_WITH_TIMEZONE);
+          cstmt.registerOutParameter(6, Types.TIME);
+          cstmt.registerOutParameter(7, Types.TIME_WITH_TIMEZONE);
+          cstmt.registerOutParameter(8, Types.DATE);
+          cstmt.registerOutParameter(9, Types.DECIMAL);
+          cstmt.registerOutParameter(10, Types.VARBINARY);
+          cstmt.registerOutParameter(11, Types.SQLXML);
+          cstmt.registerOutParameter(12, Types.OTHER);
+          cstmt.registerOutParameter(13, Types.VARCHAR);
+          cstmt.registerOutParameter(14, Types.VARCHAR);
+          cstmt.registerOutParameter(15, Types.BIGINT);
+
+          cstmt.execute();
+
+          assertTrue(cstmt.getObject(2) instanceof String);
+          assertEquals("a-test", cstmt.getString(2));
+          assertTrue(cstmt.getObject(3) instanceof String);
+          assertEquals("b-test", cstmt.getString(3));
+          assertTrue(cstmt.getObject(4) instanceof Timestamp);
+          assertNotNull(cstmt.getTimestamp(4));
+          assertTrue(cstmt.getObject(5) instanceof Timestamp);
+          assertNotNull(cstmt.getTimestamp(5));
+          assertTrue(cstmt.getObject(6) instanceof Time);
+          assertNotNull(cstmt.getTime(6));
+          assertTrue(cstmt.getObject(7) instanceof Time);
+          assertNotNull(cstmt.getTime(7));
+          assertTrue(cstmt.getObject(8) instanceof Date);
+          assertNotNull(cstmt.getDate(8));
+          assertTrue(cstmt.getObject(9) instanceof BigDecimal);
+          assertEquals(new BigDecimal("9999999.12233445566778899"), cstmt.getBigDecimal(9));
+          assertArrayEquals("yo".getBytes(UTF_8), cstmt.getBytes(10));
+          assertTrue(cstmt.getObject(11) instanceof SQLXML);
+          assertTrue(cstmt.getObject(12) instanceof UUID);
+          assertEquals(UUID.fromString("42009FB2-2FE5-4ED5-BE10-F3C9894018AB"), cstmt.getObject(12));
+          assertTrue(cstmt.getObject(13) instanceof String);
+          assertEquals(new URL("http://example.com"), cstmt.getURL(13));
+          assertTrue(cstmt.getObject(14) instanceof String);
+          assertEquals("hi nikhil", cstmt.getString(14));
+          assertTrue(cstmt.getObject(15) instanceof Long);
+          assertEquals(111L, cstmt.getLong(15));
+        }
+      }
+      finally {
+        statement.execute("DROP FUNCTION fn_test_in_out_index;");
+      }
+
+    }
+  }
+
 }
