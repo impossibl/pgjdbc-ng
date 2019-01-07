@@ -58,6 +58,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_FETCH_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_NETWORK_TIMEOUT;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DESCRIPTION_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
 import static com.impossibl.postgres.jdbc.JDBCSettings.PARSED_SQL_CACHE_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_THRESHOLD;
@@ -80,7 +81,10 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.PROTO;
+import static com.impossibl.postgres.system.SystemSettings.SERVER;
 import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_STRINGS;
+import static com.impossibl.postgres.system.SystemSettings.SYS;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -204,7 +208,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private static Map<String, SQLText> parsedSqlCache;
 
   PGDirectConnection(SocketAddress address, Settings settings, Housekeeper.Ref housekeeper) throws IOException {
-    super(address, settings);
+    super(address, settings.duplicateKnowing(JDBC, SYS, PROTO, SERVER));
 
     this.strict = getSetting(STRICT_MODE);
     this.networkTimeout = getSetting(DEFAULT_NETWORK_TIMEOUT);
