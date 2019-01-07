@@ -29,8 +29,10 @@
 package com.impossibl.postgres.system;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Logger;
 
 
@@ -76,6 +78,33 @@ public class Settings {
     }
   }
 
+  public Settings duplicateKnowingAll() {
+    Settings copy = new Settings();
+    copy.values = new HashMap<>(values);
+    return copy;
+  }
+
+  public Settings duplicateKnowing(Setting.Group... groups) {
+    Settings copy = new Settings(groups);
+    copy.values = new HashMap<>(values);
+    return copy;
+  }
+
+  public Set<Setting<?>> knownSet() {
+    return new HashSet<>(known.values());
+  }
+
+  /**
+   * Check if settings has a stored value stored
+   * for the  setting.
+   *
+   * @param setting Setting to check status of.
+   * @return {@code true} if a value is stored for {@code setting}, {@code false} otherwise.
+   */
+  public boolean hasStoredValue(Setting<?> setting) {
+    return values.containsKey(setting.getName());
+  }
+
   /**
    * Retrieve a boolean value from a setting.
    *
@@ -94,7 +123,7 @@ public class Settings {
    * Retrieve a value for a setting.
    *
    * @param setting Setting to retrieve.
-   * @param <T> Type of the setting (inferred by {@code setting}
+   * @param <T> Type of the setting (inferred by {@code setting})
    * @return Stored value of setting or its default value.
    */
   public <T> T get(Setting<T> setting) {
@@ -110,7 +139,7 @@ public class Settings {
    * if no value was explicitly stored.
    *
    * @param setting Setting to retrieve.
-   * @param <T> Type of the setting (inferred by {@code setting}
+   * @param <T> Type of the setting (inferred by {@code setting})
    * @return Stored value of setting or null.
    */
   public <T> T getStored(Setting<T> setting) {
@@ -121,6 +150,25 @@ public class Settings {
     return null;
   }
 
+  /**
+   * Retrieve text value for a setting.
+   *
+   * @param setting Setting to retrieve.
+   * @return Stored text value of setting or its default value.
+   */
+  public String getText(Setting<?> setting) {
+    String value = values.get(setting.getName());
+    if (value != null) return value;
+    return setting.getDefaultText();
+  }
+
+  /**
+   * Sets a value for the specified setting.
+   *
+   * @param setting Setting to set.
+   * @param value Native value to set.
+   * @param <T> Type of the setting (inferred by {@code setting})
+   */
   public <T> void set(Setting<T> setting, T value) {
     if (!known.containsKey(setting.getName())) {
       logger.warning("Applying unknown setting: " + setting.getName());
@@ -134,13 +182,30 @@ public class Settings {
   }
 
   /**
-   * Transfers all settings from given settings bag
-   * into this instance.
+   * Set text value for a setting.
    *
-   * @param settings Settings to transfer
+   * An error is logged if {@code value} cannot
+   * be validated.
+   *
+   * @param setting Setting to set.
+   * @param value Text value for setting.
    */
-  public void setAll(Settings settings) {
-    settings.values.forEach(this::set);
+  public void setText(Setting<?> setting, String value) {
+
+    // Validate setting value
+    try {
+      setting.fromString(value);
+    }
+    catch (Exception e) {
+      logger.severe("Setting '" + value + "' to an invalid value: " + value);
+    }
+
+    if (value == null) {
+      values.remove(setting.getName());
+    }
+    else {
+      values.put(setting.getName(), value);
+    }
   }
 
   /**
@@ -160,22 +225,26 @@ public class Settings {
     Setting<?> setting = known.get(name);
     if (setting == null) {
       logger.warning("Applying unknown setting: " + name);
-      values.put(name, text);
+      if (text == null) {
+        values.remove(name);
+      }
+      else {
+        values.put(name, text);
+      }
       return;
     }
 
-    // Validate setting value
-    try {
-      setting.fromString(text);
-    }
-    catch (Exception e) {
-      logger.severe("Setting '" + name + "' to an invalid value: " + text);
-    }
+    setText(setting, text);
+  }
 
-    // Map name to setting's primary name
-    name = setting.getName();
-
-    values.put(name, text);
+  /**
+   * Transfers all settings from given settings bag
+   * into this instance.
+   *
+   * @param settings Settings to transfer
+   */
+  public void setAll(Settings settings) {
+    settings.values.forEach(this::set);
   }
 
   /**
@@ -200,6 +269,30 @@ public class Settings {
     for (String propertyName : properties.stringPropertyNames()) {
       set(propertyName, properties.getProperty(propertyName));
     }
+  }
+
+  /**
+   * Remove any stored value associated with the setting.
+   *
+   * @param setting Setting to remove
+   */
+  public void unset(Setting<?> setting) {
+    set(setting, null);
+  }
+
+  /**
+   * Remove any stored value associated with the named setting.
+   *
+   * @param name Name of setting to remove
+   */
+  public void unset(String name) {
+    set(name, null);
+  }
+
+  public Properties asProperties() {
+    Properties properties = new Properties();
+    values.forEach(properties::setProperty);
+    return properties;
   }
 
 }

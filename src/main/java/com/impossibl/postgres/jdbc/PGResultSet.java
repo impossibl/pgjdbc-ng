@@ -58,7 +58,7 @@ import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
-import static com.impossibl.postgres.system.SystemSettings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.ByteArrayInputStream;
@@ -216,7 +216,7 @@ class PGResultSet implements ResultSet {
   }
 
   void updateMaxFieldSize(Integer maxFieldSize) {
-    this.context.setSetting(FIELD_VARYING_LENGTH_MAX, maxFieldSize);
+    this.context.setSetting(FIELD_LENGTH_MAX, maxFieldSize);
   }
 
   /**

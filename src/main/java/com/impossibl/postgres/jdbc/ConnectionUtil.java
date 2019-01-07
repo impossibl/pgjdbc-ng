@@ -160,9 +160,14 @@ class ConnectionUtil {
       return null;
     }
 
-    SQLException lastException = null;
-
     Settings settings = buildSettings(connSpec, info);
+
+    return createConnection(connSpec.addresses, settings, sharedRegistryFactory);
+  }
+
+  static PGDirectConnection createConnection(List<SocketAddress> addresses, Settings settings, SharedRegistry.Factory sharedRegistryFactory) throws SQLException {
+
+    SQLException lastException = null;
 
     // Select housekeeper for connection
     Housekeeper.Ref housekeeper = null;
@@ -172,7 +177,7 @@ class ConnectionUtil {
 
     // Try to connect to each provided address in turn returning the first
     // successful connection
-    for (SocketAddress address : connSpec.getAddresses()) {
+    for (SocketAddress address : addresses) {
 
       if (address instanceof InetSocketAddress) {
         InetSocketAddress inetAddress = (InetSocketAddress) address;

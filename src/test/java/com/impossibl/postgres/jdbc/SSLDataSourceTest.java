@@ -127,10 +127,10 @@ public class SSLDataSourceTest {
     ds.setNetworkTimeout(10000);
 
     ds.setSslMode(sslmode);
-    ds.setSslPassword("sslpwd");
+    ds.setSslKeyPassword("sslpwd");
     ds.setSslCertificateFile(certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt"));
     ds.setSslKeyFile(certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8"));
-    ds.setSslRootCertificateFile(certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt"));
+    ds.setSslCaCertificateFile(certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt"));
 
     return ds;
   }

@@ -42,18 +42,20 @@ import static java.util.function.Function.identity;
 
 public class SystemSettings implements Setting.Provider {
 
-  public static final Setting.Group SYS = new Setting.Group("system");
+  public static final Setting.Group SYS = new Setting.Group(
+      "system", "General system & connection settings"
+  );
 
   public static final Setting<String> DATABASE_URL = SYS.add(
       "Database URL",
       (String) null,
-      "databaseUrl", "url"
+      "database.url", "databaseUrl", "url"
   );
 
   public static final Setting<String> DATABASE_NAME = SYS.add(
       "Name of database related to connection",
       (String) null,
-      "databaseName", "database"
+      "database.name", "databaseName", "database"
   );
 
   public static final Setting<String> APPLICATION_NAME = SYS.add(
@@ -74,149 +76,164 @@ public class SystemSettings implements Setting.Provider {
       ParameterNames.PASSWORD
   );
 
-  public static final Setting<String> SESSION_USER = SYS.add(
-      "Session username (as reported by server)",
-      (String) null,
-      ParameterNames.SESSION_USER
-  );
-
-  public static final Setting<Boolean> STANDARD_CONFORMING_STRINGS = SYS.add(
-      "Use SQL standard conforming strings (as reported by server)",
-      (Boolean) null,
-      ParameterNames.STANDARD_CONFORMING_STRINGS
-  );
-
   public static final Setting<FieldFormat> FIELD_FORMAT_PREF = SYS.add(
       "Preferred format (text or binary) of result fields",
-      FieldFormat.Binary, StringTransforms::capitalizeOption,
-      "field.format.preference"
+      FieldFormat.Binary, StringTransforms::toUpperCamelCase, String::toLowerCase,
+      "field.format"
   );
 
-  public static final Setting<Integer> FIELD_MONEY_FRACTIONAL_DIGITS = SYS.add(
-      "Fractional digits for money fields",
-      2,
-      "field.money.fractionalDigits"
-  );
-
-  public static final Setting<Integer> FIELD_VARYING_LENGTH_MAX = SYS.add(
-      "Fractional digits for money fields",
+  public static final Setting<Integer> FIELD_LENGTH_MAX = SYS.add(
+      "Maximum allowed length of a result field",
       (Integer) null,
-      "field.varying.length.max"
+      "field.length.max"
   );
 
   public static final Setting<FieldFormat> PARAM_FORMAT_PREF = SYS.add(
       "Preferred format (text or binary) of prepared statement parameters",
-      FieldFormat.Binary, StringTransforms::capitalizeOption,
-      "param.format.preference"
+      FieldFormat.Binary, StringTransforms::toUpperCamelCase, String::toLowerCase,
+      "param.format"
+  );
+
+  public static final Setting<Integer> MONEY_FRACTIONAL_DIGITS = SYS.add(
+      "Fractional digits for money fields",
+      2,
+      "money.fractional-digits", "field.money.fractionalDigits"
   );
 
   public static final Setting<SSLMode> SSL_MODE = SYS.add(
       "SSL connection mode",
-      SSLMode.Disable, StringTransforms::capitalizeOption,
-      "ssl.mode", "sslMode"
+      SSLMode.Disable, StringTransforms::toUpperCamelCase, StringTransforms::dashedFromCamelCase,
+      "ssl-mode", "sslMode"
   );
 
   public static final Setting<String> SSL_CRT_FILE = SYS.add(
       "SSL certificate file name",
       "postgresql.crt",
-      "ssl.certificate", "sslCertificateFile"
+      "ssl.certificate.file", "sslCertificateFile"
+  );
+
+  public static final Setting<String> SSL_CA_CRT_FILE = SYS.add(
+      "SSL certificate authority file name",
+      "root.crt",
+      "ssl.ca.certificate.file", "sslRootCertificateFile"
   );
 
   public static final Setting<String> SSL_KEY_FILE = SYS.add(
       "SSL key file name",
       "postgresql.pk8",
-      "ssl.key", "sslKeyFile"
+      "ssl.key.file", "sslKeyFile"
   );
 
-  public static final Setting<String> SSL_KEY_FILE_PASSWORD = SYS.add(
+  public static final Setting<String> SSL_KEY_PASSWORD = SYS.add(
       "SSL key file password",
       (String) null,
-      "ssl.password", "sslPassword"
+      "ssl.key.password", "sslPassword"
   );
 
-  public static final Setting<Class> SSL_KEY_FILE_PASSWORD_CALLBACK = SYS.add(
+  public static final Setting<Class> SSL_KEY_PASSWORD_CALLBACK = SYS.add(
       "SSL key file password callback class",
       ConsolePasswordCallbackHandler.class,
-      "ssl.password.callback.class", "sslPasswordCallback"
-  );
-
-  public static final Setting<String> SSL_ROOT_CRT_FILE = SYS.add(
-      "SSL root certificate file name",
-      "root.crt",
-      "ssl.certificate.ca", "sslRootCertificateFile"
+      "ssl.key.password.callback", "sslPasswordCallback"
   );
 
   public static final Setting<String> SSL_HOME_DIR = SYS.add(
       "SSL user home directory",
       "postgresql",
-      "ssl.dir"
-  );
-
-  public enum IOMode {
-    ANY,
-    NIO,
-    NATIVE,
-    OIO,
-  }
-
-  public static final Setting<IOMode> PROTOCOL_IO = SYS.add(
-      "I/O subsystem selection mode (any, native, nio, oio)",
-      IOMode.ANY, String::toUpperCase,
-      "protocol.io"
-  );
-
-  public static final Setting<Integer> PROTOCOL_IO_THREADS = SYS.add(
-      "Number of I/O threads in pool",
-      3,
-      "protocol.io.threads"
-  );
-
-  public static final Setting<Version> PROTOCOL_VERSION = SYS.add(
-      "Version",
-      Version.class, Version.parse("3.0"), Version::parse, Version::toString,
-      "protocol.version"
-  );
-
-  public static final Setting<Charset> PROTOCOL_ENCODING = SYS.add(
-      "Text encoding",
-      Charset.class, StandardCharsets.UTF_8, Charset::forName, Charset::name,
-      "protocol.encoding", "clientEncoding", ParameterNames.CLIENT_ENCODING
-  );
-
-  public static final Setting<Integer> PROTOCOL_SOCKET_RECV_BUFFER_SIZE = SYS.add(
-      "Socket receive buffer size",
-      (Integer) null,
-      "protocol.socket.receiveBuffer", "receiveBufferSize"
-  );
-
-  public static final Setting<Integer> PROTOCOL_SOCKET_SEND_BUFFER_SIZE = SYS.add(
-      "Socket send buffer size",
-      (Integer) null,
-      "protocol.socket.sendBuffer", "sendBufferSize"
-  );
-
-  public static final Setting<Boolean> PROTOCOL_ALLOCATOR_POOLED = SYS.add(
-      "Enable or disable use of pooled byte buffer allocator",
-      true,
-      "protocol.allocator.pooled"
-  );
-
-  public static final Setting<Integer> PROTOCOL_MAX_MESSAGE_SIZE = SYS.add(
-      "Maximum size message that can be received",
-      20 * 1024 * 1024,
-      "protocol.message.max"
-  );
-
-  public static final Setting<Boolean> PROTOCOL_TRACE = SYS.add(
-      "Enable or disable message trace output",
-      false,
-      "protocol.trace"
+      "ssl.home-dir"
   );
 
   public static final Setting<Boolean> SQL_TRACE = SYS.add(
       "Enables or disables SQL trace output",
       false,
       "sql.trace"
+  );
+
+
+
+
+  public static final Setting.Group PROTO = new Setting.Group(
+      "protocol", "Server protocol settings"
+  );
+
+  public static final Setting<Version> PROTOCOL_VERSION = PROTO.add(
+      "Version",
+      Version.class, Version.parse("3.0"), Version::parse, Version::toString,
+      "protocol.version"
+  );
+
+  public enum ProtocolIOMode {
+    ANY,
+    NIO,
+    NATIVE,
+    OIO,
+  }
+
+  public static final Setting<ProtocolIOMode> PROTOCOL_IO_MODE = PROTO.add(
+      "I/O subsystem selection mode (any, native, nio, oio)",
+      ProtocolIOMode.ANY, String::toUpperCase, String::toLowerCase,
+      "protocol.io.mode"
+  );
+
+  public static final Setting<Integer> PROTOCOL_IO_THREADS = PROTO.add(
+      "Number of I/O threads in pool",
+      3,
+      "protocol.io.threads"
+  );
+
+
+  public static final Setting<Charset> PROTOCOL_ENCODING = PROTO.add(
+      "Text encoding",
+      Charset.class, StandardCharsets.UTF_8, Charset::forName, Charset::name,
+      "protocol.encoding", "clientEncoding", ParameterNames.CLIENT_ENCODING
+  );
+
+  public static final Setting<Integer> PROTOCOL_SOCKET_RECV_BUFFER_SIZE = PROTO.add(
+      "Socket receive buffer size",
+      (Integer) null,
+      "protocol.socket.recv-buffer.size", "receiveBufferSize"
+  );
+
+  public static final Setting<Integer> PROTOCOL_SOCKET_SEND_BUFFER_SIZE = PROTO.add(
+      "Socket send buffer size",
+      (Integer) null,
+      "protocol.socket.send-buffer.size", "sendBufferSize"
+  );
+
+  public static final Setting<Boolean> PROTOCOL_BUFFER_POOLING = PROTO.add(
+      "Enable or disable pooling of byte buffers",
+      true,
+      "protocol.buffer.pooling"
+  );
+
+  public static final Setting<Integer> PROTOCOL_MESSAGE_SIZE_MAX = PROTO.add(
+      "Maximum size message that can be received",
+      20 * 1024 * 1024,
+      "protocol.message.size.max"
+  );
+
+  public static final Setting<Boolean> PROTOCOL_TRACE = PROTO.add(
+      "Enable or disable message trace output",
+      false,
+      "protocol.trace"
+  );
+
+
+
+
+  public static final Setting.Group SERVER = new Setting.Group(
+      "server", "Server reported settings"
+  );
+
+  public static final Setting<String> SESSION_USER = SERVER.add(
+      "Session username",
+      (String) null,
+      ParameterNames.SESSION_AUTHORIZATION
+  );
+
+  public static final Setting<Boolean> STANDARD_CONFORMING_STRINGS = SERVER.add(
+      "Use SQL standard conforming strings",
+      (Boolean) null,
+      ParameterNames.STANDARD_CONFORMING_STRINGS
   );
 
 }

@@ -26,62 +26,48 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.protocol.ssl;
+package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.system.Configuration;
+import static com.impossibl.postgres.utils.StringTransforms.dashedFromCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.dottedFromCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.toLowerCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.toUpperCamelCase;
 
-import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-import java.io.Console;
+import static org.junit.Assert.assertEquals;
 
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
+@RunWith(JUnit4.class)
+public class StringTransformsTest {
 
+  @Test
+  public void testToLowerCamelCase() {
 
-public class ConsolePasswordCallbackHandler implements ConfiguredCallbackHandler {
-
-  private char[] password;
-
-  @Override
-  public void init(Configuration config) {
-
-    String password = config.getSetting(SSL_KEY_PASSWORD);
-    if (password != null) {
-      this.password = password.toCharArray();
-    }
-
+    assertEquals("aCapitalizedOptionSet", toLowerCamelCase("a.capitalized.option-set"));
+    assertEquals("sameWithSpacesAndDashes", toLowerCamelCase("same  with spaces and-dashes"));
   }
 
-  @Override
-  public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
+  @Test
+  public void testToUpperCamelCase() {
 
-    Console cons = System.console();
-    if (cons == null && password == null) {
-      throw new UnsupportedCallbackException(callbacks[0], "Console is not available");
-    }
+    assertEquals("ACapitalizedOptionSet", toUpperCamelCase("a.capitalized.option-set"));
+    assertEquals("SameWithSpacesAndDashes", toUpperCamelCase("same  with spaces and-dashes"));
+  }
 
-    for (int i = 0; i < callbacks.length; i++) {
+  @Test
+  public void testDashedFromCamelCase() {
 
-      if (callbacks[i] instanceof PasswordCallback) {
+    assertEquals("a-capitalized-option-set", dashedFromCamelCase("ACapitalizedOptionSet"));
+    assertEquals("a-capitalized-option-set", dashedFromCamelCase("aCapitalizedOptionSet"));
+  }
 
-        PasswordCallback passwordCallback = (PasswordCallback) callbacks[i];
+  @Test
+  public void testDottedFromCamelCase() {
 
-        if (password == null) {
-          // It is used instead of cons.readPassword(prompt), because the prompt
-          // may contain '%' characters
-          passwordCallback.setPassword(cons.readPassword("%s", new Object[] {((PasswordCallback) callbacks[i]).getPrompt()}));
-        }
-        else {
-          passwordCallback.setPassword(password);
-        }
-      }
-      else {
-        throw new UnsupportedCallbackException(callbacks[i]);
-      }
-
-    }
-
+    assertEquals("a.capitalized.option.set", dottedFromCamelCase("ACapitalizedOptionSet"));
+    assertEquals("a.capitalized.option.set", dottedFromCamelCase("aCapitalizedOptionSet"));
   }
 
 }

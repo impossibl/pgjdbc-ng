@@ -30,11 +30,11 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Configuration;
 
+import static com.impossibl.postgres.system.SystemSettings.SSL_CA_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
-import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE_PASSWORD_CALLBACK;
-import static com.impossibl.postgres.system.SystemSettings.SSL_ROOT_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD_CALLBACK;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -88,7 +88,7 @@ public class SSLEngineFactory {
 
     @SuppressWarnings("unchecked")
     Class<? extends CallbackHandler> sslPasswordCallbackClass =
-        (Class<? extends CallbackHandler>) config.getSetting(SSL_KEY_FILE_PASSWORD_CALLBACK);
+        (Class<? extends CallbackHandler>) config.getSetting(SSL_KEY_PASSWORD_CALLBACK);
 
     CallbackHandler sslPasswordCallback;
     try {
@@ -132,8 +132,8 @@ public class SSLEngineFactory {
        * Load root certificates into a new key store (for Trust Manager)
        */
 
-      String sslRootCertFile = config.getSetting(SSL_ROOT_CRT_FILE);
-      if (SSL_ROOT_CRT_FILE.getDefault().equals(sslRootCertFile)) {
+      String sslRootCertFile = config.getSetting(SSL_CA_CRT_FILE);
+      if (SSL_CA_CRT_FILE.getDefault().equals(sslRootCertFile)) {
         sslRootCertFile = config.getSetting(SSL_HOME_DIR) + File.separator + sslRootCertFile;
       }
 

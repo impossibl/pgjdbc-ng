@@ -26,18 +26,43 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.system;
+package com.impossibl.postgres.jdbc;
 
-public class ParameterNames {
+import com.impossibl.postgres.system.Setting;
+import com.impossibl.postgres.system.SystemSettings;
 
-  public static final String DATABASE = "database";
-  public static final String USER = "user";
-  public static final String PASSWORD = "password";
-  public static final String APPLICATION_NAME = "application_name";
-  public static final String CLIENT_ENCODING = "client_encoding";
-  public static final String SESSION_AUTHORIZATION = "session_authorization";
-  public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
-  public static final String TIME_ZONE = "TimeZone";
-  public static final String DATE_STYLE = "DateStyle";
+public class DataSourceSettings implements Setting.Provider {
+
+  public static final Setting.Group DS = new Setting.Group(
+      "jdbc-ds", "JDBC DataSource specific settings"
+  );
+
+  public static final Setting<String> DATASOURCE_NAME = DS.add(
+      "Name of data source",
+      (String) null,
+      "data-source.name", "dataSourceName"
+  );
+
+  public static final Setting<String> DATABASE_NAME = DS.add(
+      SystemSettings.DATABASE_NAME
+  );
+
+  public static final Setting<String> SERVER_NAME = DS.add(
+      "Host name for TCP connections",
+      "localhost",
+      "server.name", "serverName"
+  );
+
+  public static final Setting<Integer> PORT_NUMBER = DS.add(
+      "Port number for TCP connections",
+      5432,
+      "port.number", "portNumber"
+  );
+
+  public static final Setting<Integer> LOGIN_TIMEOUT = DS.add(
+      "Maximum time to wait for a connection to be established",
+      0,
+      "login.timeout", "loginTimeout"
+  );
 
 }

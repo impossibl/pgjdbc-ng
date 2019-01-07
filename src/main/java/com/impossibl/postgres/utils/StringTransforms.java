@@ -35,21 +35,117 @@ import java.util.regex.Pattern;
 
 public class StringTransforms {
 
-  private static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-(\\w)|^(\\w)");
+  private static final Pattern CAPITALIZED_WORDS_PATTERN = Pattern.compile("[A-Z][^A-Z]*");
 
-  public static String capitalizeOption(String val) {
+  /**
+   * "un"-capitalizes a string in lowerCamelCase or UpperCamelCase
+   * to all lowercase separated by dashes.
+   *
+   * @param val Value to un-capitalize
+   * @return Un-capitalized version
+   */
+  public static String dashedFromCamelCase(String val) {
+    return fromCamelCase(val, '-');
+  }
 
-    StringBuffer newVal = new StringBuffer();
+  /**
+   * "un"-capitalizes a string in lowerCamelCase or UpperCamelCase
+   * to all lowercase separated by dots.
+   *
+   * @param val Value to un-capitalize
+   * @return Un-capitalized version
+   */
+  public static String dottedFromCamelCase(String val) {
+    return fromCamelCase(val, '.');
+  }
 
-    Matcher matcher = DASH_LETTER_PATTERN.matcher(val);
+  /**
+   * "un"-capitalizes a string in lowerCamelCase or UpperCamelCase
+   * to all lowercase separated by the provided {@code separator}.
+   *
+   * @param val Value to un-capitalize
+   * @param separator Word separator
+   * @return Un-capitalized version
+   */
+  public static String fromCamelCase(String val, char separator) {
+
+    StringBuilder newVal = new StringBuilder();
+    boolean first = true;
+
+    Matcher matcher = CAPITALIZED_WORDS_PATTERN.matcher(val);
     while (matcher.find()) {
-      String m = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
-      matcher.appendReplacement(newVal, m.toUpperCase());
+      String group = matcher.group(0);
+      if (first) {
+        // Handle "lowerCamelCase" first word
+        if (matcher.start() != 0) {
+          newVal.append(val, 0, matcher.start());
+          newVal.append(separator);
+        }
+      }
+      else {
+        newVal.append(separator);
+      }
+      newVal.append(group.toLowerCase());
+      first = false;
     }
 
-    matcher.appendTail(newVal);
+    return newVal.toString();
+  }
+
+  private static final Pattern WORD_BREAKS_PATTERN = Pattern.compile("[^.\\-_ ]+");
+
+  /**
+   * Attempt to transform the given value into an
+   * "UpperCamelCase" version of the same string.
+   *
+   * Notably this erases dots, dashes, underscores
+   * & spaces as it counts them as word breaks.
+   *
+   * @param val Value to transform
+   * @return {@code UpperCamelCase} version of string.
+   */
+  public static String toUpperCamelCase(String val) {
+    return capitalizeGroups(val, true);
+  }
+
+  /**
+   * Attempt to transform the given value into a
+   * "lowerCamelCase" version of the same string.
+   *
+   * Notably this erases dots, dashes, underscores
+   * & spaces as it counts them as word breaks.
+   *
+   * @param val Value to transform
+   * @return {@code lowerCamelCase} version of the string.
+   */
+  public static String toLowerCamelCase(String val) {
+    return capitalizeGroups(val, false);
+  }
+
+  public static String capitalizeGroups(String val, boolean capitalizeFirstWord) {
+
+    StringBuilder newVal = new StringBuilder();
+    boolean first = !capitalizeFirstWord;
+
+    Matcher matcher = WORD_BREAKS_PATTERN.matcher(val);
+    while (matcher.find()) {
+      String group = matcher.group(0);
+      if (!first) {
+        newVal
+            .appendCodePoint(Character.toUpperCase(group.codePointAt(0)))
+            .append(group.substring(1));
+      }
+      else {
+        newVal.append(group);
+      }
+      first = false;
+    }
 
     return newVal.toString();
+  }
+
+  public static String capitalize(String val) {
+    return val.substring(0, 1).toUpperCase() + val.substring(1);
   }
 
 }

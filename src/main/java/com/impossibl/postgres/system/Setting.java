@@ -28,6 +28,9 @@
  */
 package com.impossibl.postgres.system;
 
+import static com.impossibl.postgres.utils.StringTransforms.toLowerCamelCase;
+import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +40,7 @@ import java.util.ServiceLoader;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Completely defined setting that can be transformed to/from text, use alternate
@@ -86,10 +90,12 @@ public class Setting<T> {
     }
 
     private String name;
+    private String description;
     private Map<String, Setting<?>> all = new HashMap<>();
 
-    public Group(String name) {
+    public Group(String name, String description) {
       this.name = name;
+      this.description = description;
       synchronized (Group.class) {
         ALL.putIfAbsent(name, this);
       }
@@ -111,6 +117,16 @@ public class Setting<T> {
      */
     public Map<String, Setting<?>> getAllSettings() {
       return Collections.unmodifiableMap(all);
+    }
+
+    /**
+     * Add a previously defined {@link Setting} instance to this setting group.
+     */
+    public <T> Setting<T> add(Setting<T> setting) {
+      for (String name : setting.getNames()) {
+        all.put(name, setting);
+      }
+      return setting;
     }
 
     /**
@@ -162,11 +178,12 @@ public class Setting<T> {
      * @param names List of names associated with the setting; first in list is primary name.
      * @return Defined setting instance
      */
-    public <U extends Enum<U>> Setting<U> add(String description, U defaultEnum, Function<String, String> transform, String... names) {
+    public <U extends Enum<U>> Setting<U> add(String description, U defaultEnum, Function<String, String> fromTransform, Function<String, String> toTransform, String... names) {
       Class<U> type = defaultEnum.getDeclaringClass();
-      Setting.Converter<U> converter = str -> type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), transform.apply(str)));
+      Setting.Converter<U> fromString = str -> type.cast((Object) Enum.valueOf(type.asSubclass(Enum.class), fromTransform.apply(str)));
+      Function<U, String> toString = e -> toTransform.apply(e.name());
 
-      return new Setting<>(this, description, defaultEnum.getDeclaringClass(), defaultEnum, converter, U::name, names);
+      return new Setting<>(this, description, defaultEnum.getDeclaringClass(), defaultEnum, fromString, toString, names);
     }
 
     /**
@@ -273,6 +290,8 @@ public class Setting<T> {
   }
 
   private Setting(Group group, String description, Class<T> type, Converter<T> fromString, Function<T, String> toString, String[] names) {
+    checkArgument(names.length > 0);
+    checkArgument(isSimpleNameFormat(names[0]));
     this.group = group;
     this.names = names;
     this.type = type;
@@ -283,6 +302,16 @@ public class Setting<T> {
       addAll(ALL, this);
       addAll(group.all, this);
     }
+  }
+
+  private static final Pattern SIMPLE_NAME_PATTERN = Pattern.compile("(?:[a-z][a-z0-9\\-_]+)(?:\\.[a-z0-9][a-z0-9\\-_]+)*");
+
+  /**
+   * Validate primary name as being all lowercase and compatible with generating
+   * a JavaBean property name (doesn't start with a number, dash or dot).
+   */
+  private static boolean isSimpleNameFormat(String name) {
+    return SIMPLE_NAME_PATTERN.matcher(name).matches();
   }
 
   private static void addAll(Map<String, Setting<?>> settings, Setting<?> instance) {
@@ -302,6 +331,10 @@ public class Setting<T> {
     return names[0];
   }
 
+  public String getBeanPropertyName() {
+    return toLowerCamelCase(names[0]);
+  }
+
   public String[] getNames() {
     return names;
   }
@@ -312,7 +345,9 @@ public class Setting<T> {
 
   public T getDefault() {
     if (dynamicDefaultSupplier != null) {
-      return fromString(dynamicDefaultSupplier.get());
+      String value = dynamicDefaultSupplier.get();
+      if (value == null) return null;
+      return fromString(value);
     }
     return staticDefaultValue;
   }
@@ -321,7 +356,10 @@ public class Setting<T> {
     if (dynamicDefaultSupplier != null) {
       return dynamicDefaultSupplier.get();
     }
-    return toString(staticDefaultValue);
+    if (staticDefaultValue != null) {
+      return toString(staticDefaultValue);
+    }
+    return null;
   }
 
   public String getDescription() {

@@ -32,54 +32,56 @@ import com.impossibl.postgres.system.Setting;
 
 public class JDBCSettings implements Setting.Provider {
 
-  public static final Setting.Group JDBC = new Setting.Group("jdbc");
+  public static final Setting.Group JDBC = new Setting.Group(
+      "jdbc", "JDBC specific settings"
+  );
 
   public static final Setting<Boolean> READ_ONLY = JDBC.add(
       "Connect in read-only mode",
       false,
-      "readOnly"
+      "read-only", "readOnly"
   );
 
   public static final Setting<Integer> PARSED_SQL_CACHE_SIZE = JDBC.add(
       "Size of the parsed SQL text cache (a value less than one disables the cache)",
       250,
-      "parsedSqlCacheSize", "caches.parsedSql.size"
+      "parsed-sql.cache.size", "parsedSqlCacheSize"
   );
 
   public static final Setting<Integer> PREPARED_STATEMENT_CACHE_SIZE = JDBC.add(
       "Size of the prepared statement cache (a value less than one disables the cache)",
       50,
-      "preparedStatementCacheSize", "caches.preparedStatements.size"
+      "prepared-statement.cache.size", "preparedStatementCacheSize"
   );
 
   public static final Setting<Integer> PREPARED_STATEMENT_CACHE_THRESHOLD = JDBC.add(
       "# of times a query is seen before it is cached as a prepared statement (a value of zero prepares all statements in advance)",
       0,
-      "preparedStatementCacheThreshold", "caches.preparedStatement.threshold"
+      "prepared-statement.cache.threshold", "preparedStatementCacheThreshold"
   );
 
   public static final Setting<Integer> DESCRIPTION_CACHE_SIZE = JDBC.add(
       "Size of the query description cache (a value less than one disables the cache)",
       250,
-      "descriptionCacheSize", "caches.description.size"
+      "description.cache.size", "descriptionCacheSize"
   );
 
   public static final Setting<Integer> DEFAULT_NETWORK_TIMEOUT = JDBC.add(
       "Default network timeout, can be changed at runtime (a value of zero disables the timeout)",
       0,
-      "networkTimeout"
+      "network.timeout", "networkTimeout"
   );
 
   public static final Setting<Boolean> STRICT_MODE = JDBC.add(
       "Enable or disable strict adherence to specification",
       false,
-      "strictMode"
+      "strict-mode", "strictMode"
   );
 
   public static final Setting<Integer> DEFAULT_FETCH_SIZE = JDBC.add(
       "Default fetch size of query results, can be changed at runtime (a value of zero disables batching result)",
       (Integer) null,
-      "fetchSize"
+      "fetch.size", "fetchSize"
   );
 
   public static final Setting<Boolean> HOUSEKEEPER = JDBC.add(
@@ -91,7 +93,7 @@ public class JDBCSettings implements Setting.Provider {
   public static final Setting<Boolean> REGISTRY_SHARING = JDBC.add(
       "Enables or disables registry sharing",
       true,
-      "registry.sharing"
+      "registry.sharing", "registrySharing"
   );
 
 }

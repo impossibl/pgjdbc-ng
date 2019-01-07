@@ -173,7 +173,7 @@ public class BasicContext extends AbstractContext {
 
   public BasicContext(SocketAddress address, Settings settings) throws IOException {
     this.typeMap = new HashMap<>();
-    this.settings = settings;
+    this.settings = settings.duplicateKnowingAll();
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
     this.dateFormatter = new ISODateFormat();
@@ -749,7 +749,7 @@ public class BasicContext extends AbstractContext {
         settings.set(STANDARD_CONFORMING_STRINGS, value.equals("on"));
         break;
 
-      case ParameterNames.SESSION_USER:
+      case ParameterNames.SESSION_AUTHORIZATION:
         settings.set(SESSION_USER, value);
 
       default:

@@ -34,7 +34,7 @@ import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.SystemSettings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 import static com.impossibl.postgres.types.PrimitiveType.String;
 
@@ -205,7 +205,7 @@ public class Strings extends SimpleProcProvider {
       buffer.skipBytes(length - bytes.length);
 
       CharSequence value = new String(bytes, context.getCharset());
-      Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         value = value.subSequence(0, maxLength);
       }
@@ -252,7 +252,7 @@ public class Strings extends SimpleProcProvider {
 
       CharSequence value = buffer;
 
-      Integer maxLength = context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         value = value.subSequence(0, maxLength);
       }

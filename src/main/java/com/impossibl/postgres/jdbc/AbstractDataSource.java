@@ -30,32 +30,65 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ServerConnectionInfo;
+import com.impossibl.postgres.system.Setting;
+import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.SharedRegistry;
 
+import static com.impossibl.postgres.jdbc.DataSourceSettings.DATABASE_NAME;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.DATASOURCE_NAME;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.DS;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.LOGIN_TIMEOUT;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.PORT_NUMBER;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.SERVER_NAME;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_FETCH_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.DEFAULT_NETWORK_TIMEOUT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.DESCRIPTION_CACHE_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.HOUSEKEEPER;
+import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
 import static com.impossibl.postgres.jdbc.JDBCSettings.PARSED_SQL_CACHE_SIZE;
 import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_SIZE;
+import static com.impossibl.postgres.jdbc.JDBCSettings.PREPARED_STATEMENT_CACHE_THRESHOLD;
+import static com.impossibl.postgres.jdbc.JDBCSettings.READ_ONLY;
 import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
 import static com.impossibl.postgres.jdbc.JDBCSettings.STRICT_MODE;
 import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.MONEY_FRACTIONAL_DIGITS;
+import static com.impossibl.postgres.system.SystemSettings.PARAM_FORMAT_PREF;
+import static com.impossibl.postgres.system.SystemSettings.PROTO;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_BUFFER_POOLING;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_ENCODING;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_MODE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_THREADS;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE_MAX;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_VERSION;
+import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_CA_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
-import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD_CALLBACK;
 import static com.impossibl.postgres.system.SystemSettings.SSL_MODE;
-import static com.impossibl.postgres.system.SystemSettings.SSL_ROOT_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SYS;
 
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+
+import static java.util.Collections.singletonList;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
@@ -68,30 +101,8 @@ import javax.sql.CommonDataSource;
  * @author <a href="mailto:jesper.pedersen@redhat.com">Jesper Pedersen</a>
  */
 public abstract class AbstractDataSource implements CommonDataSource {
-  private int loginTimeout;
 
-  private String serverName;
-  private int portNumber;
-  private String databaseName;
-  private String user;
-  private String password;
-  private boolean housekeeper;
-  private Integer parsedSqlCacheSize;
-  private Integer preparedStatementCacheSize;
-  private String applicationName;
-  private String clientEncoding;
-  private Integer networkTimeout;
-  private boolean strictMode;
-  private Integer defaultFetchSize;
-  private Integer receiveBufferSize;
-  private Integer sendBufferSize;
-
-  private boolean ssl;
-  private String sslMode;
-  private String sslPassword;
-  private String sslCertificateFile;
-  private String sslKeyFile;
-  private String sslRootCertificateFile;
+  private Settings settings = new Settings(DS, JDBC, SYS, PROTO);
 
   private Map<ServerConnectionInfo, SharedRegistry> sharedRegistries;
 
@@ -99,74 +110,58 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * Constructor
    */
   protected AbstractDataSource() {
-    this.loginTimeout = 0;
-    this.serverName = "localhost";
-    this.portNumber = 5432;
-    this.databaseName = null;
-    this.user = null;
-    this.password = null;
-    this.housekeeper = HOUSEKEEPER.getDefault();
-    this.parsedSqlCacheSize = PARSED_SQL_CACHE_SIZE.getDefault();
-    this.preparedStatementCacheSize = PREPARED_STATEMENT_CACHE_SIZE.getDefault();
-    this.applicationName = null;
-    this.clientEncoding = null;
-    this.networkTimeout = DEFAULT_NETWORK_TIMEOUT.getDefault();
-    this.strictMode = STRICT_MODE.getDefault();
-    this.defaultFetchSize = DEFAULT_FETCH_SIZE.getDefault();
-    this.receiveBufferSize = PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getDefault();
-    this.sendBufferSize = PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getDefault();
-
-    this.ssl = false;
-    this.sslMode = null;
-    this.sslPassword = null;
-    this.sslCertificateFile = null;
-    this.sslKeyFile = null;
-    this.sslRootCertificateFile = null;
-
     this.sharedRegistries = new ConcurrentHashMap<>();
   }
 
-  public abstract String getDescription();
-
   /**
-   * {@inheritDoc}
+   * Create a connection
+   *
+   * @param username
+   *          The user name
+   * @param password
+   *          The password
+   * @return The connection
+   * @exception SQLException
+   *              Thrown in case of an error
    */
-  @Override
-  public int getLoginTimeout() throws SQLException {
-    return loginTimeout;
-  }
+  protected PGDirectConnection createConnection(String username, String password) throws SQLException {
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setLoginTimeout(int seconds) throws SQLException {
-    loginTimeout = seconds;
-  }
+    settings.set(CREDENTIALS_USERNAME, username);
+    settings.set(CREDENTIALS_PASSWORD, password);
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public PrintWriter getLogWriter() throws SQLException {
-    // Not supported
-    return null;
-  }
+    SharedRegistry.Factory sharedRegistryFactory;
+    if (!settings.enabled(REGISTRY_SHARING)) {
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setLogWriter(PrintWriter out) throws SQLException {
-    // Not supported
-  }
+      sharedRegistryFactory =
+          connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
+    }
+    else {
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    return Logger.getLogger(Context.class.getPackage().getName());
+      sharedRegistryFactory =
+          connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
+    }
+
+    String url = settings.get(DATABASE_URL);
+    if (url != null) {
+
+      // Ensure no overlapping settings are stored
+      settings.unset(SERVER_NAME);
+      settings.unset(PORT_NUMBER);
+      settings.unset(DATABASE_NAME);
+
+      return ConnectionUtil.createConnection(url, settings.asProperties(), sharedRegistryFactory);
+    }
+    else {
+
+      // Store the URL give the provided settings
+      url = "jdbc:pgsql://" + settings.get(SERVER_NAME) + ":" + settings.get(PORT_NUMBER) + "/" + settings.get(DATABASE_NAME);
+      settings.set(DATABASE_URL, url);
+
+      SocketAddress address = new InetSocketAddress(settings.get(SERVER_NAME), settings.get(PORT_NUMBER));
+
+      return ConnectionUtil.createConnection(singletonList(address), settings, sharedRegistryFactory);
+    }
+
   }
 
   /**
@@ -175,71 +170,30 @@ public abstract class AbstractDataSource implements CommonDataSource {
    */
   protected abstract Reference createReference();
 
+  private void addRefAddrIfSet(Reference ref, Setting<?> setting) {
+    if (!settings.hasStoredValue(setting)) return;
+    ref.add(new StringRefAddr(setting.getBeanPropertyName(), settings.getText(setting)));
+  }
+
+  private void addRefAddrIfMissing(Reference ref, Setting<?> setting) {
+    if (settings.hasStoredValue(setting)) return;
+    ref.add(new StringRefAddr(setting.getBeanPropertyName(), settings.getText(setting)));
+  }
+
   /**
    * {@inheritDoc}
    */
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
 
-    if (serverName != null)
-      ref.add(new StringRefAddr("serverName", serverName));
+    for (Setting<?> setting : settings.knownSet()) {
+      addRefAddrIfSet(ref, setting);
+    }
 
-    if (portNumber != 5432)
-      ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
-
-    if (databaseName != null)
-      ref.add(new StringRefAddr("databaseName", databaseName));
-
-    if (user != null)
-      ref.add(new StringRefAddr("user", user));
-
-    if (password != null)
-      ref.add(new StringRefAddr("password", password));
-
-    if (housekeeper != HOUSEKEEPER.getDefault())
-      ref.add(new StringRefAddr("housekeeper", Boolean.toString(housekeeper)));
-
-    if (parsedSqlCacheSize != PARSED_SQL_CACHE_SIZE.getDefault())
-      ref.add(new StringRefAddr("parsedSqlCacheSize", Integer.toString(parsedSqlCacheSize)));
-
-    if (preparedStatementCacheSize != PREPARED_STATEMENT_CACHE_SIZE.getDefault())
-      ref.add(new StringRefAddr("preparedStatementCacheSize", Integer.toString(preparedStatementCacheSize)));
-
-    if (applicationName != null)
-      ref.add(new StringRefAddr("applicationName", applicationName));
-
-    if (clientEncoding != null)
-      ref.add(new StringRefAddr("clientEncoding", clientEncoding));
-
-    if (networkTimeout != 0)
-      ref.add(new StringRefAddr("networkTimeout", Integer.toString(networkTimeout)));
-
-    if (strictMode != STRICT_MODE.getDefault())
-      ref.add(new StringRefAddr("strictMode", Boolean.toString(strictMode)));
-
-    if (defaultFetchSize != DEFAULT_FETCH_SIZE.getDefault())
-      ref.add(new StringRefAddr("defaultFetchSize", Integer.toString(defaultFetchSize)));
-
-    if (receiveBufferSize != PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getDefault())
-      ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
-
-    if (sendBufferSize != PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getDefault())
-      ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
-
-    if (sslMode != null)
-      ref.add(new StringRefAddr("sslMode", sslMode));
-
-    if (sslPassword != null)
-      ref.add(new StringRefAddr("sslPassword", sslPassword));
-
-    if (sslCertificateFile != null)
-      ref.add(new StringRefAddr("sslCertificateFile", sslCertificateFile));
-
-    if (sslKeyFile != null)
-      ref.add(new StringRefAddr("sslKeyFile", sslKeyFile));
-
-    if (sslRootCertificateFile != null)
-      ref.add(new StringRefAddr("sslRootCertificateFile", sslRootCertificateFile));
+    addRefAddrIfMissing(ref, DATASOURCE_NAME);
+    addRefAddrIfMissing(ref, SERVER_NAME);
+    addRefAddrIfMissing(ref, PORT_NUMBER);
+    addRefAddrIfMissing(ref, DATABASE_NAME);
 
     return ref;
   }
@@ -249,93 +203,14 @@ public abstract class AbstractDataSource implements CommonDataSource {
    * @param reference The reference
    */
   public void init(Reference reference) {
-    String value;
 
-    value = getReferenceValue(reference, "serverName");
-    if (value != null)
-      serverName = value;
-
-    value = getReferenceValue(reference, "portNumber");
-    if (value != null)
-      portNumber = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "databaseName");
-    if (value != null)
-      databaseName = value;
-
-    value = getReferenceValue(reference, "user");
-    if (value != null)
-      user = value;
-
-    value = getReferenceValue(reference, "password");
-    if (value != null)
-      password = value;
-
-    value = getReferenceValue(reference, "housekeeper");
-    if (value != null)
-      housekeeper = Boolean.valueOf(value);
-
-    value = getReferenceValue(reference, "parsedSqlCacheSize");
-    if (value != null)
-       parsedSqlCacheSize = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "preparedStatementCacheSize");
-    if (value != null)
-       preparedStatementCacheSize = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "applicationName");
-    if (value != null)
-      applicationName = value;
-
-    value = getReferenceValue(reference, "clientEncoding");
-    if (value != null)
-      clientEncoding = value;
-
-    value = getReferenceValue(reference, "networkTimeout");
-    if (value != null)
-       networkTimeout = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "strictMode");
-    if (value != null)
-      strictMode = Boolean.valueOf(value);
-
-    value = getReferenceValue(reference, "defaultFetchSize");
-    if (value != null)
-      defaultFetchSize = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "receiveBufferSize");
-    if (value != null)
-      receiveBufferSize = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "sendBufferSize");
-    if (value != null)
-      sendBufferSize = Integer.valueOf(value);
-
-    value = getReferenceValue(reference, "ssl");
-    if (value != null)
-      ssl = true;
-
-    if (ssl) {
-      value = getReferenceValue(reference, "sslMode");
-      if (value != null)
-        sslMode = value;
-
-      value = getReferenceValue(reference, "sslPassword");
-      if (value != null)
-        sslPassword = value;
-
-      value = getReferenceValue(reference, "sslCertificateFile");
-      if (value != null)
-        sslCertificateFile = value;
-
-      value = getReferenceValue(reference, "sslKeyFile");
-      if (value != null)
-        sslKeyFile = value;
-
-      value = getReferenceValue(reference, "sslRootCertificateFile");
-      if (value != null)
-        sslRootCertificateFile = value;
+    for (Setting<?> setting : settings.knownSet()) {
+      String value = getReferenceValue(reference, setting.getBeanPropertyName());
+      if (value != null) {
+        settings.setText(setting, value);
+      }
     }
+
   }
 
   /**
@@ -353,432 +228,396 @@ public abstract class AbstractDataSource implements CommonDataSource {
     return (String)refAddr.getContent();
   }
 
-  /**
-   * Get the serverName
-   * @return The value
-   */
+  public abstract String getDescription();
+
+  @Override
+  public int getLoginTimeout() throws SQLException {
+    return settings.get(LOGIN_TIMEOUT);
+  }
+
+  @Override
+  public void setLoginTimeout(int seconds) throws SQLException {
+    settings.set(LOGIN_TIMEOUT, seconds);
+  }
+
+  @Override
+  public PrintWriter getLogWriter() throws SQLException {
+    // Not supported
+    return null;
+  }
+
+  @Override
+  public void setLogWriter(PrintWriter out) throws SQLException {
+    // Not supported
+  }
+
+  @Override
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    return Logger.getLogger(Context.class.getPackage().getName());
+  }
+
+  /******
+   * Property to setting mapping methods.
+   *
+   * These are purposefully not documented because settings are
+   * themselves documented and it is a maintenance hassle to
+   * duplicate the documentation.
+   *
+   ******/
+
+  // TODO This section should be auto-generated
+
+  public String getDatabaseUrl() {
+    return settings.get(DATABASE_URL);
+  }
+
+  public void setDatabaseUrl(String v) {
+    settings.set(DATABASE_URL, v);
+  }
+
+  public String getDataSourceName() {
+    return settings.get(DATASOURCE_NAME);
+  }
+
+  public void setDataSourceName(String v) {
+    settings.set(DATASOURCE_NAME, v);
+  }
+
   public String getServerName() {
-    return serverName;
+    return settings.get(SERVER_NAME);
   }
 
-  /**
-   * Set the serverName
-   * @param v The value
-   */
   public void setServerName(String v) {
-    serverName = v;
+    settings.set(SERVER_NAME, v);
   }
 
-  /**
-   * Get the portNumber
-   * @return The value
-   */
   public int getPortNumber() {
-    return portNumber;
+    return settings.get(PORT_NUMBER);
   }
 
-  /**
-   * Set the portNumber
-   * @param v The value
-   */
   public void setPortNumber(int v) {
-    portNumber = v;
+    settings.set(PORT_NUMBER, v);
   }
 
-  /**
-   * Get the databaseName
-   * @return The value
-   */
   public String getDatabaseName() {
-    return databaseName;
+    return settings.get(DATABASE_NAME);
   }
 
-  /**
-   * Set the databaseName
-   * @param v The value
-   */
   public void setDatabaseName(String v) {
-    databaseName = v;
+    settings.set(DATABASE_NAME, v);
   }
 
-  /**
-   * Get the user
-   * @return The value
-   */
+  public String getDatabase() {
+    return settings.get(DATABASE_NAME);
+  }
+
+  public void setDatabase(String v) {
+    settings.set(DATABASE_NAME, v);
+  }
+
   public String getUser() {
-    return user;
+    return settings.get(CREDENTIALS_USERNAME);
   }
 
-  /**
-   * Set the user
-   * @param v The value
-   */
   public void setUser(String v) {
-    user = v;
+    settings.set(CREDENTIALS_USERNAME, v);
   }
 
-  /**
-   * Get the password
-   * @return The value
-   */
   public String getPassword() {
-    return password;
+    return settings.get(CREDENTIALS_PASSWORD);
   }
 
-  /**
-   * Set the password
-   * @param v The value
-   */
   public void setPassword(String v) {
-    password = v;
+    settings.set(CREDENTIALS_PASSWORD, v);
   }
 
-  /**
-   * Get the housekeeper
-   * @return The value
-   */
-  public boolean getHousekeeper() {
-    return housekeeper;
-  }
-
-  /**
-   * Set the housekeeper
-   * @param v The value
-   */
-  public void setHousekeeper(boolean v) {
-    housekeeper = v;
-  }
-
-  /**
-   * Get the size of the parsed SQL cache.
-   * @return the number of SQL statements' parsed structures allowed in the cache
-   */
-  public int getParsedSqlCacheSize() {
-    return parsedSqlCacheSize;
-  }
-
-  /**
-   * Set the size of the parsed SQL cache.  A value of 0 will disable
-   * the cache.  This value is only honored before the creation of the
-   * first Connection, changing it at a later time will have no effect.
-   * @param cacheSize the number of SQL statements' parsed structures to cache
-   */
-  public void setParsedSqlCacheSize(int cacheSize) {
-    parsedSqlCacheSize = cacheSize;
-  }
-
-  /**
-   * Get the size of the prepared statement cache
-   *
-   * @return the maximum number of PreparedStatements cached per connection
-   */
-  public int getPreparedStatementCacheSize() {
-    return preparedStatementCacheSize;
-  }
-
-  /**
-   * Set the size of the preapred statement cache
-   *
-   * @param preparedStatementCacheSize
-   *          the maximum number of PreparedStatements cached per connection
-   */
-  public void setPreparedStatementCacheSize(int preparedStatementCacheSize) {
-    this.preparedStatementCacheSize = preparedStatementCacheSize;
-  }
-
-  /**
-   * Get the application name
-   * @return The value
-   */
   public String getApplicationName() {
-    return applicationName;
+    return settings.get(APPLICATION_NAME);
   }
 
-  /**
-   * Set the application name
-   * @param v The value
-   */
   public void setApplicationName(String v) {
-    applicationName = v;
+    settings.set(APPLICATION_NAME, v);
   }
 
-  /**
-   * Get the client encoding
-   * @return The value
-   */
-  public String getClientEncoding() {
-    return clientEncoding;
+  public boolean getHousekeeper() {
+    return settings.get(HOUSEKEEPER);
   }
 
-  /**
-   * Set the client encoding
-   * @param v The value
-   */
-  public void setClientEncoding(String v) {
-    clientEncoding = v;
+  public void setHousekeeper(boolean v) {
+    settings.set(HOUSEKEEPER, v);
   }
 
-  /**
-   * Set the network timeout in milliseconds
-   * @param networkTimeout The value
-   */
-  public void setNetworkTimeout(int networkTimeout) {
-    this.networkTimeout = networkTimeout;
+  public boolean getRegistrySharing() {
+    return settings.get(REGISTRY_SHARING);
   }
 
-  /**
-   * Get the network timeout in milliseconds
-   * @return The value
-   */
-  public int getNetworkTimeout() {
-    return networkTimeout;
+  public void setRegistrySharing(boolean v) {
+    settings.set(REGISTRY_SHARING, v);
   }
 
-  /**
-   * Get the strict mode
-   * @return The value
-   */
+  public int getParsedSqlCacheSize() {
+    return settings.get(PARSED_SQL_CACHE_SIZE);
+  }
+
+  public void setParsedSqlCacheSize(int v) {
+    settings.set(PARSED_SQL_CACHE_SIZE, v);
+  }
+
+  public int getPreparedStatementCacheSize() {
+    return settings.get(PREPARED_STATEMENT_CACHE_SIZE);
+  }
+
+  public void setPreparedStatementCacheSize(int v) {
+    settings.set(PREPARED_STATEMENT_CACHE_SIZE, v);
+  }
+
+  public int getPreparedStatementCacheThreshold() {
+    return settings.get(PREPARED_STATEMENT_CACHE_THRESHOLD);
+  }
+
+  public void setPreparedStatementCacheThreshold(int v) {
+    settings.set(PREPARED_STATEMENT_CACHE_THRESHOLD, v);
+  }
+
+  public int getDescriptionCacheSize() {
+    return settings.get(DESCRIPTION_CACHE_SIZE);
+  }
+
+  public void setDescriptionCacheSize(int v) {
+    settings.set(DESCRIPTION_CACHE_SIZE, v);
+  }
+
+  public boolean getReadOnly() {
+    return settings.get(READ_ONLY);
+  }
+
+  public void setReadOnly(boolean v) {
+    settings.set(READ_ONLY, v);
+  }
+
   public boolean getStrictMode() {
-    return strictMode;
+    return settings.get(STRICT_MODE);
   }
 
-  /**
-   * Set the strict mode
-   * @param v The value
-   */
   public void setStrictMode(boolean v) {
-    strictMode = v;
+    settings.set(STRICT_MODE, v);
   }
 
-  /**
-   * Get the default fetch size
-   * @return The value
-   */
-  public int getDefaultFetchSize() {
-    return defaultFetchSize;
+  public int getNetworkTimeout() {
+    return settings.get(DEFAULT_NETWORK_TIMEOUT);
   }
 
-  /**
-   * Set the default fetch size
-   * @param v The value
-   */
-  public void setDefaultFetchSize(int v) {
-    defaultFetchSize = v;
+  public void setNetworkTimeout(int v) {
+    settings.set(DEFAULT_NETWORK_TIMEOUT, v);
   }
 
-  /**
-   * Get the receive buffer size
-   * @return The value
-   */
-  public int getReceiveBufferSize() {
-    return receiveBufferSize;
+  public int getFetchSize() {
+    return settings.get(DEFAULT_FETCH_SIZE);
   }
 
-  /**
-   * Set the receive buffer size
-   * @param v The value
-   */
-  public void setReceiveBufferSize(int v) {
-    receiveBufferSize = v;
+  public void setFetchSize(int v) {
+    settings.set(DEFAULT_FETCH_SIZE, v);
   }
 
-  /**
-   * Get the send buffer size
-   * @return The value
-   */
-  public int getSendBufferSize() {
-    return sendBufferSize;
+  public String getFieldFormat() {
+    return settings.getText(FIELD_FORMAT_PREF);
   }
 
-  /**
-   * Set the send buffer size
-   * @param v The value
-   */
-  public void setSendBufferSize(int v) {
-    sendBufferSize = v;
+  public void setFieldFormat(String v) {
+    settings.setText(FIELD_FORMAT_PREF, v);
   }
 
-  /**
-   * Get the SSL mode
-   * @return The value
-   */
+  public int getFieldLengthMax() {
+    return settings.get(FIELD_LENGTH_MAX);
+  }
+
+  public void setFieldLengthMax(int v) {
+    settings.set(FIELD_LENGTH_MAX, v);
+  }
+
+  public String getParamFormat() {
+    return settings.getText(PARAM_FORMAT_PREF);
+  }
+
+  public void setParamFormat(String v) {
+    settings.setText(PARAM_FORMAT_PREF, v);
+  }
+
+  public int getMoneyFractionalDigits() {
+    return settings.get(MONEY_FRACTIONAL_DIGITS);
+  }
+
+  public void setMoneyFractionalDigits(int v) {
+    settings.set(MONEY_FRACTIONAL_DIGITS, v);
+  }
+
   public String getSslMode() {
-    return sslMode;
+    return settings.getText(SSL_MODE);
   }
 
-  /**
-   * Set the SSL mode
-   * @param v The value
-   */
   public void setSslMode(String v) {
-    sslMode = v;
+    settings.setText(SSL_MODE, v);
   }
 
-  /**
-   * Get the SSL password
-   * @return The value
-   */
-  public String getSslPassword() {
-    return sslPassword;
-  }
-
-  /**
-   * Set the SSL password
-   * @param v The value
-   */
-  public void setSslPassword(String v) {
-    sslPassword = v;
-  }
-
-  /**
-   * Get the SSL certificate file
-   * @return The value
-   */
   public String getSslCertificateFile() {
-    return sslCertificateFile;
+    return settings.get(SSL_CRT_FILE);
   }
 
-  /**
-   * Set the SSL certificate file
-   * @param v The value
-   */
   public void setSslCertificateFile(String v) {
-    sslCertificateFile = v;
+    settings.set(SSL_CRT_FILE, v);
   }
 
-  /**
-   * Get the SSL key file
-   * @return The value
-   */
+  public String getSslCaCertificateFile() {
+    return settings.get(SSL_CA_CRT_FILE);
+  }
+
+  public void setSslCaCertificateFile(String v) {
+    settings.set(SSL_CA_CRT_FILE, v);
+  }
+
   public String getSslKeyFile() {
-    return sslKeyFile;
+    return settings.get(SSL_KEY_FILE);
   }
 
-  /**
-   * Set the SSL key file
-   * @param v The value
-   */
   public void setSslKeyFile(String v) {
-    sslKeyFile = v;
+    settings.set(SSL_KEY_FILE, v);
   }
 
-  /**
-   * Get the SSL root certificate file
-   * @return The value
-   */
-  public String getSslRootCertificateFile() {
-    return sslRootCertificateFile;
+  public String getSslKeyPassword() {
+    return settings.get(SSL_KEY_PASSWORD);
   }
 
-  /**
-   * Set the SSL root certificate file
-   * @param v The value
-   */
-  public void setSslRootCertificateFile(String v) {
-    sslRootCertificateFile = v;
+  public void setSslKeyPassword(String v) {
+    settings.setText(SSL_KEY_PASSWORD, v);
   }
 
-  /**
-   * Create a connection
-   *
-   * @param u
-   *          The user name
-   * @param p
-   *          The password
-   * @return The connection
-   * @exception SQLException
-   *              Thrown in case of an error
-   */
-  protected PGDirectConnection createConnection(String u, String p) throws SQLException {
-    String url = buildUrl();
-    Properties props = new Properties();
-
-    if (u != null) {
-      props.setProperty("user", u);
-    }
-    else if (user != null) {
-      props.setProperty("user", user);
-    }
-    else {
-      props.setProperty("user", "");
-    }
-
-    if (p != null) {
-      props.setProperty("password", p);
-    }
-    else if (password != null) {
-      props.setProperty("password", password);
-    }
-    else {
-      props.setProperty("password", "");
-    }
-
-    if (parsedSqlCacheSize != null)
-      props.setProperty(PARSED_SQL_CACHE_SIZE.getName(), Integer.toString(parsedSqlCacheSize));
-    if (preparedStatementCacheSize != null)
-      props.setProperty(PREPARED_STATEMENT_CACHE_SIZE.getName(), Integer.toString(preparedStatementCacheSize));
-    if (applicationName != null)
-      props.setProperty(APPLICATION_NAME.getName(), applicationName);
-    if (clientEncoding != null)
-      props.setProperty(PROTOCOL_ENCODING.getName(), clientEncoding);
-    if (networkTimeout != null)
-      props.setProperty(DEFAULT_NETWORK_TIMEOUT.getName(), Integer.toString(networkTimeout));
-    props.setProperty(STRICT_MODE.getName(), Boolean.toString(strictMode));
-    if (defaultFetchSize != null)
-      props.setProperty(DEFAULT_FETCH_SIZE.getName(), Integer.toString(defaultFetchSize));
-
-    if (receiveBufferSize != null)
-      props.setProperty(PROTOCOL_SOCKET_RECV_BUFFER_SIZE.getName(), Integer.toString(receiveBufferSize));
-
-    if (sendBufferSize != null)
-      props.setProperty(PROTOCOL_SOCKET_SEND_BUFFER_SIZE.getName(), Integer.toString(sendBufferSize));
-
-    if (sslMode != null)
-      props.setProperty(SSL_MODE.getName(), sslMode);
-
-    if (sslPassword != null)
-      props.setProperty(SSL_KEY_FILE_PASSWORD.getName(), sslPassword);
-
-    if (sslCertificateFile != null)
-      props.setProperty(SSL_CRT_FILE.getName(), sslCertificateFile);
-
-    if (sslKeyFile != null)
-      props.setProperty(SSL_KEY_FILE.getName(), sslKeyFile);
-
-    if (sslRootCertificateFile != null)
-      props.setProperty(SSL_ROOT_CRT_FILE.getName(), sslRootCertificateFile);
-
-    props.setProperty(HOUSEKEEPER.getName(), Boolean.toString(housekeeper));
-
-    SharedRegistry.Factory sharedRegistryFactory;
-    if (!REGISTRY_SHARING.get(props)) {
-
-      sharedRegistryFactory =
-          connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
-    }
-    else {
-
-      sharedRegistryFactory =
-          connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
-    }
-
-    return ConnectionUtil.createConnection(url, props, sharedRegistryFactory);
+  public String getSslKeyPasswordCallback() {
+    return settings.getText(SSL_KEY_PASSWORD_CALLBACK);
   }
 
-  private String buildUrl() throws SQLException {
-    StringBuilder sb = new StringBuilder();
+  public void setSslKeyPasswordCallback(String v) {
+    settings.setText(SSL_KEY_PASSWORD_CALLBACK, v);
+  }
 
-    if (getDatabaseName() == null)
-       throw new SQLException("'databaseName' parameter mandatory for " + getServerName() + ":" + getPortNumber());
+  public String getSslHomeDir() {
+    return settings.get(SSL_HOME_DIR);
+  }
 
-    sb.append("jdbc:pgsql://")
-        .append(getServerName())
-        .append(":")
-        .append(getPortNumber())
-        .append("/")
-        .append(getDatabaseName());
+  public void setSslHomeDir(String v) {
+    settings.set(SSL_HOME_DIR, v);
+  }
 
-    return sb.toString();
+  public boolean getSqlTrace() {
+    return settings.get(SQL_TRACE);
+  }
+
+  public void setSqlTrace(boolean v) {
+    settings.set(SQL_TRACE, v);
+  }
+
+  public String getProtocolVersion() {
+    return settings.getText(PROTOCOL_VERSION);
+  }
+
+  public void setProtocolVersion(String v) {
+    settings.setText(PROTOCOL_VERSION, v);
+  }
+
+  public String getProtocolIoMode() {
+    return settings.getText(PROTOCOL_IO_MODE);
+  }
+
+  public void setProtocolIoMode(String v) {
+    settings.setText(PROTOCOL_IO_MODE, v);
+  }
+
+  public int getProtocolIoThreads() {
+    return settings.get(PROTOCOL_IO_THREADS);
+  }
+
+  public void setProtocolIoThreads(int v) {
+    settings.set(PROTOCOL_IO_THREADS, v);
+  }
+
+  public String getProtocolEncoding() {
+    return settings.getText(PROTOCOL_ENCODING);
+  }
+
+  public void setProtocolEncoding(String v) {
+    settings.setText(PROTOCOL_ENCODING, v);
+  }
+
+  public int getProtocolSocketRecvBufferSize() {
+    return settings.get(PROTOCOL_SOCKET_RECV_BUFFER_SIZE);
+  }
+
+  public void setProtocolSocketRecvBufferSize(int v) {
+    settings.set(PROTOCOL_SOCKET_RECV_BUFFER_SIZE, v);
+  }
+
+  public int getProtocolSocketSendBufferSize() {
+    return settings.get(PROTOCOL_SOCKET_SEND_BUFFER_SIZE);
+  }
+
+  public void setProtocolSocketSendBufferSize(int v) {
+    settings.set(PROTOCOL_SOCKET_SEND_BUFFER_SIZE, v);
+  }
+
+  public boolean getProtocolBufferPooling() {
+    return settings.get(PROTOCOL_BUFFER_POOLING);
+  }
+
+  public void setProtocolBufferPooling(boolean v) {
+    settings.set(PROTOCOL_BUFFER_POOLING, v);
+  }
+
+  public int getProtocolMessageSizeMax() {
+    return settings.get(PROTOCOL_MESSAGE_SIZE_MAX);
+  }
+
+  public void setProtocolMessageSizeMax(int v) {
+    settings.set(PROTOCOL_MESSAGE_SIZE_MAX, v);
+  }
+
+  public boolean getProtocolTrace() {
+    return settings.get(PROTOCOL_TRACE);
+  }
+
+  public void setProtocolTrace(boolean v) {
+    settings.set(PROTOCOL_TRACE, v);
+  }
+
+
+  // host, alias for serverName
+
+  public String getHost() {
+    return getServerName();
+  }
+
+  public void setHost(String v) {
+    setServerName(v);
+  }
+
+
+  // port, alias for portNumber
+
+  public int getPort() {
+    return getPortNumber();
+  }
+
+  public void setPort(int v) {
+    setPortNumber(v);
+  }
+
+
+  // clientEncoding, alias for protocolEncoding
+
+  public String getClientEncoding() {
+    return getProtocolEncoding();
+  }
+
+  public void setClientEncoding(String v) {
+    setProtocolEncoding(v);
   }
 
 }

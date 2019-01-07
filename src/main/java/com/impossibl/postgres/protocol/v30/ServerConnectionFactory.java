@@ -55,11 +55,11 @@ import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
-import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_ALLOCATOR_POOLED;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_BUFFER_POOLING;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_ENCODING;
-import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_MODE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_THREADS;
-import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MAX_MESSAGE_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE_MAX;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE;
@@ -272,7 +272,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   @SuppressWarnings("deprecation")
   private CreatedChannel createInetSocketChannel(InetSocketAddress address, Configuration config) {
 
-    int maxMessageSize = config.getSetting(PROTOCOL_MAX_MESSAGE_SIZE);
+    int maxMessageSize = config.getSetting(PROTOCOL_MESSAGE_SIZE_MAX);
     Charset clientEncoding = config.getSetting(PROTOCOL_ENCODING);
 
     Class<? extends SocketChannel> channelType;
@@ -280,7 +280,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     int maxThreads = config.getSetting(PROTOCOL_IO_THREADS);
 
-    SystemSettings.IOMode ioMode = config.getSetting(PROTOCOL_IO);
+    SystemSettings.ProtocolIOMode ioMode = config.getSetting(PROTOCOL_IO_MODE);
     switch (ioMode) {
       case OIO:
         channelType = io.netty.channel.socket.oio.OioSocketChannel.class;
@@ -303,7 +303,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
           groupType = EpollEventLoopGroup.class;
           break;
         }
-        else if (ioMode != SystemSettings.IOMode.ANY) {
+        else if (ioMode != SystemSettings.ProtocolIOMode.ANY) {
           throw new IllegalStateException("Unsupported io mode: native: no native library loaded");
         }
 
@@ -343,7 +343,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   private CreatedChannel createDomainSocketChannel(DomainSocketAddress address, Configuration config) {
 
-    int maxMessageSize = config.getSetting(PROTOCOL_MAX_MESSAGE_SIZE);
+    int maxMessageSize = config.getSetting(PROTOCOL_MESSAGE_SIZE_MAX);
     Charset clientEncoding = config.getSetting(PROTOCOL_ENCODING);
 
     Class<? extends DomainSocketChannel> channelType;
@@ -398,7 +398,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       bootstrap.option(ChannelOption.SO_SNDBUF, sendBufferSize);
     }
 
-    boolean usePooledAllocator = config.getSetting(PROTOCOL_ALLOCATOR_POOLED);
+    boolean usePooledAllocator = config.getSetting(PROTOCOL_BUFFER_POOLING);
     bootstrap.option(ChannelOption.ALLOCATOR, usePooledAllocator ? PooledByteBufAllocator.DEFAULT : UnpooledByteBufAllocator.DEFAULT);
   }
 
