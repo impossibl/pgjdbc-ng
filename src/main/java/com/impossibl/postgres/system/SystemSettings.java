@@ -148,6 +148,12 @@ public class SystemSettings implements Setting.Provider {
       "sql.trace"
   );
 
+  public static final Setting<String> SQL_TRACE_FILE = SYS.add(
+      "File destination of SQL trace output",
+      (String) null,
+      "sql.trace.file"
+  );
+
 
 
 
@@ -215,6 +221,12 @@ public class SystemSettings implements Setting.Provider {
       "Enable or disable message trace output",
       false,
       "protocol.trace"
+  );
+
+  public static final Setting<String> PROTOCOL_TRACE_FILE = PROTO.add(
+      "File destination of message trace output",
+      (String) null,
+      "protocol.trace.file"
   );
 
 

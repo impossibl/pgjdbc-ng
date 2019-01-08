@@ -45,8 +45,12 @@ import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.Version;
 
 import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE_FILE;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.SocketAddress;
@@ -81,7 +85,16 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     this.sharedRef = sharedRef;
 
     if (config.getSetting(SQL_TRACE)) {
-      sqlTrace = new SQLTrace(new OutputStreamWriter(System.out));
+      OutputStream out = System.out;
+      String filePath = config.getSetting(SQL_TRACE_FILE);
+      if (filePath != null) {
+        try {
+          out = new FileOutputStream(filePath, false);
+        }
+        catch (FileNotFoundException ignore) {
+        }
+      }
+      sqlTrace = new SQLTrace(new OutputStreamWriter(out));
     }
   }
 

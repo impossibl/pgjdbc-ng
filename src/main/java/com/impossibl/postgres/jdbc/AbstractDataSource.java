@@ -68,8 +68,10 @@ import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE_FILE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_VERSION;
 import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_CA_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
@@ -515,6 +517,14 @@ public abstract class AbstractDataSource implements CommonDataSource {
     settings.set(SQL_TRACE, v);
   }
 
+  public String getSqlTraceFile() {
+    return settings.get(SQL_TRACE_FILE);
+  }
+
+  public void setSqlTraceFile(String v) {
+    settings.set(SQL_TRACE_FILE, v);
+  }
+
   public String getProtocolVersion() {
     return settings.getText(PROTOCOL_VERSION);
   }
@@ -585,6 +595,14 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
   public void setProtocolTrace(boolean v) {
     settings.set(PROTOCOL_TRACE, v);
+  }
+
+  public String getProtocolTraceFile() {
+    return settings.get(PROTOCOL_TRACE_FILE);
+  }
+
+  public void setProtocolTraceFile(String v) {
+    settings.set(PROTOCOL_TRACE_FILE, v);
   }
 
 

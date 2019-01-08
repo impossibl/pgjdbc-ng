@@ -63,13 +63,17 @@ import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE_FILE;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_VERSION;
 import static com.impossibl.postgres.system.SystemSettings.SSL_MODE;
 import static com.impossibl.postgres.utils.Await.awaitUninterruptibly;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.ref.WeakReference;
@@ -404,7 +408,16 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   private Writer createProtocolTracer(Configuration config) {
     if (config.getSetting(PROTOCOL_TRACE)) {
-      return new BufferedWriter(new OutputStreamWriter(System.out));
+      OutputStream out = System.out;
+      String filePath = config.getSetting(PROTOCOL_TRACE_FILE);
+      if (filePath != null) {
+        try {
+          out = new FileOutputStream(filePath, false);
+        }
+        catch (FileNotFoundException ignored) {
+        }
+      }
+      return new BufferedWriter(new OutputStreamWriter(out));
     }
     return null;
   }
