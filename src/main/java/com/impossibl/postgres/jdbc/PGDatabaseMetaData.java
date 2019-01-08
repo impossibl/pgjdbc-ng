@@ -1188,7 +1188,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[13] = null;
       row[14] = null;
       row[15] = columnData.typeLength;
-      row[16] = columnData.relationAttrNum;
+      row[16] = columnData.columnNumber;
 
       String nullable;
       switch ((int) row[10]) {

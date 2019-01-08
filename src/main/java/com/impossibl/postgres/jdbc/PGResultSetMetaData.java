@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
@@ -64,7 +65,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
   private ColumnData getRelationColumnData(ResultField field) throws SQLException {
     List<ColumnData> relationColumnsData = getRelationColumnsData(field.getRelationId());
     for (ColumnData relationColumnData : relationColumnsData) {
-      if (relationColumnData.relationAttrNum == field.getRelationAttributeNumber()) {
+      if (relationColumnData.relationAttributeNumber == field.getRelationAttributeNumber()) {
         return relationColumnData;
       }
     }
@@ -72,6 +73,8 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
   }
 
   private List<ColumnData> getRelationColumnsData(int relationId) throws SQLException {
+    if (relationId == 0) return emptyList();
+
     List<ColumnData> data;
     if ((data = relationsColumnsData.get(relationId)) == null) {
       data = loadRelationColumsData(relationId);
@@ -81,7 +84,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
   }
 
   private List<ColumnData> loadRelationColumsData(int relationId) throws SQLException {
-    String sql = getColumnSQL(" AND a.attnum > 0 AND c.oid = ?").toString();
+    String sql = getColumnSQL(" AND c.oid = ?").toString();
 
     return getColumnData(sql, singletonList(relationId));
   }
@@ -273,7 +276,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
     ResultField field = get(column);
     ColumnData columnData = getRelationColumnData(field);
     if (columnData == null) {
-      return get(column).getName();
+      return field.getName();
     }
 
     return columnData.columnName;

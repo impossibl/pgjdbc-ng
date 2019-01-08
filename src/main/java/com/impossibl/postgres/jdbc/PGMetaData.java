@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.SERVER_VERSION_NOT_SUPPORTED;
+import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -50,7 +51,8 @@ abstract class PGMetaData {
     String tableSchemaName;
     String tableName;
     int relationId;
-    int relationAttrNum;
+    int relationAttributeNumber;
+    int columnNumber;
     String columnName;
     Type type;
     int typeModifier;
@@ -59,6 +61,15 @@ abstract class PGMetaData {
     String defaultValue;
     String description;
     Type baseType;
+
+    @Override
+    public String toString() {
+      return firstNonNull(tableSchemaName, "<no schema>") + ": " +
+          firstNonNull(tableName, "<no table>") + " (" + relationId + "): " +
+          firstNonNull(columnName, "<no name>") + " (" + relationAttributeNumber + "/" + columnNumber + ") " + type +  " - " +
+          firstNonNull(description, "<no description>");
+    }
+
   }
 
   static class AttributeData {
@@ -73,6 +84,15 @@ abstract class PGMetaData {
     Boolean nullable;
     String defaultValue;
     String description;
+
+    @Override
+    public String toString() {
+      return firstNonNull(typeSchemaName, "<no schema>") + ": " +
+          firstNonNull(typeName, "<no type>") + " (" + relationId + "): " +
+          firstNonNull(attributeName, "<no name>") + " (" + relationAttrNum + ") " + type +  " - " +
+          firstNonNull(description, "<no description>");
+    }
+
   }
 
   PGDirectConnection connection;
@@ -150,7 +170,8 @@ abstract class PGMetaData {
         columnData.tableSchemaName = rs.getString("nspname");
         columnData.tableName = rs.getString("relname");
         columnData.relationId = rs.getInt("attrelid");
-        columnData.relationAttrNum = rs.getInt("attnum");
+        columnData.relationAttributeNumber = rs.getInt("attnum");
+        columnData.columnNumber = rs.getInt("attcolnum");
         columnData.columnName = rs.getString("attname");
         columnData.type = registry.loadType(rs.getInt("atttypid"));
         columnData.typeModifier = rs.getInt("atttypmod");
@@ -174,8 +195,8 @@ abstract class PGMetaData {
 
   StringBuilder getColumnSQL(CharSequence extraWhereConditions) {
     return new StringBuilder(
-            "   SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,a.attrelid," +
-            "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
+            "   SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,a.attrelid,a.attnum," +
+            "     row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attcolnum, pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
             "   FROM pg_catalog.pg_namespace n " +
             "   JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
             "   JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
