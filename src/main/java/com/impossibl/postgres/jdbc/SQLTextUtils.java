@@ -31,6 +31,8 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
 
+import static com.impossibl.postgres.system.Identifier.quoteIfNeeded;
+
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.Iterator;
@@ -326,7 +328,7 @@ class SQLTextUtils {
 
     while (columnIter.hasNext()) {
 
-      sb.append(columnIter.next());
+      sb.append(quoteIfNeeded(columnIter.next()));
 
       if (columnIter.hasNext()) {
         sb.append(separator);
@@ -336,6 +338,7 @@ class SQLTextUtils {
 
     return sb.toString();
   }
+
   /**
    * Escape the literal text.
 

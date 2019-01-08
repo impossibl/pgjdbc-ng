@@ -63,6 +63,7 @@ public class GeneratedKeysTest {
     _conn = TestUtil.openDB();
     Statement stmt = _conn.createStatement();
     stmt.execute("CREATE TEMP TABLE genkeys(a serial, b text, c int)");
+    stmt.execute("CREATE TEMP TABLE genkeys2(\"aA\" serial, \"bbbBbb\" text, \"c\" int)");
     stmt.close();
   }
 
@@ -70,6 +71,7 @@ public class GeneratedKeysTest {
   public void after() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DROP TABLE genkeys");
+    stmt.execute("DROP TABLE genkeys2");
     stmt.close();
     TestUtil.closeDB(_conn);
   }
@@ -317,6 +319,25 @@ public class GeneratedKeysTest {
     assertTrue(batchRs2.isClosed());
 
     ps.close();
+  }
+
+  @Test
+  public void testGeneratedKeysCapitalizedColumnNames() throws SQLException {
+    try (Statement stmt = _conn.createStatement()) {
+      stmt.executeUpdate("INSERT INTO genkeys2 VALUES (1, 'a', 2); ", new String[] {"c", "bbbBbb", "aA"});
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("aA"));
+        assertEquals("a", rs.getString("bbbBbb"));
+        assertEquals(2, rs.getInt("c"));
+      }
+
+      stmt.executeUpdate("INSERT INTO genkeys2 VALUES (1, 'a', 2); ", Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("aA"));
+      }
+    }
   }
 
 }
