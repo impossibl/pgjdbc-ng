@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.api.data.Tid;
 import com.impossibl.postgres.jdbc.PGRowId;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -88,11 +87,6 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Tid;
-    }
-
-    @Override
     public Class<Tid> getDefaultClass() {
       return Tid.class;
     }
@@ -112,11 +106,6 @@ public class Tids extends SimpleProcProvider {
 
     BinEncoder() {
       super(6, Tids::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Tid;
     }
 
     @Override
@@ -140,11 +129,6 @@ public class Tids extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Tid;
-    }
-
-    @Override
     public Class<Tid> getDefaultClass() {
       return Tid.class;
     }
@@ -161,11 +145,6 @@ public class Tids extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Tids::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Tid;
     }
 
     @Override

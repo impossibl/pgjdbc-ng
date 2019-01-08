@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -51,11 +50,6 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.UUID;
-    }
-
-    @Override
     public Class<UUID> getDefaultClass() {
       return UUID.class;
     }
@@ -71,11 +65,6 @@ public class UUIDs extends SimpleProcProvider {
 
     BinEncoder() {
       super(16, UUID::fromString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.UUID;
     }
 
     @Override
@@ -98,11 +87,6 @@ public class UUIDs extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.UUID;
-    }
-
-    @Override
     public Class<UUID> getDefaultClass() {
       return UUID.class;
     }
@@ -118,11 +102,6 @@ public class UUIDs extends SimpleProcProvider {
 
     TxtEncoder() {
       super(UUID::fromString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.UUID;
     }
 
     @Override

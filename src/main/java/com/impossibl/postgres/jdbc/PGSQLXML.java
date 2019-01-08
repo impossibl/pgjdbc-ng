@@ -134,7 +134,11 @@ public class PGSQLXML implements SQLXML {
     this.initialized = initialized;
   }
 
-  byte[] getData() {
+  public boolean isNull() {
+    return data == null;
+  }
+
+  public byte[] getData() {
 
     if (data == null) {
       return null;

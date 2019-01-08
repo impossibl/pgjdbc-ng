@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -49,11 +48,6 @@ public class ACLItems extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.ACLItem;
-    }
-
-    @Override
     public Class<ACLItem> getDefaultClass() {
       return ACLItem.class;
     }
@@ -69,11 +63,6 @@ public class ACLItems extends SimpleProcProvider {
 
     TxtEncoder() {
       super(ACLItem::parse);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.ACLItem;
     }
 
     @Override

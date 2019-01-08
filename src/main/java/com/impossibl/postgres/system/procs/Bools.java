@@ -30,10 +30,7 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.types.PrimitiveType.Bool;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -183,11 +180,6 @@ public class Bools extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Bool;
-    }
-
-    @Override
     public Class<Boolean> getDefaultClass() {
       return Boolean.class;
     }
@@ -206,11 +198,6 @@ public class Bools extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Bool;
-    }
-
-    @Override
     public Class<Boolean> getDefaultClass() {
       return Boolean.class;
     }
@@ -226,11 +213,6 @@ public class Bools extends SimpleProcProvider {
 
     TxtDecoder() {
       super(Bools::convertOutput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Bool;
     }
 
     @Override
@@ -268,11 +250,6 @@ public class Bools extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Bools::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Bool;
     }
 
     @Override

@@ -32,12 +32,10 @@ import com.impossibl.postgres.jdbc.PGBlob;
 import com.impossibl.postgres.jdbc.PGBufferBlob;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
-import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +54,7 @@ public class Bytes extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "bytea");
   }
 
-  private static byte[] coerceInput(Object source, Long length) throws IOException {
+  private static byte[] coerceInput(Type type, Object source, Long length) throws IOException {
 
     if (source instanceof byte[]) {
       return (byte[]) source;
@@ -80,10 +78,10 @@ public class Bytes extends SimpleProcProvider {
       }
     }
 
-    throw new ConversionException(source.getClass(), Binary);
+    throw new ConversionException(source.getClass(), type);
   }
 
-  private static Object convertOutput(Context context, ByteBuf decoded, Class<?> targetClass) throws ConversionException {
+  private static Object convertOutput(Context context, Type type, ByteBuf decoded, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == InputStream.class) {
       return new ByteBufInputStream(decoded, true);
@@ -107,18 +105,13 @@ public class Bytes extends SimpleProcProvider {
       return new PGBufferBlob(decoded.retainedDuplicate());
     }
 
-    throw new ConversionException(Binary, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
 
     BinDecoder() {
       enableRespectMaxLength();
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
     }
 
     @Override
@@ -131,7 +124,7 @@ public class Bytes extends SimpleProcProvider {
 
       int length = buffer.readableBytes();
       int readLength;
-      Integer maxLength = (Integer) context.getSetting(FIELD_LENGTH_MAX);
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         readLength = min(maxLength, length);
       }
@@ -144,7 +137,7 @@ public class Bytes extends SimpleProcProvider {
 
         buffer.skipBytes(length - readLength);
 
-        return convertOutput(context, bytes, targetClass);
+        return convertOutput(context, type, bytes, targetClass);
       }
       catch (Throwable t) {
         bytes.release();
@@ -157,15 +150,10 @@ public class Bytes extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object val, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Long specifiedLength = (Long) sourceContext;
-      byte[] value = Bytes.coerceInput(val, specifiedLength);
+      byte[] value = Bytes.coerceInput(type, val, specifiedLength);
 
       if (specifiedLength != null && specifiedLength != value.length) {
         throw new IOException("Invalid binary length");
@@ -180,11 +168,6 @@ public class Bytes extends SimpleProcProvider {
 
     TxtDecoder() {
       enableRespectMaxLength();
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
     }
 
     @Override
@@ -205,7 +188,7 @@ public class Bytes extends SimpleProcProvider {
       }
 
       try {
-        return convertOutput(context, bytes, targetClass);
+        return convertOutput(context, type, bytes, targetClass);
       }
       catch (Throwable t) {
         bytes.release();
@@ -252,15 +235,10 @@ public class Bytes extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object val, Object sourceContext, StringBuilder buffer) throws IOException {
 
       Long specifiedLength = (Long) sourceContext;
-      byte[] value = coerceInput(val, specifiedLength);
+      byte[] value = coerceInput(type, val, specifiedLength);
 
       if (specifiedLength != null && specifiedLength != value.length) {
         throw new IOException("Mismatch in length of binary arguments");

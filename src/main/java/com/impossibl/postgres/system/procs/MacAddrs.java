@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class MacAddrs extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr_");
   }
 
-  private static byte[] convertInput(Object value) throws ConversionException {
+  private static byte[] convertInput(Type type, Object value) throws ConversionException {
 
     if (value instanceof byte[]) {
       return (byte[]) value;
@@ -58,10 +57,10 @@ public class MacAddrs extends SimpleProcProvider {
       return parse((String) value);
     }
 
-    throw new ConversionException(value.getClass(), PrimitiveType.MacAddr);
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(byte[] value, Class<?> targetClass) throws ConversionException {
+  private static Object convertOutput(Type type, byte[] value, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == byte[].class) {
       return value;
@@ -73,18 +72,13 @@ public class MacAddrs extends SimpleProcProvider {
       return bldr.toString();
     }
 
-    throw new ConversionException(PrimitiveType.MacAddr, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
 
     BinDecoder() {
       super(6);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
     }
 
     @Override
@@ -99,7 +93,7 @@ public class MacAddrs extends SimpleProcProvider {
       byte[] bytes = new byte[6];
       buffer.readBytes(bytes);
 
-      return convertOutput(bytes, targetClass);
+      return convertOutput(type, bytes, targetClass);
     }
 
   }
@@ -107,25 +101,15 @@ public class MacAddrs extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      byte[] bytes = convertInput(value);
+      byte[] bytes = convertInput(type, value);
 
       buffer.writeBytes(bytes);
     }
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -137,7 +121,7 @@ public class MacAddrs extends SimpleProcProvider {
 
       byte[] value = parse(buffer.toString());
 
-      return convertOutput(value, targetClass);
+      return convertOutput(type, value, targetClass);
     }
 
   }
@@ -145,14 +129,9 @@ public class MacAddrs extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      byte[] addr = convertInput(value);
+      byte[] addr = convertInput(type, value);
 
       format(addr, buffer);
     }

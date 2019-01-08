@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.system.ServerInfo;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
@@ -45,7 +44,8 @@ import static com.impossibl.postgres.system.procs.DatesTimes.timestampFromParsed
 import static com.impossibl.postgres.system.procs.DatesTimes.toDateInTimeZone;
 import static com.impossibl.postgres.system.procs.DatesTimes.toTimeInTimeZone;
 import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
-import static com.impossibl.postgres.types.PrimitiveType.TimestampTZ;
+import static com.impossibl.postgres.system.procs.Timestamps.Kind.WithTimezone;
+import static com.impossibl.postgres.system.procs.Timestamps.Kind.WithoutTimezone;
 
 import java.io.IOException;
 import java.sql.Date;
@@ -69,10 +69,15 @@ import io.netty.buffer.ByteBuf;
 
 class Timestamps extends SettingSelectProcProvider {
 
-  Timestamps(PrimitiveType primitiveType, String... baseNames) {
+  enum Kind {
+    WithTimezone,
+    WithoutTimezone
+  }
+
+  Timestamps(Kind kind, String... baseNames) {
     super(ServerInfo::hasIntegerDateTimes,
-        new TxtEncoder(primitiveType), new TxtDecoder(primitiveType), new BinEncoder(primitiveType), new BinDecoder(primitiveType),
-        new TxtEncoder(primitiveType), new TxtDecoder(primitiveType), null, null,
+        new TxtEncoder(kind), new TxtDecoder(kind), new BinEncoder(kind), new BinDecoder(kind),
+        new TxtEncoder(kind), new TxtDecoder(kind), null, null,
         baseNames);
   }
 
@@ -91,7 +96,7 @@ class Timestamps extends SettingSelectProcProvider {
     return micros;
   }
 
-  private static long convertInput(PrimitiveType primitiveType, Context context, Object value, Calendar calendar) throws ConversionException {
+  private static long convertInput(Context context, Type type, Object value, Calendar calendar) throws ConversionException {
 
     if (value instanceof CharSequence) {
       CharSequence chars = (CharSequence) value;
@@ -125,10 +130,10 @@ class Timestamps extends SettingSelectProcProvider {
       return toMicros(((Date) value).getTime());
     }
 
-    throw new ConversionException(value.getClass(), primitiveType);
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(PrimitiveType primitiveType, Context context, long micros, Class<?> targetType, TimeZone targetTimeZone) throws ConversionException {
+  private static Object convertOutput(Kind kind, Context context, Type type, long micros, Class<?> targetType, TimeZone targetTimeZone) throws ConversionException {
 
     if (targetType == Time.class) {
       long millis = toTimeInTimeZone(toMillis(micros), targetTimeZone);
@@ -143,7 +148,7 @@ class Timestamps extends SettingSelectProcProvider {
     if (targetType == String.class) {
       if (micros == Long.MAX_VALUE) return POS_INFINITY;
       if (micros == Long.MIN_VALUE) return NEG_INFINITY;
-      return context.getTimestampFormatter().getPrinter().formatMicros(micros, primitiveType == TimestampTZ ? context.getTimeZone() : targetTimeZone, primitiveType == TimestampTZ);
+      return context.getTimestampFormatter().getPrinter().formatMicros(micros, kind == WithTimezone ? context.getTimeZone() : targetTimeZone, kind == WithTimezone);
     }
 
     if (targetType == Timestamp.class) {
@@ -168,7 +173,7 @@ class Timestamps extends SettingSelectProcProvider {
       return timestamp;
     }
 
-    throw new ConversionException(primitiveType, targetType);
+    throw new ConversionException(type, targetType);
   }
 
   private static long toMillis(long micros) {
@@ -185,16 +190,11 @@ class Timestamps extends SettingSelectProcProvider {
 
   private static class BinDecoder extends BaseBinaryDecoder {
 
-    PrimitiveType primitiveType;
+    Kind kind;
 
-    BinDecoder(PrimitiveType primitiveType) {
+    BinDecoder(Kind kind) {
       super(8);
-      this.primitiveType = primitiveType;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return primitiveType;
+      this.kind = kind;
     }
 
     @Override
@@ -214,30 +214,25 @@ class Timestamps extends SettingSelectProcProvider {
         micros = timePgToJava(micros, MICROSECONDS);
 
         long millis = MICROSECONDS.toMillis(micros);
-        if (primitiveType != TimestampTZ) {
+        if (kind != WithTimezone) {
           millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
         }
 
         micros = MILLISECONDS.toMicros(millis) + (micros - MILLISECONDS.toMicros(MICROSECONDS.toMillis(micros)));
       }
 
-      return convertOutput(primitiveType, context, micros, targetClass, calendar.getTimeZone());
+      return convertOutput(kind, context, type, micros, targetClass, calendar.getTimeZone());
     }
 
   }
 
   private static class BinEncoder extends BaseBinaryEncoder {
 
-    PrimitiveType primitiveType;
+    Kind kind;
 
-    BinEncoder(PrimitiveType primitiveType) {
+    BinEncoder(Kind kind) {
       super(8);
-      this.primitiveType = primitiveType;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return primitiveType;
+      this.kind = kind;
     }
 
     @Override
@@ -245,13 +240,13 @@ class Timestamps extends SettingSelectProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long micros = convertInput(primitiveType, context, value, calendar);
+      long micros = convertInput(context, type, value, calendar);
       if (micros != Long.MAX_VALUE && micros != Long.MIN_VALUE) {
 
         micros = timeJavaToPg(micros, MICROSECONDS);
 
         long millis = MICROSECONDS.toMillis(micros);
-        if (primitiveType != TimestampTZ) {
+        if (kind != WithTimezone) {
           millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
         }
 
@@ -265,15 +260,10 @@ class Timestamps extends SettingSelectProcProvider {
 
   private static class TxtDecoder extends BaseTextDecoder {
 
-    PrimitiveType primitiveType;
+    Kind kind;
 
-    TxtDecoder(PrimitiveType primitiveType) {
-      this.primitiveType = primitiveType;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return primitiveType;
+    TxtDecoder(Kind kind) {
+      this.kind = kind;
     }
 
     @Override
@@ -296,27 +286,22 @@ class Timestamps extends SettingSelectProcProvider {
       else {
         TemporalAccessor parsed = context.getTimestampFormatter().getParser().parse(buffer);
 
-        TimeZone timeZone = primitiveType == TimestampTZ ? TimeZone.getTimeZone("UTC") : calendar.getTimeZone();
+        TimeZone timeZone = kind == WithTimezone ? TimeZone.getTimeZone("UTC") : calendar.getTimeZone();
 
         micros = timestampFromParsed(parsed, timeZone);
       }
 
-      return convertOutput(primitiveType, context, micros, targetClass, calendar.getTimeZone());
+      return convertOutput(kind, context, type, micros, targetClass, calendar.getTimeZone());
     }
 
   }
 
   private static class TxtEncoder extends BaseTextEncoder {
 
-    PrimitiveType primitiveType;
+    Kind kind;
 
-    TxtEncoder(PrimitiveType primitiveType) {
-      this.primitiveType = primitiveType;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return primitiveType;
+    TxtEncoder(Kind kind) {
+      this.kind = kind;
     }
 
     @Override
@@ -324,7 +309,7 @@ class Timestamps extends SettingSelectProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long micros = convertInput(primitiveType, context, value, calendar);
+      long micros = convertInput(context, type, value, calendar);
       if (micros == Long.MAX_VALUE) {
         buffer.append("infinity");
       }
@@ -333,7 +318,7 @@ class Timestamps extends SettingSelectProcProvider {
       }
       else {
 
-        String strVal = context.getTimestampFormatter().getPrinter().formatMicros(micros, calendar.getTimeZone(), primitiveType == TimestampTZ);
+        String strVal = context.getTimestampFormatter().getPrinter().formatMicros(micros, calendar.getTimeZone(), kind == WithoutTimezone);
 
         buffer.append(strVal);
       }

@@ -28,9 +28,18 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.api.data.Interval;
 import com.impossibl.postgres.api.jdbc.PGAnyType;
+import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.api.jdbc.PGType;
 import com.impossibl.postgres.system.JavaTypeMapping;
-import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.ArrayType;
+import com.impossibl.postgres.types.CompositeType;
+import com.impossibl.postgres.types.DomainType;
+import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
@@ -41,12 +50,14 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.Ref;
+import java.sql.RowId;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLType;
@@ -54,7 +65,14 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.BitSet;
+import java.util.Map;
+import java.util.UUID;
 
 class JDBCTypeMapping {
 
@@ -62,7 +80,7 @@ class JDBCTypeMapping {
 
     if (sqlType instanceof JDBCType) {
 
-      return JDBCTypeMapping.getType(sqlType.getVendorTypeNumber(), value, reg);
+      return JDBCTypeMapping.getType((JDBCType) sqlType, value, reg);
     }
     else if (sqlType instanceof PGAnyType) {
 
@@ -91,181 +109,211 @@ class JDBCTypeMapping {
     throw new PGSQLSimpleException("Unsupported SQLType");
   }
 
-  static int getSQLTypeCode(Class<?> cls) {
-    if (cls == Boolean.class) {
-      return Types.BOOLEAN;
+  static SQLType getSpecificSQLType(SQLType sqlType, String typeName, PGConnection connection) throws SQLException {
+    if (sqlType instanceof JDBCType) {
+      switch ((JDBCType)sqlType) {
+        case REF:
+        case JAVA_OBJECT:
+        case OTHER:
+        case STRUCT:
+        case DISTINCT:
+          sqlType = connection.resolveType(typeName);
+      }
     }
-    if (cls == Byte.class) {
-      return Types.TINYINT;
-    }
-    if (cls == Short.class) {
-      return Types.SMALLINT;
-    }
-    if (cls == Integer.class) {
-      return Types.INTEGER;
-    }
-    if (cls == Long.class) {
-      return Types.BIGINT;
-    }
-    if (cls == BigInteger.class) {
-      return Types.BIGINT;
-    }
-    if (cls == Float.class) {
-      return Types.REAL;
-    }
-    if (cls == Double.class) {
-      return Types.DOUBLE;
-    }
-    if (cls == BigDecimal.class) {
-      return Types.DECIMAL;
-    }
-    if (Number.class.isAssignableFrom(cls)) {
-      return Types.NUMERIC;
-    }
-    if (cls == Character.class) {
-      return Types.CHAR;
-    }
-    if (cls == String.class) {
-      return Types.VARCHAR;
-    }
-    if (cls == Date.class) {
-      return Types.DATE;
-    }
-    if (cls == Time.class) {
-      return Types.TIME;
-    }
-    if (cls == Timestamp.class) {
-      return Types.TIMESTAMP;
-    }
-    if (cls == byte[].class) {
-      return Types.VARBINARY;
-    }
-    if (InputStream.class.isAssignableFrom(cls)) {
-      return Types.LONGVARBINARY;
-    }
-    if (Reader.class.isAssignableFrom(cls)) {
-      return Types.LONGNVARCHAR;
-    }
-    if (Blob.class.isAssignableFrom(cls)) {
-      return Types.BLOB;
-    }
-    if (Clob.class.isAssignableFrom(cls)) {
-      return Types.CLOB;
-    }
-    if (Array.class.isAssignableFrom(cls)) {
-      return Types.ARRAY;
-    }
-    if (Struct.class.isAssignableFrom(cls)) {
-      return Types.STRUCT;
-    }
-    if (SQLData.class.isAssignableFrom(cls)) {
-      return Types.STRUCT;
-    }
-    if (Ref.class.isAssignableFrom(cls)) {
-      return Types.REF;
-    }
-    if (SQLXML.class.isAssignableFrom(cls)) {
-      return Types.SQLXML;
-    }
-    return Types.OTHER;
+    return sqlType;
   }
 
-  private static int[] primitiveToSQLTypeMatrix;
-
-  static {
-    primitiveToSQLTypeMatrix = new int[255];
-    primitiveToSQLTypeMatrix[PrimitiveType.Bool.ordinal()] = Types.BOOLEAN;
-    primitiveToSQLTypeMatrix[PrimitiveType.Int2.ordinal()] = Types.SMALLINT;
-    primitiveToSQLTypeMatrix[PrimitiveType.Int4.ordinal()] = Types.INTEGER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Int8.ordinal()] = Types.BIGINT;
-    primitiveToSQLTypeMatrix[PrimitiveType.Float.ordinal()] = Types.REAL;
-    primitiveToSQLTypeMatrix[PrimitiveType.Double.ordinal()] = Types.DOUBLE;
-    primitiveToSQLTypeMatrix[PrimitiveType.Numeric.ordinal()] = Types.NUMERIC;
-    primitiveToSQLTypeMatrix[PrimitiveType.Money.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.String.ordinal()] = Types.VARCHAR;
-    primitiveToSQLTypeMatrix[PrimitiveType.Date.ordinal()] = Types.DATE;
-    primitiveToSQLTypeMatrix[PrimitiveType.Time.ordinal()] = Types.TIME;
-    primitiveToSQLTypeMatrix[PrimitiveType.TimeTZ.ordinal()] = Types.TIME_WITH_TIMEZONE;
-    primitiveToSQLTypeMatrix[PrimitiveType.Timestamp.ordinal()] = Types.TIMESTAMP;
-    primitiveToSQLTypeMatrix[PrimitiveType.TimestampTZ.ordinal()] = Types.TIMESTAMP_WITH_TIMEZONE;
-    primitiveToSQLTypeMatrix[PrimitiveType.Oid.ordinal()] = Types.INTEGER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Tid.ordinal()] = Types.ROWID;
-    primitiveToSQLTypeMatrix[PrimitiveType.Array.ordinal()] = Types.ARRAY;
-    primitiveToSQLTypeMatrix[PrimitiveType.Record.ordinal()] = Types.STRUCT;
-    primitiveToSQLTypeMatrix[PrimitiveType.Domain.ordinal()] = Types.DISTINCT;
-    primitiveToSQLTypeMatrix[PrimitiveType.Binary.ordinal()] = Types.BINARY;
-    primitiveToSQLTypeMatrix[PrimitiveType.Bits.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Range.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.UUID.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Interval.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Unknown.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Point.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Box.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.LineSegment.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Line.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Path.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Polygon.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Circle.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Inet.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.Cidr.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.MacAddr.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.HStore.ordinal()] = Types.OTHER;
-    primitiveToSQLTypeMatrix[PrimitiveType.ACLItem.ordinal()] = Types.OTHER;
-  }
-
-  static int getSQLTypeCode(Type type) {
-
-    PrimitiveType ptype = type.getPrimitiveType();
-    if (ptype == null) {
-      return Types.OTHER;
+  static SQLType getSQLType(Object value) {
+    JDBCType jdbcType = getJDBCType(value);
+    if (jdbcType != JDBCType.OTHER) {
+      return jdbcType;
     }
 
-    return primitiveToSQLTypeMatrix[ptype.ordinal()];
+    if (value instanceof Map) {
+      return PGType.HSTORE;
+    }
+    if (value instanceof Interval) {
+      return PGType.INTERVAL;
+    }
+    if (value instanceof UUID) {
+      return PGType.UUID;
+    }
+    if (value instanceof BitSet) {
+      return PGType.VARBIT;
+    }
+    if (value instanceof CidrAddr) {
+      return PGType.CIDR;
+    }
+    if (value instanceof InetAddr) {
+      return PGType.INET;
+    }
+    if (value instanceof ACLItem) {
+      return PGType.ACL_ITEM;
+    }
+
+    return jdbcType;
   }
 
-  static Type getType(int sqlType, Object val, Registry reg) throws SQLException {
-    switch (sqlType) {
-      case Types.BIT:
-      case Types.BOOLEAN:
+  static JDBCType getJDBCType(Object value) {
+    if (value == null) {
+      return JDBCType.NULL;
+    }
+    if (value instanceof Boolean) {
+      return JDBCType.BOOLEAN;
+    }
+    if (value instanceof Byte) {
+      return JDBCType.TINYINT;
+    }
+    if (value instanceof Short) {
+      return JDBCType.SMALLINT;
+    }
+    if (value instanceof Integer) {
+      return JDBCType.INTEGER;
+    }
+    if (value instanceof Long) {
+      return JDBCType.BIGINT;
+    }
+    if (value instanceof Float) {
+      return JDBCType.REAL;
+    }
+    if (value instanceof Double) {
+      return JDBCType.DOUBLE;
+    }
+    if (value instanceof BigDecimal || value instanceof BigInteger) {
+      return JDBCType.DECIMAL;
+    }
+    if (value instanceof Number) {
+      return JDBCType.NUMERIC;
+    }
+    if (value instanceof Character) {
+      return JDBCType.CHAR;
+    }
+    if (value instanceof String || value instanceof URL) {
+      return JDBCType.VARCHAR;
+    }
+    if (value instanceof Date || value instanceof LocalDate) {
+      return JDBCType.DATE;
+    }
+    if (value instanceof Time || value instanceof LocalTime) {
+      return JDBCType.TIME;
+    }
+    if (value instanceof OffsetTime) {
+      return JDBCType.TIME_WITH_TIMEZONE;
+    }
+    if (value instanceof Timestamp || value instanceof LocalDateTime) {
+      return JDBCType.TIMESTAMP;
+    }
+    if (value instanceof OffsetDateTime) {
+      return JDBCType.TIMESTAMP_WITH_TIMEZONE;
+    }
+    if (value instanceof byte[]) {
+      return JDBCType.VARBINARY;
+    }
+    if (value instanceof InputStream) {
+      return JDBCType.LONGVARBINARY;
+    }
+    if (value instanceof Reader) {
+      return JDBCType.LONGNVARCHAR;
+    }
+    if (value instanceof Blob) {
+      return JDBCType.BLOB;
+    }
+    if (value instanceof Clob) {
+      return JDBCType.CLOB;
+    }
+    if (value instanceof Array) {
+      return JDBCType.ARRAY;
+    }
+    if (value instanceof Struct) {
+      return JDBCType.STRUCT;
+    }
+    if (value instanceof SQLData) {
+      return JDBCType.STRUCT;
+    }
+    if (value instanceof Ref) {
+      return JDBCType.REF;
+    }
+    if (value instanceof SQLXML) {
+      return JDBCType.SQLXML;
+    }
+    if (value instanceof RowId) {
+      return JDBCType.ROWID;
+    }
+    return JDBCType.OTHER;
+  }
+
+  static JDBCType getJDBCType(Type type) {
+
+    PGType pgType = PGType.valueOf(type);
+    if (pgType != null) {
+      return pgType.getMappedType();
+    }
+
+    if (type instanceof ArrayType) {
+      return JDBCType.ARRAY;
+    }
+    if (type instanceof CompositeType) {
+      return JDBCType.STRUCT;
+    }
+    if (type instanceof DomainType) {
+      return JDBCType.DISTINCT;
+    }
+    if (type instanceof RangeType) {
+      return getJDBCType(((RangeType) type).getBase());
+    }
+
+    return JDBCType.OTHER;
+  }
+
+  static int getJDBCTypeCode(Type type) {
+    return getJDBCType(type).getVendorTypeNumber();
+  }
+
+  private static Type getType(JDBCType jdbcType, Object val, Registry reg) throws SQLException {
+    switch (jdbcType) {
+      case NULL:
+        return reg.loadBaseType("text");
+      case BIT:
+      case BOOLEAN:
         return reg.loadBaseType("bool");
-      case Types.TINYINT:
-      case Types.SMALLINT:
+      case TINYINT:
+      case SMALLINT:
         return reg.loadBaseType("int2");
-      case Types.INTEGER:
+      case INTEGER:
         return reg.loadBaseType("int4");
-      case Types.BIGINT:
+      case BIGINT:
         return reg.loadBaseType("int8");
-      case Types.REAL:
+      case REAL:
         return reg.loadBaseType("float4");
-      case Types.FLOAT:
-      case Types.DOUBLE:
+      case FLOAT:
+      case DOUBLE:
         return reg.loadBaseType("float8");
-      case Types.NUMERIC:
-      case Types.DECIMAL:
+      case NUMERIC:
+      case DECIMAL:
         return reg.loadBaseType("numeric");
-      case Types.CHAR:
+      case CHAR:
         return reg.loadBaseType("char");
-      case Types.VARCHAR:
-      case Types.LONGVARCHAR:
+      case VARCHAR:
+      case LONGVARCHAR:
         return reg.loadBaseType("varchar");
-      case Types.DATE:
+      case DATE:
         return reg.loadBaseType("date");
-      case Types.TIME:
+      case TIME:
         return reg.loadBaseType("time");
-      case Types.TIME_WITH_TIMEZONE:
+      case TIME_WITH_TIMEZONE:
         return reg.loadBaseType("timetz");
-      case Types.TIMESTAMP:
+      case TIMESTAMP:
         return reg.loadBaseType("timestamp");
-      case Types.TIMESTAMP_WITH_TIMEZONE:
+      case TIMESTAMP_WITH_TIMEZONE:
         return reg.loadBaseType("timestamptz");
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
         return reg.loadBaseType("bytea");
-      case Types.BLOB:
-      case Types.CLOB:
+      case BLOB:
+      case CLOB:
         return reg.loadBaseType("oid");
-      case Types.ARRAY:
+      case ARRAY:
         try {
           if (val instanceof PGArray) {
             return ((PGArray) val).getType();
@@ -274,7 +322,7 @@ class JDBCTypeMapping {
             Type elementType;
             if (java.lang.reflect.Array.getLength(val) > 0) {
               Object element = java.lang.reflect.Array.get(val, 0);
-              elementType = getType(getSQLTypeCode(element.getClass()), element, reg);
+              elementType = getType(getJDBCType(element.getClass()), element, reg);
             }
             else {
               elementType = JavaTypeMapping.getType(val.getClass().getComponentType(), reg);
@@ -291,15 +339,15 @@ class JDBCTypeMapping {
         catch (IOException e) {
           throw makeSQLException(e);
         }
-      case Types.ROWID:
+      case ROWID:
         return reg.loadBaseType("tid");
-      case Types.SQLXML:
+      case SQLXML:
         return reg.loadBaseType("xml");
-      case Types.DISTINCT:
+      case DISTINCT:
         return reg.loadBaseType("domain");
-      case Types.STRUCT:
-      case Types.JAVA_OBJECT:
-      case Types.OTHER:
+      case STRUCT:
+      case JAVA_OBJECT:
+      case OTHER:
         try {
           if (val instanceof Struct) {
             return reg.loadTransientType(((Struct) val).getSQLTypeName());
@@ -315,12 +363,13 @@ class JDBCTypeMapping {
         catch (IOException e) {
           throw makeSQLException(e);
         }
-      case Types.REF:
-      case Types.DATALINK:
-      case Types.NCHAR:
-      case Types.NVARCHAR:
-      case Types.LONGNVARCHAR:
-      case Types.NCLOB:
+      case REF_CURSOR:
+      case REF:
+      case DATALINK:
+      case NCHAR:
+      case NVARCHAR:
+      case LONGNVARCHAR:
+      case NCLOB:
       default:
         return null;
     }

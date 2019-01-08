@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.types.Modifiers;
-import com.impossibl.postgres.types.PrimitiveType;
 
 import java.util.Collections;
 import java.util.Map;
@@ -37,39 +36,15 @@ import java.util.Map;
 public class Unknowns {
 
   public static class BinDecoder extends ConvertedBytes.BinDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Unknown;
-    }
-
   }
 
   public static class BinEncoder extends ConvertedBytes.BinEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Unknown;
-    }
-
   }
 
   public static class TxtDecoder extends Strings.TxtDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Unknown;
-    }
-
   }
 
   public static class TxtEncoder extends Strings.TxtEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Unknown;
-    }
-
   }
 
   public static class ModParser implements Modifiers.Parser {

@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.system.procs;
 
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.utils.GeometryParsers;
 
 /**
@@ -58,7 +57,7 @@ public class Boxes extends LSegs {
   }
 
   public Boxes() {
-    super("box_", new BoxFormatter(), PrimitiveType.Box);
+    super("box_", new BoxFormatter());
   }
 
 }

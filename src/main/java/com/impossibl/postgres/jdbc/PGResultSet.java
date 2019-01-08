@@ -321,7 +321,7 @@ class PGResultSet implements ResultSet {
       rowData.updateField(columnIndex - 1, field, context, source, sourceContext);
     }
     catch (IOException e) {
-      throw new PGSQLSimpleException("Error decoding column", e);
+      throw new PGSQLSimpleException("Error Encoding column", e);
     }
 
   }

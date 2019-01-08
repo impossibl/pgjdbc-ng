@@ -35,12 +35,10 @@ import com.impossibl.postgres.jdbc.PGStruct;
 import com.impossibl.postgres.jdbc.PGValuesStruct;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
-import static com.impossibl.postgres.types.PrimitiveType.Record;
 import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
 
 import java.io.IOException;
@@ -62,7 +60,7 @@ public class Records extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "record_");
   }
 
-  static PGStruct convertInput(Context context, Object value) throws IOException {
+  static PGStruct convertInput(Context context, Type type, Object value) throws IOException {
 
     PGStruct struct;
     if (value instanceof PGStruct) {
@@ -82,7 +80,7 @@ public class Records extends SimpleProcProvider {
       }
     }
     else {
-      throw new ConversionException(value.getClass(), Record);
+      throw new ConversionException(value.getClass(), type);
     }
 
     return struct;
@@ -119,18 +117,13 @@ public class Records extends SimpleProcProvider {
       result = structFactory.create(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
     }
     else {
-      throw new ConversionException(Record, targetClass);
+      throw new ConversionException(type, targetClass);
     }
 
     return result;
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Record;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -175,14 +168,9 @@ public class Records extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Record;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      PGStruct struct = convertInput(context, value);
+      PGStruct struct = convertInput(context, type, value);
       Type[] attributeTypes = struct.getAttributeTypes();
       Object[] attributeValues = struct.getAttributes(context);
 
@@ -202,11 +190,6 @@ public class Records extends SimpleProcProvider {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Record;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -338,16 +321,11 @@ public class Records extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Record;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       char delim = type.getDelimeter();
 
-      PGStruct struct = convertInput(context, value);
+      PGStruct struct = convertInput(context, type, value);
       Type[] attributeTypes = struct.getAttributeTypes();
       Object[] attributeValues = struct.getAttributes(context);
 

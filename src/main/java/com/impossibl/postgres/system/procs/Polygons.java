@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -51,7 +50,7 @@ public class Polygons extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "poly_");
   }
 
-  private static double[][] convertInput(Object value) throws ConversionException {
+  private static double[][] convertInput(Type type, Object value) throws ConversionException {
 
     if (value instanceof double[][]) {
       return (double[][]) value;
@@ -61,10 +60,10 @@ public class Polygons extends SimpleProcProvider {
       return ((Path) value).getPoints();
     }
 
-    throw new ConversionException(value.getClass(), PrimitiveType.Polygon);
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(double[][] value, Class<?> targetClass) throws ConversionException {
+  private static Object convertOutput(Type type, double[][] value, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == double[][].class) {
       return value;
@@ -74,15 +73,10 @@ public class Polygons extends SimpleProcProvider {
       return new Path(value, true);
     }
 
-    throw new ConversionException(PrimitiveType.Polygon, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Polygon;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -105,7 +99,7 @@ public class Polygons extends SimpleProcProvider {
         points[i] = point;
       }
 
-      return convertOutput(points, targetClass);
+      return convertOutput(type, points, targetClass);
     }
 
   }
@@ -113,14 +107,9 @@ public class Polygons extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Polygon;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      double[][] points = convertInput(value);
+      double[][] points = convertInput(type, value);
 
       buffer.writeInt(points.length);
       for (double[] point : points) {
@@ -135,11 +124,6 @@ public class Polygons extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Polygon;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[][].class;
     }
@@ -152,11 +136,6 @@ public class Polygons extends SimpleProcProvider {
   }
 
   static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Polygon;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

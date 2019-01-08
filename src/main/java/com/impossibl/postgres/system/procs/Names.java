@@ -29,10 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -46,11 +43,6 @@ public class Names extends SimpleProcProvider {
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -70,11 +62,6 @@ public class Names extends SimpleProcProvider {
 
   static class BinEncoder extends BaseBinaryEncoder {
 
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
-
     byte[] toBytes(Object val, Context context) {
       return val.toString().getBytes(context.getCharset());
     }
@@ -92,11 +79,6 @@ public class Names extends SimpleProcProvider {
   public static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return String.class;
     }
@@ -109,11 +91,6 @@ public class Names extends SimpleProcProvider {
   }
 
   public static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

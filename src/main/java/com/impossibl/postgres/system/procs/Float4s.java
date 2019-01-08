@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -51,11 +50,6 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Float;
-    }
-
-    @Override
     public Class<Float> getDefaultClass() {
       return Float.class;
     }
@@ -71,11 +65,6 @@ public class Float4s extends SimpleProcProvider {
 
     BinEncoder() {
       super(4, Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Float;
     }
 
     @Override
@@ -97,11 +86,6 @@ public class Float4s extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Float;
-    }
-
-    @Override
     public Class<Float> getDefaultClass() {
       return Float.class;
     }
@@ -117,11 +101,6 @@ public class Float4s extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Float;
     }
 
     @Override

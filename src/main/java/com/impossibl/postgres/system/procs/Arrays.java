@@ -34,7 +34,6 @@ import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.ArrayType;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
@@ -81,15 +80,10 @@ public class Arrays extends SimpleProcProvider {
       }
     }
 
-    throw new ConversionException(PrimitiveType.Array, targetClass);
+    throw new ConversionException(array.getType(), targetClass);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -150,11 +144,6 @@ public class Arrays extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Class<?> valueType = value.getClass();
@@ -168,7 +157,7 @@ public class Arrays extends SimpleProcProvider {
         }
       }
       else if (!valueType.isArray()) {
-        throw new ConversionException(valueType, PrimitiveType.Array);
+        throw new ConversionException(valueType, type);
       }
 
       ArrayType atype = (ArrayType) type;
@@ -263,11 +252,6 @@ public class Arrays extends SimpleProcProvider {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -428,11 +412,6 @@ public class Arrays extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       Class<?> valueType = value.getClass();
@@ -446,7 +425,7 @@ public class Arrays extends SimpleProcProvider {
         }
       }
       else if (!valueType.isArray()) {
-        throw new ConversionException(valueType, PrimitiveType.Array);
+        throw new ConversionException(valueType, type);
       }
 
       ArrayType arrayType = (ArrayType) type;

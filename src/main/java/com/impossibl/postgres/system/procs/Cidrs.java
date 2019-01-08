@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.CidrAddr;
-import com.impossibl.postgres.types.PrimitiveType;
 
 public class Cidrs extends Networks {
 
@@ -50,8 +49,8 @@ public class Cidrs extends Networks {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Cidr;
+    public Kind getKind() {
+      return Kind.Cidr;
     }
 
     @Override

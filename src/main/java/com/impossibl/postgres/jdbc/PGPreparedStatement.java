@@ -50,10 +50,12 @@ import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.JDBCTypeMapping.getJDBCType;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapBlob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapClob;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapObject;
 import static com.impossibl.postgres.jdbc.Unwrapping.unwrapRowId;
+import static com.impossibl.postgres.jdbc.Unwrapping.unwrapXML;
 import static com.impossibl.postgres.protocol.FieldFormat.Text;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.utils.ByteBufs.releaseAll;
@@ -83,7 +85,6 @@ import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -644,20 +645,16 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-
     set(parameterIndex, x, cal, JDBCType.DATE);
   }
 
   @Override
   public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-
     set(parameterIndex, x, cal, JDBCType.TIME);
   }
 
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-    checkClosed();
-
     set(parameterIndex, x, cal, JDBCType.TIMESTAMP);
   }
 
@@ -748,81 +745,9 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    if (x == null) {
-      setNull(parameterIndex, Types.NULL);
-    }
-    else if (x instanceof Character) {
-      setObject(parameterIndex, x, Types.CHAR);
-    }
-    else if (x instanceof Boolean) {
-      setBoolean(parameterIndex, (Boolean) x);
-    }
-    else if (x instanceof Byte) {
-      setByte(parameterIndex, (Byte) x);
-    }
-    else if (x instanceof Short) {
-      setShort(parameterIndex, (Short) x);
-    }
-    else if (x instanceof Integer) {
-      setInt(parameterIndex, (Integer) x);
-    }
-    else if (x instanceof Long) {
-      setLong(parameterIndex, (Long) x);
-    }
-    else if (x instanceof Float) {
-      setFloat(parameterIndex, (Float) x);
-    }
-    else if (x instanceof Double) {
-      setDouble(parameterIndex, (Double) x);
-    }
-    else if (x instanceof BigDecimal) {
-      setBigDecimal(parameterIndex, (BigDecimal)x);
-    }
-    else if (x instanceof String) {
-      setString(parameterIndex, (String)x);
-    }
-    else if (x instanceof byte[]) {
-      setBytes(parameterIndex, (byte[])x);
-    }
-    else if (x instanceof Date) {
-      setDate(parameterIndex, (Date)x);
-    }
-    else if (x instanceof Time) {
-      setTime(parameterIndex, (Time)x);
-    }
-    else if (x instanceof Timestamp) {
-      setTimestamp(parameterIndex, (Timestamp)x);
-    }
-    else if (x instanceof InputStream) {
-      setBinaryStream(parameterIndex, (InputStream)x);
-    }
-    else if (x instanceof Blob) {
-      setBlob(parameterIndex, (Blob)x);
-    }
-    else if (x instanceof Clob) {
-      setClob(parameterIndex, (Clob)x);
-    }
-    else if (x instanceof Array) {
-      setArray(parameterIndex, (Array)x);
-    }
-    else if (x instanceof URL) {
-      setURL(parameterIndex, (URL)x);
-    }
-    else if (x instanceof SQLXML) {
-      setSQLXML(parameterIndex, (SQLXML)x);
-    }
-    else if (x instanceof RowId) {
-      setRowId(parameterIndex, (RowId)x);
-    }
-    else if (x instanceof Ref) {
-      setRef(parameterIndex, (Ref)x);
-    }
-    else if (x.getClass().isArray()) {
-      set(parameterIndex, x, JDBCType.ARRAY);
-    }
-    else {
-      set(parameterIndex, x, JDBCType.OTHER);
-    }
+    checkClosed();
+
+    set(parameterIndex, unwrapObject(connection, x), getJDBCType(x));
   }
 
   @Override
@@ -841,11 +766,15 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    checkClosed();
+
     set(parameterIndex, unwrapObject(connection, x), scaleOrLength, targetSqlType);
   }
 
   @Override
   public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+    checkClosed();
+
     set(parameterIndex, unwrapObject(connection, x), null, targetSqlType);
   }
 
@@ -879,8 +808,6 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setClob(int parameterIndex, Clob x) throws SQLException {
-    checkClosed();
-
     set(parameterIndex, unwrapClob(connection, x), JDBCType.CLOB);
   }
 
@@ -922,12 +849,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-
-    if (!(xmlObject instanceof PGSQLXML)) {
-      throw new PGSQLSimpleException("Invalid SQLXML object (not created by driver)");
-    }
-
-    set(parameterIndex, ((PGSQLXML) xmlObject).getData(), JDBCType.SQLXML);
+    set(parameterIndex, unwrapXML(xmlObject), JDBCType.SQLXML);
   }
 
   @Override
@@ -984,7 +906,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public long executeLargeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
-    throw NOT_IMPLEMENTED;
+    throw NOT_ALLOWED_ON_PREP_STMT;
   }
 
   @Override

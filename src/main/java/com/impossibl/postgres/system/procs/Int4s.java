@@ -29,10 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.types.PrimitiveType.Int4;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -49,11 +46,6 @@ public class Int4s extends SimpleProcProvider {
 
     BinDecoder() {
       super(4, Number::toString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Int4;
     }
 
     @Override
@@ -75,11 +67,6 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Int4;
-    }
-
-    @Override
     public Class<Integer> getDefaultClass() {
       return Integer.class;
     }
@@ -98,11 +85,6 @@ public class Int4s extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Int4;
-    }
-
-    @Override
     public Class<Integer> getDefaultClass() {
       return Integer.class;
     }
@@ -118,11 +100,6 @@ public class Int4s extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Integer::parseInt, val -> val ? 1 : 0, Number::intValue);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Int4;
     }
 
     @Override

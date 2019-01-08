@@ -33,9 +33,7 @@ import com.impossibl.postgres.jdbc.PGClob;
 import com.impossibl.postgres.jdbc.PGDirectConnection;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
-
-import static com.impossibl.postgres.types.PrimitiveType.Oid;
+import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 import java.sql.Blob;
@@ -49,11 +47,6 @@ public class Oids extends SimpleProcProvider {
   }
 
   static class BinDecoder extends Int4s.BinDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Oid;
-    }
 
     @Override
     protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
@@ -84,12 +77,7 @@ public class Oids extends SimpleProcProvider {
   static class BinEncoder extends Int4s.BinEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Oid;
-    }
-
-    @Override
-    protected Integer convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
+    protected Integer convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
       if (source instanceof PGBlob) {
         return ((PGBlob) source).getOid();
@@ -99,16 +87,11 @@ public class Oids extends SimpleProcProvider {
         return ((PGClob) source).getOid();
       }
 
-      return super.convertInput(context, source, sourceContext);
+      return super.convertInput(context, type, source, sourceContext);
     }
   }
 
   static class TxtDecoder extends Int4s.TxtDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Oid;
-    }
 
     @Override
     protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
@@ -139,12 +122,7 @@ public class Oids extends SimpleProcProvider {
   static class TxtEncoder extends Int4s.TxtEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Oid;
-    }
-
-    @Override
-    protected Integer convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
+    protected Integer convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
       if (source instanceof PGBlob) {
         return ((PGBlob) source).getOid();
@@ -154,7 +132,7 @@ public class Oids extends SimpleProcProvider {
         return ((PGClob) source).getOid();
       }
 
-      return super.convertInput(context, source, sourceContext);
+      return super.convertInput(context, type, source, sourceContext);
     }
 
   }

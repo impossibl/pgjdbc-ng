@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.system.ServerInfo;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.TimestampParts;
 
@@ -39,7 +38,6 @@ import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTime
 import static com.impossibl.postgres.system.procs.DatesTimes.getCalendar;
 import static com.impossibl.postgres.system.procs.DatesTimes.timeFromParsed;
 import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
-import static com.impossibl.postgres.types.PrimitiveType.Time;
 
 import java.io.IOException;
 import java.sql.Time;
@@ -67,7 +65,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
   }
 
 
-  private static long convertInput(Object object, TimeZone defaultTimeZone) throws ConversionException {
+  private static long convertInput(Type type, Object object, TimeZone defaultTimeZone) throws ConversionException {
 
     if (object instanceof java.sql.Time) {
       return ((Time) object).getTime();
@@ -81,10 +79,10 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
       return parseTime(object.toString(), defaultTimeZone);
     }
 
-    throw new ConversionException(object.getClass(), PrimitiveType.TimeTZ);
+    throw new ConversionException(object.getClass(), type);
   }
 
-  private static Object convertOutput(long millis, Class<?> targetClass) throws ConversionException {
+  private static Object convertOutput(Type type, long millis, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == Timestamp.class) {
       return new Timestamp(millis);
@@ -108,18 +106,13 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
       return time.toString();
     }
 
-    throw new ConversionException(PrimitiveType.TimeTZ, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   private static class BinDecoder extends BaseBinaryDecoder {
 
     BinDecoder() {
       super(8);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Time;
     }
 
     @Override
@@ -138,7 +131,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
 
-      return convertOutput(millis, targetClass);
+      return convertOutput(type, millis, targetClass);
     }
 
   }
@@ -150,16 +143,11 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Time;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(value, calendar.getTimeZone());
+      long millis = convertInput(type, value, calendar.getTimeZone());
 
       millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
 
@@ -171,11 +159,6 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Time;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -191,7 +174,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       long micros = timeFromParsed(parsed, calendar.getTimeZone());
 
-      return convertOutput(MICROSECONDS.toMillis(micros), targetClass);
+      return convertOutput(type, MICROSECONDS.toMillis(micros), targetClass);
     }
 
   }
@@ -199,16 +182,11 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Time;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(value, calendar.getTimeZone()) % DAYS.toMillis(1);
+      long millis = convertInput(type, value, calendar.getTimeZone()) % DAYS.toMillis(1);
 
       String strVal = context.getTimeFormatter().getPrinter().formatMillis(millis, calendar.getTimeZone(), false);
 

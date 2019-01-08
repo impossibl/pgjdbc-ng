@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -56,11 +55,6 @@ public class Points extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Point;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -76,11 +70,6 @@ public class Points extends SimpleProcProvider {
 
     BinEncoder() {
       super(16);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Point;
     }
 
     @Override
@@ -100,11 +89,6 @@ public class Points extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Point;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -119,11 +103,6 @@ public class Points extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Point;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       double[] point = (double[]) value;
@@ -131,7 +110,7 @@ public class Points extends SimpleProcProvider {
         throw new IOException("invalid length");
       }
 
-      buffer.append('(').append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append(')');
+      buffer.append('(').append(point[0]).append(',').append(point[1]).append(')');
     }
 
   }

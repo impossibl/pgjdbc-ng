@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
@@ -61,7 +60,7 @@ public class Dates extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "date_");
   }
 
-  private static long convertInput(Object object, Calendar calendar) throws ConversionException {
+  private static long convertInput(Type type, Object object, Calendar calendar) throws ConversionException {
 
     if (object instanceof java.sql.Timestamp) {
       Timestamp ts = (Timestamp) object;
@@ -87,10 +86,10 @@ public class Dates extends SimpleProcProvider {
       return Date.valueOf(object.toString()).getTime();
     }
 
-    throw new ConversionException(object.getClass(), PrimitiveType.Date);
+    throw new ConversionException(object.getClass(), type);
   }
 
-  private static Object convertOutput(long millis, Class<?> targetClass, Calendar calendar) throws ConversionException {
+  private static Object convertOutput(Type type, long millis, Class<?> targetClass) throws ConversionException {
 
 
     if (targetClass == Timestamp.class) {
@@ -120,18 +119,13 @@ public class Dates extends SimpleProcProvider {
       return date.toString();
     }
 
-    throw new ConversionException(PrimitiveType.Date, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
 
     BinDecoder() {
       super(4);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Date;
     }
 
     @Override
@@ -160,7 +154,7 @@ public class Dates extends SimpleProcProvider {
           millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
       }
 
-      return convertOutput(millis, targetClass, calendar);
+      return convertOutput(type, millis, targetClass);
     }
 
   }
@@ -172,16 +166,11 @@ public class Dates extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Date;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(value, calendar);
+      long millis = convertInput(type, value, calendar);
 
       int daysPg;
       if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
@@ -203,11 +192,6 @@ public class Dates extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Date;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return Date.class;
     }
@@ -218,15 +202,15 @@ public class Dates extends SimpleProcProvider {
       Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
       if (buffer.equals(POS_INFINITY)) {
-        return convertOutput(JAVA_DATE_POSITIVE_INFINITY_MSECS, targetClass, calendar);
+        return convertOutput(type, JAVA_DATE_POSITIVE_INFINITY_MSECS, targetClass);
       }
       else if (buffer.equals(NEG_INFINITY)) {
-        return convertOutput(JAVA_DATE_NEGATIVE_INFINITY_MSECS, targetClass, calendar);
+        return convertOutput(type, JAVA_DATE_NEGATIVE_INFINITY_MSECS, targetClass);
       }
 
       TemporalAccessor parsed = context.getDateFormatter().getParser().parse(buffer);
 
-      return convertOutput(dateFromParsed(parsed, calendar.getTimeZone()), targetClass, calendar);
+      return convertOutput(type, dateFromParsed(parsed, calendar.getTimeZone()), targetClass);
     }
 
   }
@@ -234,16 +218,11 @@ public class Dates extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Date;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(value, calendar);
+      long millis = convertInput(type, value, calendar);
       if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
         buffer.append(POS_INFINITY);
       }

@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -73,25 +72,17 @@ public class LSegs extends SimpleProcProvider {
   }
 
   public LSegs() {
-    this("lseg_", new LSegFormatter(), PrimitiveType.LineSegment);
+    this("lseg_", new LSegFormatter());
   }
 
-  LSegs(String pgtype, Formatter formatter, PrimitiveType pt) {
-    super(new TxtEncoder(formatter, pt), new TxtDecoder(formatter, pt), new BinEncoder(pt), new BinDecoder(pt), pgtype);
+  LSegs(String pgtype, Formatter formatter) {
+    super(new TxtEncoder(formatter), new TxtDecoder(formatter), new BinEncoder(), new BinDecoder(), pgtype);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
 
-    private PrimitiveType pt;
-
-    BinDecoder(PrimitiveType pt) {
+    BinDecoder() {
       super(32);
-      this.pt = pt;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return pt;
     }
 
     @Override
@@ -109,16 +100,8 @@ public class LSegs extends SimpleProcProvider {
 
   static class BinEncoder extends BaseBinaryEncoder {
 
-    private PrimitiveType pt;
-
-    BinEncoder(PrimitiveType pt) {
+    BinEncoder() {
       super(32);
-      this.pt = pt;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return pt;
     }
 
     @Override
@@ -139,16 +122,9 @@ public class LSegs extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     private Formatter formatter;
-    private PrimitiveType pt;
 
-    TxtDecoder(Formatter f, PrimitiveType pt) {
+    TxtDecoder(Formatter f) {
       formatter = f;
-      this.pt = pt;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return pt;
     }
 
     @Override
@@ -166,16 +142,9 @@ public class LSegs extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     private Formatter formatter;
-    private PrimitiveType pt;
 
-    TxtEncoder(Formatter f, PrimitiveType pt) {
+    TxtEncoder(Formatter f) {
       formatter = f;
-      this.pt = pt;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return pt;
     }
 
     @Override

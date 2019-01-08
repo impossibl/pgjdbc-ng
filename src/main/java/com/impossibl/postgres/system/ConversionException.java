@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 
@@ -40,20 +40,20 @@ public class ConversionException extends IOException {
   public ConversionException() {
   }
 
-  public ConversionException(PrimitiveType sourceType, Class<?> destinationType) {
+  public ConversionException(Type sourceType, Class<?> destinationType) {
     this(sourceType, destinationType, null);
   }
 
-  public ConversionException(PrimitiveType sourceType, Class<?> destinationType, Throwable cause) {
-    this("Unable to convert from " + sourceType + " to " + destinationType.getCanonicalName());
+  public ConversionException(Type sourceType, Class<?> destinationType, Throwable cause) {
+    this("Unable to convert from " + sourceType.getQualifiedName() + " to " + destinationType.getCanonicalName(), cause);
   }
 
-  public ConversionException(Class<?> sourceType, PrimitiveType destinationType) {
+  public ConversionException(Class<?> sourceType, Type destinationType) {
     this(sourceType, destinationType, null);
   }
 
-  public ConversionException(Class<?> sourceType, PrimitiveType destinationType, Throwable cause) {
-    this("Unable to convert from " + sourceType.getCanonicalName() + " to " + destinationType);
+  public ConversionException(Class<?> sourceType, Type destinationType, Throwable cause) {
+    this("Unable to convert from " + sourceType.getCanonicalName() + " to " + destinationType.getQualifiedName(), cause);
   }
 
   public ConversionException(String message) {

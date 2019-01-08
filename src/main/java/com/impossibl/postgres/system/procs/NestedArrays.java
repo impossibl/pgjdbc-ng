@@ -32,7 +32,6 @@ import com.impossibl.postgres.jdbc.PGBuffersArray;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.NestedArrayType;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.CompositeCharSequence;
 
@@ -56,11 +55,6 @@ public class NestedArrays {
   static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return java.sql.Array.class;
     }
@@ -82,11 +76,6 @@ public class NestedArrays {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Array;
-    }
 
     @Override
     public Class<?> getDefaultClass() {

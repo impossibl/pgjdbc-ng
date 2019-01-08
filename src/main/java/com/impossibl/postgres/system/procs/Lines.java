@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -56,11 +55,6 @@ public class Lines extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Line;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -74,11 +68,6 @@ public class Lines extends SimpleProcProvider {
   }
 
   static class BinEncoder extends BaseBinaryEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Line;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
@@ -98,11 +87,6 @@ public class Lines extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Line;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -117,11 +101,6 @@ public class Lines extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Line;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       double[] point = (double[]) value;
@@ -129,7 +108,7 @@ public class Lines extends SimpleProcProvider {
         throw new IOException("invalid length");
       }
 
-      buffer.append("{").append(Double.toString(point[0])).append(',').append(Double.toString(point[1])).append("),").append(Double.toString(point[2])).append('}');
+      buffer.append("{").append(point[0]).append(',').append(point[1]).append("),").append(point[2]).append('}');
     }
 
   }

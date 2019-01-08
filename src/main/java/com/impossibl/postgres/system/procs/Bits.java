@@ -31,7 +31,6 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Modifiers;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -154,11 +153,6 @@ public class Bits extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Bits;
-    }
-
-    @Override
     public Class<boolean[]> getDefaultClass() {
       return boolean[].class;
     }
@@ -199,11 +193,6 @@ public class Bits extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Bits;
-    }
-
-    @Override
     protected Class<boolean[]> getDefaultClass() {
       return boolean[].class;
     }
@@ -231,11 +220,6 @@ public class Bits extends SimpleProcProvider {
 
     TxtDecoder() {
       super(Bits::convertOutput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Bits;
     }
 
     @Override
@@ -273,11 +257,6 @@ public class Bits extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Bits::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Bits;
     }
 
     @Override

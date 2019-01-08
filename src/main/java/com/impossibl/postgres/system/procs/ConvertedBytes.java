@@ -29,11 +29,9 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
-import static com.impossibl.postgres.types.PrimitiveType.Binary;
 
 import java.io.IOException;
 
@@ -50,11 +48,6 @@ public class ConvertedBytes extends SimpleProcProvider {
   static class BinDecoder extends BaseBinaryDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return byte[].class;
     }
@@ -65,7 +58,7 @@ public class ConvertedBytes extends SimpleProcProvider {
       int length = buffer.readableBytes();
       byte[] bytes;
 
-      Integer maxLength = (Integer) context.getSetting(FIELD_LENGTH_MAX);
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         bytes = new byte[min(maxLength, length)];
       }
@@ -82,11 +75,6 @@ public class ConvertedBytes extends SimpleProcProvider {
   }
 
   static class BinEncoder extends BaseBinaryEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Binary;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {

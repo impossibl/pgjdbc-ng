@@ -29,11 +29,9 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.SystemSettings.MONEY_FRACTIONAL_DIGITS;
-import static com.impossibl.postgres.types.PrimitiveType.Money;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -56,11 +54,6 @@ public class Moneys extends SimpleProcProvider {
 
     BinDecoder() {
       super(8);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Money;
     }
 
     @Override
@@ -87,11 +80,6 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Money;
-    }
-
-    @Override
     public Class<BigDecimal> getDefaultClass() {
       return BigDecimal.class;
     }
@@ -115,11 +103,6 @@ public class Moneys extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Money;
-    }
-
-    @Override
     public Class<BigDecimal> getDefaultClass() {
       return BigDecimal.class;
     }
@@ -140,11 +123,6 @@ public class Moneys extends SimpleProcProvider {
 
     protected TxtEncoder() {
       super((StringConverter<BigDecimal>) BigDecimal::new);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Money;
     }
 
     @Override

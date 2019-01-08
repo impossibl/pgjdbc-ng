@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.TypeLiteral;
 
@@ -57,11 +56,6 @@ public class HStores extends SimpleProcProvider {
 
     BinDecoder() {
       super(Map::toString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.HStore;
     }
 
     @Override
@@ -94,11 +88,6 @@ public class HStores extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.HStore;
-    }
-
-    @Override
     public Class<Map<String, String>> getDefaultClass() {
       return new TypeLiteral<Map<String, String>>() { }.getRawType();
     }
@@ -124,11 +113,6 @@ public class HStores extends SimpleProcProvider {
 
     TxtDecoder() {
       super(Map::toString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.HStore;
     }
 
     @Override
@@ -199,11 +183,6 @@ public class HStores extends SimpleProcProvider {
 
     protected TxtEncoder() {
       super(TxtDecoder::parse);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.HStore;
     }
 
     @Override
