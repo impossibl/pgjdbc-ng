@@ -33,11 +33,8 @@ import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.tables.PGTypeTable;
 
-import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF;
-import static com.impossibl.postgres.system.Settings.FIELD_FORMAT_PREF_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF;
-import static com.impossibl.postgres.system.Settings.PARAM_FORMAT_PREF_DEFAULT;
-import static com.impossibl.postgres.system.Settings.getSystemProperty;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
+import static com.impossibl.postgres.system.SystemSettings.PARAM_FORMAT_PREF;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
@@ -369,8 +366,8 @@ public abstract class Type implements TypeRef {
     textCodec = registry.getShared().loadTextCodec(source.getInputId(), source.getOutputId());
     binaryCodec = registry.getShared().loadBinaryCodec(source.getReceiveId(), source.getSendId());
     modifierParser = registry.getShared().loadModifierParser(source.getModInId());
-    preferredParameterFormat = FieldFormat.valueOf(getSystemProperty(PARAM_FORMAT_PREF, PARAM_FORMAT_PREF_DEFAULT));
-    preferredResultFormat = FieldFormat.valueOf(getSystemProperty(FIELD_FORMAT_PREF, FIELD_FORMAT_PREF_DEFAULT));
+    preferredParameterFormat = PARAM_FORMAT_PREF.getSystem();
+    preferredResultFormat = FIELD_FORMAT_PREF.getSystem();
   }
 
   /**

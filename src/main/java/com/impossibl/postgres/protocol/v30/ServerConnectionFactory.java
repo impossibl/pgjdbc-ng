@@ -44,38 +44,27 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
 import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.system.NoticeException;
+import com.impossibl.postgres.system.ParameterNames;
 import com.impossibl.postgres.system.ServerInfo;
-import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.system.SystemSettings;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.utils.MD5Authentication;
-import com.impossibl.postgres.utils.StringTransforms;
 
 import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
-import static com.impossibl.postgres.system.Settings.ALLOCATOR_POOLED;
-import static com.impossibl.postgres.system.Settings.ALLOCATOR_POOLED_DEFAULT;
-import static com.impossibl.postgres.system.Settings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.Settings.APPLICATION_NAME_DEFAULT;
-import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING;
-import static com.impossibl.postgres.system.Settings.CLIENT_ENCODING_DEFAULT;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_PASSWORD;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE;
-import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE;
-import static com.impossibl.postgres.system.Settings.MAX_MESSAGE_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_SOCKET_IO_THREADS_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_TRACE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_VERSION;
-import static com.impossibl.postgres.system.Settings.PROTOCOL_VERSION_DEFAULT;
-import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE;
-import static com.impossibl.postgres.system.Settings.RECEIVE_BUFFER_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE;
-import static com.impossibl.postgres.system.Settings.SEND_BUFFER_SIZE_DEFAULT;
-import static com.impossibl.postgres.system.Settings.SSL_MODE;
-import static com.impossibl.postgres.system.Settings.SSL_MODE_DEFAULT;
+import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_BUFFER_POOLING;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_ENCODING;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_MODE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_IO_THREADS;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE_MAX;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_RECV_BUFFER_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_SOCKET_SEND_BUFFER_SIZE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_TRACE;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_VERSION;
+import static com.impossibl.postgres.system.SystemSettings.SSL_MODE;
 import static com.impossibl.postgres.utils.Await.awaitUninterruptibly;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
@@ -120,6 +109,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.kqueue.KQueue;
 import io.netty.channel.kqueue.KQueueDomainSocketChannel;
@@ -151,7 +141,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   public ServerConnection connect(Configuration config, SocketAddress address, ServerConnection.Listener listener) throws IOException {
 
-    SSLMode sslMode = config.getSetting(SSL_MODE, SSL_MODE_DEFAULT, StringTransforms::capitalizeOption);
+    SSLMode sslMode = config.getSetting(SSL_MODE);
 
     return connect(config, sslMode, address, listener);
   }
@@ -282,16 +272,16 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   @SuppressWarnings("deprecation")
   private CreatedChannel createInetSocketChannel(InetSocketAddress address, Configuration config) {
 
-    int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
-    Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
+    int maxMessageSize = config.getSetting(PROTOCOL_MESSAGE_SIZE_MAX);
+    Charset clientEncoding = config.getSetting(PROTOCOL_ENCODING);
 
     Class<? extends SocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
 
-    int maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+    int maxThreads = config.getSetting(PROTOCOL_IO_THREADS);
 
-    Settings.SocketIO socketIO = config.getSetting(PROTOCOL_SOCKET_IO, PROTOCOL_SOCKET_IO_DEFAULT);
-    switch (socketIO) {
+    SystemSettings.ProtocolIOMode ioMode = config.getSetting(PROTOCOL_IO_MODE);
+    switch (ioMode) {
       case OIO:
         channelType = io.netty.channel.socket.oio.OioSocketChannel.class;
         groupType = io.netty.channel.oio.OioEventLoopGroup.class;
@@ -310,21 +300,20 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
         }
         else if (Epoll.isAvailable()) {
           channelType = EpollSocketChannel.class;
-          groupType = KQueueEventLoopGroup.class;
+          groupType = EpollEventLoopGroup.class;
           break;
         }
-        else if (socketIO != Settings.SocketIO.ANY) {
+        else if (ioMode != SystemSettings.ProtocolIOMode.ANY) {
           throw new IllegalStateException("Unsupported io mode: native: no native library loaded");
         }
 
       case NIO:
         channelType = NioSocketChannel.class;
         groupType = NioEventLoopGroup.class;
-        maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
         break;
 
       default:
-        throw new IllegalStateException("Unsupported io mode: " + socketIO);
+        throw new IllegalStateException("Unsupported io mode: " + ioMode);
     }
 
     ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire(groupType, maxThreads);
@@ -354,8 +343,8 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   private CreatedChannel createDomainSocketChannel(DomainSocketAddress address, Configuration config) {
 
-    int maxMessageSize = config.getSetting(MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE_DEFAULT);
-    Charset clientEncoding = Charset.forName(config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
+    int maxMessageSize = config.getSetting(PROTOCOL_MESSAGE_SIZE_MAX);
+    Charset clientEncoding = config.getSetting(PROTOCOL_ENCODING);
 
     Class<? extends DomainSocketChannel> channelType;
     Class<? extends EventLoopGroup> groupType;
@@ -365,13 +354,13 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     }
     else if (Epoll.isAvailable()) {
       channelType = EpollDomainSocketChannel.class;
-      groupType = KQueueEventLoopGroup.class;
+      groupType = EpollEventLoopGroup.class;
     }
     else {
       throw new IllegalArgumentException("Unix domain sockets not supported: missing native libraries");
     }
 
-    int maxThreads = config.getSetting(PROTOCOL_SOCKET_IO_THREADS, PROTOCOL_SOCKET_IO_THREADS_DEFAULT);
+    int maxThreads = config.getSetting(PROTOCOL_IO_THREADS);
 
     ServerConnectionShared.Ref sharedRef = ServerConnectionShared.acquire(groupType, maxThreads);
 
@@ -399,19 +388,22 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
   private void configureChannelOptions(Configuration config, Bootstrap bootstrap) {
 
-    if (config.getSetting(RECEIVE_BUFFER_SIZE, RECEIVE_BUFFER_SIZE_DEFAULT) != RECEIVE_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_RCVBUF, config.getSetting(RECEIVE_BUFFER_SIZE, int.class));
-    }
-    if (config.getSetting(SEND_BUFFER_SIZE, SEND_BUFFER_SIZE_DEFAULT) != SEND_BUFFER_SIZE_DEFAULT) {
-      bootstrap.option(ChannelOption.SO_SNDBUF, config.getSetting(SEND_BUFFER_SIZE, int.class));
+    Integer receiveBufferSize = config.getSetting(PROTOCOL_SOCKET_RECV_BUFFER_SIZE);
+    if (receiveBufferSize != null) {
+      bootstrap.option(ChannelOption.SO_RCVBUF, receiveBufferSize);
     }
 
-    boolean usePooledAllocator = config.getSetting(ALLOCATOR_POOLED, ALLOCATOR_POOLED_DEFAULT);
+    Integer sendBufferSize = config.getSetting(PROTOCOL_SOCKET_SEND_BUFFER_SIZE);
+    if (sendBufferSize != null) {
+      bootstrap.option(ChannelOption.SO_SNDBUF, sendBufferSize);
+    }
+
+    boolean usePooledAllocator = config.getSetting(PROTOCOL_BUFFER_POOLING);
     bootstrap.option(ChannelOption.ALLOCATOR, usePooledAllocator ? PooledByteBufAllocator.DEFAULT : UnpooledByteBufAllocator.DEFAULT);
   }
 
   private Writer createProtocolTracer(Configuration config) {
-    if (config.getSetting(PROTOCOL_TRACE, PROTOCOL_TRACE_DEFAULT)) {
+    if (config.getSetting(PROTOCOL_TRACE)) {
       return new BufferedWriter(new OutputStreamWriter(System.out));
     }
     return null;
@@ -420,12 +412,12 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
   private static ServerConnection startup(Configuration config, Channel channel, Map<String, String> startupParameterStatuses, ServerConnectionShared.Ref sharedRef) throws IOException {
 
     Map<String, Object> params = new HashMap<>();
-    params.put(APPLICATION_NAME, config.getSetting(APPLICATION_NAME, APPLICATION_NAME_DEFAULT));
-    params.put(CLIENT_ENCODING, config.getSetting(CLIENT_ENCODING, CLIENT_ENCODING_DEFAULT));
-    params.put(DATABASE, config.getSetting(DATABASE, ""));
-    params.put(CREDENTIALS_USERNAME, config.getSetting(CREDENTIALS_USERNAME, ""));
+    params.put(ParameterNames.APPLICATION_NAME, config.getSetting(APPLICATION_NAME));
+    params.put(ParameterNames.CLIENT_ENCODING, config.getSetting(PROTOCOL_ENCODING));
+    params.put(ParameterNames.DATABASE, config.getSetting(DATABASE_NAME));
+    params.put(ParameterNames.USER, config.getSetting(CREDENTIALS_USERNAME));
 
-    Version protocolVersion = Version.parse(config.getSetting(PROTOCOL_VERSION, PROTOCOL_VERSION_DEFAULT));
+    Version protocolVersion = config.getSetting(PROTOCOL_VERSION);
 
     AtomicReference<Version> startupProtocolVersion = new AtomicReference<>();
     AtomicReference<KeyData> startupKeyData = new AtomicReference<>();
@@ -435,14 +427,14 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     StartupRequest startupRequest = new StartupRequest(protocolVersion, params, new StartupRequest.CompletionHandler() {
       @Override
       public String authenticateClear() {
-        return config.getSetting(CREDENTIALS_PASSWORD, "");
+        return config.getSetting(CREDENTIALS_PASSWORD);
       }
 
       @Override
       public String authenticateMD5(byte[] salt) {
 
-        String username = config.getSetting(CREDENTIALS_USERNAME).toString();
-        String password = config.getSetting(CREDENTIALS_PASSWORD).toString();
+        String username = config.getSetting(CREDENTIALS_USERNAME);
+        String password = config.getSetting(CREDENTIALS_PASSWORD);
 
         return MD5Authentication.encode(password, username, salt);
       }

@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.ResultField;
-import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -38,6 +37,7 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.COLUMN_INDEX_OUT_OF_BOUNDS;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
 import static com.impossibl.postgres.system.CustomTypes.lookupCustomType;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 
 import java.io.IOException;
 import java.sql.ResultSetMetaData;
@@ -234,7 +234,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
   @Override
   public String getCatalogName(int column) {
 
-    return connection.getSetting(Settings.DATABASE).toString();
+    return connection.getSetting(DATABASE_NAME);
   }
 
   @Override

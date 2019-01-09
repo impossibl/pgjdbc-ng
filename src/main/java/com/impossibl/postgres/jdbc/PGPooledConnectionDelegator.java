@@ -998,14 +998,14 @@ public class PGPooledConnectionDelegator implements PGConnection {
   /**
    * {@inheritDoc}
    */
-  public void setDefaultFetchSize(int v) {
+  public void setDefaultFetchSize(Integer v) {
     delegator.setDefaultFetchSize(v);
   }
 
   /**
    * {@inheritDoc}
    */
-  public int getDefaultFetchSize() {
+  public Integer getDefaultFetchSize() {
     return delegator.getDefaultFetchSize();
   }
 

@@ -26,17 +26,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.jdbc;
+package com.impossibl.postgres.system;
 
-public class PGSettings {
+public class ParameterNames {
 
-  public static final String HOUSEKEEPER_ENABLED_LEGACY = "housekeeper.enabled";
-  public static final String HOUSEKEEPER = "housekeeper";
-  public static final String HOUSEKEEPER_DEFAULT_DRIVER = "true";
-  public static final String HOUSEKEEPER_DEFAULT_DATASOURCE = "true";
-
-  public static final String REGISTRY_SHARING = "registry.sharing";
-  public static final String REGISTRY_SHARING_DRIVER_DEFAULT = "true";
-  public static final String REGISTRY_SHARING_DATASOURCE_DEFAULT = "true";
+  public static final String DATABASE = "database";
+  public static final String USER = "user";
+  public static final String PASSWORD = "password";
+  public static final String APPLICATION_NAME = "application_name";
+  public static final String CLIENT_ENCODING = "client_encoding";
+  public static final String SESSION_AUTHORIZATION = "session_authorization";
+  public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
+  public static final String TIME_ZONE = "TimeZone";
+  public static final String DATE_STYLE = "DateStyle";
 
 }

@@ -31,6 +31,7 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.Setting;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
@@ -39,8 +40,9 @@ import com.impossibl.postgres.utils.guava.Joiner;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.UNWRAP_ERROR;
-import static com.impossibl.postgres.system.Settings.CREDENTIALS_USERNAME;
-import static com.impossibl.postgres.system.Settings.DATABASE_URL;
+import static com.impossibl.postgres.jdbc.JDBCSettings.CLIENT_INFO;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -58,6 +60,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Comparator.comparing;
 
 class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
@@ -127,10 +131,10 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
   @Override
   public String getURL() throws SQLException {
-    Object val = connection.getSetting(DATABASE_URL);
+    String val = connection.getSetting(DATABASE_URL);
     if (val == null)
       throw new SQLException("invalid connection");
-    return val.toString();
+    return val;
   }
 
   @Override
@@ -2450,14 +2454,19 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     resultFields[2] =   new ResultField("DEFAULT_VALUE",      0, (short)0, registry.loadBaseType("text"), (short)0, 0, FieldFormat.Binary);
     resultFields[3] =   new ResultField("DESCRIPTION",        0, (short)0, registry.loadBaseType("text"), (short)0, 0, FieldFormat.Binary);
 
-    Object[] row = new Object[4];
+    CLIENT_INFO.getAllSettings().stream()
+        .sorted(comparing(Setting::getName))
+        .forEach(setting -> {
 
-    //ApplicationName
-    row[0] = "ApplicationName";
-    row[1] = -1;
-    row[2] = "pgjdbc app";
-    row[3] = "Name of application using the connection";
-    results.add(row);
+          Object[] row = new Object[4];
+
+          row[0] = setting.getName();
+          row[1] = -1;
+          row[2] = setting.getDefaultText();
+          row[3] = setting.getDescription();
+
+          results.add(row);
+        });
 
     return createResultSet(resultFields, results);
   }

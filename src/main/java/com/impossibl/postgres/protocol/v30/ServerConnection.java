@@ -44,8 +44,7 @@ import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.Version;
 
-import static com.impossibl.postgres.system.Settings.SQL_TRACE;
-import static com.impossibl.postgres.system.Settings.SQL_TRACE_DEFAULT;
+import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -81,7 +80,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
     this.keyData = keyData;
     this.sharedRef = sharedRef;
 
-    if (config.getSetting(SQL_TRACE, SQL_TRACE_DEFAULT)) {
+    if (config.getSetting(SQL_TRACE)) {
       sqlTrace = new SQLTrace(new OutputStreamWriter(System.out));
     }
   }

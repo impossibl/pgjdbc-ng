@@ -32,7 +32,7 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.Settings.FIELD_VARYING_LENGTH_MAX;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_DECODER;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_ENCODER;
 import static com.impossibl.postgres.types.PrimitiveType.String;
@@ -79,7 +79,7 @@ public class Jsons extends SimpleProcProvider {
 
       byte[] bytes;
 
-      Integer maxLength = (Integer) context.getSetting(FIELD_VARYING_LENGTH_MAX);
+      Integer maxLength = (Integer) context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         bytes = new byte[min(maxLength, length)];
       }

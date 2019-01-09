@@ -34,8 +34,10 @@ import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.types.SharedRegistry;
 
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING;
-import static com.impossibl.postgres.jdbc.PGSettings.REGISTRY_SHARING_DRIVER_DEFAULT;
+import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
+import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
+import static com.impossibl.postgres.system.SystemSettings.PROTO;
+import static com.impossibl.postgres.system.SystemSettings.SYS;
 
 import java.sql.Driver;
 import java.sql.DriverAction;
@@ -43,15 +45,12 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.lang.Boolean.parseBoolean;
+import java.util.stream.Stream;
 
 /**
  * Driver implementation
@@ -101,7 +100,7 @@ public class PGDriver implements Driver, DriverAction {
   public PGConnection connect(String url, Properties info) throws SQLException {
 
     SharedRegistry.Factory sharedRegistryFactory;
-    if (parseBoolean(info.getProperty(REGISTRY_SHARING, REGISTRY_SHARING_DRIVER_DEFAULT))) {
+    if (REGISTRY_SHARING.get(info)) {
       sharedRegistryFactory =
           connInfo ->
               sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDriver.class.getClassLoader()));
@@ -111,7 +110,7 @@ public class PGDriver implements Driver, DriverAction {
           connInfo -> new SharedRegistry(connInfo.getServerInfo(), Thread.currentThread().getContextClassLoader());
     }
 
-    return ConnectionUtil.createConnection(url, info, sharedRegistryFactory, true);
+    return ConnectionUtil.createConnection(url, info, sharedRegistryFactory);
   }
 
   @Override
@@ -121,22 +120,14 @@ public class PGDriver implements Driver, DriverAction {
 
   @Override
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
-    List<DriverPropertyInfo> propInfo = new ArrayList<>();
 
-    ConnectionUtil.ConnectionSpecifier spec = ConnectionUtil.parseURL(url);
-    if (spec == null)
-      spec = new ConnectionUtil.ConnectionSpecifier();
-
-    if (spec.getDatabase() == null || spec.getDatabase().isEmpty())
-      propInfo.add(new DriverPropertyInfo("database", ""));
-
-    if (spec.getParameters().get("username") == null || spec.getParameters().get("username").toString().isEmpty())
-      propInfo.add(new DriverPropertyInfo("username", ""));
-
-    if (spec.getParameters().get("password") == null || spec.getParameters().get("password").toString().isEmpty())
-      propInfo.add(new DriverPropertyInfo("password", ""));
-
-    return propInfo.toArray(new DriverPropertyInfo[propInfo.size()]);
+    return Stream.concat(JDBC.getAllSettings().stream(), Stream.concat(SYS.getAllSettings().stream(), PROTO.getAllSettings().stream()))
+        .map(setting -> {
+          DriverPropertyInfo pi = new DriverPropertyInfo(setting.getName(), setting.getText(info));
+          pi.description = setting.getDescription();
+          return pi;
+        })
+        .toArray(DriverPropertyInfo[]::new);
   }
 
   @Override

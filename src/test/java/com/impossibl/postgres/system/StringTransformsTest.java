@@ -26,45 +26,48 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.utils;
+package com.impossibl.postgres.system;
 
-import java.lang.reflect.Array;
+import static com.impossibl.postgres.utils.StringTransforms.dashedFromCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.dottedFromCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.toLowerCamelCase;
+import static com.impossibl.postgres.utils.StringTransforms.toUpperCamelCase;
 
-public class Factory {
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-  public static <T> T createInstance(String typeName) {
+import static org.junit.Assert.assertEquals;
 
-    try {
+@RunWith(JUnit4.class)
+public class StringTransformsTest {
 
-      @SuppressWarnings("unchecked")
-      Class<T> type = (Class<T>) Class.forName(typeName);
+  @Test
+  public void testToLowerCamelCase() {
 
-      return createInstance(type, 0);
-
-    }
-    catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
+    assertEquals("aCapitalizedOptionSet", toLowerCamelCase("a.capitalized.option-set"));
+    assertEquals("sameWithSpacesAndDashes", toLowerCamelCase("same  with spaces and-dashes"));
   }
 
-  public static <T> T createInstance(Class<T> type, int sizeIfArray) {
+  @Test
+  public void testToUpperCamelCase() {
 
-    try {
+    assertEquals("ACapitalizedOptionSet", toUpperCamelCase("a.capitalized.option-set"));
+    assertEquals("SameWithSpacesAndDashes", toUpperCamelCase("same  with spaces and-dashes"));
+  }
 
-      if (type.isArray()) {
-        return type.cast(Array.newInstance(type.getComponentType(), sizeIfArray));
-      }
+  @Test
+  public void testDashedFromCamelCase() {
 
-      return type.newInstance();
-    }
-    catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    }
-    catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
+    assertEquals("a-capitalized-option-set", dashedFromCamelCase("ACapitalizedOptionSet"));
+    assertEquals("a-capitalized-option-set", dashedFromCamelCase("aCapitalizedOptionSet"));
+  }
 
+  @Test
+  public void testDottedFromCamelCase() {
+
+    assertEquals("a.capitalized.option.set", dottedFromCamelCase("ACapitalizedOptionSet"));
+    assertEquals("a.capitalized.option.set", dottedFromCamelCase("aCapitalizedOptionSet"));
   }
 
 }

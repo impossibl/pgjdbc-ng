@@ -41,6 +41,11 @@ import javax.sql.PooledConnection;
  */
 public class PGConnectionPoolDataSource extends AbstractDataSource implements ConnectionPoolDataSource, Referenceable {
 
+  @Override
+  public String getDescription() {
+    return PGDriver.NAME + " - Connection Pool Data Source";
+  }
+
   /**
    * Constructor
    */

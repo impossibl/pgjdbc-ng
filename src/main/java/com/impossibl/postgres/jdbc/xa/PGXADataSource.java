@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc.xa;
 
 import com.impossibl.postgres.jdbc.AbstractDataSource;
+import com.impossibl.postgres.jdbc.PGDriver;
 
 import java.sql.SQLException;
 
@@ -48,6 +49,11 @@ public class PGXADataSource extends AbstractDataSource implements XADataSource, 
    */
   public PGXADataSource() {
     super();
+  }
+
+  @Override
+  public String getDescription() {
+    return PGDriver.NAME + " - XA Data Source";
   }
 
   /**

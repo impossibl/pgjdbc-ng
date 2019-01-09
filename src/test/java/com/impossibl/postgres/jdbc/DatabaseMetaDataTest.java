@@ -1180,6 +1180,8 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.next());
     assertEquals("ApplicationName", rs.getString("NAME"));
+    assertTrue(rs.next());
+    assertEquals("ClientUser", rs.getString("NAME"));
 
     rs.close();
   }

@@ -35,13 +35,10 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.system.Settings;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Properties;
 
 import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.Test;
@@ -168,8 +165,7 @@ public class DriverTest {
   @Test
   public void testParsedSqlCacheSize() throws Exception {
     ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL("jdbc:pgsql://localhost/test?parsedSqlCacheSize=100");
-    Properties parameters = connSpec.getParameters();
-    assertSame(100, Integer.parseInt(parameters.getProperty(Settings.PARSED_SQL_CACHE_SIZE)));
+    assertSame(100, JDBCSettings.PARSED_SQL_CACHE_SIZE.get(connSpec.getParameters()));
   }
 
   /*
@@ -178,7 +174,7 @@ public class DriverTest {
   @Test
   public void testNetworkTimeout() throws Exception {
     ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL("jdbc:pgsql://localhost/test?networkTimeout=10000");
-    Properties parameters = connSpec.getParameters();
-    assertEquals(10000, Integer.parseInt(parameters.getProperty(Settings.NETWORK_TIMEOUT)));
+    assertEquals((Integer) 10000, JDBCSettings.DEFAULT_NETWORK_TIMEOUT.get(connSpec.getParameters()));
   }
+
 }

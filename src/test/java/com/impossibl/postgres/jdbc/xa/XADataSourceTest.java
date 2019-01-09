@@ -71,9 +71,9 @@ public class XADataSourceTest {
   @Before
   public void before() throws Exception {
     PGXADataSource ds = new PGXADataSource();
-    ds.setHost(TestUtil.getServer());
-    ds.setPort(Integer.valueOf(TestUtil.getPort()));
-    ds.setDatabase(TestUtil.getDatabase());
+    ds.setServerName(TestUtil.getServer());
+    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabaseName(TestUtil.getDatabase());
     ds.setUser(TestUtil.getUser());
     ds.setPassword(TestUtil.getPassword());
 

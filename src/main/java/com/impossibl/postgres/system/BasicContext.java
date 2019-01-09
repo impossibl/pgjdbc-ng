@@ -62,9 +62,10 @@ import com.impossibl.postgres.utils.Timer;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
-import static com.impossibl.postgres.system.Settings.DATABASE;
-import static com.impossibl.postgres.system.Settings.SESSION_USER;
-import static com.impossibl.postgres.system.Settings.STANDARD_CONFORMING_STRINGS;
+import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
+import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
+import static com.impossibl.postgres.system.SystemSettings.SESSION_USER;
+import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_STRINGS;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
@@ -77,7 +78,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
@@ -167,12 +167,12 @@ public class BasicContext extends AbstractContext {
   private NumberFormat integerFormatter;
   private DecimalFormat decimalFormatter;
   private DecimalFormat currencyFormatter;
-  protected Properties settings;
+  protected Settings settings;
   protected ServerConnection serverConnection;
   private Map<String, QueryDescription> utilQueries;
 
 
-  public BasicContext(SocketAddress address, Properties settings) throws IOException {
+  public BasicContext(SocketAddress address, Settings settings) throws IOException {
     this.typeMap = new HashMap<>();
     this.settings = settings;
     this.charset = UTF_8;
@@ -219,11 +219,11 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public Object getSetting(String name) {
-    Object value = settings.get(name);
+  public <T> T getSetting(Setting<T> setting) {
+    T value = settings.getStored(setting);
     if (value != null)
       return value;
-    return super.getSetting(name);
+    return super.getSetting(setting);
   }
 
   @Override
@@ -282,7 +282,8 @@ public class BasicContext extends AbstractContext {
 
   protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
 
-    String database = getSetting(DATABASE, getSetting(SESSION_USER, String.class));
+    String database = getSetting(DATABASE_NAME, getSetting(SESSION_USER));
+
     ServerConnectionInfo serverConnectionInfo =
         new ServerConnectionInfo(serverConnection.getServerInfo(), serverConnection.getRemoteAddress(), database);
 
@@ -699,7 +700,7 @@ public class BasicContext extends AbstractContext {
 
     switch (name) {
 
-      case "DateStyle":
+      case ParameterNames.DATE_STYLE:
 
         String[] parsedDateStyle = DateStyle.parse(value);
 
@@ -728,7 +729,7 @@ public class BasicContext extends AbstractContext {
         }
         break;
 
-      case "TimeZone":
+      case ParameterNames.TIME_ZONE:
         if (value.contains("+")) {
           value = value.replace('+', '-');
         }
@@ -739,18 +740,25 @@ public class BasicContext extends AbstractContext {
         timeZone = TimeZone.getTimeZone(value);
         break;
 
-      case "client_encoding":
+      case ParameterNames.CLIENT_ENCODING:
 
         charset = Charset.forName(value);
         break;
 
-      case STANDARD_CONFORMING_STRINGS:
+      case ParameterNames.STANDARD_CONFORMING_STRINGS:
 
-        settings.put(STANDARD_CONFORMING_STRINGS, value.equals("on"));
+        settings.set(STANDARD_CONFORMING_STRINGS, value.equals("on"));
         break;
 
-      case SESSION_USER:
-        settings.put(SESSION_USER, value);
+      case ParameterNames.SESSION_AUTHORIZATION:
+
+        settings.set(SESSION_USER, value);
+        break;
+
+      case ParameterNames.APPLICATION_NAME:
+
+        settings.set(APPLICATION_NAME, value);
+        break;
 
       default:
         break;

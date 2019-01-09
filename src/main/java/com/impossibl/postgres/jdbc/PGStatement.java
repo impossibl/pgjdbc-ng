@@ -35,7 +35,6 @@ import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultBatches;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowDataSet;
-import com.impossibl.postgres.system.Settings;
 
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_STATEMENT;
 import static com.impossibl.postgres.jdbc.Exceptions.ILLEGAL_ARGUMENT;
@@ -151,7 +150,7 @@ abstract class PGStatement implements Statement {
     this.resultFields = resultFields;
     this.activeResultSets = new ArrayList<>();
     this.generatedKeysResultSet = null;
-    this.fetchSize = connection.getDefaultFetchSize() != Settings.DEFAULT_FETCH_SIZE_DEFAULT ? connection.getDefaultFetchSize() : null;
+    this.fetchSize = connection.getDefaultFetchSize();
 
     this.housekeeper = connection.housekeeper;
     if (this.housekeeper != null)

@@ -26,13 +26,43 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.system;
+package com.impossibl.postgres.jdbc;
 
-public abstract class AbstractContext implements Context {
+import com.impossibl.postgres.system.Setting;
+import com.impossibl.postgres.system.SystemSettings;
 
-  @Override
-  public <T> T getSetting(Setting<T> setting) {
-    return setting.getSystem();
-  }
+public class DataSourceSettings implements Setting.Provider {
+
+  public static final Setting.Group DS = new Setting.Group(
+      "jdbc-ds", "JDBC DataSource specific settings"
+  );
+
+  public static final Setting<String> DATASOURCE_NAME = DS.add(
+      "Name of data source",
+      (String) null,
+      "data-source.name", "dataSourceName"
+  );
+
+  public static final Setting<String> DATABASE_NAME = DS.add(
+      SystemSettings.DATABASE_NAME
+  );
+
+  public static final Setting<String> SERVER_NAME = DS.add(
+      "Host name for TCP connections",
+      "localhost",
+      "server.name", "serverName"
+  );
+
+  public static final Setting<Integer> PORT_NUMBER = DS.add(
+      "Port number for TCP connections",
+      5432,
+      "port.number", "portNumber"
+  );
+
+  public static final Setting<Integer> LOGIN_TIMEOUT = DS.add(
+      "Maximum time to wait for a connection to be established",
+      0,
+      "login.timeout", "loginTimeout"
+  );
 
 }
