@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -51,11 +50,6 @@ public class Paths extends SimpleProcProvider {
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Path;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -87,11 +81,6 @@ public class Paths extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Path;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Path path = (Path) value;
@@ -112,11 +101,6 @@ public class Paths extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Path;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return Path.class;
     }
@@ -129,11 +113,6 @@ public class Paths extends SimpleProcProvider {
   }
 
   static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Path;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

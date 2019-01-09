@@ -63,6 +63,14 @@ public class Procs {
     }
   }
 
+  public static boolean isDefaultDecoder(Type.Codec.Decoder<?> decoder) {
+    return decoder == DEFAULT_TEXT_DECODER || decoder == DEFAULT_BINARY_DECODER;
+  }
+
+  public static boolean isDefaultEncoder(Type.Codec.Encoder<?> encoder) {
+    return encoder == DEFAULT_TEXT_ENCODER || encoder == DEFAULT_BINARY_ENCODER;
+  }
+
   public Type.TextCodec loadNamedTextCodec(String baseName) {
     return new Type.TextCodec(
         loadDecoderProc(baseName + "out", DEFAULT_TEXT_DECODER, CharSequence.class),
@@ -79,7 +87,7 @@ public class Procs {
 
   public <Buffer> Codec.Encoder<Buffer> loadEncoderProc(String name, Type.Codec.Encoder<Buffer> defaultEncoder, Class<? extends Buffer> bufferType) {
 
-    if (!name.isEmpty()) {
+    if (!name.isEmpty() && !name.equals("-")) {
       Codec.Encoder<Buffer> h;
 
       for (ProcProvider pp : providers) {
@@ -92,7 +100,8 @@ public class Procs {
   }
 
   public <Buffer> Codec.Decoder<Buffer> loadDecoderProc(String name, Type.Codec.Decoder<Buffer> defaultDecoder, Class<? extends Buffer> bufferType) {
-    if (!name.isEmpty()) {
+
+    if (!name.isEmpty() && !name.equals("-")) {
       Codec.Decoder<Buffer> h;
 
       for (ProcProvider pp : providers) {

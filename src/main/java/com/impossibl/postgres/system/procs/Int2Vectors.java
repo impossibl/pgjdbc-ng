@@ -30,11 +30,8 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.Joiner;
-
-import static com.impossibl.postgres.types.PrimitiveType.Array;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -47,11 +44,6 @@ public class Int2Vectors extends SimpleProcProvider {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Array;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -81,11 +73,6 @@ public class Int2Vectors extends SimpleProcProvider {
   static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Array;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
       String[] items;
@@ -104,7 +91,7 @@ public class Int2Vectors extends SimpleProcProvider {
         }
       }
       else {
-        throw new ConversionException(value.getClass(), Array);
+        throw new ConversionException(value.getClass(), type);
       }
 
       Joiner.on(' ').appendTo(buffer, items);

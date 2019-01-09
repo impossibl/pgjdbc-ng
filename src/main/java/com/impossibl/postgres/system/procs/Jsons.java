@@ -29,13 +29,11 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_DECODER;
 import static com.impossibl.postgres.system.procs.Strings.TEXT_ENCODER;
-import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
 
@@ -51,11 +49,6 @@ public class Jsons extends SimpleProcProvider {
   }
 
   public static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -79,7 +72,7 @@ public class Jsons extends SimpleProcProvider {
 
       byte[] bytes;
 
-      Integer maxLength = (Integer) context.getSetting(FIELD_LENGTH_MAX);
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
         bytes = new byte[min(maxLength, length)];
       }
@@ -96,11 +89,6 @@ public class Jsons extends SimpleProcProvider {
   }
 
   public static class BinEncoder extends BaseBinaryEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
 
     byte[] toBytes(Object val, Context context) {
       return val.toString().getBytes(context.getCharset());

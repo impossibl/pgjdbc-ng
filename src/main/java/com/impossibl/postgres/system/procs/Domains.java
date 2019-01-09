@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.DomainType;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -46,11 +45,6 @@ public class Domains extends SimpleProcProvider {
   public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Domain;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       DomainType domainType = (DomainType) type;
@@ -62,11 +56,6 @@ public class Domains extends SimpleProcProvider {
   }
 
   public static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Domain;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

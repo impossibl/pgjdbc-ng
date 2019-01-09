@@ -66,11 +66,6 @@ public class ArrayType extends Type {
   }
 
   @Override
-  public PrimitiveType getPrimitiveType() {
-    return PrimitiveType.Array;
-  }
-
-  @Override
   public boolean isParameterFormatSupported(FieldFormat format) {
     return elementType.isParameterFormatSupported(format);
   }

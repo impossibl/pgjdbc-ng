@@ -120,7 +120,7 @@ public class PGParameterMetaData implements ParameterMetaData {
 
     Type paramType = getType(param);
 
-    return JDBCTypeMapping.getSQLTypeCode(paramType);
+    return JDBCTypeMapping.getJDBCTypeCode(paramType);
   }
 
   @Override

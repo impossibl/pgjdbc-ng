@@ -120,7 +120,7 @@ abstract class AutoConvertingBinaryEncoder<N> extends BaseBinaryEncoder implemen
     this.converter = converter;
   }
 
-  protected N convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
+  protected N convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
     if (getDefaultClass().isInstance(source)) {
       return getDefaultClass().cast(source);
@@ -129,13 +129,13 @@ abstract class AutoConvertingBinaryEncoder<N> extends BaseBinaryEncoder implemen
       return converter.convert(context, source, sourceContext);
     }
 
-    throw new ConversionException(source.getClass(), getPrimitiveType());
+    throw new ConversionException(source.getClass(), type);
   }
 
   @Override
   protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-    N convertedValue = convertInput(context, value, sourceContext);
+    N convertedValue = convertInput(context, type, value, sourceContext);
     if (convertedValue == null) {
       throw new IOException("Error coercing value");
     }
@@ -183,7 +183,7 @@ abstract class AutoConvertingTextEncoder<N> extends BaseTextEncoder implements A
     this.converter = converter;
   }
 
-  protected N convertInput(Context context, Object source, Object sourceContext) throws ConversionException {
+  protected N convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
     if (getDefaultClass().isInstance(source)) {
       return getDefaultClass().cast(source);
@@ -192,13 +192,13 @@ abstract class AutoConvertingTextEncoder<N> extends BaseTextEncoder implements A
       return converter.convert(context, source, sourceContext);
     }
 
-    throw new ConversionException(source.getClass(), getPrimitiveType());
+    throw new ConversionException(source.getClass(), type);
   }
 
   @Override
   protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-    N convertedValue = convertInput(context, value, sourceContext);
+    N convertedValue = convertInput(context, type, value, sourceContext);
     if (convertedValue == null) {
       throw new IOException("Error coercing value");
     }

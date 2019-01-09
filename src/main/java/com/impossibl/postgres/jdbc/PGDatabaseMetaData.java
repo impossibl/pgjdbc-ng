@@ -833,7 +833,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
           row[2] = procedureName;
           row[3] = "returnValue";
           row[4] = DatabaseMetaData.procedureColumnReturn;
-          row[5] = JDBCTypeMapping.getSQLTypeCode(returnType);
+          row[5] = JDBCTypeMapping.getJDBCTypeCode(returnType);
           row[6] = JDBCTypeMetaData.getTypeName(returnType, null);
           row[7] = null;
           row[8] = null;
@@ -884,7 +884,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
             argType = reg.loadType(argTypeIds[i].intValue());
           }
 
-          row[5] = JDBCTypeMapping.getSQLTypeCode(argType);
+          row[5] = JDBCTypeMapping.getJDBCTypeCode(argType);
           row[6] = argType.getCodec(argType.getResultFormat()).getDecoder().getDefaultClass().getName();
           row[7] = null;
           row[8] = null;
@@ -915,7 +915,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
                 row[2] = procedureName;
                 row[3] = columnrs.getString("attname");
                 row[4] = DatabaseMetaData.procedureColumnResult;
-                row[5] = JDBCTypeMapping.getSQLTypeCode(columnType);
+                row[5] = JDBCTypeMapping.getJDBCTypeCode(columnType);
                 row[6] = columnType.getCodec(columnType.getResultFormat()).getDecoder().getDefaultClass().getName();
                 row[7] = null;
                 row[8] = null;
@@ -1169,7 +1169,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[1] = columnData.tableSchemaName;
       row[2] = columnData.tableName;
       row[3] = columnData.columnName;
-      row[4] = JDBCTypeMapping.getSQLTypeCode(columnData.type);
+      row[4] = JDBCTypeMapping.getJDBCTypeCode(columnData.type);
       row[5] = JDBCTypeMetaData.getTypeName(columnData.type, columnData.defaultValue);
 
       int size = JDBCTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
@@ -1207,7 +1207,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[18] = null;
       row[19] = null;
       row[20] = null;
-      row[21] = columnData.baseType != null ? JDBCTypeMapping.getSQLTypeCode(columnData.baseType) : null;
+      row[21] = columnData.baseType != null ? JDBCTypeMapping.getJDBCTypeCode(columnData.baseType) : null;
       row[22] = nullToEmpty(columnData.defaultValue).startsWith("nextval(") ? "YES" : "NO";
       row[23] = columnData.relationId == 0 ? "YES" : "NO";
       results.add(row);
@@ -1585,7 +1585,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         }
         row[0] = scope;
         row[1] = rs.getString("attname");
-        row[2] = JDBCTypeMapping.getSQLTypeCode(type);
+        row[2] = JDBCTypeMapping.getJDBCTypeCode(type);
         row[3] = JDBCTypeMetaData.getTypeName(type, null);
         row[4] = columnSize;
         row[5] = null; // unused
@@ -1635,7 +1635,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
     row[0] = null;
     row[1] = "ctid";
-    row[2] = JDBCTypeMapping.getSQLTypeCode(type);
+    row[2] = JDBCTypeMapping.getJDBCTypeCode(type);
     row[3] = JDBCTypeMetaData.getTypeName(type, null);
     row[4] = null;
     row[5] = null;
@@ -1799,7 +1799,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         Type type = registry.loadType(typeOid);
 
         row[0] = JDBCTypeMetaData.getTypeName(type, null);
-        row[1] = JDBCTypeMapping.getSQLTypeCode(type);
+        row[1] = JDBCTypeMapping.getJDBCTypeCode(type);
         row[2] = JDBCTypeMetaData.getMaxPrecision(type);
 
         if (JDBCTypeMetaData.requiresQuoting(type)) {
@@ -2167,7 +2167,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
         Type type = reg.loadType(rs.getInt(7));
         if (type != null) {
-          row[6] = JDBCTypeMapping.getSQLTypeCode(type);
+          row[6] = JDBCTypeMapping.getJDBCTypeCode(type);
         }
         else {
           row[6] = null;
@@ -2292,7 +2292,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[1] = attrData.typeSchemaName;
       row[2] = attrData.typeName;
       row[3] = attrData.attributeName;
-      row[4] = JDBCTypeMapping.getSQLTypeCode(attrData.type);
+      row[4] = JDBCTypeMapping.getJDBCTypeCode(attrData.type);
       row[5] = JDBCTypeMetaData.getTypeName(attrData.type, attrData.defaultValue);
 
       int size = JDBCTypeMetaData.getPrecision(attrData.type, attrData.typeLength, attrData.typeModifier);
@@ -2329,7 +2329,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[17] = null;
       row[18] = null;
       row[19] = null;
-      row[20] = attrData.type instanceof DomainType ? JDBCTypeMapping.getSQLTypeCode(attrData.type.unwrap()) : null;
+      row[20] = attrData.type instanceof DomainType ? JDBCTypeMapping.getJDBCTypeCode(attrData.type.unwrap()) : null;
 
       results.add(row);
     }
@@ -2542,7 +2542,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       row[1] = columnData.tableSchemaName;
       row[2] = columnData.tableName;
       row[3] = columnData.columnName;
-      row[4] = JDBCTypeMapping.getSQLTypeCode(columnData.type);
+      row[4] = JDBCTypeMapping.getJDBCTypeCode(columnData.type);
 
       int size = JDBCTypeMetaData.getPrecision(columnData.type, columnData.typeLength, columnData.typeModifier);
       if (size == 0) {

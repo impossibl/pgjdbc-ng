@@ -286,7 +286,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
   public int getColumnType(int column) throws SQLException {
     ResultField field = get(column);
     try {
-      return JDBCTypeMapping.getSQLTypeCode(connection.getRegistry().resolve(field.getTypeRef()));
+      return JDBCTypeMapping.getJDBCTypeCode(connection.getRegistry().resolve(field.getTypeRef()));
     }
     catch (IOException e) {
       throw makeSQLException(e);

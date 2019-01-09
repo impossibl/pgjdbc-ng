@@ -65,11 +65,6 @@ public class NestedArrayType extends ArrayType {
   }
 
   @Override
-  public PrimitiveType getPrimitiveType() {
-    return PrimitiveType.Array;
-  }
-
-  @Override
   public String toString() {
     return super.toString() + "[]";
   }

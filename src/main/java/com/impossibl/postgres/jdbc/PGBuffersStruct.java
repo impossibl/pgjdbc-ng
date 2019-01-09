@@ -63,7 +63,7 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
           continue;
         }
 
-        Type attributeType = JDBCTypeMapping.getType(JDBCTypeMapping.getSQLTypeCode(value.getClass()), value, context.getRegistry());
+        Type attributeType = JDBCTypeMapping.getType(JDBCTypeMapping.getSQLType(value), value, context.getRegistry());
         if (attributeType == null) {
           throw new IOException("Unable to determine type of attribute " + (attributeIdx + 1));
         }

@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 
 import com.impossibl.postgres.api.data.InetAddr;
-import com.impossibl.postgres.types.PrimitiveType;
 
 public class Inets extends Networks {
 
@@ -51,8 +50,8 @@ public class Inets extends Networks {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Inet;
+    public Kind getKind() {
+      return Kind.Inet;
     }
 
     @Override

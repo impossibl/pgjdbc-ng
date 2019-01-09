@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.Range;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.RangeType;
 import com.impossibl.postgres.types.Type;
 
@@ -46,11 +45,6 @@ public class Ranges extends SimpleProcProvider {
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Range;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -86,11 +80,6 @@ public class Ranges extends SimpleProcProvider {
   static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Range;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       RangeType rangeType = (RangeType) type;
@@ -117,11 +106,6 @@ public class Ranges extends SimpleProcProvider {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Range;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -194,11 +178,6 @@ public class Ranges extends SimpleProcProvider {
   }
 
   static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Range;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

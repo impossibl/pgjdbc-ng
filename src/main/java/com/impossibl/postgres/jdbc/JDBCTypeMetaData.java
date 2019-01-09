@@ -28,7 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.types.PrimitiveType;
+import com.impossibl.postgres.api.jdbc.PGType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
@@ -49,7 +49,7 @@ class JDBCTypeMetaData {
 
   static boolean requiresQuoting(Type type) {
 
-    int sqlType = JDBCTypeMapping.getSQLTypeCode(type);
+    int sqlType = JDBCTypeMapping.getJDBCTypeCode(type);
     switch (sqlType) {
       case Types.BIGINT:
       case Types.DOUBLE:
@@ -70,7 +70,7 @@ class JDBCTypeMetaData {
 
   static boolean isCurrency(Type type) {
 
-    return type.unwrap().getPrimitiveType() == PrimitiveType.Money;
+    return PGType.valueOf(type.unwrap()) == PGType.MONEY;
   }
 
   static boolean isCaseSensitive(Type type) {
@@ -95,14 +95,12 @@ class JDBCTypeMetaData {
     //int4/int8 auto-increment fields -> serial/bigserial
     if (type.isAutoIncrement() || Type.isAutoIncrement(attributeDefaultValue)) {
 
-      switch (type.getPrimitiveType()) {
-        case Int4:
-          return "serial";
+      if (PGType.valueOf(type) == PGType.INT4) {
+        return "serial";
+      }
 
-        case Int8:
-          return "bigserial";
-
-        default:
+      if (PGType.valueOf(type) == PGType.INT8) {
+        return "bigserial";
       }
 
     }
@@ -129,24 +127,25 @@ class JDBCTypeMetaData {
 
     type = type.unwrap();
 
-    PrimitiveType ptype = type.getPrimitiveType();
-    if (ptype == null) {
+    PGType pgType = PGType.valueOf(type);
+    if (pgType == null) {
       return 0;
     }
 
-    switch (ptype) {
-      case Numeric:
+    switch (pgType) {
+      case NUMERIC:
         return 1000;
-      case Time:
-      case TimeTZ:
-      case Timestamp:
-      case TimestampTZ:
-      case Interval:
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_TIMEZONE:
+      case INTERVAL:
         return 6;
-      case String:
-        return 10485760;
-      case Bits:
-        return 83886080;
+      case CHAR:
+      case NAME:
+      case BPCHAR:
+      case BIT:
+        return type.getLength() != null ? (int)type.getLength() : 0;
       default:
         return 0;
     }
@@ -175,36 +174,36 @@ class JDBCTypeMetaData {
     //Calculate prec
 
     int prec;
-    PrimitiveType ptype = type.getPrimitiveType();
-    if (ptype == null) {
+    PGType pgType = PGType.valueOf(type);
+    if (pgType == null) {
       prec = lenMod;
     }
     else {
 
-      switch (ptype) {
-        case Int2:
+      switch (pgType) {
+        case INT2:
           prec = 5;
           break;
 
-        case Int4:
-        case Oid:
+        case INT4:
+        case OID:
           prec = 10;
           break;
 
-        case Int8:
-        case Money:
+        case INT8:
+        case MONEY:
           prec = 19;
           break;
 
-        case Float:
+        case FLOAT4:
           prec = 8;
           break;
 
-        case Double:
+        case FLOAT8:
           prec = 17;
           break;
 
-        case Numeric:
+        case NUMERIC:
           if (precMod != 0) {
             prec = precMod;
           }
@@ -213,25 +212,30 @@ class JDBCTypeMetaData {
           }
           break;
 
-        case Date:
-        case Time:
-        case TimeTZ:
-        case Timestamp:
-        case TimestampTZ:
-          prec = calculateDateTimeDisplaySize(type.getPrimitiveType(), precMod);
+        case DATE:
+        case TIME:
+        case TIME_WITH_TIMEZONE:
+        case TIMESTAMP:
+        case TIMESTAMP_WITH_TIMEZONE:
+          prec = calculateDateTimeDisplaySize(pgType, precMod);
           break;
 
-        case Interval:
+        case INTERVAL:
           prec = 49;
           break;
 
-        case String:
-        case Binary:
-        case Bits:
+        case CHAR:
+        case NAME:
+        case TEXT:
+        case BPCHAR:
+        case VARCHAR:
+        case CSTRING:
+        case BIT:
+        case VARBIT:
           prec = lenMod;
           break;
 
-        case Bool:
+        case BOOL:
           prec = 1;
           break;
 
@@ -250,13 +254,12 @@ class JDBCTypeMetaData {
 
   static int getMinScale(Type type) {
 
-    type = type.unwrap();
-    PrimitiveType ptype = type.getPrimitiveType();
-    if (ptype == null) {
+    PGType pgType = PGType.valueOf(type.unwrap());
+    if (pgType == null) {
       return 0;
     }
 
-    if (ptype == PrimitiveType.Money) {
+    if (pgType == PGType.MONEY) {
       return 2;
     }
 
@@ -265,14 +268,12 @@ class JDBCTypeMetaData {
 
   static int getMaxScale(Type type) {
 
-    type = type.unwrap();
-
-    PrimitiveType ptype = type.getPrimitiveType();
-    if (ptype == null) {
+    PGType pgType = PGType.valueOf(type.unwrap());
+    if (pgType == null) {
       return 0;
     }
 
-    if (ptype == PrimitiveType.Numeric) {
+    if (pgType == PGType.NUMERIC) {
       return 1000;
     }
 
@@ -281,7 +282,10 @@ class JDBCTypeMetaData {
 
   static int getScale(Type type, int typeModifier) {
 
-    type = type.unwrap();
+    PGType pgType = PGType.valueOf(type.unwrap());
+    if (pgType == null) {
+      return 0;
+    }
 
     Map<String, Object> mods = type.getModifierParser().parse(typeModifier);
 
@@ -292,23 +296,23 @@ class JDBCTypeMetaData {
 
     int scale = 0;
 
-    switch (type.getPrimitiveType()) {
-      case Float:
+    switch (pgType) {
+      case FLOAT4:
         scale = 8;
         break;
 
-      case Double:
+      case FLOAT8:
         scale = 17;
         break;
 
-      case Numeric:
+      case NUMERIC:
         scale = scaleMod;
         break;
 
-      case Time:
-      case TimeTZ:
-      case Timestamp:
-      case TimestampTZ:
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_TIMEZONE:
         int precMod = -1;
         if (mods.get(PRECISION) != null) {
           precMod = (int) mods.get(PRECISION);
@@ -322,7 +326,7 @@ class JDBCTypeMetaData {
         }
         break;
 
-      case Interval:
+      case INTERVAL:
         if (scaleMod == -1) {
           scale = 6;
         }
@@ -381,7 +385,7 @@ class JDBCTypeMetaData {
         break;
 
       case DateTime:
-        size = calculateDateTimeDisplaySize(type.getPrimitiveType(), precMod);
+        size = calculateDateTimeDisplaySize(PGType.valueOf(type), precMod);
         break;
 
       case Timespan:
@@ -401,26 +405,26 @@ class JDBCTypeMetaData {
    *
    * NOTE: Values unceremoniously copied from previous JDBC driver
    *
-   * @param primType Type to determine the display size of
+   * @param pgType Type to determine the display size of
    * @param precision Precision modifier of type
    * @return Suggested display size
    */
-  private static int calculateDateTimeDisplaySize(PrimitiveType primType, int precision) {
+  private static int calculateDateTimeDisplaySize(PGType pgType, int precision) {
 
-    if (primType == null)
+    if (pgType == null)
       return 0;
 
     int size;
 
-    switch (primType) {
-      case Date:
+    switch (pgType) {
+      case DATE:
         size = 13;
         break;
 
-      case Time:
-      case TimeTZ:
-      case Timestamp:
-      case TimestampTZ:
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_TIMEZONE:
 
         int secondSize;
         switch (precision) {
@@ -438,17 +442,17 @@ class JDBCTypeMetaData {
             break;
         }
 
-        switch (primType) {
-          case Time:
+        switch (pgType) {
+          case TIME:
             size = 8 + secondSize;
             break;
-          case TimeTZ:
+          case TIME_WITH_TIMEZONE:
             size = 8 + secondSize + 6;
             break;
-          case Timestamp:
+          case TIMESTAMP:
             size = 13 + 1 + 8 + secondSize;
             break;
-          case TimestampTZ:
+          case TIMESTAMP_WITH_TIMEZONE:
             size = 13 + 1 + 8 + secondSize + 6;
             break;
           default:

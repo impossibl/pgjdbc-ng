@@ -52,11 +52,6 @@ public class DomainType extends Type {
   }
 
   @Override
-  public PrimitiveType getPrimitiveType() {
-    return PrimitiveType.Domain;
-  }
-
-  @Override
   public Boolean isNullable() {
     return nullable;
   }

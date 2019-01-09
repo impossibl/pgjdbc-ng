@@ -30,7 +30,6 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.Interval;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -48,11 +47,6 @@ public class Intervals extends SimpleProcProvider {
 
     BinDecoder() {
       super(16, Interval::toString);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Interval;
     }
 
     @Override
@@ -79,11 +73,6 @@ public class Intervals extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Interval;
-    }
-
-    @Override
     public Class<Interval> getDefaultClass() {
       return Interval.class;
     }
@@ -99,11 +88,6 @@ public class Intervals extends SimpleProcProvider {
 
     TxtEncoder() {
       super((StringConverter<Interval>) Interval::new);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Interval;
     }
 
     @Override

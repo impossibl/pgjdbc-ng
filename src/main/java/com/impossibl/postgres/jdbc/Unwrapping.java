@@ -40,7 +40,7 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.RowId;
 import java.sql.SQLException;
-
+import java.sql.SQLXML;
 
 
 class Unwrapping {
@@ -59,7 +59,30 @@ class Unwrapping {
       return unwrapRowId((RowId) x);
     }
 
+    if (x instanceof SQLXML) {
+      return unwrapXML((SQLXML) x);
+    }
+
     return x;
+  }
+
+  static PGSQLXML unwrapXML(SQLXML x) throws SQLException {
+
+    if (x == null) {
+      return null;
+    }
+
+    if (!(x instanceof PGSQLXML)) {
+      throw new SQLException("SQLXML is from a different provider");
+    }
+
+    PGSQLXML xml = (PGSQLXML) x;
+
+    if (xml.isNull()) {
+      return null;
+    }
+
+    return xml;
   }
 
   static PGRowId unwrapRowId(RowId x) throws SQLException {

@@ -32,7 +32,6 @@ import com.impossibl.postgres.jdbc.PGDirectConnection;
 import com.impossibl.postgres.jdbc.PGSQLXML;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -52,7 +51,20 @@ public class XMLs extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "xml_");
   }
 
-  static Object convertOutput(Context context, byte[] data, Class<?> targetClass) throws ConversionException {
+  static byte[] convertInput(Type type, Object value) throws ConversionException {
+
+    if (value instanceof byte[]) {
+      return (byte[]) value;
+    }
+
+    if (value instanceof PGSQLXML) {
+      return ((PGSQLXML) value).getData();
+    }
+
+    throw new ConversionException(value.getClass(), type);
+  }
+
+  static Object convertOutput(Context context, Type type, byte[] data, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == SQLXML.class) {
       return new PGSQLXML((PGDirectConnection) context.unwrap(), data);
@@ -64,15 +76,10 @@ public class XMLs extends SimpleProcProvider {
       return data;
     }
 
-    throw new ConversionException(PrimitiveType.XML, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   static class BinDecoder extends ConvertedBytes.BinDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.XML;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -84,7 +91,7 @@ public class XMLs extends SimpleProcProvider {
 
       byte[] data = (byte[]) super.decodeValue(context, type, typeLength, typeModifier, buffer, targetClass, targetContext);
 
-      return convertOutput(context, data, targetClass);
+      return convertOutput(context, type, data, targetClass);
     }
 
   }
@@ -92,18 +99,18 @@ public class XMLs extends SimpleProcProvider {
   static class BinEncoder extends ConvertedBytes.BinEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.XML;
-    }
+    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
+      value = convertInput(type, value);
+      if (value == null) {
+        value = new byte[0];
+      }
+
+      super.encodeValue(context, type, value, sourceContext, buffer);
+    }
   }
 
   static class TxtDecoder extends BaseTextDecoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.XML;
-    }
 
     @Override
     public Class<?> getDefaultClass() {
@@ -115,17 +122,12 @@ public class XMLs extends SimpleProcProvider {
 
       byte[] data = buffer.toString().getBytes(context.getCharset());
 
-      return convertOutput(context, data, targetClass);
+      return convertOutput(context, type, data, targetClass);
     }
 
   }
 
   static class TxtEncoder extends Strings.TxtEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.XML;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

@@ -39,6 +39,7 @@ import com.impossibl.postgres.types.Type;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_IMPLEMENTED;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
 import static com.impossibl.postgres.jdbc.Exceptions.PARAMETER_INDEX_OUT_OF_BOUNDS;
+import static com.impossibl.postgres.jdbc.JDBCTypeMapping.getSpecificSQLType;
 import static com.impossibl.postgres.system.Empty.EMPTY_BUFFERS;
 import static com.impossibl.postgres.system.Empty.EMPTY_FORMATS;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
@@ -55,6 +56,7 @@ import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.RowId;
@@ -89,7 +91,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   private String fullSqlText;
   private List<ParameterMode> allParameterModes;
-  private Map<Integer, Integer> outParameterSQLTypes;
+  private Map<Integer, SQLType> outParameterSQLTypes;
   private ResultField[] outParameterFields;
   private RowData outParameterData;
   private Boolean nullFlag;
@@ -354,8 +356,9 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     return true;
   }
 
+
   @Override
-  public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
     checkClosed();
 
     ParameterMode mode = allParameterModes.get(parameterIndex - 1);
@@ -371,27 +374,57 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
+    registerOutParameter(parameterIndex, JDBCType.valueOf(sqlType), scale);
+  }
+
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
+    registerOutParameter(parameterIndex, sqlType, Integer.MAX_VALUE);
+  }
+
+  @Override
+  public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
+    registerOutParameter(parameterIndex, JDBCType.valueOf(sqlType));
+  }
+
+  @Override
+  public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+    registerOutParameter(parameterIndex, getSpecificSQLType(sqlType, typeName, connection));
   }
 
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
+    registerOutParameter(parameterIndex, JDBCType.valueOf(sqlType), typeName);
   }
 
   @Override
-  public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
+  public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
     registerOutParameter(findParameter(parameterName), sqlType);
   }
 
   @Override
-  public void registerOutParameter(String parameterName, int sqlType, int scale) throws SQLException {
+  public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
+    registerOutParameter(parameterName, JDBCType.valueOf(sqlType));
+  }
+
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
     registerOutParameter(findParameter(parameterName), sqlType, scale);
   }
 
   @Override
-  public void registerOutParameter(String parameterName, int sqlType, String typeName) throws SQLException {
+  public void registerOutParameter(String parameterName, int sqlType, int scale) throws SQLException {
+    registerOutParameter(parameterName, JDBCType.valueOf(sqlType), scale);
+  }
+
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
     registerOutParameter(findParameter(parameterName), sqlType, typeName);
+  }
+
+  @Override
+  public void registerOutParameter(String parameterName, int sqlType, String typeName) throws SQLException {
+    registerOutParameter(parameterName, JDBCType.valueOf(sqlType), typeName);
   }
 
   @Override
@@ -851,6 +884,14 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     setBinaryStream(findParameter(parameterName), x, length);
   }
 
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    setObject(findParameter(parameterName), x, targetSqlType, scaleOrLength);
+  }
+
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    setObject(findParameter(parameterName), x, targetSqlType);
+  }
+
   @Override
   public void setObject(String parameterName, Object x, int targetSqlType, int scale) throws SQLException {
     setObject(findParameter(parameterName), x, targetSqlType, scale);
@@ -996,67 +1037,4 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     setNClob(findParameter(parameterName), reader);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
-    throw NOT_IMPLEMENTED;
-  }
 }

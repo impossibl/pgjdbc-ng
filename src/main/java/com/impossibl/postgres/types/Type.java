@@ -31,10 +31,12 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PGTypeTable;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.SystemSettings.PARAM_FORMAT_PREF;
+import static com.impossibl.postgres.system.procs.Procs.isDefaultEncoder;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
 import java.io.IOException;
@@ -118,8 +120,6 @@ public abstract class Type implements TypeRef {
      */
     public interface Decoder<InBuffer> {
 
-      PrimitiveType getPrimitiveType();
-
       Class<?> getDefaultClass();
 
       Object decode(Context context, Type type, Short typeLength, Integer typeModifier, InBuffer buffer, Class<?> targetClass, Object targetContext) throws IOException;
@@ -130,8 +130,6 @@ public abstract class Type implements TypeRef {
      * Encodes the given Java language object as data the server expects.
      */
     public interface Encoder<OutBuffer> {
-
-      PrimitiveType getPrimitiveType();
 
       void encode(Context context, Type type, Object value, Object sourceContext, OutBuffer buffer) throws IOException;
 
@@ -299,20 +297,8 @@ public abstract class Type implements TypeRef {
     return this;
   }
 
-  public PrimitiveType getPrimitiveType() {
-    Codec binCodec = getBinaryCodec();
-    if (binCodec.decoder.getPrimitiveType() != null) {
-      return binCodec.decoder.getPrimitiveType();
-    }
-    Codec txtCodec = getTextCodec();
-    if (txtCodec.decoder.getPrimitiveType() != null) {
-      return txtCodec.decoder.getPrimitiveType();
-    }
-    return PrimitiveType.Unknown;
-  }
-
   public boolean isParameterFormatSupported(FieldFormat format) {
-    return getCodec(format).encoder.getPrimitiveType() != PrimitiveType.Unknown;
+    return !isDefaultEncoder(getCodec(format).encoder);
   }
 
   public FieldFormat getParameterFormat() {
@@ -333,7 +319,7 @@ public abstract class Type implements TypeRef {
   }
 
   public boolean isResultFormatSupported(FieldFormat format) {
-    return getCodec(format).decoder.getPrimitiveType() != PrimitiveType.Unknown;
+    return !Procs.isDefaultDecoder(getCodec(format).decoder);
   }
 
   public FieldFormat getResultFormat() {

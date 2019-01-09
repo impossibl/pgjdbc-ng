@@ -29,7 +29,6 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.GeometryParsers;
 
@@ -55,11 +54,6 @@ public class Circles extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Circle;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -76,11 +70,6 @@ public class Circles extends SimpleProcProvider {
 
     BinEncoder() {
       super(24);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Circle;
     }
 
     @Override
@@ -101,11 +90,6 @@ public class Circles extends SimpleProcProvider {
   static class TxtDecoder extends BaseTextDecoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Circle;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return double[].class;
     }
@@ -118,11 +102,6 @@ public class Circles extends SimpleProcProvider {
   }
 
   static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Circle;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

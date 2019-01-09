@@ -31,12 +31,10 @@ package com.impossibl.postgres.system.procs;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.JavaTypeMapping;
 import com.impossibl.postgres.types.Modifiers;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
-import static com.impossibl.postgres.types.PrimitiveType.String;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -186,11 +184,6 @@ public class Strings extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
-
-    @Override
     public Class<String> getDefaultClass() {
       return String.class;
     }
@@ -218,11 +211,6 @@ public class Strings extends SimpleProcProvider {
   public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
-
-    @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
       buffer.writeCharSequence(convertInput(context, value, sourceContext), context.getCharset());
@@ -235,11 +223,6 @@ public class Strings extends SimpleProcProvider {
     TxtDecoder() {
       super(Strings::convertOutput);
       enableRespectMaxLength();
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
     }
 
     @Override
@@ -263,11 +246,6 @@ public class Strings extends SimpleProcProvider {
   }
 
   public static class TxtEncoder extends BaseTextEncoder {
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return String;
-    }
 
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {

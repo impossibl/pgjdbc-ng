@@ -29,10 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
-
-import static com.impossibl.postgres.types.PrimitiveType.Numeric;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -123,11 +120,6 @@ public class Numerics extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Numeric;
-    }
-
-    @Override
     public Class<Number> getDefaultClass() {
       return Number.class;
     }
@@ -167,11 +159,6 @@ public class Numerics extends SimpleProcProvider {
 
     BinEncoder() {
       super(null, Numerics::convertStringInput, Numerics::convertBoolInput, Numerics::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Numeric;
     }
 
     @Override
@@ -222,11 +209,6 @@ public class Numerics extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return Numeric;
-    }
-
-    @Override
     public Class<Number> getDefaultClass() {
       return Number.class;
     }
@@ -242,11 +224,6 @@ public class Numerics extends SimpleProcProvider {
 
     TxtEncoder() {
       super(Numerics::convertStringInput, Numerics::convertBoolInput, Numerics::convertInput);
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return Numeric;
     }
 
     @Override

@@ -33,7 +33,6 @@ import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.InetAddr.Family;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
-import com.impossibl.postgres.types.PrimitiveType;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -41,6 +40,12 @@ import java.io.IOException;
 import io.netty.buffer.ByteBuf;
 
 abstract class Networks extends SimpleProcProvider {
+
+  enum Kind {
+    Inet,
+    Cidr,
+  }
+
   private static final short PGSQL_AF_INET = 2;
   private static final short PGSQL_AF_INET6 = 3;
 
@@ -50,13 +55,13 @@ abstract class Networks extends SimpleProcProvider {
 
     T newNetworkObject(String v);
 
-    PrimitiveType getPrimitiveType();
+    Kind getKind();
 
     Class<T> getObjectType();
 
   }
 
-  private static InetAddr convertInput(Object value, PrimitiveType primitiveType) throws ConversionException {
+  private static InetAddr convertInput(Type type, Object value) throws ConversionException {
 
     if (value instanceof InetAddr) {
       return (InetAddr) value;
@@ -66,16 +71,16 @@ abstract class Networks extends SimpleProcProvider {
       return InetAddr.parseInetAddr((String) value, true);
     }
 
-    throw new ConversionException(value.getClass(), primitiveType);
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(InetAddr value, PrimitiveType srcType, Class<?> targetClass) throws ConversionException {
+  private static Object convertOutput(Type type, InetAddr value, Kind kind, Class<?> targetClass) throws ConversionException {
 
-    if (targetClass == InetAddr.class && srcType == PrimitiveType.Inet) {
+    if (targetClass == InetAddr.class && kind == Kind.Inet) {
       return value;
     }
 
-    if (targetClass == CidrAddr.class && srcType == PrimitiveType.Cidr) {
+    if (targetClass == CidrAddr.class && kind == Kind.Cidr) {
       return value;
     }
 
@@ -83,12 +88,12 @@ abstract class Networks extends SimpleProcProvider {
       return value.toString();
     }
 
-    throw new ConversionException(srcType, targetClass);
+    throw new ConversionException(type, targetClass);
   }
 
   // http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/utils/inet.h;h=3d8e31c31c83d5544ea170144b03b0357cd77b2b;hb=HEAD
   Networks(String pgtype, NetworkObjectFactory<? extends InetAddr> nof) {
-    super(new TxtEncoder(nof), new TxtDecoder(nof), new BinEncoder(nof), new BinDecoder(nof), pgtype);
+    super(new TxtEncoder(), new TxtDecoder(nof), new BinEncoder(), new BinDecoder(nof), pgtype);
   }
 
   static class BinDecoder extends BaseBinaryDecoder {
@@ -97,11 +102,6 @@ abstract class Networks extends SimpleProcProvider {
 
     BinDecoder(NetworkObjectFactory<? extends InetAddr> nof) {
       this.nof = nof;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
     }
 
     @Override
@@ -143,29 +143,17 @@ abstract class Networks extends SimpleProcProvider {
 
       InetAddr value = nof.newNetworkObject(addr, mask);
 
-      return convertOutput(value, nof.getPrimitiveType(), targetClass);
+      return convertOutput(type, value, nof.getKind(), targetClass);
     }
 
   }
 
   static class BinEncoder extends BaseBinaryEncoder {
 
-    private NetworkObjectFactory<?> nof;
-
-    BinEncoder(NetworkObjectFactory<?> nof) {
-      this.nof = nof;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return nof.getPrimitiveType();
-    }
-
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-
-      InetAddr inet = convertInput(value, nof.getPrimitiveType());
+      InetAddr inet = convertInput(type, value);
 
       byte[] addr = inet.getAddress();
       boolean ipV4 = inet.getFamily() == Family.IPv4;
@@ -187,11 +175,6 @@ abstract class Networks extends SimpleProcProvider {
     }
 
     @Override
-    public PrimitiveType getPrimitiveType() {
-      return PrimitiveType.Binary;
-    }
-
-    @Override
     public Class<?> getDefaultClass() {
       return nof.getObjectType();
     }
@@ -201,28 +184,17 @@ abstract class Networks extends SimpleProcProvider {
 
       InetAddr value = nof.newNetworkObject(buffer.toString());
 
-      return convertOutput(value, nof.getPrimitiveType(), targetClass);
+      return convertOutput(type, value, nof.getKind(), targetClass);
     }
 
   }
 
   static class TxtEncoder extends BaseTextEncoder {
 
-    private NetworkObjectFactory<?> nof;
-
-    TxtEncoder(NetworkObjectFactory<?> nof) {
-      this.nof = nof;
-    }
-
-    @Override
-    public PrimitiveType getPrimitiveType() {
-      return nof.getPrimitiveType();
-    }
-
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      InetAddr inet = convertInput(value, nof.getPrimitiveType());
+      InetAddr inet = convertInput(type, value);
 
       buffer.append(inet.toString());
     }
