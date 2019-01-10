@@ -56,6 +56,7 @@ public class SystemSettings {
       name = "database.name",
       group = "system",
       desc = "Name of database related to connection",
+      def = "",
       alternateNames = {"database"}
   )
   public static final Setting<String> DATABASE_NAME = Setting.declare();
