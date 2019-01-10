@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.TestUtil.isDatabaseCreated;
+
 import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -47,6 +49,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -55,11 +58,20 @@ import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
+import static org.junit.Assume.assumeTrue;
 
 
 @RunWith(Parameterized.class)
 public class SSLTest {
+
+  @BeforeClass
+  public static void checkDbsExist() throws SQLException {
+    assumeTrue("Missing hostnossldb", isDatabaseCreated("hostnossldb"));
+    assumeTrue("Missing hostdb", isDatabaseCreated("hostdb"));
+    assumeTrue("Missing hostssldb", isDatabaseCreated("hostssldb"));
+    assumeTrue("Missing hostsslcertdb", isDatabaseCreated("hostsslcertdb"));
+    assumeTrue("Missing certdb", isDatabaseCreated("certdb"));
+  }
 
   protected String certdir;
   protected String connstr;

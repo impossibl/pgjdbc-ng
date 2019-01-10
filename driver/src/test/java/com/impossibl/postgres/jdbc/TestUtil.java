@@ -126,7 +126,7 @@ public class TestUtil {
   /*
    * Helper - opens a connection.
    */
-  public static Connection openDB() throws Exception {
+  public static Connection openDB() throws SQLException {
 
     return openDB(new Properties());
   }
@@ -135,7 +135,7 @@ public class TestUtil {
    * Helper - opens a connection with the allowance for passing additional
    * parameters, like "compatible".
    */
-  public static Connection openDB(Properties props) throws Exception {
+  public static Connection openDB(Properties props) throws SQLException {
 
     props.setProperty("user", getUser());
     props.setProperty("password", getPassword());
@@ -467,6 +467,28 @@ public class TestUtil {
       try (ResultSet rs = stmt.executeQuery("SELECT * FROM pg_extension WHERE extname = '" + extensionName + "'")) {
 
         return rs.next();
+
+      }
+
+    }
+
+  }
+
+  public static boolean isDatabaseCreated(String dbName) throws SQLException {
+
+    try (Connection conn = openDB()) {
+
+      try (Statement stmt = conn.createStatement()) {
+
+        try (ResultSet rs = stmt.executeQuery(
+            "SELECT exists(\n" +
+                "  SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('" + dbName + "')\n" +
+                ");")) {
+
+          rs.next();
+          return rs.getBoolean(1);
+
+        }
 
       }
 

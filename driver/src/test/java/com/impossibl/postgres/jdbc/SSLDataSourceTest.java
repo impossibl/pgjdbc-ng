@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import static com.impossibl.postgres.jdbc.TestUtil.isDatabaseCreated;
+
 import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -48,6 +50,7 @@ import java.util.TreeMap;
 
 import javax.sql.DataSource;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -56,11 +59,20 @@ import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
+import static org.junit.Assume.assumeTrue;
 
 
 @RunWith(Parameterized.class)
 public class SSLDataSourceTest {
+
+  @BeforeClass
+  public static void checkDbsExist() throws SQLException {
+    assumeTrue("Missing hostnossldb", isDatabaseCreated("hostnossldb"));
+    assumeTrue("Missing hostdb", isDatabaseCreated("hostdb"));
+    assumeTrue("Missing hostssldb", isDatabaseCreated("hostssldb"));
+    assumeTrue("Missing hostsslcertdb", isDatabaseCreated("hostsslcertdb"));
+    assumeTrue("Missing certdb", isDatabaseCreated("certdb"));
+  }
 
   protected String certdir;
   protected String db;
@@ -70,7 +82,9 @@ public class SSLDataSourceTest {
   protected String prefix;
   protected Object[] expected;
 
-  public SSLDataSourceTest(String name, String certdir, String db, String sslmode, boolean goodclient, boolean goodserver, String prefix, Object[] expected) {
+  public SSLDataSourceTest(String name, String certdir, String db, String sslmode,
+                           boolean goodclient, boolean goodserver,
+                           String prefix, Object[] expected) {
     this.certdir = certdir;
     this.db = db;
     this.sslmode = sslmode;
@@ -174,7 +188,6 @@ public class SSLDataSourceTest {
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> suite() throws Exception {
-
     Collection<Object[]> data = new ArrayList<>();
 
     Properties prop = new Properties();
