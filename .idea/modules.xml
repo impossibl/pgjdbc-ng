@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/pgjdbc-ng.iml" filepath="$PROJECT_DIR$/pgjdbc-ng.iml" />
+      <module fileurl="file://$PROJECT_DIR$/driver/driver.iml" filepath="$PROJECT_DIR$/driver/driver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/pgjdbc-ng.iml" filepath="$PROJECT_DIR$/.idea/pgjdbc-ng.iml" />
+      <module fileurl="file://$PROJECT_DIR$/settings-gen/settings-gen.iml" filepath="$PROJECT_DIR$/settings-gen/settings-gen.iml" />
     </modules>
   </component>
 </project>

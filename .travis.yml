@@ -17,8 +17,8 @@ before_install:
   - \[ $TRAVIS_JDK_VERSION = 'openjdk8' ] && _JAVA_OPTIONS="$_JAVA_OPTIONS -Djdk.net.URLClassPath.disableClassPathURLCheck=true" || _JAVA_OPTIONS="$_JAVA_OPTIONS"
   # PostgreSQL requires specific permissions... this meets the requirements
   # when running via docker in Travis
-  - chmod 0400 ./src/test/resources/certdir/server/server.key
-  - sudo chown 70:70 ./src/test/resources/certdir/server/server.key
+  - chmod 0400 ./driver/src/test/resources/certdir/server/server.key
+  - sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
   - ./start-test-container.sh
 script: mvn -e test -DtrimStackTrace=false
 after_failure:
