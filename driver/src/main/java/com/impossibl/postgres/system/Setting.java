@@ -309,8 +309,7 @@ public class Setting<T> {
    * named inside a setting factory (i.e. a classed annotated with
    * {@link Setting.Factory}).
    *
-   * A declared setting field is one initialized with
-   * {@link Setting#declare()} or {@link Setting#declareDefault(Supplier)}
+   * A declared setting field is one initialized with {@link Setting#declare()}
    *
    * <code>
    * \@Setting.Factory
@@ -355,16 +354,45 @@ public class Setting<T> {
     String def() default NO_DEFAULT;
 
     /**
-     * Flags if the setting will be providing a
-     * dynamic default value via {@link Setting#declareDefault(Supplier)}
+     * Code that will be directly copied and used as a dynamic default value.
      *
-     * If this value is <code>true</code>, then {@link #def()} is treated
-     * as a textual description of the dynamic default value in
-     * documentation.
+     * When this value is set, {@link #def()} is treated as a description of
+     * the dynamic value and {@link #defStatic()} is ignored.
      *
      * @see Setting
      */
-    boolean dynamic() default false;
+    String defDynamic() default NO_DEFAULT;
+
+    /**
+     * Code that will be directly copied and used to provide an initial
+     * static default value. This should be used to initialize a default
+     * value with a non-const variable.
+     *
+     * When this value is set, {@link #def()} is treated as a description of
+     * the dynamic value. If {@link #defDynamic()} is provided this value
+     * is ignored.
+     *
+     * @see Setting
+     */
+    String defStatic() default NO_DEFAULT;
+
+    /**
+     * Minimum allowed value for setting.
+     *
+     * This value is ignored if the setting's type is not an Integer.
+     *
+     * @see Setting
+     */
+    int min() default Integer.MIN_VALUE;
+
+    /**
+     * Maximum allowed value for setting.
+     *
+     * This value is ignored if the setting's type is not an Integer.
+     *
+     * @see Setting
+     */
+    int max() default Integer.MAX_VALUE;
 
     /**
      * Alternate names for the setting.
@@ -423,23 +451,6 @@ public class Setting<T> {
    */
   public static <U> Setting<U> declare() {
     return new Setting<>(null);
-  }
-
-  /**
-   * Forward declare a setting, with a dynamic default value, that will be initialized
-   * by annotation processing.
-   *
-   * <b>NOTE</b>: When using this declaration method the
-   * {@link Setting.Info definition annotation} should also set {@link Info#dynamic()} to
-   * <code>true</code> and provide a description of the dynamic value in {@link Info#def()}
-   *
-   * @see Setting
-   *
-   * @param defaultSupplier Supplier of the dynamic default value.
-   * @return Uninitialized group instance
-   */
-  public static <U> Setting<U> declareDefault(Supplier<String> defaultSupplier) {
-    return new Setting<>(defaultSupplier);
   }
 
   /**
@@ -524,14 +535,30 @@ public class Setting<T> {
    * @param toString Functional that converts a native setting value to a string.
    * @param names Primary & alternate names for the setting.
    */
-  public void init(String groupId, String description, String defaultValue, boolean dynamicDefault, Class<T> type,
+  public void init(String groupId, String description, Class<T> type, String defaultValue,
                    Converter<T> fromString, Function<T, String> toString, String[] names) {
     Group group = Group.ALL.get(groupId);
     if (group == null) throw new IllegalArgumentException("Unknown group: " + groupId);
     init(group, description, type, fromString, toString, names);
-    if (!dynamicDefault && defaultValue != null) {
-      staticDefaultValue = fromString(defaultValue);
-    }
+    staticDefaultValue = defaultValue != null ? fromString(defaultValue) : null;
+  }
+
+  /**
+   * Initializes a forward declared setting instance. This is intended for use only by the annotation processor.
+   *
+   * @param groupId Id of the group the setting belongs to.
+   * @param description Description of the setting.
+   * @param type Type of the setting.
+   * @param fromString Functional that converts a string to this settings type.
+   * @param toString Functional that converts a native setting value to a string.
+   * @param names Primary & alternate names for the setting.
+   */
+  public void init(String groupId, String description, Class<T> type, Supplier<String> defaultValue,
+                   Converter<T> fromString, Function<T, String> toString, String[] names) {
+    Group group = Group.ALL.get(groupId);
+    if (group == null) throw new IllegalArgumentException("Unknown group: " + groupId);
+    init(group, description, type, fromString, toString, names);
+    dynamicDefaultSupplier = defaultValue;
   }
 
 

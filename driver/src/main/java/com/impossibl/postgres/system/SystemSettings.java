@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.jdbc.PGDriver;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 
@@ -66,10 +65,10 @@ public class SystemSettings {
       group = "system",
       desc = "Name of the client application",
       def = "Driver implementation name",
-      dynamic = true,
+      defStatic = "com.impossibl.postgres.jdbc.PGDriver.NAME",
       alternateNames = {ParameterNames.APPLICATION_NAME}
   )
-  public static final Setting<String> APPLICATION_NAME = Setting.declareDefault(() -> PGDriver.NAME);
+  public static final Setting<String> APPLICATION_NAME = Setting.declare();
 
   @Setting.Info(
       name = ParameterNames.USER,
@@ -78,9 +77,9 @@ public class SystemSettings {
           "Username for server authentication & authorization.\n\n" +
           "If no value is provided is defaults to the Java system property `user.name`.",
       def = "Current user via <code>user.name</code> system property",
-      dynamic = true
+      defDynamic = "System.getProperty(\"user.name\", \"\")"
   )
-  public static final Setting<String> CREDENTIALS_USERNAME = Setting.declareDefault(() -> System.getProperty("user.name", ""));
+  public static final Setting<String> CREDENTIALS_USERNAME = Setting.declare();
 
   @Setting.Info(
       name = ParameterNames.PASSWORD,
@@ -101,6 +100,7 @@ public class SystemSettings {
   @Setting.Info(
       name = "field.length.max",
       group = "system",
+      min = 0,
       desc = "Default maximum allowed length of field."
   )
   public static final Setting<Integer> FIELD_LENGTH_MAX = Setting.declare();
@@ -118,6 +118,7 @@ public class SystemSettings {
       group = "system",
       desc = "# of fractional digits for money fields.",
       def = "2",
+      min = 0, max = 20,
       alternateNames = {"field.money.fractionalDigits"}
   )
   public static final Setting<Integer> MONEY_FRACTIONAL_DIGITS = Setting.declare();
@@ -262,6 +263,7 @@ public class SystemSettings {
       desc = "Number of I/O threads in pool",
       def = "3",
       name = "protocol.io.threads",
+      min = 1,
       group = "protocol"
   )
   public static final Setting<Integer> PROTOCOL_IO_THREADS = Setting.declare();
@@ -280,6 +282,7 @@ public class SystemSettings {
       desc = "Socket receive buffer size",
       name = "protocol.socket.recv-buffer.size",
       group = "protocol",
+      min = 0,
       alternateNames = {"receiveBufferSize"}
   )
   public static final Setting<Integer> PROTOCOL_SOCKET_RECV_BUFFER_SIZE = Setting.declare();
@@ -288,6 +291,7 @@ public class SystemSettings {
       desc = "Socket send buffer size",
       name = "protocol.socket.send-buffer.size",
       group = "protocol",
+      min = 0,
       alternateNames = {"sendBufferSize"}
   )
   public static final Setting<Integer> PROTOCOL_SOCKET_SEND_BUFFER_SIZE = Setting.declare();
@@ -304,6 +308,7 @@ public class SystemSettings {
       desc = "Maximum size message that can be received",
       def = "" + (20 * 1024 * 1024),
       name = "protocol.message.size.max",
+      min = 0,
       group = "protocol"
   )
   public static final Setting<Integer> PROTOCOL_MESSAGE_SIZE_MAX = Setting.declare();

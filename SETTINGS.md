@@ -18,7 +18,7 @@ Default: `false`
 
 Size of the parsed SQL text cache.
 
-A value less than one disables the cache.
+A value of zero disables the cache.
 
 Driver Property: `parsed-sql.cache.size`
 
@@ -26,19 +26,23 @@ DataSource: `getParsedSqlCacheSize()`/`setParsedSqlCacheSize(java.lang.Integer)`
 
 System Property: `pgjdbc.parsed-sql.cache.size`
 
+Range: Must be greater than or equal to `0`
+
 Default: `250`
 
 #### Prepared Statement Cache Size
 
 Size of the prepared statement cache
 
-A value less than one disables the cache.
+A value of zero disables the cache.
 
 Driver Property: `prepared-statement.cache.size`
 
 DataSource: `getPreparedStatementCacheSize()`/`setPreparedStatementCacheSize(java.lang.Integer)`
 
 System Property: `pgjdbc.prepared-statement.cache.size`
+
+Range: Must be greater than or equal to `0`
 
 Default: `50`
 
@@ -54,19 +58,23 @@ DataSource: `getPreparedStatementCacheThreshold()`/`setPreparedStatementCacheThr
 
 System Property: `pgjdbc.prepared-statement.cache.threshold`
 
+Range: Must be greater than or equal to `0`
+
 Default: `0`
 
 #### Description Cache Size
 
 Size of the query description cache.
 
-A value less than one disables the cache.
+A value of zero disables the cache.
 
 Driver Property: `description.cache.size`
 
 DataSource: `getDescriptionCacheSize()`/`setDescriptionCacheSize(java.lang.Integer)`
 
 System Property: `pgjdbc.description.cache.size`
+
+Range: Must be greater than or equal to `0`
 
 Default: `250`
 
@@ -83,6 +91,8 @@ Driver Property: `network.timeout`
 DataSource: `getNetworkTimeout()`/`setNetworkTimeout(java.lang.Integer)`
 
 System Property: `pgjdbc.network.timeout`
+
+Range: Must be greater than or equal to `0`
 
 Default: `0`
 
@@ -111,6 +121,8 @@ Driver Property: `fetch.size`
 DataSource: `getFetchSize()`/`setFetchSize(java.lang.Integer)`
 
 System Property: `pgjdbc.fetch.size`
+
+Range: Must be greater than or equal to `0`
 
 Default: None
 
@@ -174,6 +186,8 @@ DataSource: `getApplicationName()`/`setApplicationName(java.lang.String)`
 
 System Property: `pgjdbc.application.name`
 
+Default: Driver implementation name
+
 #### User
 
 Username for server authentication & authorization.
@@ -185,6 +199,8 @@ Driver Property: `user`
 DataSource: `getUser()`/`setUser(java.lang.String)`
 
 System Property: `pgjdbc.user`
+
+Default: Current user via <code>user.name</code> system property
 
 #### Password
 
@@ -228,6 +244,8 @@ DataSource: `getFieldLengthMax()`/`setFieldLengthMax(java.lang.Integer)`
 
 System Property: `pgjdbc.field.length.max`
 
+Range: Must be greater than or equal to `0`
+
 Default: None
 
 #### Param Format
@@ -259,6 +277,8 @@ Driver Property: `money.fractional-digits`
 DataSource: `getMoneyFractionalDigits()`/`setMoneyFractionalDigits(java.lang.Integer)`
 
 System Property: `pgjdbc.money.fractional-digits`
+
+Range: Must be between `0` and `20`
 
 Default: `2`
 
@@ -456,6 +476,8 @@ DataSource: `getProtocolIoThreads()`/`setProtocolIoThreads(java.lang.Integer)`
 
 System Property: `pgjdbc.protocol.io.threads`
 
+Range: Must be greater than or equal to `1`
+
 Default: `3`
 
 #### Protocol Encoding
@@ -480,6 +502,8 @@ DataSource: `getProtocolSocketRecvBufferSize()`/`setProtocolSocketRecvBufferSize
 
 System Property: `pgjdbc.protocol.socket.recv-buffer.size`
 
+Range: Must be greater than or equal to `0`
+
 Default: None
 
 #### Protocol Socket Send Buffer Size
@@ -491,6 +515,8 @@ Driver Property: `protocol.socket.send-buffer.size`
 DataSource: `getProtocolSocketSendBufferSize()`/`setProtocolSocketSendBufferSize(java.lang.Integer)`
 
 System Property: `pgjdbc.protocol.socket.send-buffer.size`
+
+Range: Must be greater than or equal to `0`
 
 Default: None
 
@@ -515,6 +541,8 @@ Driver Property: `protocol.message.size.max`
 DataSource: `getProtocolMessageSizeMax()`/`setProtocolMessageSizeMax(java.lang.Integer)`
 
 System Property: `pgjdbc.protocol.message.size.max`
+
+Range: Must be greater than or equal to `0`
 
 Default: `20971520`
 
@@ -574,6 +602,8 @@ DataSource: `getPortNumber()`/`setPortNumber(java.lang.Integer)`
 
 System Property: `pgjdbc.port.number`
 
+Range: Must be between `1` and `65535`
+
 Default: `5432`
 
 #### Login Timeout
@@ -583,6 +613,8 @@ Maximum time to wait for a connection to be established.
 DataSource: `getLoginTimeout()`/`setLoginTimeout(java.lang.Integer)`
 
 System Property: `pgjdbc.login.timeout`
+
+Range: Must be greater than or equal to `0`
 
 Default: `0`
 

@@ -49,8 +49,8 @@ public class JDBCSettings {
   public static final Setting<Boolean> READ_ONLY = Setting.declare();
 
   @Setting.Info(
-      desc = "Size of the parsed SQL text cache.\n\nA value less than one disables the cache.",
-      def = "250",
+      desc = "Size of the parsed SQL text cache.\n\nA value of zero disables the cache.",
+      def = "250", min = 0,
       name = "parsed-sql.cache.size",
       group = "jdbc",
       alternateNames = "parsedSqlCacheSize"
@@ -58,8 +58,8 @@ public class JDBCSettings {
   public static final Setting<Integer> PARSED_SQL_CACHE_SIZE = Setting.declare();
 
   @Setting.Info(
-      desc = "Size of the prepared statement cache\n\nA value less than one disables the cache.",
-      def = "50",
+      desc = "Size of the prepared statement cache\n\nA value of zero disables the cache.",
+      def = "50", min = 0,
       name = "prepared-statement.cache.size",
       group = "jdbc",
       alternateNames = "preparedStatementCacheSize"
@@ -68,7 +68,7 @@ public class JDBCSettings {
 
   @Setting.Info(
       desc = "# of times a query is seen before it is cached as a prepared statement.\n\nA value of zero prepares all statements in advance.",
-      def = "0",
+      def = "0", min = 0,
       name = "prepared-statement.cache.threshold",
       group = "jdbc",
       alternateNames = "preparedStatementCacheThreshold"
@@ -76,8 +76,8 @@ public class JDBCSettings {
   public static final Setting<Integer> PREPARED_STATEMENT_CACHE_THRESHOLD = Setting.declare();
 
   @Setting.Info(
-      desc = "Size of the query description cache.\n\nA value less than one disables the cache.",
-      def = "250",
+      desc = "Size of the query description cache.\n\nA value of zero disables the cache.",
+      def = "250", min = 0,
       name = "description.cache.size",
       group = "jdbc",
       alternateNames = "descriptionCacheSize"
@@ -86,7 +86,7 @@ public class JDBCSettings {
 
   @Setting.Info(
       desc = "Default timeout for network communication.\n\nValue can be changed at runtime through API.\n\nValue of zero disables the timeout.",
-      def = "0",
+      def = "0", min = 0,
       name = "network.timeout",
       group = "jdbc",
       alternateNames = "networkTimeout"
@@ -104,6 +104,7 @@ public class JDBCSettings {
 
   @Setting.Info(
       desc = "Default fetch size of query results.\n\n Value can be changed at runtime.\n\nA value of zero disables batching results.",
+      min = 0,
       name = "fetch.size",
       group = "jdbc",
       alternateNames = "fetchSize"

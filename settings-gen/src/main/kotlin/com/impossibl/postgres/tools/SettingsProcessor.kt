@@ -32,10 +32,9 @@ class SettingsProcessor : AbstractProcessor() {
   data class GroupInfo(val id: String, val desc: String, val global: Boolean,
                        val field: VariableElement)
 
-  data class SettingInfo(val name: String, val group: String, val type: TypeMirror,
-                         val desc: String, val default: String?, val defaultDynamic: Boolean,
-                         val alternateNames: List<String>?,
-                         val field: VariableElement)
+  data class SettingInfo(val name: String, val group: String, val type: TypeMirror, val desc: String,
+                         val default: String?, val dynamicDefaultCode: String?, val staticDefaultCode: String?,
+                         val min: Int?, val max: Int?, val alternateNames: List<String>?, val field: VariableElement)
 
   companion object {
 
@@ -210,7 +209,25 @@ class SettingsProcessor : AbstractProcessor() {
                 setting.name).append("`")
                 .append("\n\n")
 
-             if (!setting.defaultDynamic) {
+             if (setting.min != null && setting.max != null) {
+               out.append("Range: Must be between `")
+                  .append(setting.min.toString())
+                  .append("` and `")
+                  .append(setting.max.toString())
+                  .append("`\n\n")
+             }
+             else if (setting.min != null) {
+               out.append("Range: Must be greater than or equal to `")
+                  .append(setting.min.toString())
+                  .append("`\n\n")
+             }
+             else if (setting.max != null) {
+               out.append("Range: Must be less than or equal to `")
+                  .append(setting.min.toString())
+                  .append("`\n\n")
+             }
+
+             if (setting.dynamicDefaultCode == null && setting.staticDefaultCode == null) {
                val default =
                   if (setting.default != null)
                     if (!setting.default.isEmpty())
@@ -220,6 +237,10 @@ class SettingsProcessor : AbstractProcessor() {
                   else
                     "None"
                out.append("Default: ").append(default)
+                  .append("\n\n")
+             }
+             else if (setting.default != null) {
+               out.append("Default: ").append(setting.default)
                   .append("\n\n")
              }
            }
@@ -309,6 +330,8 @@ class SettingsProcessor : AbstractProcessor() {
                               group.global)
     }
 
+    var checkRange: Boolean = false
+
     for (setting in factory.settings) {
 
       val ownerTypeName = ClassName.get(setting.field.enclosingElement.asType())
@@ -326,7 +349,13 @@ class SettingsProcessor : AbstractProcessor() {
         }
 
         ClassName.get(java.lang.Integer::class.java) -> {
-          fromString.add("\$T::parseInt", settingTypeName)
+          if (setting.min != null || setting.max != null) {
+            fromString.add("str -> checkRange(\$S, \$T.parseInt(str), \$L, \$L)", setting.name, settingTypeName, setting.min, setting.max)
+            checkRange = true
+          }
+          else {
+            fromString.add("\$T::parseInt", settingTypeName)
+          }
           toString.add("\$T::toString", TypeName.OBJECT)
         }
 
@@ -375,11 +404,23 @@ class SettingsProcessor : AbstractProcessor() {
 
       val names = listOf(setting.name) + (setting.alternateNames ?: emptyList())
 
-      initCode.addStatement("\$T.\$L.init(\$S, \$S, \$S, \$L, \$T.class, \$L, \$L, new String[] {\$L})",
-                              ownerTypeName, settingFieldName,
-                              setting.group, setting.desc.escapePoet(), setting.default, setting.defaultDynamic,
-                              settingTypeName, fromString.build(), toString.build(),
-                              names.joinToString { """"$it"""" })
+      val default =
+         if (setting.dynamicDefaultCode != null) {
+           CodeBlock.of("() -> ${setting.dynamicDefaultCode.escapePoet()}")
+         }
+         else if (setting.staticDefaultCode != null) {
+           CodeBlock.of(setting.staticDefaultCode.escapePoet())
+         }
+         else if (setting.default != null) {
+           CodeBlock.of("\$S", setting.default)
+         }
+         else {
+           CodeBlock.of("(\$T) null", ClassName.get(String::class.java))
+         }
+
+      initCode.addStatement("\$T.\$L.init(\$S, \$S, \$T.class, \$L, \$L, \$L, new String[] {\$L})",
+                              ownerTypeName, settingFieldName, setting.group, setting.desc, settingTypeName,
+                              default, fromString.build(), toString.build(), names.joinToString { """"$it"""" })
     }
 
     initClassBldr.addMethod(
@@ -388,6 +429,22 @@ class SettingsProcessor : AbstractProcessor() {
           .addCode(initCode.build())
           .build()
     )
+
+    if (checkRange) {
+      initClassBldr.addMethod(
+         MethodSpec.methodBuilder("checkRange")
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+            .addParameter(ClassName.get(String::class.java), "name")
+            .addParameter(TypeName.INT.box(), "value")
+            .addParameter(TypeName.INT.box(), "min")
+            .addParameter(TypeName.INT.box(), "max")
+            .returns(TypeName.INT.box())
+            .addStatement("if (min != null && value < min) throw new IllegalArgumentException(\"Setting '\" + name  + \"' is below minimum value of \" + min)")
+            .addStatement("if (max != null && value > max) throw new IllegalArgumentException(\"Setting '\" + name  + \"' is above maximum value of \" + max)")
+            .addStatement("return value")
+            .build()
+      )
+    }
 
     JavaFile.builder(elements.getPackageOf(factory.element).qualifiedName.toString(), initClassBldr.build())
        .skipJavaLangImports(true)
@@ -443,7 +500,7 @@ class SettingsProcessor : AbstractProcessor() {
       val paramTypeName = ClassName.get(paramType)
 
       val getterTypeName =
-         if (!setting.defaultDynamic && setting.default != null && paramTypeName.isBoxedPrimitive)
+         if (setting.dynamicDefaultCode == null && setting.default != null && paramTypeName.isBoxedPrimitive)
            paramTypeName.unbox()
          else
            paramTypeName
@@ -612,14 +669,15 @@ class SettingsProcessor : AbstractProcessor() {
         val settingGroup = elementValues[settingAnn.getAnnotationMethod("group")]!!.value as String
         val settingDesc = elementValues[settingAnn.getAnnotationMethod("desc")]!!.value as String
         val settingDef = elementValues[settingAnn.getAnnotationMethod("def")]?.value as? String
-        val settingDyn = elementValues[settingAnn.getAnnotationMethod("dynamic")]?.value as? Boolean
+        val settingDefDyn = elementValues[settingAnn.getAnnotationMethod("defDynamic")]?.value as? String
+        val settingDefStatic = elementValues[settingAnn.getAnnotationMethod("defStatic")]?.value as? String
+        val settingMin = elementValues[settingAnn.getAnnotationMethod("min")]?.value as? Int
+        val settingMax = elementValues[settingAnn.getAnnotationMethod("max")]?.value as? Int
         @Suppress("UNCHECKED_CAST") val settingAlts =
                 (elementValues[settingAnn.getAnnotationMethod("alternateNames")]?.value as? List<AnnotationValue>)?.map { it.value } as? List<String>
 
         settings.add(SettingInfo(settingName, settingGroup, settingType, settingDesc,
-                settingDef, settingDyn ?: false,
-                settingAlts,
-                fieldElement))
+                settingDef, settingDefDyn, settingDefStatic, settingMin, settingMax, settingAlts, fieldElement))
       } else if (fieldElement.isSettingGroup) {
 
         val groupInfo =

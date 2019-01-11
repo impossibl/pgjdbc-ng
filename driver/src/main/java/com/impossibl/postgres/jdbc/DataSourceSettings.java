@@ -62,7 +62,7 @@ public class DataSourceSettings {
 
   @Setting.Info(
       desc = "Port number for TCP connections.",
-      def = "5432",
+      def = "5432", min = 1, max = 65535,
       name = "port.number",
       group = "jdbc-ds",
       alternateNames = {"portNumber"}
@@ -71,7 +71,7 @@ public class DataSourceSettings {
 
   @Setting.Info(
       desc = "Maximum time to wait for a connection to be established.",
-      def = "0",
+      def = "0", min = 0,
       name = "login.timeout",
       group = "jdbc-ds",
       alternateNames = {"loginTimeout"}
