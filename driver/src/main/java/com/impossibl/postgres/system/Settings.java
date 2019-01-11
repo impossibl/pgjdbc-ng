@@ -63,7 +63,7 @@ public class Settings {
    * Creates a bag of settings that recognizes any global setting defined.
    */
   public Settings() {
-    known = Setting.getAllGlobal();
+    this(SettingGlobal.getAllGroups());
   }
 
   /**

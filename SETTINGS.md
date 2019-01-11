@@ -162,7 +162,7 @@ DataSource: `getDatabaseName()`/`setDatabaseName(java.lang.String)`
 
 System Property: `pgjdbc.database.name`
 
-Default: None
+Default: Empty
 
 #### Application Name
 

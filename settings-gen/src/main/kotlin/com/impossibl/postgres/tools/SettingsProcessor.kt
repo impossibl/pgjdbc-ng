@@ -3,6 +3,7 @@ package com.impossibl.postgres.tools
 import com.impossibl.postgres.tools.SettingsProcessor.Companion.SETTING_TYPE_NAME
 import com.squareup.javapoet.*
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.OutputStreamWriter
 import java.io.StringWriter
 import java.nio.charset.Charset
@@ -17,6 +18,7 @@ import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 import javax.tools.Diagnostic
+import javax.tools.StandardLocation
 
 
 @SupportedAnnotationTypes(
@@ -24,6 +26,8 @@ import javax.tools.Diagnostic
 )
 @SupportedSourceVersion(RELEASE_8)
 class SettingsProcessor : AbstractProcessor() {
+
+  data class FactoryInfo(val groups: Set<GroupInfo>, val settings: Set<SettingInfo>, val element: Element)
 
   data class GroupInfo(val id: String, val desc: String, val global: Boolean,
                        val field: VariableElement)
@@ -85,20 +89,64 @@ class SettingsProcessor : AbstractProcessor() {
 
     cacheElementsAndTypes()
 
-    val (groups, settings) = gatherSettingsAndGroups(roundEnv)
-    if (groups.isEmpty() && settings.isEmpty()) return true
+    val factories = gatherFactories(roundEnv)
+    if (factories.isEmpty()) return true
 
-    if (!validate(groups, settings)) return false
+    val allFactories = updateKnownFactories(factories)
 
-    if (!generateSettingInitializer(groups, settings)) return false
+    if (!validate(allFactories)) return false
 
-    val globalGroups = groups.filter { it.global }.toSet()
+    if (!generateFactoryInitializers(allFactories)) return false
 
-    if (!generateDataSourceWithProperties(globalGroups, settings)) return false
+    val globalGroups = allFactories.flatMap { it.groups }.filter { it.global }.toSet()
+    val allSettings = allFactories.flatMap { it.settings }.toSet()
 
-    if (!generateSettingsDoc(globalGroups, settings)) return false
+    if (!generateDataSourceWithProperties(globalGroups, allSettings)) return false
+
+    if (!generateSettingsDoc(globalGroups, allSettings)) return false
 
     return true
+  }
+
+  private fun updateKnownFactories(factories: Set<FactoryInfo>): Set<FactoryInfo> {
+
+    val knownFactoryNames =
+       factories
+          .map { (it.element as TypeElement).qualifiedName.toString() }
+          .toMutableSet()
+
+    val knownFactories = factories.toMutableSet()
+
+    try {
+      val previouslyKnownFactoryNames =
+         filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "SettingsProcessor.known")
+            .getCharContent(true)
+            .split("\n")
+
+      messager.printMessage(Diagnostic.Kind.NOTE, "Loaded previously known settings factories")
+
+       val previouslyKnownFactories =
+          previouslyKnownFactoryNames
+             .mapNotNull { elements.getTypeElement(it) }
+             .map { gatherSettingsAndGroups(it) }
+             .toSet()
+
+      knownFactoryNames += previouslyKnownFactories.map { (it.element as TypeElement).qualifiedName.toString() }
+      knownFactories += previouslyKnownFactories
+    }
+    catch (x: IOException) {
+      // No previous file... use current set
+    }
+
+    // Save new complete list
+
+    val file = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "SettingsProcessor.known")
+    file.openWriter()
+       .use { out ->
+         knownFactoryNames.forEach { out.append(it).append("\n") }
+       }
+
+    return knownFactories
   }
 
   private fun cacheElementsAndTypes() {
@@ -183,10 +231,59 @@ class SettingsProcessor : AbstractProcessor() {
     return true
   }
 
-  private fun generateSettingInitializer(groups: Set<GroupInfo>, settings: Set<SettingInfo>): Boolean {
+  private fun generateFactoryInitializers(factories: Set<FactoryInfo>): Boolean {
 
-    val initClassBldr = TypeSpec.classBuilder("SettingInitializer")
-       .addModifiers(Modifier.PUBLIC)
+    for (factory in factories) {
+
+      if (!generateFactoryInitializer(factory)) return false
+
+    }
+
+    val globalGroups = factories.flatMap { it.groups }.filter { it.global }.toSet()
+
+    val globalClass = TypeSpec.interfaceBuilder("SettingGlobal")
+       .apply {
+         if (generatedAnn != null) {
+           addAnnotation(
+              AnnotationSpec.builder(ClassName.get(generatedAnn))
+                 .addMember("value", "{\$S, \$S}",
+                    SettingsProcessor::class.java.canonicalName,
+                    "PGJDBC-NG Settings Annotation Processor")
+                 .addMember("date", "\$S", DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now()))
+                 .addMember("comments", "\$S", "Generated from all global Setting.Group(s)" )
+                 .build()
+           )
+         }
+       }
+       .addMethod(
+          MethodSpec.methodBuilder("getAllGroups")
+             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+             .returns(ArrayTypeName.of(ClassName.get(settingGroupType)))
+             .addCode("\$[return new Setting.Group[] {\n")
+             .apply {
+               globalGroups.forEachIndexed { index, group ->
+                 addCode("\$T.\$L", ClassName.get(group.field.enclosingElement.asType()), group.field.simpleName.toString())
+                 if (index < globalGroups.size - 1) {
+                   addCode(",\n")
+                 }
+               }
+             }
+             .addCode("\$]\n};\n")
+             .build()
+       )
+       .build()
+
+    JavaFile.builder(SYSTEM_PKG, globalClass)
+       .skipJavaLangImports(true)
+       .build()
+       .writeTo(filer)
+
+    return true
+  }
+
+  private fun generateFactoryInitializer(factory: FactoryInfo): Boolean {
+
+    val initClassBldr = TypeSpec.interfaceBuilder("${factory.element.simpleName}Init")
        .apply {
          if (generatedAnn != null) {
            addAnnotation(
@@ -195,24 +292,24 @@ class SettingsProcessor : AbstractProcessor() {
                             SettingsProcessor::class.java.canonicalName,
                             "PGJDBC-NG Settings Annotation Processor")
                  .addMember("date", "\$S", DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now()))
-                 .addMember("comments", "\$S", "Generated from Setting(s) defined in the all Setting.Group(s)")
+                 .addMember("comments", "\$S", "Generated from Settings & Groups defined in ${factory.element.simpleName}" )
                  .build()
            )
          }
        }
 
-    val staticCode = CodeBlock.builder()
+    val initCode = CodeBlock.builder()
 
-    for (group in groups) {
+    for (group in factory.groups) {
 
       val ownerTypeName = ClassName.get(group.field.enclosingElement.asType())
       val groupFieldName = group.field.simpleName.toString()
 
-      staticCode.addStatement("\$T.\$L.init(\$S, \$S, \$L)", ownerTypeName, groupFieldName, group.id, group.desc,
+      initCode.addStatement("\$T.\$L.init(\$S, \$S, \$L)", ownerTypeName, groupFieldName, group.id, group.desc,
                               group.global)
     }
 
-    for (setting in settings) {
+    for (setting in factory.settings) {
 
       val ownerTypeName = ClassName.get(setting.field.enclosingElement.asType())
       val settingFieldName = setting.field.simpleName.toString()
@@ -278,29 +375,21 @@ class SettingsProcessor : AbstractProcessor() {
 
       val names = listOf(setting.name) + (setting.alternateNames ?: emptyList())
 
-      staticCode.addStatement("\$T.\$L.init(\$S, \$S, \$S, \$L, \$T.class, \$L, \$L, new String[] {\$L})",
+      initCode.addStatement("\$T.\$L.init(\$S, \$S, \$S, \$L, \$T.class, \$L, \$L, new String[] {\$L})",
                               ownerTypeName, settingFieldName,
                               setting.group, setting.desc.escapePoet(), setting.default, setting.defaultDynamic,
                               settingTypeName, fromString.build(), toString.build(),
                               names.joinToString { """"$it"""" })
     }
 
-    initClassBldr.addStaticBlock(staticCode.build())
+    initClassBldr.addMethod(
+       MethodSpec.methodBuilder("init")
+          .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+          .addCode(initCode.build())
+          .build()
+    )
 
-    val factoryElements =
-       groups.map { it.field.enclosingElement }.toSet() + settings.map { it.field.enclosingElement }.toSet()
-
-    for (factoryElement in factoryElements) {
-
-      initClassBldr.addMethod(
-         MethodSpec.methodBuilder("init${factoryElement.simpleName.toString().capitalize()}")
-            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-            .build()
-      )
-
-    }
-
-    JavaFile.builder(SYSTEM_PKG, initClassBldr.build())
+    JavaFile.builder(elements.getPackageOf(factory.element).qualifiedName.toString(), initClassBldr.build())
        .skipJavaLangImports(true)
        .build()
        .writeTo(filer)
@@ -452,90 +541,102 @@ class SettingsProcessor : AbstractProcessor() {
        .toString()
   }
 
-  private fun validate(groups: Set<GroupInfo>, settings: Set<SettingInfo>): Boolean {
+  private fun validate(factories: Set<FactoryInfo>): Boolean {
+
+    val allGroups = factories.flatMap { it.groups }.toSet()
 
     var valid = true
     val globalSettingNames = mutableSetOf<String>()
 
-    for (setting in settings) {
+    for (factory in factories) {
 
-      // Check that setting references a defined group
+      for (setting in factory.settings) {
 
-      val group = groups.find { it.id == setting.group }
-      if (group == null) {
-        messager.printMessage(Diagnostic.Kind.ERROR, "Setting '${setting.name}' references undefined group '${setting.group}'", setting.field)
-        valid = false
-        continue
+        // Check that setting references a defined group
+
+        val group = allGroups.find { it.id == setting.group }
+        if (group == null) {
+          messager.printMessage(Diagnostic.Kind.ERROR, "Setting '${setting.name}' references undefined group '${setting.group}'", setting.field)
+          valid = false
+          continue
+        }
+
+        // If global, check name is unique
+
+        if (group.global && globalSettingNames.contains(setting.name)) {
+          messager.printMessage(Diagnostic.Kind.ERROR, "Setting name '${setting.name}' is duplicated", setting.field)
+          valid = false
+          continue
+        }
+        globalSettingNames.add(setting.name)
+
       }
-
-      // If global, check name is unique
-
-      if (group.global && globalSettingNames.contains(setting.name)) {
-        messager.printMessage(Diagnostic.Kind.ERROR, "Setting name '${setting.name}' is duplicated", setting.field)
-        valid = false
-        continue
-      }
-      globalSettingNames.add(setting.name)
-
 
     }
 
     return valid
   }
 
-  private fun gatherSettingsAndGroups(roundEnv: RoundEnvironment): Pair<Set<GroupInfo>, Set<SettingInfo>> {
+  private fun gatherFactories(roundEnv: RoundEnvironment): Set<FactoryInfo> {
+
+    val factories = mutableSetOf<FactoryInfo>()
+
+    for (factoryElement in roundEnv.getElementsAnnotatedWith(factoryAnn)) {
+      val factory = gatherSettingsAndGroups(factoryElement)
+      factories.add(factory)
+    }
+
+    return factories
+  }
+
+  private fun gatherSettingsAndGroups(factoryElement: Element): FactoryInfo {
 
     val groups = linkedSetOf<GroupInfo>()
     val settings = linkedSetOf<SettingInfo>()
 
-    for (factoryElement in roundEnv.getElementsAnnotatedWith(factoryAnn)) {
+    for (fieldElement in factoryElement.enclosedElements.filter { it.kind == ElementKind.FIELD }) {
+      if (fieldElement !is VariableElement) continue
 
-      for (fieldElement in factoryElement.enclosedElements.filter { it.kind == ElementKind.FIELD }) {
-        if (fieldElement !is VariableElement) continue
+      if (fieldElement.isSetting) {
 
-        if (fieldElement.isSetting) {
+        val settingFieldType = fieldElement.asType() as? DeclaredType ?: continue
 
-          val settingFieldType = fieldElement.asType() as? DeclaredType ?: continue
+        val settingInfo =
+                fieldElement.annotationMirrors.firstOrNull { types.isSameType(it.annotationType, settingAnnType) } ?: continue
 
-          val settingInfo =
-             fieldElement.annotationMirrors.firstOrNull { it.annotationType == settingAnnType } ?: continue
+        val settingType = settingFieldType.typeArguments.first()
 
-          val settingType = settingFieldType.typeArguments.first()
+        val elementValues = settingInfo.elementValues
 
-          val elementValues = settingInfo.elementValues
+        val settingName = elementValues[settingAnn.getAnnotationMethod("name")]!!.value as String
+        val settingGroup = elementValues[settingAnn.getAnnotationMethod("group")]!!.value as String
+        val settingDesc = elementValues[settingAnn.getAnnotationMethod("desc")]!!.value as String
+        val settingDef = elementValues[settingAnn.getAnnotationMethod("def")]?.value as? String
+        val settingDyn = elementValues[settingAnn.getAnnotationMethod("dynamic")]?.value as? Boolean
+        @Suppress("UNCHECKED_CAST") val settingAlts =
+                (elementValues[settingAnn.getAnnotationMethod("alternateNames")]?.value as? List<AnnotationValue>)?.map { it.value } as? List<String>
 
-          val settingName = elementValues[settingAnn.getAnnotationMethod("name")]!!.value as String
-          val settingGroup = elementValues[settingAnn.getAnnotationMethod("group")]!!.value as String
-          val settingDesc = elementValues[settingAnn.getAnnotationMethod("desc")]!!.value as String
-          val settingDef = elementValues[settingAnn.getAnnotationMethod("def")]?.value as? String
-          val settingDyn = elementValues[settingAnn.getAnnotationMethod("dynamic")]?.value as? Boolean
-          @Suppress("UNCHECKED_CAST") val settingAlts =
-             (elementValues[settingAnn.getAnnotationMethod("alternateNames")]?.value as? List<AnnotationValue>)?.map { it.value } as? List<String>
+        settings.add(SettingInfo(settingName, settingGroup, settingType, settingDesc,
+                settingDef, settingDyn ?: false,
+                settingAlts,
+                fieldElement))
+      } else if (fieldElement.isSettingGroup) {
 
-          settings.add(SettingInfo(settingName, settingGroup, settingType, settingDesc,
-                                   settingDef, settingDyn ?: false,
-                                   settingAlts,
-                                   fieldElement))
-        }
-        else if (fieldElement.isSettingGroup) {
+        val groupInfo =
+                fieldElement.annotationMirrors.firstOrNull { types.isSameType(it.annotationType, settingGroupAnnType) } ?: continue
 
-          val groupInfo =
-             fieldElement.annotationMirrors.firstOrNull { it.annotationType == settingGroupAnnType } ?: continue
+        val elementValues = elements.getElementValuesWithDefaults(groupInfo)
 
-          val elementValues = elements.getElementValuesWithDefaults(groupInfo)
+        val groupId = elementValues[settingGroupAnn.getAnnotationMethod("id")]!!.value as String
+        val groupDesc = elementValues[settingGroupAnn.getAnnotationMethod("desc")]!!.value as String
+        val groupGlobal = elementValues[settingGroupAnn.getAnnotationMethod("global")]!!.value as Boolean
 
-          val groupId = elementValues[settingGroupAnn.getAnnotationMethod("id")]!!.value as String
-          val groupDesc = elementValues[settingGroupAnn.getAnnotationMethod("desc")]!!.value as String
-          val groupGlobal = elementValues[settingGroupAnn.getAnnotationMethod("global")]!!.value as Boolean
-
-          groups.add(GroupInfo(groupId, groupDesc, groupGlobal, fieldElement))
-        }
-
+        groups.add(GroupInfo(groupId, groupDesc, groupGlobal, fieldElement))
       }
 
     }
 
-    return groups to settings
+    return FactoryInfo(groups, settings, factoryElement)
   }
 
   private val TypeMirror.isEnum: Boolean get() {
@@ -543,11 +644,11 @@ class SettingsProcessor : AbstractProcessor() {
   }
 
   private val VariableElement.isSetting: Boolean get() {
-    return types.erasure(asType()) == types.erasure(settingType)
+    return types.isSameType(types.erasure(asType()), types.erasure(settingType))
   }
 
   private val VariableElement.isSettingGroup: Boolean get() {
-    return asType() == settingGroupType
+    return types.isSameType(asType(), settingGroupType)
   }
 
   private fun TypeElement.getAnnotationMethod(name: String): ExecutableElement {

@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Setting;
-import com.impossibl.postgres.system.SettingInitializer;
 import com.impossibl.postgres.system.SystemSettings;
 
 @Setting.Factory
@@ -48,7 +47,9 @@ public class DataSourceSettings {
   )
   public static final Setting<String> DATASOURCE_NAME = Setting.declare();
 
-  public static final Setting<String> DATABASE_NAME = SystemSettings.DATABASE_NAME;
+  public static final Setting<String> DATABASE_NAME = DS.add(
+      SystemSettings.DATABASE_NAME
+  );
 
   @Setting.Info(
       desc = "Host name for TCP connections.",
@@ -78,7 +79,7 @@ public class DataSourceSettings {
   public static final Setting<Integer> LOGIN_TIMEOUT = Setting.declare();
 
   static {
-    SettingInitializer.initDataSourceSettings();
+    DataSourceSettingsInit.init();
   }
 
 }

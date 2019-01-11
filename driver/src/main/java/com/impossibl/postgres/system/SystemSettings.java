@@ -346,7 +346,7 @@ public class SystemSettings {
   public static final Setting<Boolean> STANDARD_CONFORMING_STRINGS = Setting.declare();
 
   static {
-    SettingInitializer.initSystemSettings();
+    SystemSettingsInit.init();
   }
 
 }

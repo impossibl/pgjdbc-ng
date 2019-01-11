@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.SOURCE;
+import static java.lang.annotation.RetentionPolicy.CLASS;
 
 /**
  * Completely defined setting that can be transformed to/from text, use alternate
@@ -181,7 +181,7 @@ public class Setting<T> {
      * @see Setting
      */
     @Target(FIELD)
-    @Retention(SOURCE)
+    @Retention(CLASS)
     public @interface Info {
       String id();
       String desc();
@@ -301,7 +301,7 @@ public class Setting<T> {
    * @see Setting
    */
   @Target(ElementType.TYPE)
-  @Retention(SOURCE)
+  @Retention(CLASS)
   public @interface Factory {
   }
 
@@ -329,7 +329,7 @@ public class Setting<T> {
    * </code>
    */
   @Target(FIELD)
-  @Retention(SOURCE)
+  @Retention(CLASS)
   public @interface Info {
 
   String NO_DEFAULT = "$$$NULL$$$";
@@ -394,7 +394,7 @@ public class Setting<T> {
    * for a fields allowable values.
    */
   @Target(FIELD)
-  @Retention(SOURCE)
+  @Retention(CLASS)
   public @interface Description {
     String value();
   }

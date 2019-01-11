@@ -30,7 +30,6 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.ParameterNames;
 import com.impossibl.postgres.system.Setting;
-import com.impossibl.postgres.system.SettingInitializer;
 
 @Setting.Factory
 public class JDBCSettings {
@@ -154,7 +153,7 @@ public class JDBCSettings {
   public static final Setting<String> CI_CLIENT_USER = Setting.declare();
 
   static {
-    SettingInitializer.initJDBCSettings();
+    JDBCSettingsInit.init();
   }
 
 }
