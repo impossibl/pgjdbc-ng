@@ -39,104 +39,54 @@ and the XADataSource class is
 	com.impossibl.postgres.jdbc.xa.PGXADataSource
 
 ## Configuration
+ 
+### Settings
 
-The driver and data sources supports the following configuration
-properties (name, type and default value).
+The `Driver` supports configuration via a large number of number of settings that can be specified as system 
+properties or per connection via URL parameters and/or driver properties.
 
-	host      (String) localhost
+The `DataSource` supports the same configurability through system properties or via distinct methods on the data
+source classes.
 
-The 'host' parameter specifies the host name of the database server. Data sources only.
+A detailed list of available settings is available [HERE](SETTINGS.md) 
 
-	port         (int)     5432
+### Host Addresses
 
-The 'port' parameter specifies the port number of the database server. Data sources only.
+#### PGDriver
+The driver supports specifying multiple host addresses via the URL to provide fallback addresses while attempting to 
+connect to a server. Each host will be tried in the order specified until a connection can be made.
 
-	database     (String)
+##### Multi-host Address URL Format
 
-The 'database' parameter specifies the name of the database on the database server. Data sources only.
+    jdbc:pgsql://host1,host2:5434,127.0.0.1/db
 
-	user   (String)
+This format allows providing multiple addresses separated with commas. Each address can be specified as an `IPv4`,
+`IPv6`, or `DNS` address followed by an optional port. Any number of addresses can be specified.
+  
+> In the event of a successful connection and subsequent unexpected disconnection, no attempt is made to 
+re-establish a connection regardless of the presence of fallback addresses. 
 
-The 'user' parameter specifies the user name.
+##### Unix Domain Sockets
 
-	password     (String)
+When Netty native libraries are present the driver can connect to a PostgreSQL instance on the same machine via
+its local socket. You specify this connection address using a special `unixsocket` property supplied via the URL.
 
-The 'password' parameter specifies the password.
+    jdbc:pgsql:db?unixsocket=/tmp 
 
-	housekeeper      (boolean) true
+The property accepts a directory containing a PostgreSQL unix socket (as shown above), in which case it searches
+the directory for a socket filename matching PostgresSQL's known format. Alternatively, you can specify a complete 
+absolute path to the unix socket. Only a single `unixsocket` property can be specified.
 
-The 'housekeeper' parameter specifies if the JDBC driver should keep track connections, statements and result sets
-and automatically close them if they can't no longer be reached.
+> When combining the `unixsocket` property and internet addresses in a fallback configuration the unix socket 
+address is always attempted first.
 
-	parsedSqlCacheSize   (int)   250
+> Visit [Netty's wiki](https://netty.io/wiki/native-transports.html) for more information on how to acquire the correct native libraries for your
+platform  
 
-The 'parsedSqlCacheSize' parameter specifies how big the cache size for parsed SQL statements should be.
+#### Data Sources
 
-	preparedStatementCacheSize (int)     50
-
-The 'preparedStatementCacheSize' parameter specifies how big the cache size for PreparedStatement instaces should be.
-
-	applicationName          (String)  pgjdbc app
-
-The 'applicationName' parameter specifies the application name associated with the connection on the database server.
-
-	clientEncoding          (String)  UTF8
-
-The 'clientEncoding' parameter specifies the client encoding for the database server.
-
-	networkTimeout         (int)     0
-
-The 'networkTimeout' parameter specifies the default timeout in milliseconds for the connections.
-A value of 0 indicates that there isnt a timeout for database operations.
-
-	strictMode          (boolean)  false
-
-The 'strictMode' parameter specifies if the JDBC driver should follow behavior assumed by
-certain frameworks, and test suites. See
-[http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode](http://github.com/impossibl/pgjdbc-ng/wiki/StrictMode "pgjdbc-ng strictMode")
-for additional details.
-
-	defaultFetchSize         (int)     0
-
-The 'defaultFetchSize' parameter specifies the default fetch size for statements.
-
-	receiveBufferSize         (int)     -1
-
-The 'receiveBufferSize' parameter specifies the size of the receive buffer for the connection.
-
-	sendBufferSize         (int)     -1
-
-The 'sendBufferSize' parameter specifies the size of the send buffer for the connection.
-
-	sslMode          (String)
-
-The 'sslMode' parameter specifies which SSL mode that should be used to connect to the database server.
-Valid values include 'prefer', 'require', 'verify-ca' and 'verify-full'.
-
-	sslPassword          (String)
-
-The 'sslPassword' parameter specifies the SSL password.
-
-	sslCertificateFile          (String)
-
-The 'sslCertificateFile' parameter specifies the SSL certificate file as a path.
-
-	sslKeyFile          (String)
-
-The 'sslKeyFile' parameter specifies the SSL key file as a path.
-
-	sslRootCertificateFile          (String)
-
-The 'sslRootCertificateFile' parameter specifies the SSL root certificate file as a path.
-
-
-    unixsocket      (String)
-    
-The 'unixsocket' parameter specifies a unix domain socket directory or file that a connection should be attempted to.
-If the parameter refers to a directory it will be searched for a valid PostgreSQL unix domain socket file.
-
-*NOTE:* Connection via unix domain sockets requires that Netty native transport library for your platform be provided.
-Information can be found [on Netty's wiki](https://netty.io/wiki/native-transports.html) 
+Each `DataSource` implementation currently allows specifying at most a single host address. No support for 
+fallback addresses is currently implemented.
 
 ## License
 

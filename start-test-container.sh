@@ -3,10 +3,10 @@ set -e
 
 docker run --name pgtest --rm -itd -p 5432:5432 \
     --health-cmd "psql -c 'SELECT 1' -U test -d test" --health-interval 1s \
-    -v "$PWD/src/test/resources/certdir/server/pg_hba.conf":/var/lib/postgresql/pg_hba.conf \
-    -v "$PWD/src/test/resources/certdir/server/root.crt":/var/lib/postgresql/root.crt \
-    -v "$PWD/src/test/resources/certdir/server/server.crt":/var/lib/postgresql/server.crt \
-    -v "$PWD/src/test/resources/certdir/server/server.key":/var/lib/postgresql/server.key \
+    -v "$PWD/driver/src/test/resources/certdir/server/pg_hba.conf":/var/lib/postgresql/pg_hba.conf \
+    -v "$PWD/driver/src/test/resources/certdir/server/root.crt":/var/lib/postgresql/root.crt \
+    -v "$PWD/driver/src/test/resources/certdir/server/server.crt":/var/lib/postgresql/server.crt \
+    -v "$PWD/driver/src/test/resources/certdir/server/server.key":/var/lib/postgresql/server.key \
     -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
     postgres:${PGVERSION:-11}-alpine \
     --hba_file=/var/lib/postgresql/pg_hba.conf \
