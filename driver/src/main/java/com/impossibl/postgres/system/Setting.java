@@ -42,7 +42,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.lang.annotation.ElementType.FIELD;
@@ -145,8 +144,6 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * @param <T> Type of the setting
  */
 public class Setting<T> {
-
-  private static final Logger logger = Logger.getLogger(Setting.class.getName());
 
   /**
    * Setting group.
@@ -445,20 +442,6 @@ public class Setting<T> {
     return new Setting<>(defaultSupplier);
   }
 
-  private static final Map<String, Setting<?>> ALL_GLOBAL = new LinkedHashMap<>();
-
-  /**
-   * Get a name based map of all defined settings.
-   *
-   * All settings mapped by all names (primary & alternates) are
-   * provided in the map.
-   *
-   * @return Map of all defined settings.
-   */
-  public static Map<String, Setting<?>> getAllGlobal() {
-    return Collections.unmodifiableMap(ALL_GLOBAL);
-  }
-
   /**
    * Prefix used when looking up values via {@link System#getProperty(String)}
    */
@@ -525,7 +508,6 @@ public class Setting<T> {
               "Duplicate setting name found '" + names[0] + "'. " +
                   "Settings in global groups must be unique across all groups."
           );
-        addAll(ALL_GLOBAL, this);
       }
       addAll(group.allNamed, this);
       group.all.add(this);
