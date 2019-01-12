@@ -293,8 +293,21 @@ public class ResultSetMetaDataTest {
   }
 
   @Test
-  public void testAliasStrictMode() throws Exception {
-    (conn.unwrap(PGConnection.class)).setStrictMode(true);
+  public void testAliasInsensitiveNonStrict() throws Exception {
+    ((PGDirectConnection)conn).setStrictMode(false);
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT a AS PK FROM rsmd1");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(1, rsmd.getColumnCount());
+    assertEquals("pk", rsmd.getColumnName(1));
+    assertEquals("pk", rsmd.getColumnLabel(1));
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testAliasSensitiveNonStrict() throws Exception {
+    ((PGDirectConnection)conn).setStrictMode(false);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a AS \"PK\" FROM rsmd1");
     ResultSetMetaData rsmd = rs.getMetaData();

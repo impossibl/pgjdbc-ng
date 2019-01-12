@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
+
 import java.sql.Array;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
@@ -162,6 +164,31 @@ public class BatchExecuteTest {
 
   @Test
   public void testSelectThrowsException() throws Exception {
+    Statement stmt = con.createStatement();
+
+    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+    stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
+    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
+
+    try {
+      stmt.executeBatch();
+      fail("Should raise a BatchUpdateException because of the SELECT");
+    }
+    catch (BatchUpdateException e) {
+      int[] updateCounts = e.getUpdateCounts();
+      assertEquals(1, updateCounts.length);
+      assertEquals(1, updateCounts[0]);
+    }
+    catch (SQLException e) {
+      fail("Should throw a BatchUpdateException instead of " + "a generic SQLException: " + e);
+    }
+
+    stmt.close();
+  }
+
+  @Test
+  public void testSelectThrowsExceptionNonStrict() throws Exception {
+    con.unwrap(PGConnection.class).setStrictMode(false);
     Statement stmt = con.createStatement();
 
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
@@ -393,6 +420,41 @@ public class BatchExecuteTest {
     }
     catch (BatchUpdateException bue) {
       // We only process until the first error
+      assertEquals(1, bue.getUpdateCounts().length);
+      assertEquals(1, bue.getUpdateCounts()[0]);
+    }
+
+    pstmt.close();
+  }
+
+  @Test
+  public void testPreparedStatementMultipleBatchWithFailureNonStrict() throws SQLException {
+    con.unwrap(PGConnection.class).setStrictMode(false);
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
+    con.commit();
+    stmt.close();
+
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO multiplebatch VALUES (?)");
+
+    // Valid
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+
+    // Invalid (due to primary key)
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+
+    // Valid
+    pstmt.setInt(1, 2);
+    pstmt.addBatch();
+
+    try {
+      int[] result = pstmt.executeBatch();
+      fail("Failure");
+    }
+    catch (BatchUpdateException bue) {
+      // We only process until the first error
       assertEquals(2, bue.getUpdateCounts().length);
       assertEquals(1, bue.getUpdateCounts()[0]);
       assertEquals(Statement.EXECUTE_FAILED, bue.getUpdateCounts()[1]);
@@ -403,6 +465,31 @@ public class BatchExecuteTest {
 
   @Test
   public void testPreparedStatementSelectThrowsException() throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
+    con.commit();
+    stmt.close();
+
+    PreparedStatement pstmt = con.prepareStatement("SELECT pk FROM multiplebatch WHERE pk = ?");
+
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+
+    try {
+      int[] result = pstmt.executeBatch();
+      fail("Failure");
+    }
+    catch (BatchUpdateException bue) {
+      assertEquals(0, bue.getUpdateCounts().length);
+    }
+    finally {
+      pstmt.close();
+    }
+  }
+
+  @Test
+  public void testPreparedStatementSelectThrowsExceptionNonStrict() throws SQLException {
+    con.unwrap(PGConnection.class).setStrictMode(false);
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE multiplebatch (pk int PRIMARY KEY)");
     con.commit();
