@@ -35,7 +35,7 @@ import com.impossibl.postgres.system.Setting;
 public class JDBCSettings {
 
   @Setting.Group.Info(
-      id = "jdbc", desc = "JDBC Settings"
+      id = "jdbc", desc = "JDBC Settings", order = 1
   )
   public static final Setting.Group JDBC = Setting.Group.declare();
 

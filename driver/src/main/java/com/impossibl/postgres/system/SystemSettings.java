@@ -38,7 +38,7 @@ import java.nio.charset.Charset;
 public class SystemSettings {
 
   @Setting.Group.Info(
-      id = "system", desc = "System Settings"
+      id = "system", desc = "System Settings", order = 3
   )
   public static final Setting.Group SYS = Setting.Group.declare();
 

@@ -3,7 +3,7 @@ package com.impossibl.postgres.tools
 import java.util.regex.Pattern
 
 
-val acronyms = setOf("i/o", "sql", "ssl", "url", "ca")
+val acronyms = setOf("i/o", "sql", "ssl", "url", "ca", "api")
 val abbreviations = mapOf(
     "recv" to "receive",
     "io" to "i/o"
@@ -62,4 +62,8 @@ fun String.dashesFromCamelCase(): String {
   }
 
   return newVal.toString()
+}
+
+fun String.markdownAnchor(): String {
+  return this.split("""[^\w]""".toRegex()).joinToString("-").toLowerCase()
 }

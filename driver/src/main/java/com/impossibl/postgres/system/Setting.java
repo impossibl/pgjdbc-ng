@@ -183,6 +183,7 @@ public class Setting<T> {
       String id();
       String desc();
       boolean global() default true;
+      int order() default Integer.MAX_VALUE;
     }
 
     /**
