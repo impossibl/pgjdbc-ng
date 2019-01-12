@@ -213,12 +213,11 @@ public class ConnectionTest {
    */
   @Test
   public void testWarnings() throws Exception {
-    con = TestUtil.openDB();
+    con = TestUtil.openDB().unwrap(PGDirectConnection.class);
+    // The connection must be ours!
+    assertTrue(con != null);
 
     String testStr = "This Is OuR TeSt message";
-
-    // The connection must be ours!
-    assertTrue(con instanceof PGDirectConnection);
 
     // Clear any existing warnings
     con.clearWarnings();

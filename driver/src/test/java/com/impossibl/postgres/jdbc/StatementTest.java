@@ -597,22 +597,23 @@ public class StatementTest {
 
   @Test
   public void testDefaultFetchSize() throws SQLException {
-    Integer oldValue = ((PGConnection) con).getDefaultFetchSize();
+    PGConnection con = this.con.unwrap(PGConnection.class);
+    Integer oldValue = con.getDefaultFetchSize();
 
-    ((PGConnection)con).setDefaultFetchSize(10);
-    assertEquals((Integer) 10, ((PGConnection)con).getDefaultFetchSize());
+    con.setDefaultFetchSize(10);
+    assertEquals((Integer) 10, con.getDefaultFetchSize());
 
     Statement stmt = con.createStatement();
     assertEquals(10, stmt.getFetchSize());
 
     stmt.close();
 
-    ((PGConnection)con).setDefaultFetchSize(oldValue);
+    con.setDefaultFetchSize(oldValue);
   }
 
   @Test
   public void testQuestionMarkExcaping() throws SQLException {
-    if (!((PGConnection)con).isServerMinimumVersion(9, 4))
+    if (!(con.unwrap(PGConnection.class)).isServerMinimumVersion(9, 4))
       return;
 
     Statement stmt = con.createStatement();
