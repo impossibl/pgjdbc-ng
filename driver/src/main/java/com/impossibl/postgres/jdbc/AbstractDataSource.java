@@ -124,7 +124,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
       if (connection == null) {
         throw new SQLException("Unsupported database URL");
       }
-      
+
       return connection;
     }
     else {

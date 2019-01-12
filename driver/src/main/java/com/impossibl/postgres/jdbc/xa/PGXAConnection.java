@@ -36,6 +36,7 @@
 package com.impossibl.postgres.jdbc.xa;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.jdbc.APITracing;
 import com.impossibl.postgres.jdbc.PGDirectConnection;
 import com.impossibl.postgres.jdbc.PGPooledConnection;
 import com.impossibl.postgres.protocol.TransactionStatus;
@@ -133,7 +134,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     if (logger.isLoggable(Level.FINE))
       debug("PGXAConnection.getConnection called");
 
-    PGConnection c = (PGConnection)super.getConnection();
+    PGConnection c = super.getConnectionHandle();
 
     // When we're outside an XA transaction, autocommit
     // is supposed to be true, per usual JDBC convention.
@@ -142,7 +143,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     if (state == STATE_IDLE)
       conn.setAutoCommit(true);
 
-    return new PGXAConnectionDelegator(this, c);
+    return APITracing.setupIfEnabled(new PGXAConnectionDelegator(this, c), conn);
   }
 
   @Override
