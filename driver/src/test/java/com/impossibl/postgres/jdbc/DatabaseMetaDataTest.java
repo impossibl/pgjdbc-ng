@@ -40,6 +40,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -133,6 +134,9 @@ public class DatabaseMetaDataTest {
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getTables(null, null, "metadatates%", new String[] {"TABLE"});
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS",
+        "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION");
+
     assertTrue(rs.next());
     String tableName = rs.getString("TABLE_NAME");
     assertEquals("metadatatest", tableName);
@@ -172,7 +176,9 @@ public class DatabaseMetaDataTest {
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
-
+    checkResultSetColumnLabels(rs, "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+        "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE",
+        "FK_NAME", "PK_NAME", "DEFERRABILITY");
     for (int j = 1; rs.next(); j++) {
 
       String pkTableName = rs.getString("PKTABLE_NAME");
@@ -213,6 +219,9 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
+    checkResultSetColumnLabels(rs, "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+        "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE",
+        "FK_NAME", "PK_NAME", "DEFERRABILITY");
     assertTrue(rs.next());
     assertTrue(rs.getInt("UPDATE_RULE") == DatabaseMetaData.importedKeyRestrict);
     assertTrue(rs.getInt("DELETE_RULE") == DatabaseMetaData.importedKeyCascade);
@@ -238,6 +247,9 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    checkResultSetColumnLabels(rs, "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+        "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE",
+        "FK_NAME", "PK_NAME", "DEFERRABILITY");
     int j = 0;
     for (; rs.next(); j++) {
       assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
@@ -262,6 +274,9 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    checkResultSetColumnLabels(rs, "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+        "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE",
+        "FK_NAME", "PK_NAME", "DEFERRABILITY");
     int j = 0;
     for (; rs.next(); j++) {
       assertTrue("pkt".equals(rs.getString("PKTABLE_NAME")));
@@ -298,6 +313,9 @@ public class DatabaseMetaDataTest {
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getImportedKeys(null, "", "users");
+    checkResultSetColumnLabels(rs, "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+        "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE",
+        "FK_NAME", "PK_NAME", "DEFERRABILITY");
     int j = 0;
     for (; rs.next(); j++) {
 
@@ -352,6 +370,10 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, null, "pg_class", null);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     rs.close();
   }
 
@@ -364,6 +386,10 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "metadatatest", null);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
 
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
@@ -380,6 +406,10 @@ public class DatabaseMetaDataTest {
     rs.close();
 
     rs = dbmd.getColumns(null, null, "metadatatest", "quest");
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     assertTrue(rs.next());
     assertEquals("quest", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
@@ -412,6 +442,10 @@ public class DatabaseMetaDataTest {
   public void testSerialColumns() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     int rownum = 0;
     while (rs.next()) {
       assertEquals("sercoltest", rs.getString("TABLE_NAME"));
@@ -513,6 +547,9 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "NON_UNIQUE", "INDEX_QUALIFIER",
+        "INDEX_NAME", "TYPE", "ORDINAL_POSITION", "COLUMN_NAME", "ASC_OR_DESC", "CARDINALITY", "PAGES",
+        "FILTER_CONDITION");
 
     assertTrue(rs.next());
     assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
@@ -560,6 +597,10 @@ public class DatabaseMetaDataTest {
   public void testNotNullDomainColumn() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "domaintable", "");
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
@@ -578,6 +619,9 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "NON_UNIQUE", "INDEX_QUALIFIER",
+        "INDEX_NAME", "TYPE", "ORDINAL_POSITION", "COLUMN_NAME", "ASC_OR_DESC", "CARDINALITY", "PAGES",
+        "FILTER_CONDITION");
 
     assertTrue(rs.next());
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
@@ -600,6 +644,9 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "NON_UNIQUE", "INDEX_QUALIFIER",
+        "INDEX_NAME", "TYPE", "ORDINAL_POSITION", "COLUMN_NAME", "ASC_OR_DESC", "CARDINALITY", "PAGES",
+        "FILTER_CONDITION");
 
     assertTrue(rs.next());
     assertEquals("idx_p_name_id", rs.getString("INDEX_NAME"));
@@ -617,6 +664,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getTableTypes();
+    checkResultSetColumnLabels(rs, "TABLE_TYPE");
     rs.close();
   }
 
@@ -649,6 +697,10 @@ public class DatabaseMetaDataTest {
   public void testFuncWithNames() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f2", null);
+    checkResultSetColumnLabels(rs, "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "COLUMN_NAME",
+        "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SPECIFIC_NAME");
 
     assertTrue(rs.next());
 
@@ -667,6 +719,10 @@ public class DatabaseMetaDataTest {
   public void testFuncWithDirection() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f3", null);
+    checkResultSetColumnLabels(rs, "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "COLUMN_NAME",
+        "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SPECIFIC_NAME");
 
     assertTrue(rs.next());
     assertEquals("a", rs.getString(4));
@@ -690,6 +746,10 @@ public class DatabaseMetaDataTest {
   public void testFuncReturningComposite() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f4", null);
+    checkResultSetColumnLabels(rs, "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "COLUMN_NAME",
+        "COLUMN_TYPE", "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SPECIFIC_NAME");
 
     assertTrue(rs.next());
     assertEquals("$1", rs.getString(4));
@@ -731,6 +791,8 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getVersionColumns(null, null, "pg_class");
+    checkResultSetColumnLabels(rs, "SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE",
+        "BUFFER_LENGTH", "DECIMAL_DIGITS", "PSEUDO_COLUMN");
     rs.close();
   }
 
@@ -740,6 +802,8 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getBestRowIdentifier(null, null, "pg_type", DatabaseMetaData.bestRowSession, false);
+    checkResultSetColumnLabels(rs, "SCOPE", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE",
+        "BUFFER_LENGTH", "DECIMAL_DIGITS", "PSEUDO_COLUMN");
     rs.close();
   }
 
@@ -749,6 +813,8 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getProcedures(null, null, null);
+    checkResultSetColumnLabels(rs, "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", null, null, null,
+        "REMARKS", "PROCEDURE_TYPE", "SPECIFIC_NAME");
     rs.close();
   }
 
@@ -756,6 +822,7 @@ public class DatabaseMetaDataTest {
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getCatalogs();
+    checkResultSetColumnLabels(rs, "TABLE_CAT");
     assertTrue(rs.next());
     assertEquals(con.getCatalog(), rs.getString(1));
     assertTrue(!rs.next());
@@ -768,6 +835,7 @@ public class DatabaseMetaDataTest {
     assertNotNull(dbmd);
 
     ResultSet rs = dbmd.getSchemas();
+    checkResultSetColumnLabels(rs, "TABLE_SCHEM", "TABLE_CATALOG");
     boolean foundPublic = false;
     boolean foundEmpty = false;
     boolean foundPGCatalog = false;
@@ -796,9 +864,13 @@ public class DatabaseMetaDataTest {
   public void testEscaping() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "a'", new String[] {"TABLE"});
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS",
+        "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION");
     assertTrue(rs.next());
     rs.close();
     rs = dbmd.getTables(null, null, "a\\\\", new String[] {"TABLE"});
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS",
+        "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION");
     assertTrue(rs.next());
     rs.close();
 
@@ -834,6 +906,8 @@ public class DatabaseMetaDataTest {
       stmt.execute("create type jdbc.testint8 as (i int8)");
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "jdbc.testint8", null);
+      checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "CLASS_NAME", "DATA_TYPE",
+          "REMARKS", "BASE_TYPE");
       assertTrue(rs.next());
 
       @SuppressWarnings("unused")
@@ -895,6 +969,8 @@ public class DatabaseMetaDataTest {
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
+      checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "CLASS_NAME", "DATA_TYPE",
+          "REMARKS", "BASE_TYPE");
       assertTrue(rs.next());
 
       @SuppressWarnings("unused")
@@ -940,6 +1016,8 @@ public class DatabaseMetaDataTest {
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[] {Types.DISTINCT, Types.STRUCT});
+      checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "CLASS_NAME", "DATA_TYPE",
+          "REMARKS", "BASE_TYPE");
       assertTrue(rs.next());
 
       @SuppressWarnings("unused")
@@ -985,6 +1063,8 @@ public class DatabaseMetaDataTest {
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[] {Types.DISTINCT});
+      checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "CLASS_NAME", "DATA_TYPE",
+          "REMARKS", "BASE_TYPE");
       assertTrue(rs.next());
 
       @SuppressWarnings("unused")
@@ -1029,6 +1109,8 @@ public class DatabaseMetaDataTest {
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
+      checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "CLASS_NAME", "DATA_TYPE",
+          "REMARKS", "BASE_TYPE");
       assertTrue(rs.next());
 
       @SuppressWarnings("unused")
@@ -1068,6 +1150,10 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getAttributes(null, null, "attr_test", null);
+    checkResultSetColumnLabels(rs, "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "ATTR_NAME", "DATA_TYPE",
+        "ATTR_TYPE_NAME", "ATTR_SIZE", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "ATTR_DEF",
+        "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG",
+        "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE");
 
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TYPE_SCHEM"));
@@ -1127,6 +1213,10 @@ public class DatabaseMetaDataTest {
   public void testTypeInfoSigned() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
+    checkResultSetColumnLabels(rs, "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX", "LITERAL_SUFFIX",
+        "CREATE_PARAMS", "NULLABLE", "CASE_SENSITIVE", "SEARCHABLE", "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE",
+        "AUTO_INCREMENT", "LOCAL_TYPE_NAME", "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
+        "NUM_PREC_RADIX");
     while (rs.next()) {
       if ("int4".equals(rs.getString("TYPE_NAME"))) {
         assertEquals(false, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
@@ -1145,6 +1235,10 @@ public class DatabaseMetaDataTest {
   public void testTypeInfoQuoting() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
+    checkResultSetColumnLabels(rs, "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX", "LITERAL_SUFFIX",
+        "CREATE_PARAMS", "NULLABLE", "CASE_SENSITIVE", "SEARCHABLE", "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE",
+        "AUTO_INCREMENT", "LOCAL_TYPE_NAME", "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
+        "NUM_PREC_RADIX");
     while (rs.next()) {
       if ("int4".equals(rs.getString("TYPE_NAME"))) {
         assertNull(rs.getString("LITERAL_PREFIX"));
@@ -1161,6 +1255,10 @@ public class DatabaseMetaDataTest {
   public void testInformationAboutArrayTypes() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "arraytable", "");
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(5, rs.getInt("COLUMN_SIZE"));
@@ -1177,6 +1275,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
 
     ResultSet rs = dbmd.getClientInfoProperties();
+    checkResultSetColumnLabels(rs, "NAME", "MAX_LEN", "DEFAULT_VALUE", "DESCRIPTION");
 
     assertTrue(rs.next());
     assertEquals("ApplicationName", rs.getString("NAME"));
@@ -1191,6 +1290,10 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
+    checkResultSetColumnLabels(rs, "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+        "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
+        "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE",
+        "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_AUTOINCREMENT"));
@@ -1213,6 +1316,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
 
     ResultSet rs = dbmd.getSchemas("", "publ%");
+    checkResultSetColumnLabels(rs, "TABLE_SCHEM", "TABLE_CATALOG");
 
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TABLE_SCHEM"));
@@ -1220,6 +1324,18 @@ public class DatabaseMetaDataTest {
     assertTrue(!rs.next());
 
     rs.close();
+  }
+
+  void checkResultSetColumnLabels(ResultSet rs, String... labels) throws SQLException {
+
+    ResultSetMetaData rsmd = rs.getMetaData();
+    assertEquals(labels.length, rsmd.getColumnCount());
+
+    for (int c = 0; c < labels.length; ++c) {
+      if (labels[c] != null) {
+        assertEquals(labels[c], rsmd.getColumnLabel(c + 1));
+      }
+    }
   }
 
 }
