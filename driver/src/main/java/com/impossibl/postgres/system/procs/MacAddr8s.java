@@ -33,16 +33,18 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
+import static com.impossibl.postgres.api.jdbc.PGType.MACADDR8;
+
 import java.io.IOException;
 
 import io.netty.buffer.ByteBuf;
 
-public class MacAddrs extends SimpleProcProvider {
+public class MacAddr8s extends SimpleProcProvider {
 
-  // Matches PostgreSQL procedures in source: src/backend/utils/adt/mac.c
+  // Matches PostgreSQL procedures in source: src/backend/utils/adt/mac8.c
 
-  public MacAddrs() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr_");
+  public MacAddr8s() {
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "macaddr8_");
   }
 
   private static byte[] convertInput(Type type, Object value) throws ConversionException {
@@ -66,7 +68,7 @@ public class MacAddrs extends SimpleProcProvider {
 
     if (targetClass == String.class) {
       StringBuilder bldr = new StringBuilder();
-      format(value, bldr);
+      MacAddrs.format(value, bldr);
       return bldr.toString();
     }
 
@@ -76,19 +78,19 @@ public class MacAddrs extends SimpleProcProvider {
   static class BinDecoder extends BaseBinaryDecoder {
 
     BinDecoder() {
-      super(6);
+      super(8);
     }
 
     @Override
     public Class<?> getDefaultClass() {
-      return byte[].class;
+      return MACADDR8.getJavaType();
     }
 
     @Override
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, ByteBuf buffer, Class<?> targetClass, Object targetContext) throws IOException {
 
-      // The external representation is just the six bytes, MSB first.
-      byte[] bytes = new byte[6];
+      // The external representation is just the eight bytes, MSB first.
+      byte[] bytes = new byte[8];
       buffer.readBytes(bytes);
 
       return convertOutput(type, bytes, targetClass);
@@ -111,7 +113,7 @@ public class MacAddrs extends SimpleProcProvider {
 
     @Override
     public Class<?> getDefaultClass() {
-      return byte[].class;
+      return MACADDR8.getJavaType();
     }
 
     @Override
@@ -131,37 +133,23 @@ public class MacAddrs extends SimpleProcProvider {
 
       byte[] addr = convertInput(type, value);
 
-      format(addr, buffer);
+      MacAddrs.format(addr, buffer);
     }
 
   }
 
   /*
-   * '08:00:2b:01:02:03' '08-00-2b-01-02-03' '08002b:010203' '08002b-010203'
-   * '0800.2b01.0203' '08002b010203'
+   * '08:00:2b:01:02:03:07:08' '08-00-2b-01-02-03-07-08' '0800:2b01:0203:0708' '08002b-0102-030708'
+   * '08002b.0102.030708' '08002b0102030708'
    */
   static byte[] parse(String value) throws ConversionException {
 
     byte[] bytes = Bytes.decodeHex(value, true);
-    if (bytes.length != 6) {
+    if (bytes.length != 8) {
       throw new ConversionException("Invalid Mac address: " + value);
     }
 
     return bytes;
-  }
-
-  private static final char[] HEX_DIGITS = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-  private static final char SEPARATOR = ':';
-
-  static void format(byte[] addr, StringBuilder buffer) {
-
-    for (byte b : addr) {
-      int bi = b & 0xff;
-      buffer.append(HEX_DIGITS[bi >> 4]);
-      buffer.append(HEX_DIGITS[bi & 0xf]).append(SEPARATOR);
-    }
-
-    buffer.setLength(buffer.length() - 1);
   }
 
 }

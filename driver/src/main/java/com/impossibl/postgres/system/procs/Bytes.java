@@ -254,13 +254,52 @@ public class Bytes extends SimpleProcProvider {
 
   private static final char[] HEX_CHARS = "0123456789ABCDEF".toCharArray();
 
-  public static byte[] decodeHex(CharSequence buffer) {
+  public static byte[] decodeHex(CharSequence buffer) throws ConversionException {
+    return decodeHex(buffer, false);
+  }
+
+  public static byte[] decodeHex(CharSequence buffer, boolean ignoreDelimeters) throws ConversionException {
+
+    // count non hex chars
+    int hexChars = 0;
+    for (int i = 0; i < buffer.length(); i++) {
+      char ch = buffer.charAt(i);
+      switch (ch) {
+        case '-':
+        case '_':
+        case ':':
+        case '.':
+        case ',':
+          continue;
+        default:
+          if ((ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F') || (ch >= '0' && ch <= '9'))
+            hexChars++;
+          else if (!ignoreDelimeters)
+            throw new ConversionException("Invalid hex input");
+      }
+    }
+
+    if (hexChars % 2 != 0) {
+      throw new ConversionException("Invalid hex input");
+    }
 
     int length = buffer.length();
-    byte[] data = new byte[length / 2];
+    byte[] data = new byte[hexChars / 2];
 
     for (int i = 0, j = 0; i < length; i += 2, j += 1) {
-      data[j] = (byte) (((Character.digit(buffer.charAt(i), 16) << 4) + Character.digit(buffer.charAt(i + 1), 16)));
+      char ch = buffer.charAt(i);
+      switch (ch) {
+        case '-':
+        case '_':
+        case ':':
+        case '.':
+        case ',':
+          i += 1;
+          ch = buffer.charAt(i);
+        default:
+          char ch2 = buffer.charAt(i + 1);
+          data[j] = (byte) (((Character.digit(ch, 16) << 4) + Character.digit(ch2, 16)));
+      }
     }
 
     return data;

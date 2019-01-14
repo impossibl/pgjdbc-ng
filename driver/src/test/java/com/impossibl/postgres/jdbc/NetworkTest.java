@@ -49,7 +49,7 @@ public class NetworkTest {
   @Before
   public void before() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "mactest", "mac_address macaddr, cidr_mask cidr");
+    TestUtil.createTable(conn, "mactest", "mac_address macaddr, cidr_mask cidr, mac8_address macaddr8");
   }
 
   @After
@@ -93,6 +93,50 @@ public class NetworkTest {
       stmt.setString(1, "0800.2b01.0203");
       stmt.addBatch();
       stmt.setString(1, "08002b010203");
+      stmt.addBatch();
+      int[] batchResult = stmt.executeBatch();
+      assertEquals("Number of inserted rows not as expected", 6, batchResult.length);
+      for (int rows : batchResult) {
+        assertEquals("Number of inserted rows not as expected", 1, rows);
+      }
+    }
+  }
+
+  @Test
+  public void testMac8StringConversion() throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      int rows = stmt.executeUpdate("INSERT into mactest(mac8_address) VALUES ('08:00:2b:01:02:03:07:08')");
+      assertEquals("Number of inserted rows not as expected", 1, rows);
+
+      ResultSet resultSet = stmt.executeQuery("SELECT mac8_address FROM mactest WHERE mac8_address='08:00:2b:01:02:03:07:08'");
+      assertTrue(resultSet.next());
+      assertEquals("08:00:2b:01:02:03:07:08", resultSet.getString(1));
+    }
+  }
+
+  @Test
+  public void testMac8PreparedStatement() throws SQLException {
+    try (PreparedStatement stmt = conn.prepareStatement("INSERT into mactest(mac8_address) VALUES (?)")) {
+      stmt.setString(1, "08:00:2b:01:02:03:07:08");
+      int rows = stmt.executeUpdate();
+      assertEquals("Number of inserted rows not as expected", 1, rows);
+    }
+  }
+
+  @Test
+  public void testMac8Batch() throws SQLException {
+    try (PreparedStatement stmt = conn.prepareStatement("INSERT into mactest(mac8_address) VALUES (CAST (? AS macaddr8))")) {
+      stmt.setString(1, "08:00:2b:01:02:03:07:08");
+      stmt.addBatch();
+      stmt.setString(1, "08-00-2b-01-02-03-07-08");
+      stmt.addBatch();
+      stmt.setString(1, "0800:2b01:0203:0708");
+      stmt.addBatch();
+      stmt.setString(1, "0800-2b01-0203-0708");
+      stmt.addBatch();
+      stmt.setString(1, "0800.2b01.0203.0708");
+      stmt.addBatch();
+      stmt.setString(1, "08002b0102030708");
       stmt.addBatch();
       int[] batchResult = stmt.executeBatch();
       assertEquals("Number of inserted rows not as expected", 6, batchResult.length);
