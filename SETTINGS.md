@@ -107,13 +107,20 @@ Default: `0`
 
 Enable or disable strict adherence to JDBC specification.
 
+Affected behavior when disabled:
+<ul>
+  <li><code>ResultSetMetaData.getColumnName(int)</code> returns a value equivalent to <code>ResultSetMetaData.getColumnLabel(int)</code>, if a label is available.</li>
+  <li>The <code>Statement.executeBatch(...)</code> family of methods insert an extraneous EXECUTE_FAILED status into <code>BatchUpdateException.getUpdateCounts()</code> even though PostgreSQL stops executing at the first error.</li>
+</ul>
+
+
 Driver Property: `strict-mode`
 
 DataSource: `getStrictMode()`/`setStrictMode(java.lang.Boolean)`
 
 System Property: `pgjdbc.strict-mode`
 
-Default: `false`
+Default: `true`
 
 #### Fetch Size
 

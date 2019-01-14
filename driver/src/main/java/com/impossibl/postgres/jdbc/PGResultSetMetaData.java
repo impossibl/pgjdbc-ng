@@ -267,7 +267,7 @@ class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
 
   @Override
   public String getColumnName(int column) throws SQLException {
-    if (connection.isStrictMode()) {
+    if (!connection.isStrictMode()) {
       String val = get(column).getName();
       if (val != null)
         return val;

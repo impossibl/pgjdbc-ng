@@ -94,8 +94,20 @@ public class JDBCSettings {
   public static final Setting<Integer> DEFAULT_NETWORK_TIMEOUT = Setting.declare();
 
   @Setting.Info(
-      desc = "Enable or disable strict adherence to JDBC specification.",
-      def = "false",
+      desc = "Enable or disable strict adherence to JDBC specification.\n\n" +
+          "Affected behavior when disabled:\n" +
+          "<ul>\n" +
+          "  <li>" +
+          "<code>ResultSetMetaData.getColumnName(int)</code> returns a value equivalent to " +
+          "<code>ResultSetMetaData.getColumnLabel(int)</code>, if a label is available." +
+          "</li>\n" +
+          "  <li>" +
+          "The <code>Statement.executeBatch(...)</code> family of methods insert an extraneous EXECUTE_FAILED " +
+          "status into <code>BatchUpdateException.getUpdateCounts()</code> even though PostgreSQL stops executing at " +
+          "the first error." +
+          "</li>\n" +
+          "</ul>\n",
+      def = "true",
       name = "strict-mode",
       group = "jdbc",
       alternateNames = "strictMode"

@@ -256,7 +256,7 @@ class PGSimpleStatement extends PGStatement {
   public int[] executeBatch() throws SQLException {
     checkClosed();
 
-    IntegerBatchResults results = new IntegerBatchResults();
+    IntegerBatchResults results = new IntegerBatchResults(connection.isStrictMode());
     executeBatch(results);
     return results.counts;
   }
@@ -265,7 +265,7 @@ class PGSimpleStatement extends PGStatement {
   public long[] executeLargeBatch() throws SQLException {
     checkClosed();
 
-    LongBatchResults results = new LongBatchResults();
+    LongBatchResults results = new LongBatchResults(connection.isStrictMode());
     executeBatch(results);
     return results.counts;
   }

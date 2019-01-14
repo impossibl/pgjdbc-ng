@@ -55,6 +55,11 @@ interface BatchResults {
 class IntegerBatchResults implements BatchResults {
 
   int[] counts = new int[0];
+  boolean strict;
+
+  IntegerBatchResults(boolean strict) {
+    this.strict = strict;
+  }
 
   @Override
   public void setBatchSize(int size) {
@@ -69,8 +74,14 @@ class IntegerBatchResults implements BatchResults {
 
   @Override
   public BatchUpdateException getException(int batchIdx, String message, Exception cause) {
-    int[] counts = Arrays.copyOf(this.counts, batchIdx + 1);
-    counts[batchIdx] = EXECUTE_FAILED;
+    int[] counts;
+    if (strict) {
+      counts = Arrays.copyOf(this.counts, batchIdx);
+    }
+    else {
+      counts = Arrays.copyOf(this.counts, batchIdx + 1);
+      counts[batchIdx] = EXECUTE_FAILED;
+    }
     return new BatchUpdateException(message, null, 0, counts, cause != null ? makeSQLException(cause) : null);
   }
 
@@ -79,6 +90,11 @@ class IntegerBatchResults implements BatchResults {
 class LongBatchResults implements BatchResults {
 
   long[] counts = new long[0];
+  boolean strict;
+
+  LongBatchResults(boolean strict) {
+    this.strict = strict;
+  }
 
   @Override
   public void setBatchSize(int size) {
@@ -93,8 +109,14 @@ class LongBatchResults implements BatchResults {
 
   @Override
   public BatchUpdateException getException(int batchIdx, String message, Exception cause) {
-    long[] counts = Arrays.copyOf(this.counts, batchIdx + 1);
-    counts[batchIdx] = EXECUTE_FAILED;
+    long[] counts;
+    if (strict) {
+      counts = Arrays.copyOf(this.counts, batchIdx);
+    }
+    else {
+      counts = Arrays.copyOf(this.counts, batchIdx + 1);
+      counts[batchIdx] = EXECUTE_FAILED;
+    }
     return new BatchUpdateException(message, null, 0, counts, cause != null ? makeSQLException(cause) : null);
   }
 
