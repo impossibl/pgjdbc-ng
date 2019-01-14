@@ -158,8 +158,7 @@ public class PGPooledConnection implements PooledConnection {
    * there is a previous handle active when this is called, the previous
    * one is forcibly closed and its work rolled back.</p>
    */
-  @Override
-  public Connection getConnection() throws SQLException {
+  protected PGPooledConnectionDelegator getConnectionHandle() throws SQLException {
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
       PGSQLSimpleException sqlException = new PGSQLSimpleException("This PooledConnection has already been closed.",
@@ -195,7 +194,7 @@ public class PGPooledConnection implements PooledConnection {
     }
     catch (SQLException sqlException) {
       fireConnectionFatalError(sqlException);
-      throw (SQLException)sqlException.fillInStackTrace();
+      throw (SQLException) sqlException.fillInStackTrace();
     }
 
     PGPooledConnectionDelegator handler = new PGPooledConnectionDelegator(this, con);
@@ -203,6 +202,12 @@ public class PGPooledConnection implements PooledConnection {
     last = handler;
 
     return handler;
+  }
+
+  @Override
+  public Connection getConnection() throws SQLException {
+
+    return APITracing.setupIfEnabled(getConnectionHandle(), con);
   }
 
   /**

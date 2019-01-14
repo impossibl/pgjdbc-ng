@@ -227,7 +227,7 @@ public class DatabaseMetaDataPropertiesTest {
 
   @Test
   public void testDbProductDetails() throws SQLException {
-    assertTrue(con instanceof PGConnection);
+    assertNotNull(con.unwrap(PGConnection.class));
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);

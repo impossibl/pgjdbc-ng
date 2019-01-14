@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
@@ -292,14 +294,14 @@ public class ResultSetMetaDataTest {
 
   @Test
   public void testAliasStrictMode() throws Exception {
-    ((PGDirectConnection)conn).setStrictMode(true);
+    (conn.unwrap(PGConnection.class)).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a AS \"PK\" FROM rsmd1");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertEquals(1, rsmd.getColumnCount());
     assertEquals("PK", rsmd.getColumnName(1));
     assertEquals("PK", rsmd.getColumnLabel(1));
-    ((PGDirectConnection)conn).setStrictMode(false);
+    (conn.unwrap(PGConnection.class)).setStrictMode(false);
     rs.close();
     stmt.close();
   }

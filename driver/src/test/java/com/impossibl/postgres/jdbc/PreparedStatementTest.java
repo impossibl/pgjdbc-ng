@@ -128,7 +128,6 @@ public class PreparedStatementTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(buf);
     doSetBinaryStream(bais, 10);
 
-    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
@@ -137,7 +136,6 @@ public class PreparedStatementTest {
     }
     rs.close();
     stmt.close();
-    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
@@ -826,7 +824,6 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
@@ -835,7 +832,6 @@ public class PreparedStatementTest {
     }
     rs.close();
     stmt.close();
-    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
@@ -851,7 +847,6 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
@@ -860,7 +855,6 @@ public class PreparedStatementTest {
     }
     rs.close();
     stmt.close();
-    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test
@@ -876,7 +870,6 @@ public class PreparedStatementTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    ((PGDirectConnection)conn).setStrictMode(true);
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
     assertTrue(rs.next());
@@ -885,7 +878,6 @@ public class PreparedStatementTest {
     }
     rs.close();
     stmt.close();
-    ((PGDirectConnection)conn).setStrictMode(false);
   }
 
   @Test

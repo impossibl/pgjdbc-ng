@@ -68,7 +68,7 @@ public class PGDataSource extends AbstractGeneratedDataSource implements DataSou
    */
   @Override
   public Connection getConnection(String user, String password) throws SQLException {
-    return createConnection(user, password);
+    return APITracing.setupIfEnabled(createConnection(user, password), settings);
   }
 
   /**

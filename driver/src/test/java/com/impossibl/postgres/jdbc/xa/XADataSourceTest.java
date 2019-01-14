@@ -99,7 +99,7 @@ public class XADataSourceTest {
 
     Connection c = con.getConnection();
     assertNotNull(c);
-    assertTrue(c instanceof PGConnection);
+    assertNotNull(c.unwrap(PGConnection.class));
     assertTrue(c.isValid(5));
   }
 

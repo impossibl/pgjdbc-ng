@@ -12,6 +12,9 @@
 
     <modules>
         <module>settings-gen</module>
+        <module>jdbc-api</module>
+        <module>spy-gen</module>
+        <module>spy</module>
         <module>driver</module>
     </modules>
 

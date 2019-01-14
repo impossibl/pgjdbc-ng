@@ -6,7 +6,15 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="jdbc-api" />
         <module name="settings-gen" />
+        <module name="spy-gen" />
+      </profile>
+      <profile name="Annotation profile for spy" enabled="true">
+        <sourceOutputDir name="target/generated-sources/spy-gen" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="spy" />
       </profile>
       <profile name="Annotation profile for PostgreSQL JDBC - NG (Parent)" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -25,8 +33,17 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="driver" target="1.8" />
+      <module name="jdbc-api" target="1.8" />
       <module name="pgjdbc-ng" target="1.5" />
       <module name="settings-gen" target="1.5" />
+      <module name="spy" target="1.8" />
+      <module name="spy-gen" target="1.5" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="jdbc-api" options="-parameters" />
+      <module name="spy" options="-parameters" />
+    </option>
   </component>
 </project>

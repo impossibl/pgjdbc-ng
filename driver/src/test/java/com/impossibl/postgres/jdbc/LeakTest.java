@@ -75,9 +75,9 @@ public class LeakTest {
     ResourceLeakDetector.setLevel(savedLevel);
   }
 
-  ThreadedHousekeeper getHousekeeper() {
-    if (((PGDirectConnection) conn).housekeeper != null)
-      return (ThreadedHousekeeper)((PGDirectConnection) conn).housekeeper.get();
+  ThreadedHousekeeper getHousekeeper() throws SQLException {
+    if ((conn.unwrap(PGDirectConnection.class)).housekeeper != null)
+      return (ThreadedHousekeeper)(conn.unwrap(PGDirectConnection.class)).housekeeper.get();
     else
       return null;
   }
@@ -243,7 +243,7 @@ public class LeakTest {
       try (Statement stmt = conn.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
 
-          Housekeeper.Ref housekeeper = ((PGDirectConnection) conn).housekeeper;
+          Housekeeper.Ref housekeeper = (conn.unwrap(PGDirectConnection.class)).housekeeper;
           assertNull(housekeeper);
 
         }

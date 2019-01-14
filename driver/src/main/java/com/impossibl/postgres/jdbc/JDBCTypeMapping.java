@@ -318,6 +318,9 @@ class JDBCTypeMapping {
           if (val instanceof PGArray) {
             return ((PGArray) val).getType();
           }
+          else if (val instanceof Array) {
+            throw new PGSQLSimpleException("Invalid array, not created by this driver");
+          }
           else if (val != null) {
             Type elementType;
             if (java.lang.reflect.Array.getLength(val) > 0) {

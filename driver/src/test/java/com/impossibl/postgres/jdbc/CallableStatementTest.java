@@ -1295,7 +1295,6 @@ public class CallableStatementTest {
 
   @Test
   public void testGetRealAsFloat() throws Throwable {
-    ((PGDirectConnection)con).setStrictMode(true);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table r_tab ( max_val float8, min_val float8, null_val float8 )");
@@ -1347,7 +1346,6 @@ public class CallableStatementTest {
           }
         }
       }
-      ((PGDirectConnection)con).setStrictMode(false);
     }
   }
 

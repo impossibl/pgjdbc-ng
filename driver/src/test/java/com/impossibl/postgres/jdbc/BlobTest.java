@@ -356,8 +356,8 @@ public class BlobTest {
 
     FileInputStream fis = new FileInputStream(file);
 
-    int oid = LargeObject.creat((PGDirectConnection) conn, LargeObject.INV_WRITE);
-    LargeObject lo = LargeObject.open((PGDirectConnection) conn, oid);
+    int oid = LargeObject.creat(conn.unwrap(PGDirectConnection.class), LargeObject.INV_WRITE);
+    LargeObject lo = LargeObject.open(conn.unwrap(PGDirectConnection.class), oid);
 
     OutputStream os = new BlobOutputStream(null, lo.dup());
     int s = fis.read();
@@ -383,8 +383,8 @@ public class BlobTest {
 
     FileReader fr = new FileReader(file);
 
-    int oid = LargeObject.creat((PGDirectConnection) conn, LargeObject.INV_WRITE);
-    LargeObject lo = LargeObject.open((PGDirectConnection) conn, oid);
+    int oid = LargeObject.creat(conn.unwrap(PGDirectConnection.class), LargeObject.INV_WRITE);
+    LargeObject lo = LargeObject.open(conn.unwrap(PGDirectConnection.class), oid);
 
     ClobWriter cw = new ClobWriter(null, lo.dup());
     int ch = fr.read();

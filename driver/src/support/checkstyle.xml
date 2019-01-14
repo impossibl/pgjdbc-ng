@@ -47,7 +47,7 @@
     <module name="SimplifyBooleanReturn"/>
 
     <module name="ImportOrder">
-      <property name="groups" value="com.impossibl.postgres,java,javax"/>
+      <property name="groups" value="com.impossibl,java,javax"/>
       <property name="ordered" value="true"/>
       <property name="separated" value="true"/>
     </module>

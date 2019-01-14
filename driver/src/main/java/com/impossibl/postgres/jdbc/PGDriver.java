@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.protocol.v30.ServerConnectionShared;
 import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Version;
@@ -39,6 +38,7 @@ import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
 import static com.impossibl.postgres.system.SystemSettings.PROTO;
 import static com.impossibl.postgres.system.SystemSettings.SYS;
 
+import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverAction;
 import java.sql.DriverManager;
@@ -97,7 +97,7 @@ public class PGDriver implements Driver, DriverAction {
   }
 
   @Override
-  public PGConnection connect(String url, Properties info) throws SQLException {
+  public Connection connect(String url, Properties info) throws SQLException {
 
     SharedRegistry.Factory sharedRegistryFactory;
     if (REGISTRY_SHARING.get(info)) {
@@ -110,7 +110,10 @@ public class PGDriver implements Driver, DriverAction {
           connInfo -> new SharedRegistry(connInfo.getServerInfo(), Thread.currentThread().getContextClassLoader());
     }
 
-    return ConnectionUtil.createConnection(url, info, sharedRegistryFactory);
+    PGDirectConnection conn = ConnectionUtil.createConnection(url, info, sharedRegistryFactory);
+    if (conn == null) return null;
+
+    return APITracing.setupIfEnabled(conn);
   }
 
   @Override

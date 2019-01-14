@@ -157,6 +157,34 @@ System Property: `pgjdbc.registry.sharing`
 
 Default: `true`
 
+#### API Trace
+
+Enables or disables API trace output.
+
+<i>NOTE<i>: Currently this is only available with connections vended from <code>DriverManager</code> or<code>Driver</code>.
+
+Driver Property: `api.trace`
+
+DataSource: `getApiTrace()`/`setApiTrace(java.lang.Boolean)`
+
+System Property: `pgjdbc.api.trace`
+
+Default: `false`
+
+#### API Trace File
+
+File destination of API trace output.
+
+<b><i>NOTE</i></b> `api.trace` must be `true` to generate trace output
+
+Driver Property: `api.trace.file`
+
+DataSource: `getApiTraceFile()`/`setApiTraceFile(java.lang.String)`
+
+System Property: `pgjdbc.api.trace.file`
+
+Default: None
+
 ## JDBC DataSource Settings
 
 #### Data Source Name

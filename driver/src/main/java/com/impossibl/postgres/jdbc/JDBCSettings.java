@@ -129,6 +129,24 @@ public class JDBCSettings {
   )
   public static final Setting<Boolean> REGISTRY_SHARING = Setting.declare();
 
+  @Setting.Info(
+      desc = "Enables or disables API trace output.\n\n" +
+          "<i>NOTE<i>: Currently this is only available with connections vended from <code>DriverManager</code> or" +
+          "<code>Driver</code>.",
+      def = "false",
+      name = "api.trace",
+      group = "jdbc"
+  )
+  public static final Setting<Boolean> API_TRACE = Setting.declare();
+
+  @Setting.Info(
+      desc =
+          "File destination of API trace output.\n\n" +
+              "<b><i>NOTE</i></b> `api.trace` must be `true` to generate trace output",
+      name = "api.trace.file",
+      group = "jdbc"
+  )
+  public static final Setting<String> API_TRACE_FILE = Setting.declare();
 
   @Setting.Group.Info(
       id = "jdbc-client-info", desc = "Settings allowed to be referenced as connection client-info", global = false

@@ -120,11 +120,16 @@ public abstract class AbstractDataSource implements CommonDataSource {
       settings.unset(PORT_NUMBER);
       settings.unset(DATABASE_NAME);
 
-      return ConnectionUtil.createConnection(url, settings.asProperties(), sharedRegistryFactory);
+      PGDirectConnection connection = ConnectionUtil.createConnection(url, settings.asProperties(), sharedRegistryFactory);
+      if (connection == null) {
+        throw new SQLException("Unsupported database URL");
+      }
+
+      return connection;
     }
     else {
 
-      // Store the URL give the provided settings
+      // Store the URL given the provided settings
       url = "jdbc:pgsql://" + settings.get(SERVER_NAME) + ":" + settings.get(PORT_NUMBER) + "/" + settings.get(DATABASE_NAME);
       settings.set(DATABASE_URL, url);
 

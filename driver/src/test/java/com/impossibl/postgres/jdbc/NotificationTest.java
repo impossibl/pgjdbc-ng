@@ -53,7 +53,7 @@ public class NotificationTest {
   public void testExplicitCloseReportsClose() throws Exception {
 
     AtomicBoolean flag = new AtomicBoolean();
-    try (PGConnection connection = (PGConnection) TestUtil.openDB()) {
+    try (PGConnection connection = TestUtil.openDB().unwrap(PGConnection.class)) {
 
       connection.addNotificationListener(new PGNotificationListener() {
         @Override
@@ -72,7 +72,7 @@ public class NotificationTest {
   public void testImplicitCloseReportsClose() throws Exception {
 
     AtomicBoolean flag = new AtomicBoolean();
-    PGConnection conn = (PGConnection) TestUtil.openDB();
+    PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class);
 
     conn.addNotificationListener(new PGNotificationListener() {
       @Override
@@ -105,7 +105,7 @@ public class NotificationTest {
   @Test
   public void testQueryInNotification() throws Exception {
 
-    try (PGConnection conn = (PGConnection) TestUtil.openDB()) {
+    try (PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class)) {
 
       final AtomicBoolean flag = new AtomicBoolean(false);
       PGNotificationListener notificationListener = new PGNotificationListener() {
@@ -143,7 +143,7 @@ public class NotificationTest {
   @Test
   public void testSimpleNotification() throws Exception {
 
-    try (PGConnection conn = (PGConnection) TestUtil.openDB()) {
+    try (PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class)) {
 
       final AtomicBoolean flag = new AtomicBoolean(false);
       PGNotificationListener notificationListener = new PGNotificationListener() {
@@ -173,7 +173,7 @@ public class NotificationTest {
   @Test
   public void testFilteredNotification() throws Exception {
 
-    try (PGConnection conn = (PGConnection) TestUtil.openDB()) {
+    try (PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class)) {
 
       final AtomicBoolean validFlag = new AtomicBoolean(false);
       PGNotificationListener validNotificationListener = new PGNotificationListener() {
