@@ -55,4 +55,9 @@ class PGResolvedType implements PGAnyType {
     return type.getId();
   }
 
+  @Override
+  public Class<?> getJavaType() {
+    return type.getCodec(type.getParameterFormat()).getDecoder().getDefaultClass();
+  }
+
 }
