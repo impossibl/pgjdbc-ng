@@ -44,6 +44,7 @@ import static com.impossibl.postgres.utils.ByteBufs.lengthEncodeBinary;
 import java.io.IOException;
 import java.sql.SQLData;
 import java.sql.SQLException;
+import java.sql.Struct;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +89,7 @@ public class Records extends SimpleProcProvider {
 
   static <Buffer> Object convertOutput(Context context, Type type, Type[] attributeTypes, Buffer[] attributeBuffers, Class<?> targetClass, InputFactory<Buffer> inputFactory, StructFactory<Buffer> structFactory) throws IOException {
 
-    if (targetClass == PGStruct.class) {
+    if (Struct.class.isAssignableFrom(targetClass)) {
       targetClass = lookupCustomType(type, context.getCustomTypeMap(), targetClass);
     }
 
@@ -113,7 +114,7 @@ public class Records extends SimpleProcProvider {
 
       result = data;
     }
-    else if (targetClass == PGStruct.class) {
+    else if (Struct.class.isAssignableFrom(targetClass)) {
       result = structFactory.create(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
     }
     else {

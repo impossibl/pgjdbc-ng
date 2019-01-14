@@ -39,7 +39,18 @@ import java.text.ParseException;
 public class OidVectors extends SimpleProcProvider {
 
   public OidVectors() {
-    super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "oidvector");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oidvector");
+  }
+
+  static class BinDecoder extends Arrays.BinDecoder {
+
+    public Class<?> getDefaultClass() {
+      return Integer[].class;
+    }
+
+  }
+
+  static class BinEncoder extends Arrays.BinEncoder {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
