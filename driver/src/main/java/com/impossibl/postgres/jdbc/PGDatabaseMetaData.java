@@ -734,8 +734,8 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, " +
-        " d.description AS REMARKS, " +  java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE, p.proname || '_' || p.oid AS SPECIFIC_NAME " +
+        "SELECT NULL AS \"PROCEDURE_CAT\", n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", NULL, NULL, NULL, " +
+        " d.description AS \"REMARKS\", " +  java.sql.DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" " +
         " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p " +
         " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) " +
         " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') " +
@@ -751,7 +751,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       params.add(procedureNamePattern);
     }
 
-    sql.append(" ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, SPECIFIC_NAME");
+    sql.append(" ORDER BY \"PROCEDURE_SCHEM\", \"PROCEDURE_NAME\", \"SPECIFIC_NAME\"");
 
     return execForResultSet(sql.toString(), params);
   }
@@ -780,7 +780,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     resultFields[13] =  new ResultField("COLUMN_DEF",         0, (short)0, reg.loadBaseType("text"), (short)0, 0, FieldFormat.Binary);
     resultFields[14] =  new ResultField("SQL_DATA_TYPE",      0, (short)0, reg.loadBaseType("int4"), (short)0, 0, FieldFormat.Binary);
     resultFields[15] =  new ResultField("SQL_DATETIME_SUB",   0, (short)0, reg.loadBaseType("int4"), (short)0, 0, FieldFormat.Binary);
-    resultFields[16] =  new ResultField("CHAR_OCTECT_LENGTH", 0, (short)0, reg.loadBaseType("int4"), (short)0, 0, FieldFormat.Binary);
+    resultFields[16] =  new ResultField("CHAR_OCTET_LENGTH", 0, (short)0, reg.loadBaseType("int4"), (short)0, 0, FieldFormat.Binary);
     resultFields[17] =  new ResultField("ORDINAL_POSITION",   0, (short)0, reg.loadBaseType("int4"), (short)0, 0, FieldFormat.Binary);
     resultFields[18] =  new ResultField("IS_NULLABLE",        0, (short)0, reg.loadBaseType("text"), (short)0, 0, FieldFormat.Binary);
     resultFields[19] =  new ResultField("SPECIFIC_NAME",      0, (short)0, reg.loadBaseType("text"), (short)0, 0, FieldFormat.Binary);
@@ -885,7 +885,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
           }
 
           row[5] = JDBCTypeMapping.getJDBCTypeCode(argType);
-          row[6] = argType.getCodec(argType.getResultFormat()).getDecoder().getDefaultClass().getName();
+          row[6] = argType.getQualifiedName().toString();
           row[7] = null;
           row[8] = null;
           row[9] = null;
@@ -916,7 +916,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
                 row[3] = columnrs.getString("attname");
                 row[4] = DatabaseMetaData.procedureColumnResult;
                 row[5] = JDBCTypeMapping.getJDBCTypeCode(columnType);
-                row[6] = columnType.getCodec(columnType.getResultFormat()).getDecoder().getDefaultClass().getName();
+                row[6] = columnType.getQualifiedName().toString();
                 row[7] = null;
                 row[8] = null;
                 row[9] = null;
@@ -949,7 +949,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, c.relname AS TABLE_NAME, " +
+        "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", " +
         " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' " +
         " WHEN true THEN CASE " +
         " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind " +
@@ -982,7 +982,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         " END " +
         " ELSE NULL " +
         " END " +
-        " AS TABLE_TYPE, d.description AS REMARKS " +
+        " AS \"TABLE_TYPE\", d.description AS \"REMARKS\", " +
+        " '' as \"TYPE_CAT\", '' as \"TYPE_SCHEM\", '' as \"TYPE_NAME\", " +
+        " '' AS \"SELF_REFERENCING_COL_NAME\", '' AS \"REF_GENERATION\" " +
         " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c " +
         " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0) " +
         " LEFT JOIN pg_catalog.pg_class dc ON (d.classoid=dc.oid AND dc.relname='pg_class') " +
@@ -1010,7 +1012,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       sql.append(") ");
     }
 
-    sql.append(" ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ");
+    sql.append(" ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ");
 
     return execForResultSet(sql.toString(), params);
   }
@@ -1044,7 +1046,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT nspname AS TABLE_SCHEM,  NULL AS TABLE_CATALOG" +
+        "SELECT nspname AS \"TABLE_SCHEM\",  NULL AS \"TABLE_CATALOG\"" +
         " FROM pg_catalog.pg_namespace " +
         " WHERE " +
         " (" +
@@ -1060,7 +1062,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       params.add(schemaPattern);
     }
 
-    sql.append(" ORDER BY TABLE_SCHEM");
+    sql.append(" ORDER BY \"TABLE_SCHEM\"");
 
     return execForResultSet(sql.toString(), params);
   }
@@ -1654,9 +1656,9 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, " +
-        "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, " +
-        "  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME " +
+        "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", " +
+        "  ct.relname AS \"TABLE_NAME\", a.attname AS \"COLUMN_NAME\", " +
+        "  (i.keys).n AS \"KEY_SEQ\", ci.relname AS \"PK_NAME\" " +
         "FROM pg_catalog.pg_class ct " +
         "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) " +
         "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
@@ -1674,7 +1676,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     sql.append(" AND ct.relname = ?");
     params.add(table);
 
-    sql.append(" AND i.indisprimary ORDER BY table_name, pk_name, key_seq");
+    sql.append(" AND i.indisprimary ORDER BY \"TABLE_NAME\", \"PK_NAME\", \"KEY_SEQ\"");
 
     return execForResultSet(sql.toString(), params);
   }
@@ -1684,29 +1686,29 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT NULL::text AS PKTABLE_CAT, pkn.nspname AS PKTABLE_SCHEM, pkc.relname AS PKTABLE_NAME, pka.attname AS PKCOLUMN_NAME, " +
-        "NULL::text AS FKTABLE_CAT, fkn.nspname AS FKTABLE_SCHEM, fkc.relname AS FKTABLE_NAME, fka.attname AS FKCOLUMN_NAME, " +
-        "pos.n AS KEY_SEQ, " +
+        "SELECT NULL::text AS \"PKTABLE_CAT\", pkn.nspname AS \"PKTABLE_SCHEM\", pkc.relname AS \"PKTABLE_NAME\", pka.attname AS \"PKCOLUMN_NAME\", " +
+        "NULL::text AS \"FKTABLE_CAT\", fkn.nspname AS \"FKTABLE_SCHEM\", fkc.relname AS \"FKTABLE_NAME\", fka.attname AS \"FKCOLUMN_NAME\", " +
+        "pos.n AS \"KEY_SEQ\", " +
         "CASE con.confupdtype " +
         " WHEN 'c' THEN " + DatabaseMetaData.importedKeyCascade +
         " WHEN 'd' THEN " + DatabaseMetaData.importedKeySetDefault +
         " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull +
         " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict +
         " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction +
-        " ELSE NULL END AS UPDATE_RULE, " +
+        " ELSE NULL END AS \"UPDATE_RULE\", " +
         "CASE con.confdeltype " +
         " WHEN 'c' THEN " + DatabaseMetaData.importedKeyCascade +
         " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull +
         " WHEN 'd' THEN " + DatabaseMetaData.importedKeySetDefault +
         " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict +
         " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction +
-        " ELSE NULL END AS DELETE_RULE, " +
-        "con.conname AS FK_NAME, pkic.relname AS PK_NAME, " +
+        " ELSE NULL END AS \"DELETE_RULE\", " +
+        "con.conname AS \"FK_NAME\", pkic.relname AS \"PK_NAME\", " +
         "CASE " +
         " WHEN con.condeferrable AND con.condeferred THEN " + DatabaseMetaData.importedKeyInitiallyDeferred +
         " WHEN con.condeferrable THEN " + DatabaseMetaData.importedKeyInitiallyImmediate +
         " ELSE " + DatabaseMetaData.importedKeyNotDeferrable +
-        " END AS DEFERRABILITY " +
+        " END AS \"DEFERRABILITY\" " +
         " FROM " +
         " pg_catalog.pg_namespace pkn, pg_catalog.pg_class pkc, pg_catalog.pg_attribute pka, " +
         " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, " +
@@ -1837,18 +1839,18 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     List<Object> params = new ArrayList<>();
 
     sql.append(
-        "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, " +
-        "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, " +
-        "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, " +
+        "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", " +
+        "  ct.relname AS \"TABLE_NAME\", NOT i.indisunique AS \"NON_UNIQUE\", " +
+        "  NULL AS \"INDEX_QUALIFIER\", ci.relname AS \"INDEX_NAME\", " +
         "  CASE i.indisclustered " +
         "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered +
         "    ELSE CASE am.amname " +
         "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed +
         "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther +
         "    END " +
-        "  END AS TYPE, " +
-        "  (i.keys).n AS ORDINAL_POSITION, " +
-        "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, " +
+        "  END AS \"TYPE\", " +
+        "  (i.keys).n AS \"ORDINAL_POSITION\", " +
+        "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS \"COLUMN_NAME\", " +
         (connection.isServerMinimumVersion(9, 6) ?
         "  CASE am.amname " +
         "    WHEN 'btree' THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
@@ -1856,7 +1858,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         "      ELSE 'A' " +
         "    END " +
         "    ELSE NULL " +
-        "  END AS ASC_OR_DESC, "
+        "  END AS \"ASC_OR_DESC\", "
         :
         "  CASE am.amcanorder " +
         "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 " +
@@ -1864,10 +1866,10 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
         "      ELSE 'A' " +
         "    END " +
         "    ELSE NULL " +
-        "  END AS ASC_OR_DESC, ") +
-        "  ci.reltuples AS CARDINALITY, " +
-        "  ci.relpages AS PAGES, " +
-        "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION " +
+        "  END AS \"ASC_OR_DESC\", ") +
+        "  ci.reltuples AS \"CARDINALITY\", " +
+        "  ci.relpages AS \"PAGES\", " +
+        "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS \"FILTER_CONDITION\" " +
         "FROM pg_catalog.pg_class ct " +
         "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) " +
         "  JOIN (SELECT i.indexrelid, i.indrelid, i.indoption, " +
@@ -1891,7 +1893,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
     if (unique) {
       sql.append(" AND i.indisunique ");
     }
-    sql.append(" ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ");
+    sql.append(" ORDER BY \"NON_UNIQUE\", \"TYPE\", \"INDEX_NAME\", \"ORDINAL_POSITION\" ");
 
     return execForResultSet(sql.toString(), params);
   }
@@ -2073,10 +2075,10 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
     sql.append(
         "SELECT " +
-        " NULL AS TYPE_CAT, n.nspname AS TYPE_SCHEM, t.typname AS TYPE_NAME, NULL AS CLASS_NAME, " +
-        " CASE WHEN t.typtype='c' THEN " + java.sql.Types.STRUCT + " ELSE " + java.sql.Types.DISTINCT + " END AS DATA_TYPE, " +
-        " pg_catalog.obj_description(t.oid, 'pg_type')  AS REMARKS, " +
-        " typbasetype as BASE_TYPE_ID " +
+        " NULL AS \"TYPE_CAT\", n.nspname AS \"TYPE_SCHEM\", t.typname AS \"TYPE_NAME\", NULL AS \"CLASS_NAME\", " +
+        " CASE WHEN t.typtype='c' THEN " + java.sql.Types.STRUCT + " ELSE " + java.sql.Types.DISTINCT + " END AS \"DATA_TYPE\", " +
+        " pg_catalog.obj_description(t.oid, 'pg_type')  AS \"REMARKS\", " +
+        " typbasetype as \"BASE_TYPE_ID\" " +
         "FROM" +
         " pg_catalog.pg_type t, pg_catalog.pg_namespace n " +
         "WHERE" +
@@ -2140,7 +2142,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
       params.add(schemaPattern);
     }
 
-    sql.append(" ORDER BY data_type, type_schem, type_name");
+    sql.append(" ORDER BY \"DATA_TYPE\", \"TYPE_SCHEM\", \"TYPE_NAME\"");
 
     try (PGResultSet rs = execForResultSet(sql.toString(), params)) {
 
