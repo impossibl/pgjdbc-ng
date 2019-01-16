@@ -34,7 +34,7 @@ public class ResultField implements FieldFormatRef {
 
   private String name;
   private int relationId;
-  private int relationAttributeNumber;
+  private short relationAttributeNumber;
   private TypeRef typeRef;
   private short typeLength;
   private int typeModifier;
@@ -68,7 +68,7 @@ public class ResultField implements FieldFormatRef {
     return relationId;
   }
 
-  public int getRelationAttributeNumber() {
+  public short getRelationAttributeNumber() {
     return relationAttributeNumber;
   }
 

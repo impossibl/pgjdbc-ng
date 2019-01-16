@@ -22,6 +22,7 @@ com.impossibl.postgres.system.procs.Jsons
 com.impossibl.postgres.system.procs.Lines
 com.impossibl.postgres.system.procs.LSegs
 com.impossibl.postgres.system.procs.MacAddrs
+com.impossibl.postgres.system.procs.MacAddr8s
 com.impossibl.postgres.system.procs.Moneys
 com.impossibl.postgres.system.procs.Names
 com.impossibl.postgres.system.procs.NumericMods

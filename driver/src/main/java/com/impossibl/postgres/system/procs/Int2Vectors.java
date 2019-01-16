@@ -40,7 +40,18 @@ import java.text.ParseException;
 public class Int2Vectors extends SimpleProcProvider {
 
   public Int2Vectors() {
-    super(new TxtEncoder(), new TxtDecoder(), new Arrays.BinEncoder(), new Arrays.BinDecoder(), "int2vector");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2vector");
+  }
+
+  static class BinDecoder extends Arrays.BinDecoder {
+
+    public Class<?> getDefaultClass() {
+      return Short[].class;
+    }
+
+  }
+
+  static class BinEncoder extends Arrays.BinEncoder {
   }
 
   static class TxtDecoder extends BaseTextDecoder {
@@ -51,7 +62,8 @@ public class Int2Vectors extends SimpleProcProvider {
     }
 
     @Override
-    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
+    protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier,
+                                 CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
       int length = buffer.length();
 

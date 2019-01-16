@@ -31,11 +31,11 @@ package com.impossibl.postgres.types;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.TypeRef;
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.procs.Procs;
 import com.impossibl.postgres.system.tables.PGTypeTable;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.SystemSettings.PARAM_FORMAT_PREF;
+import static com.impossibl.postgres.system.procs.Procs.isDefaultDecoder;
 import static com.impossibl.postgres.system.procs.Procs.isDefaultEncoder;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
@@ -319,7 +319,7 @@ public abstract class Type implements TypeRef {
   }
 
   public boolean isResultFormatSupported(FieldFormat format) {
-    return !Procs.isDefaultDecoder(getCodec(format).decoder);
+    return !isDefaultDecoder(getCodec(format).decoder);
   }
 
   public FieldFormat getResultFormat() {
@@ -354,6 +354,12 @@ public abstract class Type implements TypeRef {
     modifierParser = registry.getShared().loadModifierParser(source.getModInId());
     preferredParameterFormat = PARAM_FORMAT_PREF.getSystem();
     preferredResultFormat = FIELD_FORMAT_PREF.getSystem();
+
+    if (!isDefaultDecoder(textCodec.getDecoder()) && !isDefaultDecoder(binaryCodec.getDecoder())
+        && textCodec.getDecoder().getDefaultClass() != binaryCodec.getDecoder().getDefaultClass()) {
+      throw new IllegalArgumentException("Non default type decoders must have the same default class");
+    }
+
   }
 
   /**

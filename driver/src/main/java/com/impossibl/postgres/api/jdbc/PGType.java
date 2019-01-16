@@ -28,77 +28,89 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
+import com.impossibl.postgres.api.data.ACLItem;
+import com.impossibl.postgres.api.data.CidrAddr;
+import com.impossibl.postgres.api.data.InetAddr;
+import com.impossibl.postgres.api.data.Interval;
+import com.impossibl.postgres.api.data.Path;
+import com.impossibl.postgres.api.data.Tid;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.TypeLiteral;
 
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.JDBCType;
+import java.sql.SQLXML;
+import java.sql.Struct;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Map;
 
 public enum PGType implements PGAnyType {
 
   //CHECKSTYLE:OFF: ParenPad|NoWhitespaceBefore
 
-  BOOL                    (  16,  "bool",         JDBCType.BOOLEAN),
+  BOOL                    (  16,  "bool",         Boolean.class,        JDBCType.BOOLEAN),
 
-  BYTES                   (  17,  "bytea",        JDBCType.BINARY),
+  BYTES                   (  17,  "bytea",        InputStream.class,    JDBCType.BINARY),
 
-  INT2                    (  21,  "int2",         JDBCType.SMALLINT),
-  INT4                    (  23,  "int4",         JDBCType.INTEGER),
-  INT8                    (  20,  "int8",         JDBCType.BIGINT),
-  FLOAT4                  ( 700,  "float4",       JDBCType.REAL),
-  FLOAT8                  ( 701,  "float8",       JDBCType.DOUBLE),
-  MONEY                   ( 790,  "money",        JDBCType.DECIMAL),
-  NUMERIC                 (1700,  "numeric",      JDBCType.NUMERIC),
+  INT2                    (  21,  "int2",         Short.class,          JDBCType.SMALLINT),
+  INT4                    (  23,  "int4",         Integer.class,        JDBCType.INTEGER),
+  INT8                    (  20,  "int8",         Long.class,           JDBCType.BIGINT),
+  FLOAT4                  ( 700,  "float4",       Float.class,          JDBCType.REAL),
+  FLOAT8                  ( 701,  "float8",       Double.class,         JDBCType.DOUBLE),
+  MONEY                   ( 790,  "money",        BigDecimal.class,     JDBCType.DECIMAL),
+  NUMERIC                 (1700,  "numeric",      BigDecimal.class,     JDBCType.NUMERIC),
 
-  CHAR                    (  18,  "char",         JDBCType.CHAR),
-  NAME                    (  19,  "name",         JDBCType.VARCHAR),
-  TEXT                    (  25,  "text",         JDBCType.VARCHAR),
-  BPCHAR                  (1042,  "bpchar",       JDBCType.VARCHAR),
-  VARCHAR                 (1043,  "varchar",      JDBCType.VARCHAR),
-  CSTRING                 (2275,  "cstring",      JDBCType.VARCHAR),
+  CHAR                    (  18,  "char",         String.class,         JDBCType.CHAR),
+  NAME                    (  19,  "name",         String.class,         JDBCType.VARCHAR),
+  TEXT                    (  25,  "text",         String.class,         JDBCType.VARCHAR),
+  BPCHAR                  (1042,  "bpchar",       String.class,         JDBCType.VARCHAR),
+  VARCHAR                 (1043,  "varchar",      String.class,         JDBCType.VARCHAR),
+  CSTRING                 (2275,  "cstring",      String.class,         JDBCType.VARCHAR),
 
-  JSON                    ( 114,  "json",         JDBCType.VARCHAR,                   "9.1"),
-  JSONB                   (3802,  "jsonb",        JDBCType.VARCHAR,                   "9.4"),
-  XML                     ( 142,  "xml",          JDBCType.SQLXML),
+  JSON                    ( 114,  "json",         String.class,         JDBCType.VARCHAR, "9.1"),
+  JSONB                   (3802,  "jsonb",        String.class,         JDBCType.VARCHAR, "9.4"),
+  XML                     ( 142,  "xml",          SQLXML.class,         JDBCType.SQLXML),
 
-  DATE                    (1082,  "date",         JDBCType.DATE),
-  TIME                    (1083,  "time",         JDBCType.TIME),
-  TIME_WITH_TIMEZONE      (1266,  "timetz",       JDBCType.TIME_WITH_TIMEZONE),
-  TIMESTAMP               (1114,  "timestamp",    JDBCType.TIMESTAMP),
-  TIMESTAMP_WITH_TIMEZONE (1184,  "timestamptz",  JDBCType.TIMESTAMP_WITH_TIMEZONE),
-  INTERVAL                (1186,  "interval",     JDBCType.OTHER),
-  ABSTIME                 ( 702,  "abstime",      JDBCType.OTHER),
-  RELTIME                 ( 703,  "reltime",      JDBCType.OTHER),
-  TINTERVAL               ( 704,  "tinterval",    JDBCType.OTHER),
+  DATE                    (1082,  "date",         Date.class,           JDBCType.DATE),
+  TIME                    (1083,  "time",         Time.class,           JDBCType.TIME),
+  TIME_WITH_TIMEZONE      (1266,  "timetz",       Time.class,           JDBCType.TIME_WITH_TIMEZONE),
+  TIMESTAMP               (1114,  "timestamp",    Timestamp.class,      JDBCType.TIMESTAMP),
+  TIMESTAMP_WITH_TIMEZONE (1184,  "timestamptz",  Timestamp.class,      JDBCType.TIMESTAMP_WITH_TIMEZONE),
+  INTERVAL                (1186,  "interval",     Interval.class,       JDBCType.OTHER),
 
-  POINT                   ( 600,  "point",        JDBCType.OTHER),
-  LINE_SEGMENT            ( 601,  "lseg",         JDBCType.OTHER),
-  PATH                    ( 602,  "path",         JDBCType.OTHER),
-  BOX                     ( 603,  "box",          JDBCType.OTHER),
-  POLYGON                 ( 604,  "polygon",      JDBCType.OTHER),
-  LINE                    ( 628,  "line",         JDBCType.OTHER),
-  CIRCLE                  ( 718,  "circle",       JDBCType.OTHER),
+  POINT                   ( 600,  "point",        double[].class,       JDBCType.OTHER),
+  LINE_SEGMENT            ( 601,  "lseg",         double[].class,       JDBCType.OTHER),
+  PATH                    ( 602,  "path",         Path.class,           JDBCType.OTHER),
+  BOX                     ( 603,  "box",          double[].class,       JDBCType.OTHER),
+  POLYGON                 ( 604,  "polygon",      double[][].class,     JDBCType.OTHER),
+  LINE                    ( 628,  "line",         double[].class,       JDBCType.OTHER),
+  CIRCLE                  ( 718,  "circle",       double[].class,       JDBCType.OTHER),
 
-  MACADDR                 ( 829,  "macaddr",      JDBCType.OTHER),
-  MACADDR8                ( 774,  "macaddr8",     JDBCType.OTHER,                     "10.0"),
-  CIDR                    ( 650,  "cidr",         JDBCType.OTHER),
-  INET                    ( 869,  "inet",         JDBCType.OTHER),
+  MACADDR                 ( 829,  "macaddr",      byte[].class,         JDBCType.OTHER),
+  MACADDR8                ( 774,  "macaddr8",     byte[].class,         JDBCType.OTHER, "10.0"),
+  CIDR                    ( 650,  "cidr",         CidrAddr.class,       JDBCType.OTHER),
+  INET                    ( 869,  "inet",         InetAddr.class,       JDBCType.OTHER),
 
-  BIT                     (1560,  "bit",          JDBCType.BOOLEAN),
-  VARBIT                  (1562,  "varbit",       JDBCType.VARBINARY),
+  BIT                     (1560,  "bit",          boolean[].class,      JDBCType.BOOLEAN),
+  VARBIT                  (1562,  "varbit",       boolean[].class,      JDBCType.VARBINARY),
 
-  RECORD                  (2249,  "record",       JDBCType.STRUCT),
+  RECORD                  (2249,  "record",       Struct.class,         JDBCType.STRUCT),
 
-  UUID                    (2950,  "uuid",         JDBCType.OTHER),
+  UUID                    (2950,  "uuid",         java.util.UUID.class, JDBCType.OTHER),
 
-  ACL_ITEM                (1033,  "aclitem",      JDBCType.OTHER),
+  ACL_ITEM                (1033,  "aclitem",      ACLItem.class,        JDBCType.OTHER),
 
-  OID                     (  26,  "oid",          JDBCType.INTEGER),
-  TID                     (  27,  "tid",          JDBCType.ROWID),
-  XID                     (  28,  "xid",          JDBCType.OTHER),
-  CID                     (  29,  "cid",          JDBCType.OTHER),
+  OID                     (  26,  "oid",          Integer.class,        JDBCType.INTEGER),
+  TID                     (  27,  "tid",          Tid.class,            JDBCType.ROWID),
+  XID                     (  28,  "xid",          Integer.class,        JDBCType.OTHER),
+  CID                     (  29,  "cid",          Integer.class,        JDBCType.OTHER),
 
-  HSTORE                  (null, "hstore",        JDBCType.OTHER),
-  CITEXT                  (null, "citext",        JDBCType.VARCHAR),
+  HSTORE                  (null, "hstore",        Types.HSTORE,         JDBCType.OTHER),
+  CITEXT                  (null, "citext",        String.class,         JDBCType.VARCHAR),
 
   ;
 
@@ -106,18 +118,20 @@ public enum PGType implements PGAnyType {
 
   private Integer oid;
   private String name;
+  private Class<?> javaType;
   private JDBCType jdbcType;
   private Version requiredVersion;
 
-  PGType(Integer oid, String name, JDBCType jdbcType, String requiredVersion) {
+  PGType(Integer oid, String name, Class<?> javaType, JDBCType jdbcType, String requiredVersion) {
     this.oid = oid;
     this.name = name;
+    this.javaType = javaType;
     this.jdbcType = jdbcType;
     this.requiredVersion = Version.parse(requiredVersion);
   }
 
-  PGType(Integer oid, String name, JDBCType jdbcType) {
-    this(oid, name, jdbcType, "0.0");
+  PGType(Integer oid, String name, Class<?> javaType, JDBCType jdbcType) {
+    this(oid, name, javaType, jdbcType, "0.0");
   }
 
   @Override
@@ -138,6 +152,11 @@ public enum PGType implements PGAnyType {
   @Override
   public Integer getVendorTypeNumber() {
     return oid;
+  }
+
+  @Override
+  public Class<?> getJavaType() {
+    return javaType;
   }
 
   public JDBCType getMappedType() {
@@ -163,6 +182,13 @@ public enum PGType implements PGAnyType {
     }
 
     throw new IllegalArgumentException("PostgreSQL Type:" + oid + " is not a valid PGType value.");
+  }
+
+
+  private static class Types {
+
+    static final Class<Map<String, String>> HSTORE = new TypeLiteral<Map<String, String>>() { }.getRawType();
+
   }
 
 }

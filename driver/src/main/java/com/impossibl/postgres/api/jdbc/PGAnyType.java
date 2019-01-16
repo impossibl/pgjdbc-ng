@@ -41,4 +41,6 @@ public interface PGAnyType extends SQLType  {
     return null;
   }
 
+  Class<?> getJavaType();
+
 }

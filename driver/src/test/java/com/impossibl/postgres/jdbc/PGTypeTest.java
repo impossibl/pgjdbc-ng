@@ -88,6 +88,11 @@ public class PGTypeTest {
       public Version getRequiredVersion() {
         return Version.parse("99");
       }
+
+      @Override
+      public Class<?> getJavaType() {
+        return Object.class;
+      }
     };
 
     try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT ?::text")) {
