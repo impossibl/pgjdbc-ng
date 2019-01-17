@@ -36,6 +36,7 @@
 package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.types.Registry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.Await;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
@@ -128,7 +129,7 @@ public class RequestExecutorHandlers {
     public Type[] getDescribedParameterTypes(Context context) throws IOException {
       checkCompleted();
 
-      List<Type> list = new ArrayList<>();
+      List<Type> list = new ArrayList<>(describedParameterTypes.length);
       for (TypeRef ref : describedParameterTypes) {
         Type resolve = context.getRegistry().resolve(ref);
         list.add(resolve);
@@ -136,10 +137,27 @@ public class RequestExecutorHandlers {
       return list.toArray(new Type[0]);
     }
 
-    public ResultField[] getDescribedResultFields() {
+    public ResultField[] getDescribedResultFields(Context context) throws IOException {
       checkCompleted();
 
-      return describedResultFields;
+      Registry registry = context.getRegistry();
+
+      List<ResultField> list = new ArrayList<>(describedResultFields.length);
+      for (ResultField resultField : describedResultFields) {
+        Type type = registry.resolve(resultField.getTypeRef());
+        ResultField clone = new ResultField(
+            resultField.getName(),
+            resultField.getRelationId(),
+            resultField.getRelationAttributeNumber(),
+            type,
+            resultField.getTypeLength(),
+            resultField.getTypeModifier(),
+            type != null ? type.getResultFormat() : resultField.getFormat()
+        );
+        list.add(clone);
+      }
+
+      return list.toArray(new ResultField[0]);
     }
 
     @Override

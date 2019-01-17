@@ -43,10 +43,13 @@ import com.impossibl.postgres.protocol.RequestExecutorHandlers.ExecuteResult;
 import com.impossibl.postgres.protocol.RequestExecutorHandlers.QueryResult;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
+import com.impossibl.postgres.system.SystemSettings.QueryMode;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.protocol.ResultBatches.transformFieldTypes;
+import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
+import static com.impossibl.postgres.system.SystemSettings.QUERY_MODE;
 import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 
 import java.io.IOException;
@@ -151,6 +154,23 @@ public class DirectQuery implements Query {
       portalName = null;
     }
 
+    if (connection.getSetting(QUERY_MODE) == QueryMode.RequireExtended && resultFieldFormats == null) {
+
+      StatementDescription desc = connection.getCachedStatementDescription(sql, () -> {
+
+        RequestExecutorHandlers.PrepareResult result = connection.execute(timeout -> {
+          RequestExecutorHandlers.PrepareResult handler = new RequestExecutorHandlers.PrepareResult();
+          connection.getRequestExecutor().prepare(null, sql, EMPTY_TYPES, handler);
+          handler.await(timeout, MILLISECONDS);
+          return handler;
+        });
+
+        return new StatementDescription(result.getDescribedParameterTypes(connection), result.getDescribedResultFields(connection));
+      });
+
+      resultFieldFormats = desc.resultFieldFormats;
+    }
+
     QueryResult result = connection.executeTimed(this.timeout, (timeout) -> {
       QueryResult handler = new QueryResult(!requiresPortal());
       connection.getRequestExecutor().query(sql, portalName, parameterFormats, parameterBuffers, resultFieldFormats, maxRows, handler);
@@ -222,7 +242,7 @@ public class DirectQuery implements Query {
       }
 
 
-      if (requiresPortal() || hasParameters()) {
+      if (requiresPortal() || hasParameters() || connection.getSetting(QUERY_MODE) == QueryMode.RequireExtended) {
         return executeExtended(connection, sql);
       }
       else {

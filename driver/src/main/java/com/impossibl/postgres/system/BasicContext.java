@@ -550,7 +550,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    QueryDescription desc = new QueryDescription(name, sql, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    QueryDescription desc = new QueryDescription(name, sql, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields(this));
     utilQueries.put(name, desc);
   }
 
@@ -570,7 +570,7 @@ public class BasicContext extends AbstractContext {
 
     handler.await(INTERNAL_QUERY_TIMEOUT, MILLISECONDS);
 
-    return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields());
+    return new QueryDescription(null, queryTxt, handler.getDescribedParameterTypes(this), handler.getDescribedResultFields(this));
   }
 
   public void query(String queryTxt, long timeout) throws IOException {

@@ -123,6 +123,32 @@ public class SystemSettings {
   )
   public static final Setting<Integer> MONEY_FRACTIONAL_DIGITS = Setting.declare();
 
+  public enum QueryMode {
+
+    @Setting.Description(
+        "Allow use of simple query protocol when executing parameter-less, non-portaled queries."
+    )
+    AllowSimple,
+
+    @Setting.Description(
+        "Require use of extended query protocol even when executing parameter-less, non-portaled queries."
+    )
+    RequireExtended
+
+  }
+
+  @Setting.Info(
+      desc =
+          "Query execution mode.\n\n" +
+              "Determines what protocols are used to execute queries.\n\n" +
+              "<code>require-extended</code> mode can be used to ensure all queries are executed respecting the " +
+              "<code>field.format</code> preference.",
+      def = "allow-simple",
+      name = "query-mode",
+      group = "system"
+  )
+  public static final Setting<QueryMode> QUERY_MODE = Setting.declare();
+
   @Setting.Info(
       name = "ssl.mode",
       group = "system",

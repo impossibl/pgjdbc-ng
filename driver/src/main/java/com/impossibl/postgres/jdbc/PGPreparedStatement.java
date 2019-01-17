@@ -250,7 +250,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         return handler;
       });
 
-      return new StatementDescription(result.getDescribedParameterTypes(connection), result.getDescribedResultFields());
+      return new StatementDescription(result.getDescribedParameterTypes(connection), result.getDescribedResultFields(connection));
     });
 
     if (cachedDescription != null) {
@@ -294,16 +294,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
         warningChain = chainWarnings(warningChain, prep);
 
-        // Results are always described as "Text"... update them to our preferred format.
-        ResultField[] describedResultFields = prep.getDescribedResultFields().clone();
-        for (ResultField describedResultField : describedResultFields) {
-          Type type = connection.getRegistry().resolve(describedResultField.getTypeRef());
-          if (type != null) {
-            describedResultField.setFormat(type.getResultFormat());
-          }
-        }
-
-        return new PreparedStatementDescription(name, prep.getDescribedParameterTypes(connection), describedResultFields);
+        return new PreparedStatementDescription(name, prep.getDescribedParameterTypes(connection), prep.getDescribedResultFields(connection));
       });
 
       if (cachedStatement != null) {
@@ -471,7 +462,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
             parameterTypes = prep.getDescribedParameterTypes(connection);
             lastParameterTypes = parameterTypes;
-            lastResultFields = prep.getDescribedResultFields();
+            lastResultFields = prep.getDescribedResultFields(connection);
           }
 
           FieldFormat[] parameterFormats = batchParameterFormats.get(batchIdx);

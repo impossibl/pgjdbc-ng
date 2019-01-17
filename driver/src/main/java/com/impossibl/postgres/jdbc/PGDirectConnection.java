@@ -34,6 +34,7 @@ import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
@@ -1648,10 +1649,12 @@ class StatementDescription {
 
   Type[] parameterTypes;
   ResultField[] resultFields;
+  FieldFormat[] resultFieldFormats;
 
   StatementDescription(Type[] parameterTypes, ResultField[] resultFields) {
     this.parameterTypes = parameterTypes;
     this.resultFields = resultFields;
+    this.resultFieldFormats = Arrays.stream(resultFields).map(ResultField::getFormat).toArray(FieldFormat[]::new);
   }
 
 }
