@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Registry;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -59,6 +60,11 @@ class DecoratorContext extends AbstractContext {
   @Override
   public TimeZone getTimeZone() {
     return base.getTimeZone();
+  }
+
+  @Override
+  public ZoneId getTimeZoneId() {
+    return base.getTimeZoneId();
   }
 
   @Override

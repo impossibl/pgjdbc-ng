@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Registry;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -50,6 +51,8 @@ public interface Context extends Configuration {
   Registry getRegistry();
 
   TimeZone getTimeZone();
+
+  ZoneId getTimeZoneId();
 
   Charset getCharset();
 

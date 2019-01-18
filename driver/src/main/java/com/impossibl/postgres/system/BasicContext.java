@@ -73,6 +73,7 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -161,6 +162,7 @@ public class BasicContext extends AbstractContext {
   protected Map<String, Class<?>> typeMap;
   protected Charset charset;
   private TimeZone timeZone;
+  private ZoneId timeZoneId;
   private DateTimeFormat dateFormat;
   private DateTimeFormat timeFormat;
   private DateTimeFormat timestampFormat;
@@ -239,6 +241,11 @@ public class BasicContext extends AbstractContext {
   @Override
   public TimeZone getTimeZone() {
     return timeZone;
+  }
+
+  @Override
+  public ZoneId getTimeZoneId() {
+    return timeZoneId;
   }
 
   @Override
@@ -738,6 +745,7 @@ public class BasicContext extends AbstractContext {
         }
 
         timeZone = TimeZone.getTimeZone(value);
+        timeZoneId = timeZone.toZoneId();
         break;
 
       case ParameterNames.CLIENT_ENCODING:

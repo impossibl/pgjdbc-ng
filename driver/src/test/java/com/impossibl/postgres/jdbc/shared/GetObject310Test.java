@@ -237,8 +237,8 @@ public class GetObject310Test {
         LocalDateTime localDateTime = LocalDateTime.of(2004, 10, 19, 10, 23, 54, 123456000);
 
         OffsetDateTime offsetDateTime = localDateTime.atOffset(offset).withOffsetSameInstant(ZoneOffset.UTC);
-        assertTrue(offsetDateTime.isEqual(rs.getObject("timestamp_with_time_zone_column", OffsetDateTime.class)));
-        assertTrue(offsetDateTime.isEqual(rs.getObject(1, OffsetDateTime.class)));
+        assertEquals(offsetDateTime, rs.getObject("timestamp_with_time_zone_column", OffsetDateTime.class));
+        assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
       } finally {
         rs.close();
       }

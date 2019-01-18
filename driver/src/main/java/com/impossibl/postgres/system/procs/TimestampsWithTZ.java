@@ -199,7 +199,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
         secs--;
       }
 
-      ZonedDateTime dateTime = Instant.ofEpochSecond(secs, (int) nanos).atZone(UTC_ID);
+      ZonedDateTime dateTime = Instant.ofEpochSecond(secs, (int) nanos).atZone(context.getTimeZoneId());
 
       return convertOutput(context, type, dateTime, targetClass, calendar);
     }
@@ -257,7 +257,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
 
       ZonedDateTime dateTime;
       if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
-        dateTime = OffsetDateTime.from(parsed).toZonedDateTime();
+        dateTime = OffsetDateTime.from(parsed).toZonedDateTime().withZoneSameInstant(UTC_ID);
       }
       else {
         dateTime = LocalDateTime.from(parsed).atZone(calendar.getTimeZone().toZoneId());
