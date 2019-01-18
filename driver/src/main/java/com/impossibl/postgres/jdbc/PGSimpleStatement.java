@@ -37,6 +37,7 @@ import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_COUNT_AVAILABLE;
 import static com.impossibl.postgres.jdbc.Exceptions.NO_RESULT_SET_AVAILABLE;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.appendReturningClause;
 import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
 
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -67,7 +68,7 @@ class PGSimpleStatement extends PGStatement {
 
       cursorName = "cursor" + name;
 
-      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, connection.autoCommit)) {
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, connection.autoCommit, connection.getSetting(FIELD_FORMAT_PREF))) {
 
         cursorName = name = null;
       }

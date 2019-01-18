@@ -30,6 +30,7 @@ package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.jdbc.SQLTextTree.GrammarPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.StatementNode;
+import com.impossibl.postgres.protocol.FieldFormat;
 
 import static com.impossibl.postgres.system.Identifier.quoteIfNeeded;
 
@@ -239,7 +240,7 @@ class SQLTextUtils {
     return true;
   }
 
-  public static boolean prependCursorDeclaration(SQLText sqlText, String cursorName, int resultSetType, int resultSetHoldability, boolean autoCommit) {
+  public static boolean prependCursorDeclaration(SQLText sqlText, String cursorName, int resultSetType, int resultSetHoldability, boolean autoCommit, FieldFormat fieldFormat) {
 
     if (sqlText.getStatementCount() > 1) {
       return false;
@@ -249,7 +250,11 @@ class SQLTextUtils {
       return false;
     }
 
-    String preCursor = "DECLARE " + cursorName + " BINARY ";
+    String preCursor = "DECLARE " + cursorName + " ";
+
+    if (fieldFormat != FieldFormat.Text) {
+      preCursor += "BINARY ";
+    }
 
     if (resultSetType != ResultSet.TYPE_FORWARD_ONLY) {
       preCursor += "SCROLL ";

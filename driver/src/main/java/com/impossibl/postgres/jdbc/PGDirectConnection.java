@@ -88,6 +88,7 @@ import static com.impossibl.postgres.jdbc.SQLTextUtils.prependCursorDeclaration;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.system.Empty.EMPTY_TYPES;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.FIELD_FORMAT_PREF;
 import static com.impossibl.postgres.system.SystemSettings.PROTO;
 import static com.impossibl.postgres.system.SystemSettings.SERVER;
 import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_STRINGS;
@@ -1022,7 +1023,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       cursorName = "cursor" + getNextStatementName();
 
-      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit)) {
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit, getSetting(FIELD_FORMAT_PREF))) {
 
         cursorName = null;
 
@@ -1136,7 +1137,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       cursorName = "cursor" + getNextStatementName();
 
-      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit)) {
+      if (!prependCursorDeclaration(sqlText, cursorName, resultSetType, resultSetHoldability, autoCommit, getSetting(FIELD_FORMAT_PREF))) {
 
         cursorName = null;
 
