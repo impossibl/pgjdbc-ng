@@ -77,13 +77,13 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getDateFormatter() {
-    return base.getDateFormatter();
+  public DateTimeFormat getDateFormat() {
+    return base.getDateFormat();
   }
 
   @Override
-  public DateTimeFormat getTimeFormatter() {
-    return base.getTimeFormatter();
+  public DateTimeFormat getTimeFormat() {
+    return base.getTimeFormat();
   }
 
   @Override
@@ -92,8 +92,8 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getTimestampFormatter() {
-    return base.getTimestampFormatter();
+  public DateTimeFormat getTimestampFormat() {
+    return base.getTimestampFormat();
   }
 
   @Override

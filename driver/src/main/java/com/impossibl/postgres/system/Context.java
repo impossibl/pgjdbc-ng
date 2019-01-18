@@ -63,11 +63,11 @@ public interface Context extends Configuration {
 
   DecimalFormat getCurrencyFormatter();
 
-  DateTimeFormat getDateFormatter();
+  DateTimeFormat getDateFormat();
 
-  DateTimeFormat getTimeFormatter();
+  DateTimeFormat getTimeFormat();
 
-  DateTimeFormat getTimestampFormatter();
+  DateTimeFormat getTimestampFormat();
 
   Map<String, Class<?>> getCustomTypeMap();
 

@@ -28,8 +28,8 @@
  */
 package com.impossibl.postgres.datetime;
 
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
-import java.util.TimeZone;
 
 public interface DateTimeFormat {
 
@@ -44,9 +44,7 @@ public interface DateTimeFormat {
 
   interface Printer {
 
-    String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone);
-
-    String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone);
+    String format(Temporal value);
 
   }
 

@@ -32,25 +32,31 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Type;
-import com.impossibl.postgres.utils.TimestampParts;
 
-import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
-import static com.impossibl.postgres.system.procs.DatesTimes.getCalendar;
-import static com.impossibl.postgres.system.procs.DatesTimes.timeFromParsed;
-import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
+import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
+import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
 
 import java.io.IOException;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import io.netty.buffer.ByteBuf;
 
@@ -64,46 +70,112 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
         "time_");
   }
 
+  private static LocalTime convertInput(Context context, Type type, Object value, Calendar sourceCalendar) throws ConversionException {
 
-  private static long convertInput(Type type, Object object, TimeZone defaultTimeZone) throws ConversionException {
-
-    if (object instanceof java.sql.Time) {
-      return ((Time) object).getTime();
+    if (value instanceof LocalTime) {
+      return (LocalTime) value;
     }
 
-    if (object instanceof Timestamp) {
-      return ((Timestamp) object).getTime();
+    if (value instanceof CharSequence) {
+      CharSequence chars = (CharSequence) value;
+
+      if (value.equals(POS_INFINITY)) return LocalTime.MAX;
+      if (value.equals(NEG_INFINITY)) return LocalTime.MIN;
+
+      TemporalAccessor parsed = context.getTimeFormat().getParser().parse(chars);
+
+      ZoneOffset offset =
+          ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(sourceCalendar.getTimeZone().getRawOffset()));
+
+      if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
+        return OffsetTime.from(parsed).withOffsetSameInstant(offset).toLocalTime();
+      }
+
+      return LocalTime.from(parsed).atOffset(offset).toLocalTime();
     }
 
-    if (object instanceof CharSequence) {
-      return parseTime(object.toString(), defaultTimeZone);
+    if (value instanceof Time) {
+      Time t = (Time) value;
+      if (t.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
+      if (t.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
+
+      return Instant.ofEpochMilli(t.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
     }
 
-    throw new ConversionException(object.getClass(), type);
+    if (value instanceof Date) {
+      java.sql.Date d = (java.sql.Date) value;
+      if (d.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
+      if (d.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
+
+      return Instant.ofEpochMilli(d.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
+    }
+
+    if (value instanceof Timestamp) {
+      Timestamp ts = (Timestamp) value;
+      if (ts.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
+      if (ts.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
+
+      return ts.toInstant().atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
+    }
+
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(Type type, long millis, Class<?> targetClass) throws ConversionException {
-
-    if (targetClass == Timestamp.class) {
-      return new Timestamp(millis);
-    }
-
-    Time time = new Time(millis);
-
-    if (targetClass == Time.class) {
-      return time;
-    }
+  private static Object convertInfinityOutput(boolean positive, Type type, Class<?> targetClass) throws ConversionException {
 
     if (targetClass == LocalTime.class) {
-      return time.toLocalTime();
+      return positive ? LocalTime.MAX : LocalTime.MIN;
     }
 
-    if (targetClass == java.time.Instant.class) {
-      return time.toInstant();
+    if (targetClass == OffsetTime.class) {
+      return positive ? OffsetTime.MAX : OffsetTime.MIN;
     }
 
     if (targetClass == String.class) {
-      return time.toString();
+      return positive ? POS_INFINITY : NEG_INFINITY;
+    }
+
+    if (targetClass == Time.class) {
+      return new Time(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+    }
+
+    if (targetClass == Date.class) {
+      return new Date(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+    }
+
+    if (targetClass == Timestamp.class) {
+      return new Timestamp(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+    }
+
+    throw new ConversionException(type, targetClass);
+  }
+
+  private static Object convertOutput(Context context, Type type, LocalTime time, Class<?> targetClass, Calendar targetCalendar) throws ConversionException {
+
+    if (targetClass == LocalTime.class) {
+      return time;
+    }
+
+    if (targetClass == OffsetTime.class) {
+      ZoneOffset offset =
+          ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(targetCalendar.getTimeZone().getRawOffset()));
+      return time.atOffset(offset);
+    }
+
+    if (targetClass == String.class) {
+      return context.getTimeFormat().getPrinter().format(time);
+    }
+
+    if (targetClass == Time.class) {
+      LocalDate date = LocalDate.of(1970, 1, 1);
+      OffsetDateTime dateTime = date.atTime(time).atZone(targetCalendar.getTimeZone().toZoneId()).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
+      return new Time(dateTime.toInstant().toEpochMilli());
+    }
+
+    if (targetClass == Timestamp.class) {
+      LocalDate date = LocalDate.of(1970, 1, 1);
+      ZonedDateTime dateTime = date.atTime(time).atZone(targetCalendar.getTimeZone().toZoneId());
+      return Timestamp.from(dateTime.toInstant());
     }
 
     throw new ConversionException(type, targetClass);
@@ -127,11 +199,13 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       long micros = buffer.readLong();
 
-      long millis = MICROSECONDS.toMillis(micros);
+      if (micros == Long.MAX_VALUE || micros == Long.MIN_VALUE) {
+        return convertInfinityOutput(micros == Long.MAX_VALUE, type, targetClass);
+      }
 
-      millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
+      LocalTime time = LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(micros));
 
-      return convertOutput(type, millis, targetClass);
+      return convertOutput(context, type, time, targetClass, calendar);
     }
 
   }
@@ -147,11 +221,19 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(type, value, calendar.getTimeZone());
+      LocalTime time = convertInput(context, type, value, calendar);
 
-      millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
-
-      long micros = MILLISECONDS.toMicros(millis) % DAYS.toMicros(1);
+      long micros;
+      if (time.equals(LocalTime.MAX)) {
+        micros = Long.MAX_VALUE;
+      }
+      else if (time.equals(LocalTime.MIN)) {
+        micros = Long.MIN_VALUE;
+      }
+      else {
+        // Convert to micros rounding nanoseconds
+        micros = NANOSECONDS.toMicros(time.toNanoOfDay() + 500) % DAYS.toMicros(1);
+      }
 
       buffer.writeLong(micros);
     }
@@ -170,11 +252,11 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
-      TemporalAccessor parsed = context.getTimeFormatter().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getTimeFormat().getParser().parse(buffer);
 
-      long micros = timeFromParsed(parsed, calendar.getTimeZone());
+      LocalTime time = LocalTime.from(parsed);
 
-      return convertOutput(type, MICROSECONDS.toMillis(micros), targetClass);
+      return convertOutput(context, type, time, targetClass, calendar);
     }
 
   }
@@ -186,31 +268,23 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(type, value, calendar.getTimeZone()) % DAYS.toMillis(1);
+      LocalTime time = convertInput(context, type, value, calendar);
 
-      String strVal = context.getTimeFormatter().getPrinter().formatMillis(millis, calendar.getTimeZone(), false);
+      if (time.equals(LocalTime.MAX)) {
+        buffer.append(POS_INFINITY);
+      }
+      else if (time.equals(LocalTime.MIN)) {
+        buffer.append(NEG_INFINITY);
+      }
+      else {
 
-      buffer.append(strVal);
+        String strVal = context.getTimeFormat().getPrinter().format(time);
+
+        buffer.append(strVal);
+      }
+
     }
 
-  }
-
-  private static long parseTime(String value, TimeZone defaultTimeZone) throws ConversionException {
-
-    TimestampParts ts = TimestampParts.parse(value);
-
-    // Translate parsed time into default time zone
-    Calendar cal = getCalendar(ts.getTz() != null ? ts.getTz() : defaultTimeZone);
-    cal.set(Calendar.ERA, GregorianCalendar.AD);
-    cal.set(Calendar.YEAR, 1970);
-    cal.set(Calendar.MONTH, 0);
-    cal.set(Calendar.DAY_OF_MONTH, 1);
-    cal.set(Calendar.HOUR_OF_DAY, ts.getHour());
-    cal.set(Calendar.MINUTE, ts.getMinute());
-    cal.set(Calendar.SECOND, ts.getSecond());
-    cal.set(Calendar.MILLISECOND, ts.getNanos() / 1000000);
-
-    return cal.getTimeInMillis();
   }
 
 }

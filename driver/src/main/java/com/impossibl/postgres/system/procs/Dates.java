@@ -36,11 +36,8 @@ import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_
 import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
 import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
 import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
-import static com.impossibl.postgres.system.procs.DatesTimes.dateFromParsed;
-import static com.impossibl.postgres.system.procs.DatesTimes.fromTimestampInTimeZone;
-import static com.impossibl.postgres.system.procs.DatesTimes.timeJavaToPg;
-import static com.impossibl.postgres.system.procs.DatesTimes.timePgToJava;
-import static com.impossibl.postgres.system.procs.DatesTimes.toTimestampInTimeZone;
+import static com.impossibl.postgres.system.procs.DatesTimes.javaEpochToPg;
+import static com.impossibl.postgres.system.procs.DatesTimes.pgEpochToJava;
 
 import java.io.IOException;
 import java.sql.Date;
@@ -50,7 +47,6 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
 
@@ -60,63 +56,84 @@ public class Dates extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "date_");
   }
 
-  private static long convertInput(Type type, Object object, Calendar calendar) throws ConversionException {
+  private static LocalDate convertInput(Context context, Type type, Object value, Calendar sourceCalendar) throws ConversionException {
 
-    if (object instanceof java.sql.Timestamp) {
-      Timestamp ts = (Timestamp) object;
-
-      long millis = ts.getTime();
-      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS || millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
-        return millis;
-      }
-
-      calendar.setTimeInMillis(millis);
-      calendar.set(Calendar.HOUR_OF_DAY, 0);
-      calendar.set(Calendar.MINUTE, 0);
-      calendar.set(Calendar.SECOND, 0);
-      calendar.set(Calendar.MILLISECOND, 0);
-      return calendar.getTimeInMillis();
+    if (value instanceof LocalDate) {
+      return (LocalDate) value;
     }
 
-    if (object instanceof java.util.Date) {
-      return ((java.util.Date) object).getTime();
+    if (value instanceof Timestamp) {
+      Timestamp ts = (Timestamp) value;
+      if (ts.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalDate.MAX;
+      if (ts.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalDate.MIN;
+      return ts.toInstant().atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalDate();
     }
 
-    if (object instanceof CharSequence) {
-      return Date.valueOf(object.toString()).getTime();
+    if (value instanceof Date) {
+      Date d = (Date) value;
+      if (d.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalDate.MAX;
+      if (d.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalDate.MIN;
+      Calendar calendar = Calendar.getInstance(sourceCalendar.getTimeZone());
+      calendar.clear();
+      calendar.setTimeInMillis(d.getTime());
+      int year = calendar.get(Calendar.ERA) == 0 ? -(calendar.get(Calendar.YEAR) - 1) : calendar.get(Calendar.YEAR);
+      return LocalDate.of(year, calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH));
     }
 
-    throw new ConversionException(object.getClass(), type);
+    if (value instanceof CharSequence) {
+      CharSequence s = (CharSequence) value;
+      if (s.equals(POS_INFINITY)) return LocalDate.MAX;
+      if (s.equals(NEG_INFINITY)) return LocalDate.MIN;
+
+      TemporalAccessor parsed = context.getDateFormat().getParser().parse(s);
+
+      return LocalDate.from(parsed);
+    }
+
+    throw new ConversionException(value.getClass(), type);
   }
 
-  private static Object convertOutput(Type type, long millis, Class<?> targetClass) throws ConversionException {
+  private static Object convertInfinityOutput(boolean positive, Type type, Class<?> targetClass) throws ConversionException {
 
-
-    if (targetClass == Timestamp.class) {
-      return new Timestamp(millis);
+    if (targetClass == LocalDate.class) {
+      return positive ? LocalDate.MAX : LocalDate.MIN;
     }
 
     if (targetClass == String.class) {
-      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
-        return "infinity";
-      }
-      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
-        return "-infinity";
-      }
+      return positive ? POS_INFINITY : NEG_INFINITY;
     }
 
-    Date date = new Date(millis);
-
     if (targetClass == Date.class) {
+      return new Date(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+    }
+
+    if (targetClass == Timestamp.class) {
+      return new Timestamp(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
+    }
+
+    throw new ConversionException(type, targetClass);
+  }
+
+  private static Object convertOutput(Context context, Type type, LocalDate date, Class<?> targetClass, Calendar targetCalendar) throws ConversionException {
+
+    if (targetClass == LocalDate.class) {
       return date;
     }
 
-    if (targetClass == LocalDate.class) {
-      return date.toLocalDate();
+    if (targetClass == String.class) {
+      return context.getDateFormat().getPrinter().format(date);
     }
 
-    if (targetClass == String.class) {
-      return date.toString();
+    if (targetClass == Timestamp.class) {
+      targetCalendar.clear();
+      targetCalendar.set(date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
+      return new Timestamp(targetCalendar.getTimeInMillis());
+    }
+
+    if (targetClass == Date.class) {
+      targetCalendar.clear();
+      targetCalendar.set(date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
+      return new Date(targetCalendar.getTimeInMillis());
     }
 
     throw new ConversionException(type, targetClass);
@@ -140,21 +157,13 @@ public class Dates extends SimpleProcProvider {
 
       int daysPg = buffer.readInt();
 
-      long millis;
-
-      switch (daysPg) {
-        case Integer.MAX_VALUE:
-          millis = JAVA_DATE_POSITIVE_INFINITY_MSECS;
-          break;
-        case Integer.MIN_VALUE:
-          millis = JAVA_DATE_NEGATIVE_INFINITY_MSECS;
-          break;
-        default:
-          millis = timePgToJava(DAYS.toMillis(daysPg), MILLISECONDS);
-          millis = toTimestampInTimeZone(millis, calendar.getTimeZone());
+      if (daysPg == Integer.MAX_VALUE || daysPg == Integer.MIN_VALUE) {
+        return convertInfinityOutput(daysPg == Integer.MAX_VALUE, type, targetClass);
       }
 
-      return convertOutput(type, millis, targetClass);
+      LocalDate date = LocalDate.ofEpochDay(pgEpochToJava(daysPg, DAYS));
+
+      return convertOutput(context, type, date, targetClass, calendar);
     }
 
   }
@@ -170,21 +179,21 @@ public class Dates extends SimpleProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(type, value, calendar);
+      LocalDate date = convertInput(context, type, value, calendar);
 
-      int daysPg;
-      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
-        daysPg = Integer.MAX_VALUE;
+      if (date == LocalDate.MAX) {
+        buffer.writeInt(Integer.MAX_VALUE);
       }
-      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
-        daysPg = Integer.MIN_VALUE;
+      else if (date == LocalDate.MIN) {
+        buffer.writeInt(Integer.MIN_VALUE);
       }
       else {
-        millis = fromTimestampInTimeZone(millis, calendar.getTimeZone());
-        daysPg = (int) MILLISECONDS.toDays(timeJavaToPg(millis, MILLISECONDS));
+
+        int daysPg = (int) javaEpochToPg(date.toEpochDay(), DAYS);
+
+        buffer.writeInt(daysPg);
       }
 
-      buffer.writeInt(daysPg);
     }
 
   }
@@ -201,16 +210,15 @@ public class Dates extends SimpleProcProvider {
 
       Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
-      if (buffer.equals(POS_INFINITY)) {
-        return convertOutput(type, JAVA_DATE_POSITIVE_INFINITY_MSECS, targetClass);
-      }
-      else if (buffer.equals(NEG_INFINITY)) {
-        return convertOutput(type, JAVA_DATE_NEGATIVE_INFINITY_MSECS, targetClass);
+      if (buffer.equals(POS_INFINITY) || buffer.equals(NEG_INFINITY)) {
+        return convertInfinityOutput(buffer.equals(POS_INFINITY), type, targetClass);
       }
 
-      TemporalAccessor parsed = context.getDateFormatter().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getDateFormat().getParser().parse(buffer);
 
-      return convertOutput(type, dateFromParsed(parsed, calendar.getTimeZone()), targetClass);
+      LocalDate date = LocalDate.from(parsed);
+
+      return convertOutput(context, type, date, targetClass, calendar);
     }
 
   }
@@ -222,19 +230,21 @@ public class Dates extends SimpleProcProvider {
 
       Calendar calendar = sourceContext != null ? (Calendar) sourceContext : Calendar.getInstance();
 
-      long millis = convertInput(type, value, calendar);
-      if (millis == JAVA_DATE_POSITIVE_INFINITY_MSECS) {
+      LocalDate date = convertInput(context, type, value, calendar);
+
+      if (date == LocalDate.MAX) {
         buffer.append(POS_INFINITY);
       }
-      else if (millis == JAVA_DATE_NEGATIVE_INFINITY_MSECS) {
+      else if (date == LocalDate.MIN) {
         buffer.append(NEG_INFINITY);
       }
       else {
 
-        String strVal = context.getDateFormatter().getPrinter().formatMillis(millis, calendar.getTimeZone(), false);
+        String strVal = context.getDateFormat().getPrinter().format(date);
 
         buffer.append(strVal);
       }
+
     }
 
   }

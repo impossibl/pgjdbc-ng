@@ -36,10 +36,13 @@
 package com.impossibl.postgres.jdbc;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.junit.After;
 import org.junit.Before;
@@ -295,8 +298,13 @@ public class DateTest {
     st.close();
   }
 
-  @SuppressWarnings("deprecation")
   private java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+    Calendar calendar = Calendar.getInstance();
+    calendar.clear();
+    calendar.set(Calendar.ERA, y < 1 ? GregorianCalendar.BC : GregorianCalendar.AD);
+    calendar.set(Calendar.YEAR, y < 1 ? -(y - 1) : y);
+    calendar.set(Calendar.MONTH, m - 1);
+    calendar.set(Calendar.DAY_OF_MONTH, d);
+    return new Date(calendar.getTimeInMillis());
   }
 }
