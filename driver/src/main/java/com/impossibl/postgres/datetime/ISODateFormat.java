@@ -32,7 +32,6 @@ import java.time.chrono.IsoChronology;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
@@ -61,6 +60,7 @@ public class ISODateFormat implements DateTimeFormat {
       new DateTimeFormatterBuilder()
           .parseCaseInsensitive()
           .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
+          .parseLenient()
           .appendLiteral('-')
           .appendValue(MONTH_OF_YEAR, 2)
           .appendLiteral('-')
@@ -69,13 +69,13 @@ public class ISODateFormat implements DateTimeFormat {
           .appendOffset("+HH:mm", "+00")
           .optionalEnd()
           .toFormatter()
-          .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
   private static final DateTimeFormatter FMT_ERA =
       new DateTimeFormatterBuilder()
           .parseCaseInsensitive()
           .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
+          .parseLenient()
           .appendLiteral('-')
           .appendValue(MONTH_OF_YEAR, 2)
           .appendLiteral('-')
@@ -86,7 +86,6 @@ public class ISODateFormat implements DateTimeFormat {
           .optionalStart()
           .appendPattern(" GG")
           .toFormatter()
-          .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
   static class Parser implements DateTimeFormat.Parser {

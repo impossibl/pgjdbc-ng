@@ -31,8 +31,6 @@ package com.impossibl.postgres.datetime;
 import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
-import java.time.format.SignStyle;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
 
@@ -59,12 +57,13 @@ public class ISOTimeFormat implements DateTimeFormat {
   private static final DateTimeFormatter FMT =
       new DateTimeFormatterBuilder()
           .parseCaseInsensitive()
-          .appendValue(HOUR_OF_DAY, 1, 2, SignStyle.NEVER)
+          .parseLenient()
+          .appendValue(HOUR_OF_DAY, 2)
           .appendLiteral(':')
-          .appendValue(MINUTE_OF_HOUR, 1, 2, SignStyle.NEVER)
+          .appendValue(MINUTE_OF_HOUR, 2)
           .optionalStart()
           .appendLiteral(':')
-          .appendValue(SECOND_OF_MINUTE, 1, 2, SignStyle.NEVER)
+          .appendValue(SECOND_OF_MINUTE, 2)
           .optionalStart()
           .appendFraction(NANO_OF_SECOND, 0, 9, true)
           .optionalEnd()
@@ -73,7 +72,6 @@ public class ISOTimeFormat implements DateTimeFormat {
           .appendOffset("+HH:mm", "+00")
           .optionalEnd()
           .toFormatter()
-          .withResolverStyle(ResolverStyle.LENIENT)
           .withChronology(IsoChronology.INSTANCE);
 
 
