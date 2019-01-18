@@ -330,7 +330,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     }
 
     if (cursorName != null) {
-      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null, resultFields);
+
+      res = super.executeDirect("FETCH ABSOLUTE 0 FROM " + cursorName, null, null, null);
     }
 
     if (wantsGeneratedKeys) {
