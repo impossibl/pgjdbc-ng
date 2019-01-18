@@ -51,10 +51,14 @@ public class XMLs extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "xml_");
   }
 
-  static byte[] convertInput(Type type, Object value) throws ConversionException {
+  static byte[] convertInput(Context context, Type type, Object value) throws ConversionException {
 
     if (value instanceof byte[]) {
       return (byte[]) value;
+    }
+
+    if (value instanceof String) {
+      return ((String) value).getBytes(context.getCharset());
     }
 
     if (value instanceof PGSQLXML) {
@@ -101,7 +105,7 @@ public class XMLs extends SimpleProcProvider {
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      value = convertInput(type, value);
+      value = convertInput(context, type, value);
       if (value == null) {
         value = new byte[0];
       }
@@ -132,11 +136,14 @@ public class XMLs extends SimpleProcProvider {
     @Override
     protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
 
-      if (value instanceof byte[]) {
-        value = new String((byte[]) value, context.getCharset());
+      byte[] bytes = convertInput(context, type, value);
+      if (bytes == null) {
+        bytes = new byte[0];
       }
 
-      super.encodeValue(context, type, value, sourceContext, buffer);
+      String text = new String(bytes, context.getCharset());
+
+      super.encodeValue(context, type, text, sourceContext, buffer);
     }
 
   }

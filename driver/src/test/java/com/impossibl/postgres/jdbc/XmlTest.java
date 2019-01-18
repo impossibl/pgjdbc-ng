@@ -106,15 +106,18 @@ public class XmlTest {
     TestUtil.closeDB(_conn);
   }
 
-//TODO: reconcile against mainstream driver
-//  public void testUpdateRS() throws SQLException {
-//    Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-//    ResultSet rs = stmt.executeQuery("SELECT id, val FROM xmltest");
-//    assertTrue(rs.next());
-//    SQLXML xml = rs.getSQLXML(2);
-//    rs.updateSQLXML(2, xml);
-//    rs.updateRow();
-//  }
+  @Test
+  public void testUpdateRS() throws SQLException {
+    _conn.setAutoCommit(false);
+    Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = stmt.executeQuery("SELECT id, val FROM xmltest");
+    assertTrue(rs.next());
+    SQLXML xml = rs.getSQLXML(2);
+    rs.updateSQLXML(2, xml);
+    rs.updateRow();
+    _conn.commit();
+  }
+
   @Test
   public void testDOMParse() throws SQLException {
     Statement stmt = _conn.createStatement();
