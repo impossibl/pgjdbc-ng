@@ -28,6 +28,9 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.jdbc.shared.GetObject310InfinityTests;
+import com.impossibl.postgres.jdbc.shared.GetObject310Test;
+import com.impossibl.postgres.jdbc.shared.SetObject310Test;
 import com.impossibl.postgres.jdbc.xa.XADataSourceTest;
 
 import org.junit.runner.RunWith;
@@ -75,6 +78,9 @@ import org.junit.runners.Suite.SuiteClasses;
     TimestampTest.class,
     TimeTest.class,
     TimezoneTest.class,
+    GetObject310Test.class,
+    GetObject310InfinityTests.class,
+    SetObject310Test.class,
     TruncateTest.class,
     UpdatableResultTest.class,
     UUIDTest.class,

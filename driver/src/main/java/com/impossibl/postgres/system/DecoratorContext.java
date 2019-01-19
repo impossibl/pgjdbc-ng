@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Registry;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -62,6 +63,11 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
+  public ZoneId getTimeZoneId() {
+    return base.getTimeZoneId();
+  }
+
+  @Override
   public Charset getCharset() {
     return base.getCharset();
   }
@@ -77,13 +83,13 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getDateFormatter() {
-    return base.getDateFormatter();
+  public DateTimeFormat getDateFormat() {
+    return base.getDateFormat();
   }
 
   @Override
-  public DateTimeFormat getTimeFormatter() {
-    return base.getTimeFormatter();
+  public DateTimeFormat getTimeFormat() {
+    return base.getTimeFormat();
   }
 
   @Override
@@ -92,8 +98,8 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getTimestampFormatter() {
-    return base.getTimestampFormatter();
+  public DateTimeFormat getTimestampFormat() {
+    return base.getTimestampFormat();
   }
 
   @Override

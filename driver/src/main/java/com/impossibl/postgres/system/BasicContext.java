@@ -73,6 +73,7 @@ import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -161,9 +162,10 @@ public class BasicContext extends AbstractContext {
   protected Map<String, Class<?>> typeMap;
   protected Charset charset;
   private TimeZone timeZone;
-  private DateTimeFormat dateFormatter;
-  private DateTimeFormat timeFormatter;
-  private DateTimeFormat timestampFormatter;
+  private ZoneId timeZoneId;
+  private DateTimeFormat dateFormat;
+  private DateTimeFormat timeFormat;
+  private DateTimeFormat timestampFormat;
   private NumberFormat integerFormatter;
   private DecimalFormat decimalFormatter;
   private DecimalFormat currencyFormatter;
@@ -177,9 +179,9 @@ public class BasicContext extends AbstractContext {
     this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
-    this.dateFormatter = new ISODateFormat();
-    this.timeFormatter = new ISOTimeFormat();
-    this.timestampFormatter = new ISOTimestampFormat();
+    this.dateFormat = new ISODateFormat();
+    this.timeFormat = new ISOTimeFormat();
+    this.timestampFormat = new ISOTimestampFormat();
     this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, new ServerConnectionListener());
     this.utilQueries = new HashMap<>();
   }
@@ -242,6 +244,11 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
+  public ZoneId getTimeZoneId() {
+    return timeZoneId;
+  }
+
+  @Override
   public ServerInfo getServerInfo() {
     return serverConnection.getServerInfo();
   }
@@ -252,18 +259,18 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getDateFormatter() {
-    return dateFormatter;
+  public DateTimeFormat getDateFormat() {
+    return dateFormat;
   }
 
   @Override
-  public DateTimeFormat getTimeFormatter() {
-    return timeFormatter;
+  public DateTimeFormat getTimeFormat() {
+    return timeFormat;
   }
 
   @Override
-  public DateTimeFormat getTimestampFormatter() {
-    return timestampFormatter;
+  public DateTimeFormat getTimestampFormat() {
+    return timestampFormat;
   }
 
   public NumberFormat getIntegerFormatter() {
@@ -709,22 +716,22 @@ public class BasicContext extends AbstractContext {
         }
         else {
 
-          dateFormatter = DateStyle.getDateFormatter(parsedDateStyle);
-          if (dateFormatter == null) {
+          dateFormat = DateStyle.getDateFormat(parsedDateStyle);
+          if (dateFormat == null) {
             logger.warning("Unknown Date format, reverting to default");
-            dateFormatter = new ISODateFormat();
+            dateFormat = new ISODateFormat();
           }
 
-          timeFormatter = DateStyle.getTimeFormatter(parsedDateStyle);
-          if (timeFormatter == null) {
+          timeFormat = DateStyle.getTimeFormat(parsedDateStyle);
+          if (timeFormat == null) {
             logger.warning("Unknown Time format, reverting to default");
-            timeFormatter = new ISOTimeFormat();
+            timeFormat = new ISOTimeFormat();
           }
 
-          timestampFormatter = DateStyle.getTimestampFormatter(parsedDateStyle);
-          if (timestampFormatter == null) {
+          timestampFormat = DateStyle.getTimestampFormat(parsedDateStyle);
+          if (timestampFormat == null) {
             logger.warning("Unknown Timestamp format, reverting to default");
-            timestampFormatter = new ISOTimestampFormat();
+            timestampFormat = new ISOTimestampFormat();
           }
         }
         break;
@@ -738,6 +745,7 @@ public class BasicContext extends AbstractContext {
         }
 
         timeZone = TimeZone.getTimeZone(value);
+        timeZoneId = timeZone.toZoneId();
         break;
 
       case ParameterNames.CLIENT_ENCODING:

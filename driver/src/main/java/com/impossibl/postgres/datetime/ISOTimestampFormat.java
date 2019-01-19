@@ -28,20 +28,22 @@
  */
 package com.impossibl.postgres.datetime;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.time.chrono.IsoChronology;
+import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
-import java.util.TimeZone;
 
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.YEAR_OF_ERA;
 
 public class ISOTimestampFormat implements DateTimeFormat {
 
@@ -58,78 +60,62 @@ public class ISOTimestampFormat implements DateTimeFormat {
     return printer;
   }
 
+  private static final DateTimeFormatter FMT =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.EXCEEDS_PAD)
+          .parseLenient()
+          .appendLiteral('-')
+          .appendValue(MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 2)
+          .appendLiteral(' ')
+          .append(ISO_LOCAL_TIME)
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
 
-  static class Parser implements DateTimeFormat.Parser {
+  private static final DateTimeFormatter FMT_ERA =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.EXCEEDS_PAD)
+          .parseLenient()
+          .appendLiteral('-')
+          .appendValue(MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 2)
+          .appendLiteral(' ')
+          .append(ISO_LOCAL_TIME)
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .optionalStart()
+          .appendPattern(" GG")
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
 
-    private static final DateTimeFormatter PARSER =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(ISO_LOCAL_DATE)
-            .appendLiteral(' ')
-            .append(ISO_LOCAL_TIME)
-            .optionalStart()
-            .appendOffset("+HH:mm", "+00")
-            .optionalStart()
-            .appendLiteral(' ')
-            .appendPattern("GG")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
+  public static class Parser implements DateTimeFormat.Parser {
 
     @Override
     public TemporalAccessor parse(CharSequence text) {
 
-      return PARSER.parse(text);
+      return FMT_ERA.parseBest(text, ZonedDateTime::from, OffsetDateTime::from, LocalDateTime::from);
     }
 
   }
 
   static class Printer implements DateTimeFormat.Printer {
 
-    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-
-    private static final DateTimeFormatter PRINTER_WITH_TZ =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(ISO_LOCAL_DATE)
-            .appendLiteral(' ')
-            .append(ISO_LOCAL_TIME)
-            .optionalStart()
-            .appendOffset("+HH:mm", "+00")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
-    private static final DateTimeFormatter PRINTER_WITHOUT_TZ =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(ISO_LOCAL_DATE)
-            .appendLiteral(' ')
-            .append(ISO_LOCAL_TIME)
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
     @Override
-    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
-      return formatMicros(MILLISECONDS.toMicros(millis), timeZone, displayTimeZone);
-    }
+    public String format(Temporal temporal) {
 
-    @Override
-    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
-
-      timeZone = timeZone != null ? timeZone : UTC;
-
-      long seconds = MICROSECONDS.toSeconds(micros);
-      int nanoseconds = (int) MICROSECONDS.toNanos(micros - SECONDS.toMicros(seconds));
-      if (nanoseconds < 0) {
-        --seconds;
-        nanoseconds += SECONDS.toNanos(1);
+      if (temporal.get(ChronoField.ERA) != IsoEra.CE.getValue()) {
+        return FMT_ERA.format(temporal);
       }
 
-      ZonedDateTime dateTime = Instant.ofEpochSecond(seconds, nanoseconds).atZone(timeZone.toZoneId());
-
-      return (displayTimeZone ? PRINTER_WITH_TZ : PRINTER_WITHOUT_TZ).format(dateTime);
+      return FMT.format(temporal);
     }
 
   }

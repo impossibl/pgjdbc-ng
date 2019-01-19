@@ -187,6 +187,7 @@
           <argLine>-Dio.netty.leakDetection.level=advanced</argLine>
           <excludes>
             <exclude>**/RequiredTests.java</exclude>
+            <exclude>**/DateTimeTests.java</exclude>
             <exclude>**/PerformanceTest.java</exclude>
             <exclude>**/GiantBlobTest.java</exclude>
             <exclude>**/ServerDisconnectTest.java</exclude>
@@ -239,7 +240,7 @@
             <consoleOutput>true</consoleOutput>
             <failsOnError>true</failsOnError>
             <useFile />
-            <excludes>settingsgen/**,src/main/java/com/impossibl/postgres/utils/guava/**,target/**</excludes>
+            <excludes>settingsgen/**,src/main/java/**/guava/**,target/**,src/test/java/**/shared/**</excludes>
           </configuration>
           <executions>
             <execution>

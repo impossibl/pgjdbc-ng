@@ -28,23 +28,16 @@
  */
 package com.impossibl.postgres.datetime;
 
-import java.time.LocalTime;
-import java.time.OffsetTime;
-import java.time.ZoneOffset;
 import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
-import java.util.TimeZone;
 
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
 import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class ISOTimeFormat implements DateTimeFormat {
 
@@ -61,75 +54,41 @@ public class ISOTimeFormat implements DateTimeFormat {
     return printer;
   }
 
+  private static final DateTimeFormatter FMT =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .parseLenient()
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+          .optionalStart()
+          .appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 2)
+          .optionalStart()
+          .appendFraction(NANO_OF_SECOND, 0, 9, true)
+          .optionalEnd()
+          .optionalEnd()
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
+
 
   static class Parser implements DateTimeFormat.Parser {
 
-    private static final DateTimeFormatter PARSER =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendValue(HOUR_OF_DAY, 2)
-            .appendLiteral(':')
-            .appendValue(MINUTE_OF_HOUR, 2)
-            .optionalStart()
-            .appendLiteral(':')
-            .appendValue(SECOND_OF_MINUTE, 2)
-            .optionalStart()
-            .appendFraction(NANO_OF_SECOND, 0, 9, true)
-            .optionalEnd()
-            .optionalEnd()
-            .optionalStart()
-            .appendOffset("+HH:mm", "+00")
-            .optionalEnd()
-            .optionalStart()
-            .appendLiteral(' ')
-            .appendPattern("GG")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
     @Override
     public TemporalAccessor parse(CharSequence time) {
-      return PARSER.parse(time);
+      return FMT.parse(time);
     }
 
   }
 
   static class Printer implements DateTimeFormat.Printer {
 
-    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-
-    private static final DateTimeFormatter PRINTER_WITH_TZ =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(ISO_LOCAL_TIME)
-            .optionalStart()
-            .appendOffset("+HH:mm", "+00")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
-    private static final DateTimeFormatter PRINTER_WITHOUT_TZ =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(ISO_LOCAL_TIME)
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
     @Override
-    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
-      return formatMicros(MILLISECONDS.toMicros(millis), timeZone, displayTimeZone);
-    }
-
-    @Override
-    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
-
-      timeZone = timeZone != null ? timeZone : UTC;
-
-      ZoneOffset offset = ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(timeZone.getRawOffset()));
-      OffsetTime time = OffsetTime.of(LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(micros)), ZoneOffset.UTC).withOffsetSameInstant(offset);
-
-      return (displayTimeZone ? PRINTER_WITH_TZ : PRINTER_WITHOUT_TZ).format(time);
+    public String format(Temporal value) {
+      return FMT.format(value);
     }
 
   }

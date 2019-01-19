@@ -66,7 +66,7 @@ public class DateStyle {
    *          Parsed DateStyle
    * @return DateFormat for handling dates in the style specified in dateStyle
    */
-  public static DateTimeFormat getDateFormatter(String[] dateStyle) {
+  public static DateTimeFormat getDateFormat(String[] dateStyle) {
 
     switch (dateStyle[0]) {
       case "ISO":
@@ -88,7 +88,7 @@ public class DateStyle {
    *          Parsed DateStyle
    * @return DateFormat for handling times in the style specified in dateStyle
    */
-  public static DateTimeFormat getTimeFormatter(String[] dateStyle) {
+  public static DateTimeFormat getTimeFormat(String[] dateStyle) {
 
     switch (dateStyle[0]) {
       case "ISO":
@@ -111,7 +111,7 @@ public class DateStyle {
    * @return DateFormat for handling timestamps in the style specified in
    *         dateStyle
    */
-  public static DateTimeFormat getTimestampFormatter(String[] dateStyle) {
+  public static DateTimeFormat getTimestampFormat(String[] dateStyle) {
 
     switch (dateStyle[0]) {
       case "ISO":

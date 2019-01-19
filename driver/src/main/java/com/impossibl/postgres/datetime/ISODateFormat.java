@@ -29,18 +29,17 @@
 package com.impossibl.postgres.datetime;
 
 import java.time.chrono.IsoChronology;
+import java.time.chrono.IsoEra;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
-import java.util.Calendar;
-import java.util.TimeZone;
 
 import static java.time.temporal.ChronoField.DAY_OF_MONTH;
 import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
 import static java.time.temporal.ChronoField.YEAR_OF_ERA;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 public class ISODateFormat implements DateTimeFormat {
 
@@ -57,94 +56,57 @@ public class ISODateFormat implements DateTimeFormat {
     return printer;
   }
 
+  private static final DateTimeFormatter FMT =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
+          .parseLenient()
+          .appendLiteral('-')
+          .appendValue(MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 2)
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
+
+  private static final DateTimeFormatter FMT_ERA =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
+          .parseLenient()
+          .appendLiteral('-')
+          .appendValue(MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 2)
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .optionalStart()
+          .appendPattern(" GG")
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
 
   static class Parser implements DateTimeFormat.Parser {
 
-    private static final DateTimeFormatter PARSER =
-        new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendValue(YEAR_OF_ERA, 4, 10, SignStyle.NOT_NEGATIVE)
-            .appendLiteral('-')
-            .appendValue(MONTH_OF_YEAR, 2)
-            .appendLiteral('-')
-            .appendValue(DAY_OF_MONTH, 2)
-            .optionalStart()
-            .appendOffset("+HH:mm", "+00")
-            .optionalEnd()
-            .optionalStart()
-            .appendLiteral(' ')
-            .appendPattern("GG")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.LENIENT)
-            .withChronology(IsoChronology.INSTANCE);
-
     @Override
     public TemporalAccessor parse(CharSequence date) {
-      return PARSER.parse(date);
+      return FMT_ERA.parse(date);
     }
 
   }
 
   static class Printer implements DateTimeFormat.Printer {
 
-    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-
     @Override
-    public String formatMicros(long micros, TimeZone timeZone, boolean displayTimeZone) {
-      return formatMillis(MICROSECONDS.toMillis(micros), timeZone, displayTimeZone);
-    }
+    public String format(Temporal value) {
 
-    @Override
-    public String formatMillis(long millis, TimeZone timeZone, boolean displayTimeZone) {
-
-      if (timeZone == null) {
-        timeZone = UTC;
+      if (value.get(ChronoField.ERA) != IsoEra.CE.getValue()) {
+        return FMT_ERA.format(value);
       }
 
-      Calendar cal = Calendar.getInstance(timeZone);
-      cal.setTimeInMillis(millis);
-
-      int era = cal.get(Calendar.ERA);
-      int year = cal.get(Calendar.YEAR);
-      int month = cal.get(Calendar.MONTH) + 1;
-      int day = cal.get(Calendar.DAY_OF_MONTH);
-
-      String yearString;
-      String monthString;
-      String dayString;
-      String eraString;
-      String yearZeros = "0000";
-
-      if (year < 1000) {
-        // Add leading zeros
-        yearString = "" + year;
-        yearString = yearZeros.substring(0, 4 - yearString.length()) + yearString;
-      }
-      else {
-        yearString = "" + year;
-      }
-      if (month < 10) {
-        monthString = "0" + month;
-      }
-      else {
-        monthString = Integer.toString(month);
-      }
-      if (day < 10) {
-        dayString = "0" + day;
-      }
-      else {
-        dayString = Integer.toString(day);
-      }
-      if (era < 1) {
-        eraString = " BC";
-      }
-      else {
-        eraString = "";
-      }
-
-      // do a string builder here instead.
-
-      return yearString + "-" + monthString + "-" + dayString + eraString;
+      return FMT.format(value);
     }
 
   }

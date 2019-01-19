@@ -36,6 +36,7 @@ import com.impossibl.postgres.types.Registry;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -51,6 +52,8 @@ public interface Context extends Configuration {
 
   TimeZone getTimeZone();
 
+  ZoneId getTimeZoneId();
+
   Charset getCharset();
 
   ServerInfo getServerInfo();
@@ -63,11 +66,11 @@ public interface Context extends Configuration {
 
   DecimalFormat getCurrencyFormatter();
 
-  DateTimeFormat getDateFormatter();
+  DateTimeFormat getDateFormat();
 
-  DateTimeFormat getTimeFormatter();
+  DateTimeFormat getTimeFormat();
 
-  DateTimeFormat getTimestampFormatter();
+  DateTimeFormat getTimestampFormat();
 
   Map<String, Class<?>> getCustomTypeMap();
 
