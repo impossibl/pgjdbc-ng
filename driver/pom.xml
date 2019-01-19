@@ -52,7 +52,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.impossibl.pgjdbc-ng.tools</groupId>
+      <groupId>${project.groupId}</groupId>
       <artifactId>spy</artifactId>
       <version>${project.version}</version>
     </dependency>

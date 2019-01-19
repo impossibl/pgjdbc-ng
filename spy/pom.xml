@@ -9,7 +9,6 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.impossibl.pgjdbc-ng.tools</groupId>
     <artifactId>spy</artifactId>
     <packaging>jar</packaging>
 
@@ -23,10 +22,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>${project.groupId}.tools</groupId>
             <artifactId>spy-gen</artifactId>
             <version>${project.version}</version>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -74,7 +73,7 @@
                         <version>1.5.0</version>
                         <configuration>
                             <executable>java</executable>
-                            <classpathScope>runtime</classpathScope>
+                            <classpathScope>test</classpathScope>
                             <arguments>
                                 <argument>--patch-module</argument>
                                 <argument>java.sql=${project.parent.basedir}/jdbc-api/target/jdbc-api-${project.version}.jar</argument>
@@ -94,7 +93,7 @@
                         </executions>
                         <dependencies>
                             <dependency>
-                                <groupId>${project.groupId}</groupId>
+                                <groupId>${project.groupId}.tools</groupId>
                                 <artifactId>spy-gen</artifactId>
                                 <version>${project.version}</version>
                             </dependency>
@@ -116,7 +115,7 @@
                         <version>1.5.0</version>
                         <configuration>
                             <executable>java</executable>
-                            <classpathScope>runtime</classpathScope>
+                            <classpathScope>test</classpathScope>
                             <arguments>
                                 <argument>-Xbootclasspath/p:${project.parent.basedir}/jdbc-api/target/jdbc-api-${project.version}.jar</argument>
                                 <argument>-classpath</argument>
@@ -135,7 +134,7 @@
                         </executions>
                         <dependencies>
                             <dependency>
-                                <groupId>${project.groupId}</groupId>
+                                <groupId>${project.groupId}.tools</groupId>
                                 <artifactId>spy-gen</artifactId>
                                 <version>${project.version}</version>
                             </dependency>
