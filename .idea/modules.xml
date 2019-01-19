@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/settings-gen/settings-gen.iml" filepath="$PROJECT_DIR$/settings-gen/settings-gen.iml" />
       <module fileurl="file://$PROJECT_DIR$/spy/spy.iml" filepath="$PROJECT_DIR$/spy/spy.iml" />
       <module fileurl="file://$PROJECT_DIR$/spy-gen/spy-gen.iml" filepath="$PROJECT_DIR$/spy-gen/spy-gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/udt-gen/udt-gen.iml" filepath="$PROJECT_DIR$/udt-gen/udt-gen.iml" />
     </modules>
   </component>
 </project>
