@@ -36,27 +36,30 @@
 package com.impossibl.postgres.jdbc.util;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
 
-public class BrokenInputStream extends InputStream {
+public class BrokenReader extends Reader {
 
-  private InputStream stream;
+  private Reader reader;
   private long numRead;
   private long breakOn;
 
-  public BrokenInputStream(InputStream stream, long breakOn) {
-    this.stream = stream;
+  public BrokenReader(Reader reader, long breakOn) {
+    this.reader = reader;
     this.breakOn = breakOn;
     this.numRead = 0;
   }
 
   @Override
-  public int read() throws IOException {
+  public int read(char[] cbuf, int off, int len) throws IOException {
     if (numRead++ > breakOn) {
       throw new IOException("I was told to break on " + breakOn);
     }
+    return reader.read(cbuf, off, 1);
+  }
 
-    return stream.read();
+  @Override
+  public void close() {
   }
 
 }

@@ -32,11 +32,16 @@ import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.system.JavaTypeMapping;
 import com.impossibl.postgres.types.Modifiers;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
 
 import static com.impossibl.postgres.system.SystemSettings.FIELD_LENGTH_MAX;
 import static com.impossibl.postgres.types.Modifiers.LENGTH;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
@@ -55,7 +60,7 @@ public class Strings extends SimpleProcProvider {
 
   public Strings() {
     super(TEXT_ENCODER, TEXT_DECODER, BINARY_ENCODER, BINARY_DECODER, new ModParser(),
-        "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown",  "regproc", "regtype", "regclass", "regoper");
+        "text", "varchar", "bpchar", "char", "enum_", "json_", "cstring_", "citext", "unknown");
   }
 
   private static Bools.TxtDecoder boolDecoder = new Bools.TxtDecoder();
@@ -74,10 +79,26 @@ public class Strings extends SimpleProcProvider {
   private static Numerics.TxtEncoder decimalEncoder = new Numerics.TxtEncoder();
   private static Bytes.TxtEncoder bytesEncoder = new Bytes.TxtEncoder();
 
-  private static String convertInput(Context context, Object value, Object sourceContext) throws IOException {
+  private static String convertInput(Context context, Object value, Long length) throws IOException {
 
     if (value instanceof CharSequence) {
       return value.toString();
+    }
+
+    if (value instanceof InputStream) {
+      InputStream stream = (InputStream) value;
+      if (length != null) {
+        stream = ByteStreams.limit(stream, length);
+      }
+      return CharStreams.toString(new InputStreamReader(stream, context.getCharset()));
+    }
+
+    if (value instanceof Reader) {
+      Reader reader = (Reader) value;
+      if (length != null) {
+        reader = CharStreams.limit(reader, length);
+      }
+      return CharStreams.toString(reader);
     }
 
     StringBuilder out = new StringBuilder();
@@ -86,28 +107,28 @@ public class Strings extends SimpleProcProvider {
       out.append(value);
     }
     else if (value instanceof Boolean) {
-      boolEncoder.encodeNativeValue(context, null, (Boolean) value, sourceContext, out);
+      boolEncoder.encodeNativeValue(context, null, (Boolean) value, null, out);
     }
     else if (value instanceof Short) {
-      shortEncoder.encodeNativeValue(context, null, (Short) value, sourceContext, out);
+      shortEncoder.encodeNativeValue(context, null, (Short) value, null, out);
     }
     else if (value instanceof Integer) {
-      intEncoder.encodeNativeValue(context, null, (Integer) value, sourceContext, out);
+      intEncoder.encodeNativeValue(context, null, (Integer) value, null, out);
     }
     else if (value instanceof Long) {
-      longEncoder.encodeNativeValue(context, null, (Long) value, sourceContext, out);
+      longEncoder.encodeNativeValue(context, null, (Long) value, null, out);
     }
     else if (value instanceof Float) {
-      floatEncoder.encodeNativeValue(context, null, (Float) value, sourceContext, out);
+      floatEncoder.encodeNativeValue(context, null, (Float) value, null, out);
     }
     else if (value instanceof Double) {
-      doubleEncoder.encodeNativeValue(context, null, (Double) value, sourceContext, out);
+      doubleEncoder.encodeNativeValue(context, null, (Double) value, null, out);
     }
     else if (value instanceof BigDecimal) {
-      decimalEncoder.encodeNativeValue(context, null, (BigDecimal) value, sourceContext, out);
+      decimalEncoder.encodeNativeValue(context, null, (BigDecimal) value, null, out);
     }
     else if (value instanceof byte[]) {
-      bytesEncoder.encodeValue(context, null, value, sourceContext, out);
+      bytesEncoder.encodeValue(context, null, value, null, out);
     }
     else {
       out.append(value);
@@ -211,9 +232,12 @@ public class Strings extends SimpleProcProvider {
   public static class BinEncoder extends BaseBinaryEncoder {
 
     @Override
-    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, ByteBuf buffer) throws IOException {
+    protected void encodeValue(Context context, Type type, Object val, Object sourceContext, ByteBuf buffer) throws IOException {
 
-      buffer.writeCharSequence(convertInput(context, value, sourceContext), context.getCharset());
+      Long specifiedLength = (Long) sourceContext;
+      String value = convertInput(context, val, specifiedLength);
+
+      buffer.writeCharSequence(value, context.getCharset());
     }
 
   }
@@ -248,8 +272,12 @@ public class Strings extends SimpleProcProvider {
   public static class TxtEncoder extends BaseTextEncoder {
 
     @Override
-    protected void encodeValue(Context context, Type type, Object value, Object sourceContext, StringBuilder buffer) throws IOException {
-      buffer.append(convertInput(context, value, sourceContext));
+    protected void encodeValue(Context context, Type type, Object val, Object sourceContext, StringBuilder buffer) throws IOException {
+
+      Long specifiedLength = (Long) sourceContext;
+      String value = convertInput(context, val, specifiedLength);
+
+      buffer.append(value);
     }
 
   }

@@ -153,11 +153,12 @@ public class Bytes extends SimpleProcProvider {
     protected void encodeValue(Context context, Type type, Object val, Object sourceContext, ByteBuf buffer) throws IOException {
 
       Long specifiedLength = (Long) sourceContext;
-      byte[] value = Bytes.coerceInput(type, val, specifiedLength);
-
-      if (specifiedLength != null && specifiedLength != value.length) {
-        throw new IOException("Invalid binary length");
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
+      if (specifiedLength != null && maxLength != null && specifiedLength > maxLength) {
+        throw new IOException("Binary data too long");
       }
+
+      byte[] value = Bytes.coerceInput(type, val, specifiedLength);
 
       buffer.writeBytes(value);
     }
@@ -238,11 +239,12 @@ public class Bytes extends SimpleProcProvider {
     protected void encodeValue(Context context, Type type, Object val, Object sourceContext, StringBuilder buffer) throws IOException {
 
       Long specifiedLength = (Long) sourceContext;
-      byte[] value = coerceInput(type, val, specifiedLength);
-
-      if (specifiedLength != null && specifiedLength != value.length) {
-        throw new IOException("Mismatch in length of binary arguments");
+      Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
+      if (specifiedLength != null && maxLength != null && specifiedLength > maxLength) {
+        throw new IOException("Binary data too long");
       }
+
+      byte[] value = coerceInput(type, val, specifiedLength);
 
       buffer.append("\\x");
 

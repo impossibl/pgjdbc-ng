@@ -47,6 +47,7 @@ package com.impossibl.postgres.utils.guava;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 import static com.impossibl.postgres.utils.guava.Preconditions.checkNotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.FilterInputStream;
@@ -68,6 +69,21 @@ public final class ByteStreams {
   private static final int BUF_SIZE = 0x1000; // 4K
 
   private ByteStreams() {
+  }
+
+  /**
+   * Duplicates all bytes from the given input stream.
+   * Does not close stream.
+   *
+   * @param stream the input stream to duplicate
+   * @return the new instance of input stream containing duplicate data
+   * @throws IOException if an I/O error occurs
+   */
+  public static InputStream duplicate(InputStream stream) throws IOException {
+    checkNotNull(stream);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    copy(stream, out);
+    return new ByteArrayInputStream(out.toByteArray());
   }
 
   /**

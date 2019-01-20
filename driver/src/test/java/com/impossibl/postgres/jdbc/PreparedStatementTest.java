@@ -39,15 +39,26 @@ import com.impossibl.postgres.api.data.CidrAddr;
 import com.impossibl.postgres.api.data.InetAddr;
 import com.impossibl.postgres.api.data.Path;
 import com.impossibl.postgres.jdbc.util.BrokenInputStream;
+import com.impossibl.postgres.jdbc.util.BrokenReader;
+import com.impossibl.postgres.system.procs.Bytes;
+import com.impossibl.postgres.test.annotations.ConnectionSetting;
+import com.impossibl.postgres.test.annotations.DBTest;
+import com.impossibl.postgres.test.annotations.ExtensionInstalled;
+import com.impossibl.postgres.test.annotations.Prepare;
+import com.impossibl.postgres.test.annotations.Random;
+import com.impossibl.postgres.test.annotations.Table;
+import com.impossibl.postgres.test.matchers.ColSnapshot;
+import com.impossibl.postgres.test.matchers.RowSnapshot;
 import com.impossibl.postgres.utils.GeometryParsers;
 import com.impossibl.postgres.utils.guava.ByteStreams;
+import com.impossibl.postgres.utils.guava.CharStreams;
+
+import static com.impossibl.postgres.test.matchers.InputStreamMatcher.contentEquals;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -56,1209 +67,1319 @@ import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+import java.util.stream.Stream;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static com.google.common.collect.Streams.zip;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
-@RunWith(JUnit4.class)
-public class PreparedStatementTest {
+@DBTest
+class PreparedStatementTest {
 
-  private Connection conn;
+  @DisplayName("Geometrics")
+  @Nested
+  class GeometricTests {
 
-  @Before
-  public void before() throws Exception {
-    Properties properties = new Properties();
-    conn = TestUtil.openDB(properties);
-    TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
-    TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
-    TestUtil.createTable(conn, "intervaltable", "i interval");
-  }
+    @DisplayName("Points")
+    @Test
+    @Table(name = "pointtable", columns = {"p1 point", "p2 point", "p3 point"})
+    @Prepare(name = "set", sql = "INSERT INTO pointtable VALUES (?, ?, ?)")
+    void testPoint(PreparedStatement set, RowSnapshot<double[]> pointtable) throws SQLException {
+      double[] p1 = new double[] {45.0, 56.3};
+      double[] p2 = new double[] {0, 0};
+      set.setObject(1, p1);
+      set.setObject(2, p2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-  @After
-  public void after() throws SQLException {
-    TestUtil.dropTable(conn, "streamtable");
-    TestUtil.dropTable(conn, "texttable");
-    TestUtil.dropTable(conn, "intervaltable");
-    TestUtil.closeDB(conn);
-  }
-
-  @Test
-  public void testSetBinaryStream() throws SQLException {
-    ByteArrayInputStream bais;
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
+      assertThat(pointtable.take(), hasItem(new double[][] {p1, p2, null}));
     }
 
-    bais = null;
-    doSetBinaryStream(bais, 0);
+    @DisplayName("Paths")
+    @Test
+    @Table(name = "pathtable", columns = {"p1 path", "p2 path", "p3 path"})
+    @Prepare(name = "set", sql = "INSERT INTO pathtable VALUES (?, ?, ?)")
+    void testPath(PreparedStatement set, RowSnapshot<Path> pathtable) throws SQLException {
+      Path p1 = GeometryParsers.INSTANCE.parsePath("[(678.6,454),(10,89),(124.6,0)]");
+      Path p2 = GeometryParsers.INSTANCE.parsePath("((678.6,454),(10,89),(124.6,0))");
+      set.setObject(1, p1);
+      set.setObject(2, p2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-    bais = new ByteArrayInputStream(new byte[0]);
-    doSetBinaryStream(bais, 0);
-
-    bais = new ByteArrayInputStream(buf);
-    doSetBinaryStream(bais, 0);
-
-    bais = new ByteArrayInputStream(buf);
-    doSetBinaryStream(bais, 10);
-  }
-
-  @Test
-  public void testGetBinaryStream() throws SQLException, IOException {
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
+      assertThat(pathtable.take(), hasItem(new Path[] {p1, p2, null}));
     }
 
-    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
-    doSetBinaryStream(bais, 10);
+    @DisplayName("Polygons")
+    @Test
+    @Table(name = "polytable", columns = {"p1 polygon", "p2 polygon", "p3 polygon"})
+    @Prepare(name = "set", sql = "INSERT INTO polytable VALUES (?, ?, ?)")
+    void testPolygon(PreparedStatement set, RowSnapshot<double[][]> polytable) throws SQLException {
+      double[][] p1 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0),(0,0))");
+      double[][] p2 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0))");
+      set.setObject(1, p1);
+      set.setObject(2, p2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
-    assertTrue(rs.next());
-    try (InputStream data = (InputStream) rs.getObject(1)) {
-      assertArrayEquals(buf, ByteStreams.toByteArray(data));
-    }
-    rs.close();
-    stmt.close();
-  }
-
-  @Test
-  public void testSetAsciiStream() throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintWriter pw = new PrintWriter(new OutputStreamWriter(baos, "ASCII"));
-    pw.println("Hello");
-    pw.flush();
-
-    ByteArrayInputStream bais;
-
-    bais = new ByteArrayInputStream(baos.toByteArray());
-    doSetAsciiStream(bais, 0);
-
-    bais = new ByteArrayInputStream(baos.toByteArray());
-    doSetAsciiStream(bais, 6);
-
-    bais = new ByteArrayInputStream(baos.toByteArray());
-    doSetAsciiStream(bais, 100);
-  }
-
-  @Test
-  public void testExecuteStringOnPreparedStatement() throws Exception {
-    PreparedStatement pstmt = conn.prepareStatement("SELECT 1");
-
-    try {
-      pstmt.executeQuery("SELECT 2");
-      fail("Expected an exception when executing a new SQL query on a prepared statement");
-    }
-    catch (SQLException e) {
-      // Ok
+      assertThat(polytable.take(), hasItem(new double[][][] {p1, p2, null}));
     }
 
-    try {
-      pstmt.executeUpdate("UPDATE streamtable SET bin=bin");
-      fail("Expected an exception when executing a new SQL update on a prepared statement");
-    }
-    catch (SQLException e) {
-      // Ok
-    }
+    @DisplayName("Circles")
+    @Test
+    @Table(name = "circletable", columns = {"p1 circle", "p2 circle", "p3 circle"})
+    @Prepare(name = "set", sql = "INSERT INTO circletable VALUES (?, ?, ?)")
+    void testCircle(PreparedStatement set, RowSnapshot<double[]> circletable) throws SQLException {
+      double[] c1 = new double[] {45.0, 56.3, 40};
+      double[] c2 = new double[] {0, 0, 0};
+      set.setObject(1, c1);
+      set.setObject(2, c2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-    try {
-      pstmt.execute("UPDATE streamtable SET bin=bin");
-      fail("Expected an exception when executing a new SQL statement on a prepared statement");
-    }
-    catch (SQLException e) {
-      // Ok
-    }
-
-    pstmt.close();
-  }
-
-  @Test
-  public void testBinaryStreamErrorsRestartable() throws SQLException {
-
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
+      assertThat(circletable.take(), hasItem(new double[][] {c1, c2, null}));
     }
 
-    // InputStream is shorter than the length argument implies.
-    InputStream is = new ByteArrayInputStream(buf);
-    runBrokenStream(is, buf.length + 1);
+    @DisplayName("LSegs")
+    @Test
+    @Table(name = "lsegtable", columns = {"p1 lseg", "p2 lseg", "p3 lseg"})
+    @Prepare(name = "set", sql = "INSERT INTO lsegtable VALUES (?, ?, ?)")
+    void testLSeg(PreparedStatement set, RowSnapshot<double[]> lsegtable) throws SQLException {
+      double[] l1 = new double[] {45.0, 60.0, 40.9, 56.3};
+      double[] l2 = new double[] {0, 0, 0, 0};
+      set.setObject(1, l1);
+      set.setObject(2, l2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-    // InputStream throws an Exception during read.
-    is = new BrokenInputStream(new ByteArrayInputStream(buf), buf.length / 2);
-    runBrokenStream(is, buf.length);
-
-    // Invalid length < 0.
-    is = new ByteArrayInputStream(buf);
-    runBrokenStream(is, -1);
-
-    // Total Bind message length too long.
-    is = new ByteArrayInputStream(buf);
-    runBrokenStream(is, Integer.MAX_VALUE);
-  }
-
-  private void runBrokenStream(InputStream is, int length) throws SQLException {
-    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
-      pstmt.setBinaryStream(1, is, length);
-      pstmt.setString(2, "Other");
-      pstmt.executeUpdate();
-      fail("This isn't supposed to work.");
-    }
-    catch (SQLException sqle) {
-      // don't need to rollback because we're in autocommit mode
-
-      // verify the connection is still valid and the row didn't go in.
-      Statement stmt = conn.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");
-      assertTrue(rs.next());
-      assertEquals(0, rs.getInt(1));
-      rs.close();
-      stmt.close();
-    }
-  }
-
-  private void doSetBinaryStream(ByteArrayInputStream bais, int length) throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setBinaryStream(1, bais, length);
-    pstmt.setString(2, null);
-    pstmt.executeUpdate();
-    pstmt.close();
-  }
-
-  private void doSetAsciiStream(InputStream is, int length) throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setBytes(1, null);
-    pstmt.setAsciiStream(2, is, length);
-    pstmt.executeUpdate();
-    pstmt.close();
-  }
-
-  @Test
-  public void testTrailingSpaces() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (ch, te, vc) VALUES (?, ?, ?) ");
-    String str = "a  ";
-    pstmt.setString(1, str);
-    pstmt.setString(2, str);
-    pstmt.setString(3, str);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("SELECT ch, te, vc FROM texttable WHERE ch=? AND te=? AND vc=?");
-    pstmt.setString(1, str);
-    pstmt.setString(2, str);
-    pstmt.setString(3, str);
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertEquals(str, rs.getString(1));
-    assertEquals(str, rs.getString(2));
-    assertEquals(str, rs.getString(3));
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testSetNull() throws SQLException {
-    // valid: fully qualified type to setNull()
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
-    pstmt.setNull(1, Types.VARCHAR);
-    pstmt.executeUpdate();
-
-    // valid: fully qualified type to setObject()
-    pstmt.setObject(1, null, Types.VARCHAR);
-    pstmt.executeUpdate();
-
-    // setObject() with no type info
-    pstmt.setObject(1, null);
-    pstmt.executeUpdate();
-
-    // setObject() with insufficient type info
-    pstmt.setObject(1, null, Types.OTHER);
-    pstmt.executeUpdate();
-
-    // setNull() with insufficient type info
-    pstmt.setNull(1, Types.OTHER);
-    pstmt.executeUpdate();
-
-    pstmt.close();
-  }
-
-  @Test
-  public void testSingleQuotes() throws SQLException {
-    String[] testStrings = new String[] {"bare ? question mark", "quoted \\' single quote", "doubled '' single quote", "octal \\060 constant", "escaped \\? question mark",
-      "double \\\\ backslash", "double \" quote", "backslash \\\\\\' single quote"};
-
-    String[] testStringsStdConf = new String[] {"bare ? question mark", "quoted '' single quote", "doubled '' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", "backslash \\'' single quote"};
-
-    String[] expected = new String[] {"bare ? question mark", "quoted ' single quote", "doubled ' single quote", "octal 0 constant", "escaped ? question mark",
-      "double \\ backslash", "double \" quote", "backslash \\' single quote"};
-
-    boolean oldStdStrings = TestUtil.getStandardConformingStrings(conn);
-    Statement stmt = conn.createStatement();
-
-    // Test with standard_conforming_strings turned off.
-    stmt.execute("SET standard_conforming_strings TO off");
-    for (int i = 0; i < testStrings.length; ++i) {
-      PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
-      ResultSet rs = pstmt.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(expected[i], rs.getString(1));
-      rs.close();
-      pstmt.close();
+      assertThat(lsegtable.take(), hasItem(new double[][] {l1, l2, null}));
     }
 
-    // Test with standard_conforming_strings turned off...
-    // ... using the escape string syntax (E'').
-    stmt.execute("SET standard_conforming_strings TO on");
-    for (int i = 0; i < testStrings.length; ++i) {
-      PreparedStatement pstmt = conn.prepareStatement("SELECT E'" + testStrings[i] + "'");
-      ResultSet rs = pstmt.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(expected[i], rs.getString(1));
-      rs.close();
-      pstmt.close();
-    }
-    // ... using standard conforming input strings.
-    for (int i = 0; i < testStrings.length; ++i) {
-      PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
-      ResultSet rs = pstmt.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(expected[i], rs.getString(1));
-      rs.close();
-      pstmt.close();
+    @DisplayName("Boxes")
+    @Test
+    @Table(name = "boxtable", columns = {"p1 box", "p2 box", "p3 box"})
+    @Prepare(name = "set", sql = "INSERT INTO boxtable VALUES (?, ?, ?)")
+    void testBox(PreparedStatement set, RowSnapshot<double[]> boxtable) throws SQLException {
+      double[] b1 = new double[] {45.0, 60.0, 40.9, 56.3};
+      double[] b2 = new double[] {0, 0, 0, 0};
+      set.setObject(1, b1);
+      set.setObject(2, b2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
+
+      assertThat(boxtable.take(), hasItem(new double[][] {b1, b2, null}));
     }
 
-    stmt.execute("SET standard_conforming_strings TO " + (oldStdStrings ? "on" : "off"));
-    stmt.close();
   }
 
+  @DisplayName("HStores")
+  @Table(name = "hstable", columns = {"hs1 hstore"})
+  @Prepare(name = "set", sql = "INSERT INTO hstable VALUES (?)")
   @Test
-  public void testDoubleQuotes() throws SQLException {
-    String[] testStrings = new String[] {"bare ? question mark", "single ' quote", "doubled '' single quote", "doubled \"\" double quote", "no backslash interpretation here: \\", };
+  @ExtensionInstalled("hstore")
+  void testHStore(PreparedStatement set, ColSnapshot<Map<String, String>> hstable) throws SQLException {
 
-    for (int i = 0; i < testStrings.length; ++i) {
-      PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
-      pstmt.executeUpdate();
-      pstmt.close();
-
-      pstmt = conn.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
-      pstmt.executeUpdate();
-      pstmt.close();
-    }
-  }
-
-  @Test
-  public void testDollarQuotes() throws SQLException {
-
-    PreparedStatement st;
-    ResultSet rs;
-
-    st = conn.prepareStatement("SELECT $$;$$ WHERE $x$?$x$=$_0$?$_0$ AND $$?$$=?");
-    st.setString(1, "?");
-    rs = st.executeQuery();
-    assertTrue(rs.next());
-    assertEquals(";", rs.getString(1));
-    assertFalse(rs.next());
-    st.close();
-
-    st = conn.prepareStatement("SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;");
-    st.setString(1, ";");
-    assertTrue(st.execute());
-    rs = st.getResultSet();
-    assertTrue(rs.next());
-    assertEquals(";", rs.getString(1));
-    assertFalse(rs.next());
-    rs.close();
-    st.close();
-
-    st = conn.prepareStatement("SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;");
-    st.setString(1, ";");
-    assertTrue(st.execute());
-    rs = st.getResultSet();
-    assertTrue(rs.next());
-    assertEquals("$a$;$x $a$", rs.getString(1));
-    assertFalse(rs.next());
-    rs.close();
-    st.close();
-
-    st = conn.prepareStatement("SELECT ?::text");
-    st.setString(1, "$a$ $a$");
-    assertTrue(st.execute());
-    rs = st.getResultSet();
-    assertTrue(rs.next());
-    assertEquals("$a$ $a$", rs.getString(1));
-
-    assertFalse(rs.next());
-    rs.close();
-    st.close();
-  }
-
-  @Test
-  public void testDollarQuotesAndIdentifiers() throws SQLException {
-    PreparedStatement ps;
-
-    Statement st = conn.createStatement();
-    st.execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
-    st.close();
-
-    ps = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
-    ps.setString(1, "a");
-    ps.setString(2, "b");
-    ps.executeUpdate();
-    ps.close();
-
-    st = conn.createStatement();
-    st.execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
-    st.close();
-
-    ps = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
-    ps.setString(1, "a");
-    ps.executeUpdate();
-    ps.close();
-  }
-
-  @Test
-  public void testComments() throws SQLException {
-    Statement st;
-    PreparedStatement pst;
-    ResultSet rs;
-
-    st = conn.createStatement();
-    assertTrue(st.execute("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT 1;--SELECT 1"));
-    assertTrue(st.getMoreResults());
-    assertFalse(st.getMoreResults());
-    st.close();
-
-    pst = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
-    pst.setString(1, "?");
-    rs = pst.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("?", rs.getString(1));
-    assertFalse(rs.next());
-    rs.close();
-    pst.close();
-  }
-
-  @Test
-  public void testDouble() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into double_tab values (?,?,?)");
-    pstmt.setDouble(1, 1.0E125);
-    pstmt.setDouble(2, 1.0E-130);
-    pstmt.setNull(3, Types.DOUBLE);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from double_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    rs.getDouble(1);
-    assertEquals(1.0E125, rs.getDouble(1), 0.0);
-    assertEquals(1.0E-130, rs.getDouble(2), 0.0);
-    rs.getDouble(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testFloat() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE float_tab (max_float real, min_float real, null_value real)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
-    pstmt.setFloat(1, (float) 1.0E37);
-    pstmt.setFloat(2, (float) 1.0E-37);
-    pstmt.setNull(3, Types.FLOAT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from float_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    rs.getFloat(1);
-    assertEquals("expected 1.0E37,received " + rs.getFloat(1), rs.getFloat(1), 1.0E37f, 0.0);
-    assertEquals("expected 1.0E-37,received " + rs.getFloat(2), rs.getFloat(2), 1.0E-37f, 0.0);
-    rs.getDouble(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testBoolean() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into bool_tab values (?,?,?)");
-    pstmt.setBoolean(1, true);
-    pstmt.setBoolean(2, false);
-    pstmt.setNull(3, Types.BIT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from bool_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1));
-    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetFloatInteger() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Integer maxInteger = 2147483647, minInteger = -2147483648;
-    Double maxFloat = 2147483647d, minFloat = -2147483648d;
-
-    pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
-    pstmt.setObject(1, maxInteger, Types.FLOAT);
-    pstmt.setObject(2, minInteger, Types.FLOAT);
-    pstmt.setNull(3, Types.FLOAT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from float_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + maxFloat + " ,received " + rs.getObject(1), rs.getObject(1), maxFloat);
-    assertEquals("expected " + minFloat + " ,received " + rs.getObject(2), rs.getObject(2), minFloat);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetFloatString() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    String maxStringFloat = "1.0E37", minStringFloat = "1.0E-37";
-    Double maxFloat = 1.0E37, minFloat = 1.0E-37;
-
-    pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
-    pstmt.setObject(1, maxStringFloat, Types.FLOAT);
-    pstmt.setObject(2, minStringFloat, Types.FLOAT);
-    pstmt.setNull(3, Types.FLOAT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from float_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected true,received " + rs.getObject(1), rs.getObject(1), maxFloat);
-    assertEquals("expected false,received " + rs.getBoolean(2), rs.getObject(2), minFloat);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetFloatBigDecimal() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat = new BigDecimal("1.0E-37");
-    Double maxFloat = 1.0E37, minFloat = 1.0E-37;
-
-    pstmt = conn.prepareStatement("insert into float_tab values (?,?,?)");
-    pstmt.setObject(1, maxBigDecimalFloat, Types.FLOAT);
-    pstmt.setObject(2, minBigDecimalFloat, Types.FLOAT);
-    pstmt.setNull(3, Types.FLOAT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from float_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + maxFloat + " ,received " + rs.getObject(1), rs.getObject(1), maxFloat);
-    assertEquals("expected " + minFloat + " ,received " + rs.getObject(2), rs.getObject(2), minFloat);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetTinyIntFloat() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Integer maxInt = 127, minInt = -127;
-    Float maxIntFloat = 127f, minIntFloat = -127f;
-
-    pstmt = conn.prepareStatement("insert into tiny_int values (?,?,?)");
-    pstmt.setObject(1, maxIntFloat, Types.TINYINT);
-    pstmt.setObject(2, minIntFloat, Types.TINYINT);
-    pstmt.setNull(3, Types.TINYINT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from tiny_int");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
-    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetSmallIntFloat() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Integer maxInt = 32767, minInt = -32768;
-    Float maxIntFloat = 32767f, minIntFloat = (float) -32768;
-
-    pstmt = conn.prepareStatement("insert into small_int values (?,?,?)");
-    pstmt.setObject(1, maxIntFloat, Types.SMALLINT);
-    pstmt.setObject(2, minIntFloat, Types.SMALLINT);
-    pstmt.setNull(3, Types.TINYINT);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from small_int");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
-    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetIntFloat() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Integer maxInt = 1000, minInt = -1000;
-    Float maxIntFloat = 1000f, minIntFloat = (float) -1000;
-
-    pstmt = conn.prepareStatement("insert into int_tab values (?,?,?)");
-    pstmt.setObject(1, maxIntFloat, Types.INTEGER);
-    pstmt.setObject(2, minIntFloat, Types.INTEGER);
-    pstmt.setNull(3, Types.INTEGER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from int_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + maxInt + " ,received " + rs.getObject(1), rs.getObject(1), maxInt);
-    assertEquals("expected " + minInt + " ,received " + rs.getObject(2), rs.getObject(2), minInt);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetBooleanDouble() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Double dBooleanTrue = 1d, dBooleanFalse = 0d;
-
-    pstmt = conn.prepareStatement("insert into double_tab values (?,?,?)");
-    pstmt.setObject(1, true, Types.DOUBLE);
-    pstmt.setObject(2, false, Types.DOUBLE);
-    pstmt.setNull(3, Types.DOUBLE);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from double_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), rs.getObject(1), dBooleanTrue);
-    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), rs.getObject(2), dBooleanFalse);
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetBooleanNumeric() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
-
-    pstmt = conn.prepareStatement("insert into numeric_tab values (?,?,?)");
-    pstmt.setObject(1, true, Types.NUMERIC, 2);
-    pstmt.setObject(2, false, Types.NUMERIC, 2);
-    pstmt.setNull(3, Types.DOUBLE);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from numeric_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), 0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
-    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), 0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testSetBooleanDecimal() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
-
-    pstmt = conn.prepareStatement("insert into DECIMAL_TAB values (?,?,?)");
-    pstmt.setObject(1, true, Types.DECIMAL, 2);
-    pstmt.setObject(2, false, Types.DECIMAL, 2);
-    pstmt.setNull(3, Types.DOUBLE);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from DECIMAL_TAB");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-
-    assertEquals("expected " + dBooleanTrue + " ,received " + rs.getObject(1), 0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
-    assertEquals("expected " + dBooleanFalse + " ,received " + rs.getObject(2), 0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
-    rs.getFloat(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-
-  }
-
-  @Test
-  public void testRowId() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)", new String[] {"ctid"});
-    pstmt.setString(1, "some text");
-    pstmt.executeUpdate();
-    ResultSet keys = pstmt.getGeneratedKeys();
-    assertTrue(keys.next());
-    RowId rowId = keys.getRowId(1);
-    keys.close();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("SELECT te FROM texttable WHERE ctid = ?");
-    pstmt.setRowId(1, rowId);
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("some text", rs.getString(1));
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testSetObjectBinary() throws SQLException, IOException {
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
-    }
-
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setObject(1, buf, Types.BINARY);
-    pstmt.setString(2, null);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
-    assertTrue(rs.next());
-    try (InputStream data = (InputStream) rs.getObject(1)) {
-      assertArrayEquals(buf, ByteStreams.toByteArray(data));
-    }
-    rs.close();
-    stmt.close();
-  }
-
-  @Test
-  public void testSetObjectVarBinary() throws SQLException, IOException {
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
-    }
-
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setObject(1, buf, Types.VARBINARY);
-    pstmt.setString(2, null);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
-    assertTrue(rs.next());
-    try (InputStream data = (InputStream) rs.getObject(1)) {
-      assertArrayEquals(buf, ByteStreams.toByteArray(data));
-    }
-    rs.close();
-    stmt.close();
-  }
-
-  @Test
-  public void testSetObjectLongVarBinary() throws SQLException, IOException {
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
-    }
-
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setObject(1, buf, Types.LONGVARBINARY);
-    pstmt.setString(2, null);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT bin FROM streamtable");
-    assertTrue(rs.next());
-    try (InputStream data = (InputStream) rs.getObject(1)) {
-      assertArrayEquals(buf, ByteStreams.toByteArray(data));
-    }
-    rs.close();
-    stmt.close();
-  }
-
-  @Test
-  public void testClearParameters() throws SQLException {
-    byte[] buf = new byte[10];
-    for (int i = 0; i < buf.length; i++) {
-      buf[i] = (byte) i;
-    }
-
-    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-    pstmt.setObject(1, buf, Types.BINARY);
-    pstmt.setString(2, null);
-    pstmt.clearParameters();
-    try {
-      pstmt.executeQuery();
-      fail("Failed");
-    }
-    catch (SQLException se) {
-      // Correct
-    }
-    finally {
-      pstmt.close();
-    }
-  }
-
-  @Test
-  public void testExecuteWithoutParameters() {
-    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
-      pstmt.execute();
-      fail("Failed");
-    }
-    catch (SQLException se) {
-      // Correct
-    }
-  }
-
-  @Test
-  public void testExecuteQueryWithoutParameters() {
-    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
-      pstmt.executeQuery();
-      fail("Failed");
-    }
-    catch (SQLException se) {
-      // Correct
-    }
-  }
-
-  @Test
-  public void testExecuteUpdateWithoutParameters() {
-    try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)")) {
-      pstmt.executeUpdate();
-      fail("Failed");
-    }
-    catch (SQLException se) {
-      // Correct
-    }
-  }
-
-  @Test
-  public void testInet() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE inet_tab (ip1 inet, ip2 inet, ip3 inet)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into inet_tab values (?,?,?)");
-    InetAddr inet1;
-    InetAddr inet2;
-    pstmt.setObject(1, inet1 = new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, inet2 = new InetAddr("192.168.100.128/25"));
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from inet_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), InetAddr.class);
-    assertEquals(inet1, rs.getObject(1));
-    assertSame(rs.getObject(2).getClass(), InetAddr.class);
-    assertEquals(inet2, rs.getObject(2));
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testCidr() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE cidr_tab (ip1 cidr, ip2 cidr, ip3 cidr)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into cidr_tab values (?,?,?)");
-    CidrAddr cidr1;
-    CidrAddr cidr2;
-    pstmt.setObject(1, cidr1 = new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1"));
-    pstmt.setObject(2, cidr2 = new CidrAddr("2001:4f8:3:ba::/64"));
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from cidr_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), CidrAddr.class);
-    assertEquals(cidr1, rs.getObject(1));
-    assertSame(rs.getObject(2).getClass(), CidrAddr.class);
-    assertEquals(cidr2, rs.getObject(2));
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testPoint() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE point_tab (p1 point, p2 point, p3 point)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into point_tab values (?,?,?)");
-    double[] p1 = new double[] {45.0, 56.3};
-    double[] p2 = new double[] {0, 0};
-    pstmt.setObject(1, p1);
-    pstmt.setObject(2, p2);
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from point_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), double[].class);
-    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
-    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testPath() throws SQLException {
-    try (PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE path_tab (p1 path, p2 path, p3 path)")) {
-      pstmt.executeUpdate();
-    }
-    Path p1 = GeometryParsers.INSTANCE.parsePath("[(678.6,454),(10,89),(124.6,0)]");
-    Path p2 = GeometryParsers.INSTANCE.parsePath("((678.6,454),(10,89),(124.6,0))");
-    try (PreparedStatement pstmt = conn.prepareStatement("insert into path_tab values (?,?,?)")) {
-      pstmt.setObject(1, p1);
-      pstmt.setObject(2, p2);
-      pstmt.setObject(3, null, Types.OTHER);
-      pstmt.executeUpdate();
-    }
-
-    try (PreparedStatement pstmt = conn.prepareStatement("select * from path_tab");
-        ResultSet rs = pstmt.executeQuery()) {
-      assertTrue(rs.next());
-      assertSame(rs.getObject(1).getClass(), Path.class);
-      assertEquals(p1, rs.getObject(1));
-      assertEquals(p2, rs.getObject(2));
-      rs.getObject(3);
-      assertTrue(rs.wasNull());
-    }
-  }
-
-  @Test
-  public void testPolygon() throws SQLException {
-    try (PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE polygon_tab (p1 polygon, p2 polygon, p3 polygon)")) {
-      pstmt.executeUpdate();
-    }
-    double[][] p1 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0),(0,0))");
-    double[][] p2 = GeometryParsers.INSTANCE.parsePolygon("((678.6,454),(10,89),(124.6,0))");
-    try (PreparedStatement pstmt = conn.prepareStatement("insert into polygon_tab values (?,?,?)")) {
-      pstmt.setObject(1, p1);
-      pstmt.setObject(2, p2);
-      pstmt.setObject(3, null, Types.OTHER);
-      pstmt.executeUpdate();
-    }
-
-    try (PreparedStatement pstmt = conn.prepareStatement("select * from polygon_tab");
-        ResultSet rs = pstmt.executeQuery()) {
-      assertTrue(rs.next());
-      assertSame(rs.getObject(1).getClass(), double[][].class);
-      assertTrue(Arrays.deepEquals(p1, (double[][]) rs.getObject(1)));
-      assertTrue(Arrays.deepEquals(p2, (double[][]) rs.getObject(2)));
-      rs.getObject(3);
-      assertTrue(rs.wasNull());
-    }
-  }
-
-  @Test
-  public void testCircle() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE circle_tab (p1 circle, p2 circle, p3 circle)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into circle_tab values (?,?,?)");
-    double[] p1 = new double[] {45.0, 56.3, 40};
-    double[] p2 = new double[] {0, 0, 0};
-    pstmt.setObject(1, p1);
-    pstmt.setObject(2, p2);
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from circle_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), double[].class);
-    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
-    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testLSeg() throws SQLException {
-    testLSeg("lseg");
-  }
-
-  @Test
-  public void testBox() throws SQLException {
-    testLSeg("box");
-  }
-
-  private void testLSeg(String pgtype) throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE " + pgtype + "_tab (p1 " + pgtype + ", p2 " + pgtype + ", p3 " + pgtype + ")");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into " + pgtype + "_tab values (?,?,?)");
-    double[] p1 = new double[] {45.0, 60.0, 40.9, 56.3};
-    double[] p2 = new double[] {0, 0, 0, 0};
-    pstmt.setObject(1, p1);
-    pstmt.setObject(2, p2);
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from " + pgtype + "_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), double[].class);
-    assertArrayEquals(p1, (double[]) rs.getObject(1), 0.0);
-    assertArrayEquals(p2, (double[]) rs.getObject(2), 0.0);
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testMacAddr() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE mac_tab (mac1 macaddr, mac2 macaddr, mac3 macaddr)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into mac_tab values (?,?,?)");
-    byte[] mac1 = new byte[] {0x08, 0x00, 0x2b, 0x01, 0x02, 0x03};
-    byte[] mac2 = new byte[] {0x08, 0x4f, 0x2a, 0x01, 0x02, 0x3e};
-    pstmt.setObject(1, mac1);
-    pstmt.setObject(2, mac2);
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("select * from mac_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertSame(rs.getObject(1).getClass(), byte[].class);
-    assertArrayEquals(mac1, (byte[]) rs.getObject(1));
-    assertArrayEquals(mac2, (byte[]) rs.getObject(2));
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
-  }
-
-  @Test
-  public void testHStore() throws SQLException {
-
-    assumeTrue("hstore (extension not intalled)", TestUtil.isExtensionInstalled(conn, "hstore"));
-
-    PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE hstore_tab (hs1 hstore, hs2 hstore, hs3 hstore)");
-    pstmt.executeUpdate();
-    pstmt.close();
-
-    pstmt = conn.prepareStatement("insert into hstore_tab values (?,?,?)");
     Map<String, String> hs1 = new HashMap<>();
     hs1.put("k1", "v1");
     hs1.put("k2", "v2");
     hs1.put("k3", "v3");
     hs1.put("k4", "v4");
+
     Map<String, String> hs2 = new HashMap<>();
-    pstmt.setObject(1, hs1);
-    pstmt.setObject(2, hs2);
-    pstmt.setObject(3, null, Types.OTHER);
-    pstmt.executeUpdate();
-    pstmt.close();
 
-    pstmt = conn.prepareStatement("select * from hstore_tab");
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    assertEquals(HashMap.class, rs.getObject(1).getClass());
-    assertEquals(hs1, rs.getObject(1));
-    assertEquals(hs2, rs.getObject(2));
-    rs.getObject(3);
-    assertTrue(rs.wasNull());
-    rs.close();
-    pstmt.close();
+    set.setObject(1, hs1);
+    set.executeUpdate();
+    set.setObject(1, hs2);
+    set.executeUpdate();
+    set.setObject(1, null, Types.OTHER);
+    set.executeUpdate();
+
+    Collection<Map<String, String>> data = hstable.take();
+    assertThat(data, hasItem(hs1));
+    assertThat(data, hasItem(hs2));
+    assertThat(data, hasItem(nullValue()));
   }
 
-//TODO: reconcile against mainstream driver
-//  public void testUnknownSetObject() throws SQLException {
-//    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
-//
-//    pstmt.setString(1, "1 week");
-//    try {
-//      pstmt.executeUpdate();
-//      fail("Should have failed with type mismatch.");
-//    }
-//    catch (SQLException sqle) {
-//    }
-//
-//    pstmt.setObject(1, "1 week", Types.OTHER);
-//    pstmt.executeUpdate();
-//    pstmt.close();
-//  }
+  @DisplayName("Networks")
+  @Nested
+  class NetworkTests {
 
-  /**
-   * With autoboxing this apparently happens more often now.
-   */
-  @Test
-  public void testSetObjectCharacter() throws SQLException {
-    PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
-    ps.setObject(1, 'z');
-    ps.executeUpdate();
-    ps.close();
-  }
+    @DisplayName("inet")
+    @Table(name = "inettable", columns = {"ip1 inet", "ip2 inet", "ip3 inet"})
+    @Prepare(name = "set", sql = "INSERT INTO inettable VALUES (?, ?, ?)")
+    @Test
+    void testInet(PreparedStatement set, RowSnapshot<InetAddr> inettable) throws SQLException {
+      InetAddr inet1 = new InetAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1");
+      InetAddr inet2 = new InetAddr("192.168.100.128/25");
+      set.setObject(1, inet1);
+      set.setObject(2, inet2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
 
-  /**
-   * When we have parameters of unknown type and it's not using the unnamed
-   * statement, we issue a protocol level statment describe message for the V3
-   * protocol. This test just makes sure that works.
-   */
-  @Test
-  public void testStatementDescribe() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
-    pstmt.setObject(1, 2);
-    for (int i = 0; i < 10; i++) {
-      ResultSet rs = pstmt.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(2, rs.getInt(1));
-      rs.close();
+      assertThat(inettable.take(), hasItem(new InetAddr[] {inet1, inet2, null}));
     }
-    pstmt.close();
+
+    @DisplayName("cidr")
+    @Table(name = "cidrtable", columns = {"ip1 cidr", "ip2 cidr", "ip3 cidr"})
+    @Prepare(name = "set", sql = "INSERT INTO cidrtable VALUES (?, ?, ?)")
+    @Test
+    void testCidr(PreparedStatement set, RowSnapshot<CidrAddr> cidrtable) throws SQLException {
+      CidrAddr cidr1 = new CidrAddr("2001:4f8:3:ba:2e0:81ff:fe22:d1f1");
+      CidrAddr cidr2 = new CidrAddr("2001:4f8:3:ba::/64");
+      set.setObject(1, cidr1);
+      set.setObject(2, cidr2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
+
+      assertThat(cidrtable.take(), hasItem(new CidrAddr[] {cidr1, cidr2, null}));
+    }
+
+    @DisplayName("mac")
+    @Table(name = "mactable", columns = {"mac1 macaddr", "mac2 macaddr", "mac3 macaddr"})
+    @Prepare(name = "set", sql = "INSERT INTO mactable VALUES (?, ?, ?)")
+    @Test
+    void testMac(PreparedStatement set, RowSnapshot<byte[]> mactable) throws SQLException {
+      byte[] mac1 = new byte[] {0x08, 0x00, 0x2b, 0x01, 0x02, 0x03};
+      byte[] mac2 = new byte[] {0x08, 0x4f, 0x2a, 0x01, 0x02, 0x3e};
+      set.setObject(1, mac1);
+      set.setObject(2, mac2);
+      set.setObject(3, null, Types.OTHER);
+      set.executeUpdate();
+
+      assertThat(mactable.take(), hasItem(new byte[][] {mac1, mac2, null}));
+    }
+
   }
 
-  /**
-   * No cache
-   */
+  @DisplayName("Set RowId")
+  @Table(name = "rowidtable", columns = "val text")
+  @Prepare(name = "insert", sql = "INSERT INTO rowidtable (val) VALUES (?)", returning = {"ctid"})
+  @Prepare(name = "select", sql = "SELECT val FROM rowidtable WHERE ctid = ?")
   @Test
-  public void testNoCache() throws SQLException {
-    PGDataSource ds = new PGDataSource();
-    ds.setServerName(TestUtil.getServer());
-    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
-    ds.setDatabaseName(TestUtil.getDatabase());
-    ds.setUser(TestUtil.getUser());
-    ds.setPassword(TestUtil.getPassword());
-    ds.setPreparedStatementCacheSize(0);
+  void testRowId(PreparedStatement insert, PreparedStatement select) throws SQLException {
+    insert.setString(1, "some text");
+    insert.executeUpdate();
+    try (ResultSet keys = insert.getGeneratedKeys()) {
+      assertTrue(keys.next());
+      RowId rowId = keys.getRowId(1);
 
-    try (Connection c = ds.getConnection(); PreparedStatement pstmt = c.prepareStatement("SELECT ?::int")) {
-      for (int i = 0; i < 2; i++) {
-        pstmt.setObject(1, i);
-        ResultSet rs = pstmt.executeQuery();
-        rs.close();
+      select.setRowId(1, rowId);
+      try (ResultSet vals = select.executeQuery()) {
+        assertThat(vals.next(), equalTo(true));
+        assertThat(vals.getString(1), equalTo("some text"));
       }
     }
+  }
+
+  @DisplayName("Nulls are set correctly")
+  @Table(name = "nulltable", columns = "val text")
+  @Prepare(name = "set", sql = "INSERT INTO nulltable VALUES (?)")
+  @Test
+  void testSetNull(PreparedStatement set, ColSnapshot<String> nulltable) throws SQLException {
+    // valid: fully qualified type to setNull()
+    set.setNull(1, Types.VARCHAR);
+    set.executeUpdate();
+    assertThat(nulltable.take(), hasItem(nullValue()));
+    // valid: fully qualified type to setObject()
+    set.setObject(1, null, Types.VARCHAR);
+    set.executeUpdate();
+    assertThat(nulltable.take(), hasItem(nullValue()));
+    // setObject() with no type info
+    set.setObject(1, null);
+    set.executeUpdate();
+    assertThat(nulltable.take(), hasItem(nullValue()));
+    // setObject() with insufficient type info
+    set.setObject(1, null, Types.OTHER);
+    set.executeUpdate();
+    assertThat(nulltable.take(), hasItem(nullValue()));
+    // setNull() with insufficient type info
+    set.setNull(1, Types.OTHER);
+    set.executeUpdate();
+    assertThat(nulltable.take(), hasItem(nullValue()));
+  }
+
+  @DisplayName("Double quote string parameters")
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(
+      strings = {
+          "bare ? question mark", "single ' quote", "doubled '' single quote",
+          "doubled \"\" double quote", "no backslash interpretation here: \\"
+      }
+  )
+  void testDoubleQuotes(String value, Statement statement) throws SQLException {
+    statement.executeUpdate("CREATE TEMP TABLE \"" + value + "\" (i integer)");
+    statement.executeUpdate("DROP TABLE \"" + value + "\"");
+  }
+
+  @DisplayName("Dollar quotes are parsed correctly")
+  @ParameterizedTest()
+  @CsvSource(
+      delimiter = '|',
+      value = {
+          "SELECT $$;$$ WHERE $x$?$x$=$_0$?$_0$ AND $$?$$=?|?|;",
+          "SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;|;|;",
+          "SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;|;|$a$;$x $a$",
+          "SELECT ?::text|$a$ $a$|$a$ $a$"
+      }
+  )
+  void testDollarQuotes(String query, String value, String expected, Connection conn) throws SQLException {
+    try (PreparedStatement st = conn.prepareStatement(query)) {
+      st.setString(1, value);
+      try (ResultSet rs = st.executeQuery()) {
+        assertThat(rs.next(), equalTo(true));
+        assertThat(rs.getString(1), equalTo(expected));
+        assertThat(rs.next(), equalTo(false));
+      }
+    }
+  }
+
+  @DisplayName("Dollar quotes in identifiers are parsed correctly")
+  @Test
+  void testDollarQuotesAndIdentifiers(Connection conn) throws SQLException {
+    try (Statement st = conn.createStatement()) {
+      st.execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
+    }
+
+    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)")) {
+      ps.setString(1, "a");
+      ps.setString(2, "b");
+      ps.executeUpdate();
+    }
+
+    try (Statement st = conn.createStatement()) {
+      st.execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
+    }
+
+    try (PreparedStatement ps = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g")) {
+      ps.setString(1, "a");
+      ps.executeUpdate();
+    }
+
+  }
+
+  @DisplayName("Comments are parsed correctly")
+  @Test
+  void testComments(Connection conn) throws SQLException {
+    try (Statement st = conn.createStatement()) {
+      assertThat(st.execute("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT 1;--SELECT 1"), equalTo(true));
+      assertThat(st.getMoreResults(), equalTo(true));
+      assertThat(st.getMoreResults(), equalTo(false));
+    }
+
+    try (PreparedStatement pst = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?")) {
+      pst.setString(1, "?");
+      try (ResultSet rs = pst.executeQuery()) {
+        assertThat(rs.next(), equalTo(true));
+        assertThat(rs.getString(1), equalTo("?"));
+        assertThat(rs.next(), equalTo(false));
+      }
+    }
+  }
+
+  @DisplayName("Single quote string parameters")
+  @TestInstance(PER_CLASS)
+  @Nested
+  class SingleQuoteStringParameterTests {
+
+    Stream<Arguments> nonStdStringArgs() {
+      String[] strings = new String[] {
+          "bare ? question mark", "quoted \\' single quote", "doubled '' single quote", "octal \\060 constant",
+          "escaped \\? question mark", "double \\\\ backslash", "double \" quote", "backslash \\\\\\' single quote"
+      };
+      String[] expected = new String[] {
+          "bare ? question mark", "quoted ' single quote", "doubled ' single quote", "octal 0 constant",
+          "escaped ? question mark", "double \\ backslash", "double \" quote", "backslash \\' single quote"
+      };
+      return zip(Stream.of(strings), Stream.of(expected), Arguments::arguments);
+    }
+
+    @DisplayName("Test with non-std strings & setting off")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("nonStdStringArgs")
+    @ConnectionSetting(name = "standard_conforming_strings", value = "off")
+    void testNonStdStringsStdOff(String value, String expected, Connection connection) throws SQLException {
+      try (PreparedStatement ps = connection.prepareStatement("SELECT '" + value + "'")) {
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next(), equalTo(true));
+          assertThat(rs.getString(1), equalTo(expected));
+        }
+      }
+    }
+
+    @DisplayName("Test with escaped non-std strings & setting on")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("nonStdStringArgs")
+    @ConnectionSetting(name = "standard_conforming_strings", value = "on")
+    void testNonStdStringsStdOn(String value, String expected, Connection connection) throws SQLException {
+      try (PreparedStatement ps = connection.prepareStatement("SELECT E'" + value + "'")) {
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next(), equalTo(true));
+          assertThat(rs.getString(1), equalTo(expected));
+        }
+      }
+    }
+
+    Stream<Arguments> stdStringArgs() {
+      String[] strings = new String[] {
+          "bare ? question mark", "quoted '' single quote", "doubled '' single quote", "octal 0 constant",
+          "escaped ? question mark", "double \\ backslash", "double \" quote", "backslash \\'' single quote"
+      };
+      String[] expected = new String[] {
+          "bare ? question mark", "quoted ' single quote", "doubled ' single quote", "octal 0 constant",
+          "escaped ? question mark", "double \\ backslash", "double \" quote", "backslash \\' single quote"
+      };
+      return zip(Stream.of(strings), Stream.of(expected), Arguments::arguments);
+    }
+
+    @DisplayName("Test with std strings & setting on")
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("stdStringArgs")
+    @ConnectionSetting(name = "standard_conforming_strings", value = "on")
+    void testStdStringsStdOn(String value, String expected, Connection connection) throws SQLException {
+      try (PreparedStatement ps = connection.prepareStatement("SELECT '" + value + "'")) {
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next(), equalTo(true));
+          assertThat(rs.getString(1), equalTo(expected));
+        }
+      }
+    }
+
+  }
+
+  @DisplayName("Test leading/trailing spaces respected in text types")
+  @Table(name = "texttable", columns = {"ch char(3)", "te text", "vc varchar"})
+  @Prepare(name = "ps", sql = "INSERT INTO texttable(ch, te, vc) VALUES (?, ?, ?)")
+  @Test
+  void testSpaces(PreparedStatement ps, RowSnapshot<String> texttable) throws SQLException {
+    String str = " a ";
+    ps.setString(1, str);
+    ps.setString(2, str);
+    ps.setString(3, str);
+    ps.executeUpdate();
+
+    List<String[]> data = texttable.take();
+    assertThat(data.size(), equalTo(1));
+    assertThat(data.get(0), equalTo(new String[] {str, str, str}));
+  }
+
+  @DisplayName("Test character can be set into text")
+  @Table(name = "texttable", columns = {"te text"})
+  @Prepare(name = "ps", sql = "INSERT INTO texttable(te) VALUES (?)")
+  @Test
+  void testChar(PreparedStatement ps, ColSnapshot<String> texttable) throws SQLException {
+    ps.setObject(1, 'z');
+    ps.executeUpdate();
+
+    List<String> data = texttable.take();
+    assertThat(data.size(), equalTo(1));
+    assertThat(data.get(0), equalTo("z"));
+  }
+
+  @DisplayName("Setting Parameters")
+  @Table(name = "paramtable", columns = {"val text", "val2 text"})
+  @Prepare(name = "set", sql = "INSERT INTO paramtable VALUES (?, ?)")
+  @Nested
+  class ParamTests {
+
+    @DisplayName("Executes fail when missing all parameters")
+    @Test
+    void test1(PreparedStatement set) {
+      assertThrows(SQLException.class, set::execute);
+      assertThrows(SQLException.class, set::executeQuery);
+      assertThrows(SQLException.class, set::executeUpdate);
+    }
+
+    @DisplayName("Executes fail when missing some parameters")
+    @Test
+    void test2(PreparedStatement set) throws SQLException {
+      set.setObject(1, "hello");
+      assertThrows(SQLException.class, set::execute);
+      assertThrows(SQLException.class, set::executeQuery);
+      assertThrows(SQLException.class, set::executeUpdate);
+    }
+
+    @DisplayName("Executes fail after clearing parameters")
+    @Test
+    void test3(PreparedStatement set) throws SQLException {
+      set.setObject(1, "hello");
+      set.setObject(2, "world");
+      set.executeUpdate();
+
+      set.clearParameters();
+      assertThrows(SQLException.class, set::execute);
+      assertThrows(SQLException.class, set::executeQuery);
+      assertThrows(SQLException.class, set::executeUpdate);
+    }
+
+  }
+
+  @DisplayName("Invoke invalid methods inherited from Statement")
+  @Prepare(name = "ps", sql = "SELECT 1")
+  @Test
+  void testInvokeInvalid(PreparedStatement ps) {
+    assertThrows(SQLException.class, () -> ps.execute("SELECT 1"));
+    assertThrows(SQLException.class, () -> ps.execute("SELECT 1", Statement.RETURN_GENERATED_KEYS));
+    assertThrows(SQLException.class, () -> ps.execute("SELECT 1", new String[] {"oid"}));
+    assertThrows(SQLException.class, () -> ps.executeQuery("SELECT 1"));
+    assertThrows(SQLException.class, () -> ps.executeUpdate("SELECT 1"));
+    assertThrows(SQLException.class, () -> ps.executeUpdate("SELECT 1", Statement.RETURN_GENERATED_KEYS));
+    assertThrows(SQLException.class, () -> ps.executeUpdate("SELECT 1", new String[] {"oid"}));
+    assertThrows(SQLException.class, () -> ps.executeLargeUpdate("SELECT 1"));
+    assertThrows(SQLException.class, () -> ps.executeLargeUpdate("SELECT 1", Statement.RETURN_GENERATED_KEYS));
+    assertThrows(SQLException.class, () -> ps.executeLargeUpdate("SELECT 1", new String[] {"oid"}));
+  }
+
+  @DisplayName("Binary Values")
+  @Table(name = "bintable", columns = {"val bytea"})
+  @Prepare(name = "set", sql = "INSERT INTO bintable VALUES (?)")
+  @Nested
+  class BinaryTests {
+
+    @DisplayName("Set as BINARY")
+    @Test
+    void test1(PreparedStatement set, @Random byte[] bytes, ColSnapshot<InputStream> bintable) throws SQLException {
+      set.setObject(1, bytes, Types.BINARY);
+      set.executeUpdate();
+
+      List<InputStream> data = bintable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(new ByteArrayInputStream(bytes)));
+
+      List<String> text = bintable.takeText();
+      assertThat(text.size(), equalTo(1));
+      assertThat(text.get(0), equalTo("\\x" + Bytes.encodeHex(bytes).toLowerCase()));
+
+    }
+
+    @DisplayName("Set as VARBINARY")
+    @Test
+    void test2(PreparedStatement set, @Random byte[] bytes, ColSnapshot<InputStream> bintable) throws SQLException {
+      set.setObject(1, bytes, Types.VARBINARY);
+      set.executeUpdate();
+
+      List<InputStream> data = bintable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(new ByteArrayInputStream(bytes)));
+
+      List<String> text = bintable.takeText();
+      assertThat(text.size(), equalTo(1));
+      assertThat(text.get(0), equalTo("\\x" + Bytes.encodeHex(bytes).toLowerCase()));
+    }
+
+    @DisplayName("Set as LONGVARBINARY")
+    @Test
+    void test3(PreparedStatement set, @Random byte[] bytes, ColSnapshot<InputStream> bintable) throws SQLException {
+      set.setObject(1, bytes, Types.LONGVARBINARY);
+      set.executeUpdate();
+
+      List<InputStream> data = bintable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(new ByteArrayInputStream(bytes)));
+
+      List<String> text = bintable.takeText();
+      assertThat(text.size(), equalTo(1));
+      assertThat(text.get(0), equalTo("\\x" + Bytes.encodeHex(bytes).toLowerCase()));
+    }
+
+  }
+
+  @DisplayName("Integers")
+  @Table(name = "inttable", columns = {"val int4"})
+  @Prepare(name = "set", sql = "INSERT INTO inttable VALUES (?)")
+  @Nested
+  class IntegerTests {
+
+    @DisplayName("Set null")
+    @Test
+    void test0(PreparedStatement set, ColSnapshot<Integer> inttable) throws SQLException {
+      set.setNull(1, Types.INTEGER);
+      set.executeUpdate();
+
+      Collection<Integer> data = inttable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set")
+    @ParameterizedTest
+    @ValueSource(ints = {Integer.MAX_VALUE, Integer.MIN_VALUE})
+    void test1(int value, PreparedStatement set, ColSnapshot<Integer> inttable) throws SQLException {
+      set.setInt(1, value);
+      set.executeUpdate();
+
+      Collection<Integer> data = inttable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(value));
+    }
+
+    @DisplayName("Set from Float")
+    @Test
+    void test2(PreparedStatement set, ColSnapshot<Integer> inttable) throws SQLException {
+      set.setObject(1, 1000f, Types.INTEGER);
+      set.executeUpdate();
+      set.setObject(1, -1000f, Types.INTEGER);
+      set.executeUpdate();
+
+      Collection<Integer> data = inttable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(1000, -1000));
+    }
+
+    @DisplayName("Set from TINYINT")
+    @Test
+    void test3(PreparedStatement set, ColSnapshot<Integer> inttable) throws SQLException {
+      set.setObject(1, 127, Types.TINYINT);
+      set.executeUpdate();
+      set.setObject(1, -128, Types.TINYINT);
+      set.executeUpdate();
+
+      Collection<Integer> data = inttable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(127, -128));
+    }
+
+    @DisplayName("Set from SMALLINT")
+    @Test
+    void test4(PreparedStatement set, ColSnapshot<Integer> inttable) throws SQLException {
+      set.setObject(1, 32767, Types.SMALLINT);
+      set.executeUpdate();
+      set.setObject(1, -32768, Types.SMALLINT);
+      set.executeUpdate();
+
+      Collection<Integer> data = inttable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(32767, -32768));
+    }
+
+  }
+
+  @DisplayName("Numerics")
+  @Table(name = "numtable", columns = {"val numeric(30,15)"})
+  @Prepare(name = "set", sql = "INSERT INTO numtable VALUES (?)")
+  @Nested
+  class NumericTests {
+
+    @DisplayName("Set")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<BigDecimal> numtable) throws SQLException {
+      BigDecimal bigDecimal1 = new BigDecimal("123456789.987654321000000");
+      BigDecimal bigDecimal2 = new BigDecimal("-123456789.987654321000000");
+      set.setBigDecimal(1, bigDecimal1);
+      set.executeUpdate();
+      set.setBigDecimal(1, bigDecimal2);
+      set.executeUpdate();
+      set.setNull(1, Types.NUMERIC);
+      set.executeUpdate();
+
+      Collection<BigDecimal> data = numtable.take();
+      assertThat(data.size(), equalTo(3));
+      assertThat(data, hasItems(bigDecimal1, bigDecimal2));
+      assertThat(data, hasItem(nullValue()));
+
+      Collection<String> text = numtable.takeText();
+      assertThat(text.size(), equalTo(3));
+      assertThat(text, hasItems("123456789.987654321000000", "-123456789.987654321000000"));
+    }
+
+    @DisplayName("Set from Boolean (as NUMERIC)")
+    @Test
+    void test2(PreparedStatement set, ColSnapshot<BigDecimal> numtable) throws SQLException {
+      set.setObject(1, true, Types.NUMERIC);
+      set.executeUpdate();
+      set.setObject(1, false, Types.NUMERIC);
+      set.executeUpdate();
+
+      Collection<BigDecimal> data = numtable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(new BigDecimal("1.000000000000000"), new BigDecimal("0.000000000000000")));
+
+      Collection<String> text = numtable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1.000000000000000", "0.000000000000000"));
+    }
+
+    @DisplayName("Set from Boolean (as DECIMAL)")
+    @Test
+    void test3(PreparedStatement set, ColSnapshot<BigDecimal> numtable) throws SQLException {
+      set.setObject(1, true, Types.DECIMAL);
+      set.executeUpdate();
+      set.setObject(1, false, Types.DECIMAL);
+      set.executeUpdate();
+
+      Collection<BigDecimal> data = numtable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(new BigDecimal("1.000000000000000"), new BigDecimal("0.000000000000000")));
+
+      Collection<String> text = numtable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1.000000000000000", "0.000000000000000"));
+    }
+
+  }
+
+  @DisplayName("Doubles")
+  @Table(name = "doubletable", columns = {"val float"})
+  @Prepare(name = "set", sql = "INSERT INTO doubletable VALUES (?)")
+  @Nested
+  class DoubleTests {
+
+    @DisplayName("Set")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<Double> doubletable) throws Exception {
+      set.setDouble(1, 1.0E125);
+      set.executeUpdate();
+      set.setDouble(1, 1.0E-130);
+      set.executeUpdate();
+      set.setNull(1, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Double> data = doubletable.take();
+      assertThat(data.size(), equalTo(3));
+      assertThat(data, hasItems(1.0E125, 1.0E-130));
+      assertThat(data, hasItem(nullValue()));
+
+      Collection<String> text = doubletable.takeText();
+      assertThat(text.size(), equalTo(3));
+      assertThat(text, hasItems("1e+125", "1e-130"));
+      assertThat(text, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set from Boolean")
+    @Test
+    void test2(PreparedStatement set, ColSnapshot<Double> doubletable) throws Exception {
+      set.setObject(1, true, Types.DOUBLE);
+      set.executeUpdate();
+      set.setObject(1, false, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Double> data = doubletable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(1d, 0d));
+
+      Collection<String> text = doubletable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1", "0"));
+    }
+
+    @DisplayName("Set from Integer")
+    @Test
+    void test3(PreparedStatement set, ColSnapshot<Double> doubletable) throws SQLException {
+      Integer maxInteger = Integer.MAX_VALUE, minInteger = Integer.MIN_VALUE;
+      Double maxFloat = (double) maxInteger, minFloat = (double) minInteger;
+      set.setObject(1, maxInteger, Types.DOUBLE);
+      set.executeUpdate();
+      set.setObject(1, minInteger, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Double> data = doubletable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = doubletable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("2147483647", "-2147483648"));
+    }
+
+    @DisplayName("Set from String")
+    @Test
+    void test4(PreparedStatement set, ColSnapshot<Double> doubletable) throws SQLException {
+      String maxString = "1.0E125", minString = "1.0E-130";
+      Double maxFloat = Double.valueOf(maxString), minFloat = Double.valueOf(minString);
+      set.setObject(1, maxString, Types.DOUBLE);
+      set.executeUpdate();
+      set.setObject(1, minString, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Double> data = doubletable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = doubletable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1e+125", "1e-130"));
+    }
+
+    @DisplayName("Set from BigDecimal")
+    @Test
+    void test5(PreparedStatement set, ColSnapshot<Double> doubletable) throws SQLException {
+      BigDecimal maxDecimal = new BigDecimal("1.0E125"), minDecimal = new BigDecimal("1.0E-130");
+      Double maxFloat = maxDecimal.doubleValue(), minFloat = maxDecimal.doubleValue();
+      set.setObject(1, maxDecimal, Types.DOUBLE);
+      set.executeUpdate();
+      set.setObject(1, minDecimal, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Double> data = doubletable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = doubletable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1e+125", "1e-130"));
+    }
+
+  }
+
+  @DisplayName("Floats")
+  @Table(name = "floattable", columns = {"val real"})
+  @Prepare(name = "set", sql = "INSERT INTO floattable VALUES (?)")
+  @Nested
+  class FloatTests {
+
+    @DisplayName("Set")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<Float> floattable) throws Exception {
+      set.setFloat(1, 1.0E37f);
+      set.executeUpdate();
+      set.setFloat(1, 1.0E-37f);
+      set.executeUpdate();
+      set.setNull(1, Types.FLOAT);
+      set.executeUpdate();
+
+      Collection<Float> data = floattable.take();
+      assertThat(data.size(), equalTo(3));
+      assertThat(data, hasItems(1.0E37f, 1.0E-37f));
+      assertThat(data, hasItem(nullValue()));
+
+      Collection<String> text = floattable.takeText();
+      assertThat(text.size(), equalTo(3));
+      assertThat(text, hasItems("1e+37", "1e-37"));
+    }
+
+    @DisplayName("Set from Boolean")
+    @Test
+    void test2(PreparedStatement set, ColSnapshot<Float> floattable) throws Exception {
+      set.setObject(1, true, Types.DOUBLE);
+      set.executeUpdate();
+      set.setObject(1, false, Types.DOUBLE);
+      set.executeUpdate();
+
+      Collection<Float> data = floattable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(1f, 0f));
+
+      Collection<String> text = floattable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1", "0"));
+    }
+
+    @DisplayName("Set from Integer")
+    @Test
+    void test3(PreparedStatement set, ColSnapshot<Float> floattable) throws SQLException {
+      Integer maxInteger = Integer.MAX_VALUE, minInteger = Integer.MIN_VALUE;
+      Float maxFloat = 2.14748006E9F, minFloat = -2.14748006E9F;
+      set.setObject(1, maxInteger, Types.FLOAT);
+      set.executeUpdate();
+      set.setObject(1, minInteger, Types.FLOAT);
+      set.executeUpdate();
+
+      Collection<Float> data = floattable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = floattable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("2.14748e+09", "-2.14748e+09"));
+    }
+
+    @DisplayName("Set from String")
+    @Test
+    void test4(PreparedStatement set, ColSnapshot<Float> floattable) throws SQLException {
+      String maxString = "1.0E37", minString = "1.0E-37";
+      Float maxFloat = Float.valueOf(maxString), minFloat = Float.valueOf(minString);
+      set.setObject(1, maxString, Types.FLOAT);
+      set.executeUpdate();
+      set.setObject(1, minString, Types.FLOAT);
+      set.executeUpdate();
+
+      Collection<Float> data = floattable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = floattable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1e+37", "1e-37"));
+    }
+
+    @DisplayName("Set from BigDecimal")
+    @Test
+    void test5(PreparedStatement set, ColSnapshot<Float> floattable) throws SQLException {
+      BigDecimal maxDecimal = new BigDecimal("1.0E37"), minDecimal = new BigDecimal("1.0E-37");
+      Float maxFloat = maxDecimal.floatValue(), minFloat = maxDecimal.floatValue();
+      set.setObject(1, maxDecimal, Types.FLOAT);
+      set.executeUpdate();
+      set.setObject(1, minDecimal, Types.FLOAT);
+      set.executeUpdate();
+
+      Collection<Float> data = floattable.take();
+      assertThat(data.size(), equalTo(2));
+      assertThat(data, hasItems(maxFloat, minFloat));
+
+      Collection<String> text = floattable.takeText();
+      assertThat(text.size(), equalTo(2));
+      assertThat(text, hasItems("1e+37", "1e-37"));
+    }
+
+  }
+
+  @DisplayName("Set Boolean")
+  @Table(name = "booltable", columns = {"val boolean"})
+  @Prepare(name = "set", sql = "INSERT INTO booltable VALUES (?)")
+  @Test
+  void testSetBoolean(PreparedStatement set, ColSnapshot<Boolean> booltable) throws Exception {
+    set.setBoolean(1, true);
+    set.executeUpdate();
+    set.setBoolean(1, false);
+    set.executeUpdate();
+    set.setNull(1, Types.BIT);
+    set.executeUpdate();
+
+    Collection<Boolean> data = booltable.take();
+    assertThat(data.size(), equalTo(3));
+    assertThat(data, hasItem(true));
+    assertThat(data, hasItem(false));
+    assertThat(data, hasItem(nullValue()));
+  }
+
+  @DisplayName("Binary Streams")
+  @Table(name = "streamtable", columns = {"bin bytea"})
+  @Prepare(name = "set", sql = "INSERT INTO streamtable (bin) VALUES (?)")
+  @Nested
+  class BinaryStreams {
+
+    @DisplayName("Set null")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, null);
+      set.executeUpdate();
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set null")
+    @Test
+    void test1l(PreparedStatement set, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, null, 0);
+      set.executeUpdate();
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set empty")
+    @Test
+    void test2(PreparedStatement set, @Random(size = 0) InputStream stream, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      List<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(stream));
+    }
+
+    @DisplayName("Set non-empty")
+    @Test
+    void test3(PreparedStatement set, @Random(size = 10) InputStream stream, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      List<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(stream));
+    }
+
+    @DisplayName("Set non-empty, capped to zero")
+    @Test
+    void test4(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, stream, 0);
+      set.executeUpdate();
+      stream = ByteStreams.limit(stream, 0);
+      List<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(stream));
+    }
+
+    @DisplayName("Set non-empty, capped by some value")
+    @Test
+    void test5(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, stream, 5);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 5);
+      List<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(stream));
+    }
+
+    @DisplayName("Set non-empty, capped by negative length")
+    @Test
+    void test6(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) {
+      assertThrows(SQLException.class, () -> set.setBinaryStream(1, stream, -3));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException")
+    @Test
+    void test7(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) {
+      assertThrows(SQLException.class, () -> set.setBinaryStream(1, new BrokenInputStream(stream, 3)));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException, length specified")
+    @Test
+    void test8(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) {
+      assertThrows(SQLException.class, () -> set.setBinaryStream(1, new BrokenInputStream(stream, 3), 10));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, capped before throws IOException")
+    @Test
+    void test9(PreparedStatement set, @Random InputStream stream, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setBinaryStream(1, new BrokenInputStream(stream, 3), 1);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 1);
+      List<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), contentEquals(stream));
+    }
+
+  }
+
+  @DisplayName("ASCII Streams")
+  @Table(name = "streamtable", columns = {"str text"})
+  @Prepare(name = "set", sql = "INSERT INTO streamtable (str) VALUES (?)")
+  @Nested
+  class AsciiStreams {
+
+    @DisplayName("Set null")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, null);
+      set.executeUpdate();
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set null, length specified")
+    @Test
+    void test1l(PreparedStatement set, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, null, 0);
+      set.executeUpdate();
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set empty")
+    @Test
+    void test2(PreparedStatement set, @Random(size = 0, origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty")
+    @Test
+    void test3(PreparedStatement set, @Random(size = 10, origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped to zero")
+    @Test
+    void test4(PreparedStatement set, @Random(origin = 1, bound = 128)  InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, stream, 0);
+      set.executeUpdate();
+      stream = ByteStreams.limit(stream, 0);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by some value")
+    @Test
+    void test5(PreparedStatement set, @Random(origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, stream, 5);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 5);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by negative length")
+    @Test
+    void test6(PreparedStatement set, @Random(origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setAsciiStream(1, stream, -3));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException")
+    @Test
+    void test7(PreparedStatement set, @Random(origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setAsciiStream(1, new BrokenInputStream(stream, 3)));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException, length specified")
+    @Test
+    void test7b(PreparedStatement set, @Random(origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setAsciiStream(1, new BrokenInputStream(stream, 3), 10));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, capped before throws IOException")
+    @Test
+    void test7c(PreparedStatement set, @Random(origin = 1, bound = 128) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setAsciiStream(1, new BrokenInputStream(stream, 3), 1);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 1);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), equalTo(txt));
+    }
+
+  }
+
+  @DisplayName("Unicode Streams")
+  @Table(name = "streamtable", columns = {"str text"})
+  @Prepare(name = "set", sql = "INSERT INTO streamtable (str) VALUES (?)")
+  @Nested
+  @SuppressWarnings("deprecation")
+  class UnicodeStreams {
+
+    @DisplayName("Set null, capped to zero")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<InputStream> streamtable) throws Exception {
+      set.setUnicodeStream(1, null, 0);
+      set.executeUpdate();
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set non-empty, capped to zero")
+    @Test
+    void test4(PreparedStatement set, @Random(codepoints = true) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setUnicodeStream(1, stream, 0);
+      set.executeUpdate();
+      stream = ByteStreams.limit(stream, 0);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by some value")
+    @Test
+    void test5(PreparedStatement set, @Random(codepoints = true) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setUnicodeStream(1, stream, 5);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 5);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by negative length")
+    @Test
+    void test6(PreparedStatement set, @Random(codepoints = true) InputStream stream, ColSnapshot<InputStream> streamtable) {
+      assertThrows(SQLException.class, () -> set.setUnicodeStream(1, stream, -3));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException")
+    @Test
+    void test7(PreparedStatement set, @Random(codepoints = true) InputStream stream, ColSnapshot<InputStream> streamtable) {
+      assertThrows(SQLException.class, () -> set.setUnicodeStream(1, new BrokenInputStream(stream, 3), 10));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<InputStream> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, limited before throws IOException")
+    @Test
+    void test7b(PreparedStatement set, @Random(codepoints = true) InputStream stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setUnicodeStream(1, new BrokenInputStream(stream, 3), 1);
+      set.executeUpdate();
+      stream.reset();
+      stream = ByteStreams.limit(stream, 1);
+      String txt = CharStreams.toString(new InputStreamReader(stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), equalTo(txt));
+    }
+
+  }
+
+  @DisplayName("Character Streams")
+  @Table(name = "streamtable", columns = {"str text"})
+  @Prepare(name = "set", sql = "INSERT INTO streamtable (str) VALUES (?)")
+  @Nested
+  class CharacterStreams {
+
+    @DisplayName("Set null")
+    @Test
+    void test1(PreparedStatement set, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, null);
+      set.executeUpdate();
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set null, length specified")
+    @Test
+    void test1l(PreparedStatement set, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, null, 0);
+      set.executeUpdate();
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(nullValue()));
+    }
+
+    @DisplayName("Set empty")
+    @Test
+    void test2(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      String txt = CharStreams.toString(stream);
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty")
+    @Test
+    void test3(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, stream);
+      set.executeUpdate();
+      stream.reset();
+      String txt = CharStreams.toString(stream);
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped to zero")
+    @Test
+    void test4(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, stream, 0);
+      set.executeUpdate();
+      stream = CharStreams.limit(stream, 0);
+      String txt = CharStreams.toString(stream);
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by some value")
+    @Test
+    void test5(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, stream, 5);
+      set.executeUpdate();
+      stream.reset();
+      stream = CharStreams.limit(stream, 5);
+      String txt = CharStreams.toString((stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data, hasItem(txt));
+    }
+
+    @DisplayName("Set non-empty, capped by negative length")
+    @Test
+    void test6(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setCharacterStream(1, stream, -3));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException")
+    @Test
+    void test7(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setCharacterStream(1, new BrokenReader(stream, 3)));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, throws IOException, length specified")
+    @Test
+    void test7b(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) {
+      assertThrows(SQLException.class, () -> set.setCharacterStream(1, new BrokenReader(stream, 3), 10));
+      assertThrows(SQLException.class, set::executeUpdate);
+      Collection<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(0));
+    }
+
+    @DisplayName("Set non-empty, capped before throws IOException")
+    @Test
+    void test7c(PreparedStatement set, @Random Reader stream, ColSnapshot<String> streamtable) throws Exception {
+      set.setCharacterStream(1, new BrokenReader(stream, 3), 1);
+      set.executeUpdate();
+      stream.reset();
+      stream = CharStreams.limit(stream, 1);
+      String txt = CharStreams.toString((stream));
+      List<String> data = streamtable.take();
+      assertThat(data.size(), equalTo(1));
+      assertThat(data.get(0), equalTo(txt));
+    }
+
   }
 
 }

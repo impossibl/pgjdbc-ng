@@ -65,7 +65,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
@@ -93,7 +92,6 @@ import java.util.List;
 import static java.lang.Integer.toHexString;
 import static java.lang.Long.min;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import io.netty.buffer.ByteBuf;
@@ -652,8 +650,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-
-    set(parameterIndex, x, JDBCType.BINARY);
+    set(parameterIndex, x, JDBCType.LONGVARBINARY);
   }
 
   @Override
@@ -667,7 +664,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    set(parameterIndex, x, (long) length, JDBCType.BINARY);
+    set(parameterIndex, x, (long) length, JDBCType.LONGVARBINARY);
   }
 
   @Override
@@ -681,58 +678,95 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       throw new SQLException("Invalid length");
     }
 
-    set(parameterIndex, x, length, JDBCType.BINARY);
+    set(parameterIndex, x, length, JDBCType.LONGVARBINARY);
   }
 
   @Override
   @Deprecated
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
 
-    InputStreamReader reader = new InputStreamReader(x, UTF_8);
+    if (length < 0) {
+      throw new SQLException("Invalid length");
+    }
 
-    setCharacterStream(parameterIndex, reader, length);
+    if (x == null  && length != 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    set(parameterIndex, x, (long) length, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-    setAsciiStream(parameterIndex, x, (long) -1);
+
+    Reader reader = x != null ? new InputStreamReader(x, US_ASCII) : null;
+
+    set(parameterIndex, reader, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    setAsciiStream(parameterIndex, x, (long) length);
+
+    if (length < 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    if (x == null  && length != 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    Reader reader = x != null ? new InputStreamReader(x, US_ASCII) : null;
+
+    set(parameterIndex, reader, (long) length, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
 
-    InputStreamReader reader = new InputStreamReader(x, US_ASCII);
+    if (length < 0) {
+      throw new SQLException("Invalid length");
+    }
 
-    setCharacterStream(parameterIndex, reader, length);
+    if (x == null  && length != 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    Reader reader = x != null ? new InputStreamReader(x, US_ASCII) : null;
+
+    set(parameterIndex, reader, length, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-    setCharacterStream(parameterIndex, reader, (long) -1);
+    set(parameterIndex, reader, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-    setCharacterStream(parameterIndex, reader, (long) length);
+
+    if (length < 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    if (reader == null  && length != 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    set(parameterIndex, reader, (long) length, JDBCType.LONGNVARCHAR);
   }
 
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
 
-    StringWriter writer = new StringWriter();
-    try {
-      CharStreams.copy(reader, writer);
-    }
-    catch (IOException e) {
-      throw new SQLException(e);
+    if (length < 0) {
+      throw new SQLException("Invalid length");
     }
 
-    set(parameterIndex, writer.toString(), JDBCType.VARCHAR);
+    if (reader == null  && length != 0) {
+      throw new SQLException("Invalid length");
+    }
+
+    set(parameterIndex, reader, JDBCType.VARCHAR);
   }
 
   @Override
