@@ -61,7 +61,6 @@ import java.util.logging.Logger;
 
 import static java.util.Collections.singletonList;
 
-import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
@@ -156,10 +155,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     ref.add(new StringRefAddr(toLowerCamelCase(setting.getName()), settings.getText(setting)));
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public Reference getReference() throws NamingException {
+  public Reference getReference() {
     Reference ref = createReference();
 
     for (Setting<?> setting : settings.knownSet()) {

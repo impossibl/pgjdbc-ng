@@ -177,7 +177,7 @@ public class BlobTest {
    */
   @Test
   public void testUploadBlob() throws Exception {
-    assertTrue(uploadFileBlob("pom.xml") > 0);
+    assertTrue(uploadFileBlob("src/test/data/note.xml") > 0);
 
     assertTrue(compareBlobs());
   }
@@ -187,32 +187,29 @@ public class BlobTest {
    */
   @Test
   public void testUploadClob() throws Exception {
-    assertTrue(uploadFileClob("pom.xml") > 0);
+    assertTrue(uploadFileClob("src/test/data/note.xml") > 0);
 
     assertTrue(compareClobs());
   }
 
   @Test
   public void testGetBytesOffsetBlob() throws Exception {
-    assertTrue(uploadFileBlob("pom.xml") > 0);
-
-    String eol = String.format("%n");
+    assertTrue(uploadFileBlob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());
 
     Blob lob = rs.getBlob(1);
-    int blobLength = 3 + eol.length();
+    int blobLength = 6;
     byte[] data = lob.getBytes(2, blobLength);
     assertEquals(data.length, blobLength);
-    assertEquals(data[0], '!');
-    assertEquals(data[1], '-');
-    assertEquals(data[2], '-');
-
-    for (int i = 0; i < eol.length(); i++) {
-      assertEquals(data[3 + i], eol.charAt(i));
-    }
+    assertEquals(data[0], '?');
+    assertEquals(data[1], 'x');
+    assertEquals(data[2], 'm');
+    assertEquals(data[3], 'l');
+    assertEquals(data[4], ' ');
+    assertEquals(data[5], 'v');
 
     stmt.close();
     rs.close();
@@ -220,25 +217,22 @@ public class BlobTest {
 
   @Test
   public void testGetBytesOffsetClob() throws Exception {
-    assertTrue(uploadFileClob("pom.xml") > 0);
-
-    String eol = String.format("%n");
+    assertTrue(uploadFileClob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
     assertTrue(rs.next());
 
     Clob lob = rs.getClob(1);
-    int blobLength = 3 + eol.length();
+    int blobLength = 6;
     String data = lob.getSubString(2, blobLength);
     assertEquals(data.length(), blobLength);
-    assertEquals(data.charAt(0), '!');
-    assertEquals(data.charAt(1), '-');
-    assertEquals(data.charAt(2), '-');
-
-    for (int i = 0; i < eol.length(); i++) {
-      assertEquals(data.charAt(3 + i), eol.charAt(i));
-    }
+    assertEquals(data.charAt(0), '?');
+    assertEquals(data.charAt(1), 'x');
+    assertEquals(data.charAt(2), 'm');
+    assertEquals(data.charAt(3), 'l');
+    assertEquals(data.charAt(4), ' ');
+    assertEquals(data.charAt(5), 'v');
 
     stmt.close();
     rs.close();
@@ -246,7 +240,7 @@ public class BlobTest {
 
   @Test
   public void testMultipleStreamsBlob() throws Exception {
-    assertTrue(uploadFileBlob("pom.xml") > 0);
+    assertTrue(uploadFileBlob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -258,13 +252,13 @@ public class BlobTest {
     InputStream is = lob.getBinaryStream();
     assertEquals(data.length, is.read(data));
     assertEquals(data[0], '<');
-    assertEquals(data[1], '!');
+    assertEquals(data[1], '?');
     is.close();
 
     is = lob.getBinaryStream();
     assertEquals(data.length, is.read(data));
     assertEquals(data[0], '<');
-    assertEquals(data[1], '!');
+    assertEquals(data[1], '?');
     is.close();
 
     rs.close();
@@ -273,7 +267,7 @@ public class BlobTest {
 
   @Test
   public void testMultipleStreamsClob() throws Exception {
-    assertTrue(uploadFileClob("pom.xml") > 0);
+    assertTrue(uploadFileClob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -285,13 +279,13 @@ public class BlobTest {
     Reader r = lob.getCharacterStream();
     assertEquals(data.length, r.read(data));
     assertEquals(data[0], '<');
-    assertEquals(data[1], '!');
+    assertEquals(data[1], '?');
     r.close();
 
     r = lob.getCharacterStream();
     assertEquals(data.length, r.read(data));
     assertEquals(data[0], '<');
-    assertEquals(data[1], '!');
+    assertEquals(data[1], '?');
     r.close();
 
     rs.close();
@@ -300,7 +294,7 @@ public class BlobTest {
 
   @Test
   public void testParallelStreamsBlob() throws Exception {
-    assertTrue(uploadFileBlob("pom.xml") > 0);
+    assertTrue(uploadFileBlob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -327,7 +321,7 @@ public class BlobTest {
 
   @Test
   public void testParallelStreamsClob() throws Exception {
-    assertTrue(uploadFileClob("pom.xml") > 0);
+    assertTrue(uploadFileClob("src/test/data/note.xml") > 0);
 
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");

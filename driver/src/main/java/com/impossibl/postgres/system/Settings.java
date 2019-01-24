@@ -37,7 +37,7 @@ import java.util.logging.Logger;
 
 
 /**
- * Managed bag of textual settings that can be read & updated.
+ * Managed bag of textual settings that can be read &amp; updated.
  *
  * The values for each setting are stored as text and converted as necessary.
  *

@@ -59,9 +59,9 @@ package com.impossibl.postgres.jdbc.xa;
  *   when data that's being decoded is gzip-compressed and will decompress it
  *   automatically. Generally things are cleaner. You'll probably have to
  *   change some method calls that you were making to support the new
- *   options format (<tt>int</tt>s that you "OR" together).</li>
+ *   options format (<code>int</code>s that you "OR" together).</li>
  *  <li>v1.5.1 - Fixed bug when decompressing and decoding to a
- *   byte[] using <tt>decode( String s, boolean gzipCompressed )</tt>.
+ *   byte[] using <code>decode( String s, boolean gzipCompressed )</code>.
  *   Added the ability to "suspend" encoding in the Output Stream so
  *   you can turn on and off the encoding if you need to embed base64
  *   data in an otherwise "normal" stream (like an XML file).</li>

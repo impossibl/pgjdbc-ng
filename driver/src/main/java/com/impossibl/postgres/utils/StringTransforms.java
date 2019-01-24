@@ -121,7 +121,7 @@ public class StringTransforms {
    * Attempt to transform the given value into an
    * "UPPER_SNAKE_CASE" version of the same string.
    *
-   * Notably this replaces dots, dashes & spaces
+   * Notably this replaces dots, dashes &amp; spaces
    * with underscores.
    *
    * @param val Value to transform
@@ -149,7 +149,7 @@ public class StringTransforms {
    * "UpperCamelCase" version of the same string.
    *
    * Notably this erases dots, dashes, underscores
-   * & spaces as it counts them as word breaks.
+   * &amp; spaces as it counts them as word breaks.
    *
    * @param val Value to transform
    * @return {@code UpperCamelCase} version of string.
@@ -163,7 +163,7 @@ public class StringTransforms {
    * "lowerCamelCase" version of the same string.
    *
    * Notably this erases dots, dashes, underscores
-   * & spaces as it counts them as word breaks.
+   * &amp; spaces as it counts them as word breaks.
    *
    * @param val Value to transform
    * @return {@code lowerCamelCase} version of the string.

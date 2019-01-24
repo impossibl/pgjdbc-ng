@@ -98,7 +98,7 @@ public class Records extends SimpleProcProvider {
     if (SQLData.class.isAssignableFrom(targetClass)) {
       SQLData data;
       try {
-        data = (SQLData) targetClass.newInstance();
+        data = (SQLData) targetClass.getConstructor().newInstance();
       }
       catch (Exception e) {
         throw new IOException("Unable to instantiate custom type", e);

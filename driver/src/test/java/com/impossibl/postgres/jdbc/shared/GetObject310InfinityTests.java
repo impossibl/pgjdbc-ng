@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized;
 public class GetObject310InfinityTests {
   private final String expression;
   private final String pgType;
-  private final Class klass;
+  private final Class<?> klass;
   private final Object expectedValue;
 
   public GetObject310InfinityTests(String expression, String pgType, Class klass, Object expectedValue) {
@@ -43,7 +43,7 @@ public class GetObject310InfinityTests {
 
   @Parameterized.Parameters(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
   public static Iterable<Object[]> data() throws IllegalAccessException {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (String expression : Arrays.asList("-infinity", "infinity")) {
       for (String pgType : Arrays.asList("date", "timestamp", "timestamp with time zone")) {
         for (Class klass : Arrays.asList(LocalDate.class, LocalDateTime.class,

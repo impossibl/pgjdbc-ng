@@ -19,12 +19,15 @@ before_install:
   # when running via docker in Travis
   - chmod 0400 ./driver/src/test/resources/certdir/server/server.key
   - sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
-  - ./start-test-container.sh
-script: mvn -e test -DtrimStackTrace=false
+script: ./gradlew -PpostgresVersions=$PGVERSION test
 after_failure:
   - ./.travis/print_surefire_reports
 after_success:
   - "test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'develop' && test $TRAVIS_JDK_VERSION == 'openjdk8' && test $PGVERSION == '10' && ./.travis/travis-maven-deploy"
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 cache:
   directories:
-    - '$HOME/.m2/repository'
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
