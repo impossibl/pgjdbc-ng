@@ -16,6 +16,7 @@
         <module>spy-gen</module>
         <module>spy</module>
         <module>driver</module>
+        <module>udt-gen</module>
     </modules>
 
     <build>
