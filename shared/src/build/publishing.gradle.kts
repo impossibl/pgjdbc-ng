@@ -17,11 +17,10 @@ val repositoryUrl =
    )!!
 
 val organization: Map<String, Any> by project
-val url: String by project
+val projectUrl: String = project.properties["url"] as String
 val issuesUrl: String by project
 val scmUrl: String by project
 val scmGitUrl: String by project
-
 
 configure<PublishingExtension> {
 
@@ -32,7 +31,7 @@ configure<PublishingExtension> {
       pom {
         name.set(project.description)
 
-        url.set(url)
+        url.set(projectUrl)
 
         organization {
           name.set(organization["name"] as String)
@@ -52,7 +51,7 @@ configure<PublishingExtension> {
         }
 
         scm {
-          url.set(url)
+          url.set(projectUrl)
           connection.set(scmUrl)
           developerConnection.set(scmGitUrl)
         }
