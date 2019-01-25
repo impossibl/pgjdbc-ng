@@ -1,5 +1,5 @@
 
-apply(from = "$rootDir/shared/src/build/uber-packaging.gradle.kts")
+apply{ from("$rootDir/shared/src/build/uber-packaging.gradle.kts") }
 
 
 tasks.named<ProcessResources>("processTestResources") {

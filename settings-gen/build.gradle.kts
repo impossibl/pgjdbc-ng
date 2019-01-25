@@ -9,16 +9,11 @@ group = "com.impossibl.pgjdbc-ng.tools"
 description = "PostgreSQL JDBC - NG - Settings Processor"
 
 
-val javaPoetVersion: String by project
-val junitVersion: String by project
-val compilerTestingVersion: String by project
-
-
 dependencies {
-  compile("com.squareup:javapoet:$javaPoetVersion")
+  compile("com.squareup:javapoet:${Versions.javaPoet}")
   compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-  testCompile("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-  testCompile("com.google.testing.compile:compile-testing:$compilerTestingVersion")
+  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testCompile("com.google.testing.compile:compile-testing:${Versions.compilerTesting}")
 }
 
 

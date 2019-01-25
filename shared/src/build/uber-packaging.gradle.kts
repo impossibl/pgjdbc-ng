@@ -1,11 +1,9 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 buildscript {
-  repositories {
-    gradlePluginPortal()
-  }
+  repositories { gradlePluginPortal() }
   dependencies {
-    classpath("com.github.jengelman.gradle.plugins:shadow:4.0.4")
+    classpath("com.github.jengelman.gradle.plugins:shadow:${Versions.shadowPlugin}")
   }
 }
 

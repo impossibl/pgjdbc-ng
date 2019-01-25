@@ -6,12 +6,6 @@ plugins {
 }
 
 
-val javaPoetVersion by extra("1.11.1")
-val junitVersion by extra("5.3.2")
-val compilerTestingVersion by extra("0.15")
-val checkstyleVersion by extra("6.18")
-
-
 allprojects {
 
   apply {

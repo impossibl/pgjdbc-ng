@@ -7,11 +7,8 @@ plugins {
 description = "PostgreSQL JDBC - NG - API Spy"
 
 
-val junitVersion: String by project
-
-
 dependencies {
-  testCompile("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
 }
 
 

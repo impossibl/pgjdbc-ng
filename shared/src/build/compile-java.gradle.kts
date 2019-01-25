@@ -5,6 +5,6 @@ apply {
 
 
 withConvention(JavaPluginConvention::class) {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
+  sourceCompatibility = Versions.javaTarget
+  targetCompatibility = Versions.javaTarget
 }

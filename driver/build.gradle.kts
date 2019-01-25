@@ -8,30 +8,25 @@ plugins {
 description = "PostgreSQL JDBC - NG - Driver"
 
 
-val nettyVersion by extra("4.1.32.Final")
-val junitOldVersion by extra("4.12")
-val guavaTestVersion by extra("23.5-jre")
-val junitVersion: String by project
-
 dependencies {
 
   annotationProcessor(project(":settings-gen"))
 
   compile(project(":spy"))
-  compile("io.netty:netty-common:$nettyVersion")
-  compile("io.netty:netty-buffer:$nettyVersion")
-  compile("io.netty:netty-transport:$nettyVersion")
-  compile("io.netty:netty-codec:$nettyVersion")
-  compile("io.netty:netty-handler:$nettyVersion")
-  compile("io.netty:netty-transport-native-unix-common:$nettyVersion")
-  compile("io.netty:netty-transport-native-kqueue:$nettyVersion")
-  compile("io.netty:netty-transport-native-epoll:$nettyVersion")
+  compile("io.netty:netty-common:${Versions.netty}")
+  compile("io.netty:netty-buffer:${Versions.netty}")
+  compile("io.netty:netty-transport:${Versions.netty}")
+  compile("io.netty:netty-codec:${Versions.netty}")
+  compile("io.netty:netty-handler:${Versions.netty}")
+  compile("io.netty:netty-transport-native-unix-common:${Versions.netty}")
+  compile("io.netty:netty-transport-native-kqueue:${Versions.netty}")
+  compile("io.netty:netty-transport-native-epoll:${Versions.netty}")
 
-  testCompile("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-  testCompile("org.junit.jupiter:junit-jupiter-params:$junitVersion")
-  testCompile("org.junit.vintage:junit-vintage-engine:$junitVersion")
-  testCompile("junit:junit:$junitOldVersion")
-  testCompile("com.google.guava:guava:$guavaTestVersion")
+  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testCompile("org.junit.jupiter:junit-jupiter-params:${Versions.junit}")
+  testCompile("org.junit.vintage:junit-vintage-engine:${Versions.junit}")
+  testCompile("junit:junit:${Versions.junitClassic}")
+  testCompile("com.google.guava:guava:${Versions.guava}")
 
 }
 

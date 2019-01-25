@@ -9,7 +9,7 @@ import java.nio.file.attribute.PosixFilePermission.*
 buildscript {
   repositories { jcenter() }
   dependencies {
-    classpath("com.avast.gradle:gradle-docker-compose-plugin:0.8.13")
+    classpath("com.avast.gradle:gradle-docker-compose-plugin:${Versions.dockerComposePlugin}")
   }
 }
 

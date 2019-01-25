@@ -4,7 +4,7 @@ import com.avast.gradle.dockercompose.DockerComposePlugin
 buildscript {
   repositories { jcenter() }
   dependencies {
-    classpath("com.avast.gradle:gradle-docker-compose-plugin:0.8.13")
+    classpath("com.avast.gradle:gradle-docker-compose-plugin:${Versions.dockerComposePlugin}")
   }
 }
 

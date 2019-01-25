@@ -3,10 +3,8 @@ apply {
   plugin("checkstyle")
 }
 
-val checkstyleVersion: String by project
-
 dependencies {
-  "checkstyle"("com.puppycrawl.tools:checkstyle:$checkstyleVersion")
+  "checkstyle"("com.puppycrawl.tools:checkstyle:${Versions.checkstyle}")
 }
 
 configure<CheckstyleExtension> {
