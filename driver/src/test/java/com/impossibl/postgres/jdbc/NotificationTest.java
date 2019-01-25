@@ -31,11 +31,16 @@ package com.impossibl.postgres.jdbc;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 
+import static com.impossibl.postgres.utils.Await.awaitUninterruptibly;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,13 +76,13 @@ public class NotificationTest {
   @Test
   public void testImplicitCloseReportsClose() throws Exception {
 
-    AtomicBoolean flag = new AtomicBoolean();
+    CountDownLatch latch = new CountDownLatch(1);
     PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class);
 
     conn.addNotificationListener(new PGNotificationListener() {
       @Override
       public void closed() {
-        flag.set(true);
+        latch.countDown();
       }
     });
 
@@ -96,9 +101,7 @@ public class NotificationTest {
       }
     }
 
-    Thread.sleep(100);
-
-    assertTrue(flag.get());
+    assertTrue(awaitUninterruptibly(10L, SECONDS, latch::await));
     assertTrue(conn.isClosed());
   }
 
