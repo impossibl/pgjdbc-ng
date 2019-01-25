@@ -133,8 +133,8 @@ public class ArrayTest {
     assertEquals(Types.REAL, arr.getBaseType());
     Float[] decarr = (Float[]) arr.getArray();
     assertEquals(2, decarr.length);
-    assertEquals(new Float("3.1"), decarr[0]);
-    assertEquals(new Float("1.4"), decarr[1]);
+    assertEquals(Float.valueOf("3.1"), decarr[0]);
+    assertEquals(Float.valueOf("1.4"), decarr[1]);
     arr.free();
 
     arr = rs.getArray(3);
