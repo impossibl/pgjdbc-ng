@@ -1,0 +1,16 @@
+version: "3"
+services:
+  postgres:
+    image: "postgres:${PG_VERSION}-alpine"
+    ports:
+      - "5432"
+    healthcheck:
+      test: psql -c 'SELECT 1' -U test -d test
+      interval: 1s
+      timeout: 3s
+      retries: 20
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+

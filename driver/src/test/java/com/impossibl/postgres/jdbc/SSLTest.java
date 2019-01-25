@@ -38,6 +38,7 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.TestUtil.isDatabaseCreated;
 
 import java.io.FileInputStream;
+import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -163,7 +164,7 @@ public class SSLTest {
     return data;
   }
 
-  private static void add(Collection<Object[]> data, Properties prop, String param) {
+  private static void add(Collection<Object[]> data, Properties prop, String param) throws Exception {
 
     if (prop.getProperty(param, "").equals("")) {
       System.out.println("Skipping " + param + ".");
@@ -174,11 +175,16 @@ public class SSLTest {
 
   }
 
-  private static Collection<Object[]> testData(Properties prop, String param) {
+  private static Collection<Object[]> testData(Properties prop, String param) throws Exception {
     String certdir = prop.getProperty("certdir");
     String sconnstr = prop.getProperty(param);
     String sprefix = prop.getProperty(param + "prefix");
     String[] csslmode = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"};
+
+    sconnstr = sconnstr
+        .replace("localhost", TestUtil.getServer())
+        .replace("127.0.0.1", InetAddress.getByName(TestUtil.getServer()).getHostAddress())
+        .replace("5432", TestUtil.getPort());
 
     Map<String, Object[]> expected = expectedmap.get(param);
     if (expected == null) {

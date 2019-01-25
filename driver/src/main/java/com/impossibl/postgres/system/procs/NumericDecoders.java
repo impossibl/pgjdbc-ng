@@ -32,6 +32,7 @@ import com.impossibl.postgres.system.Context;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.function.Function;
 
 
@@ -96,7 +97,7 @@ class NumericDecodingConverter<N extends Number> implements AutoConvertingDecode
 
       if (targetContext != null) {
         int scale = ((Number) targetContext).intValue();
-        decimal = decimal.setScale(scale, BigDecimal.ROUND_HALF_UP);
+        decimal = decimal.setScale(scale, RoundingMode.HALF_UP);
       }
 
       return decimal;

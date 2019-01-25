@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -92,9 +93,9 @@ public class SSLEngineFactory {
 
     CallbackHandler sslPasswordCallback;
     try {
-      sslPasswordCallback = sslPasswordCallbackClass.newInstance();
+      sslPasswordCallback = sslPasswordCallbackClass.getConstructor().newInstance();
     }
-    catch (InstantiationException | IllegalAccessException e) {
+    catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
       throw new IOException("Cannot instantiate provided password callback: " + sslPasswordCallbackClass.getName());
     }
 

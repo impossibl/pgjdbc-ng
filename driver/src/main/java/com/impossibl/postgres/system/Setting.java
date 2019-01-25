@@ -60,7 +60,7 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  *
  * Each setting is allowed to have alternate names that can be used when searching a source
  * for an setting's value. For example, the {@link #getSystem()} method searches for a value
- * in the system properties by looking up the primary name & then alternate names in turn
+ * in the system properties by looking up the primary name &amp; then alternate names in turn
  * until it finds a non-null value.
  *
  * All settings in global groups are required to have unique names (including their alternate
@@ -81,7 +81,7 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * <code>
  *   \@Setting.Factory
  *   public class MySettings {
- *    // declare groups & settings here
+ *    // declare groups &amp; settings here
  *   }
  * </code>
  *
@@ -118,7 +118,7 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  *
  * Annotation Processing:
  *
- * {@link Setting} & {@link Setting.Group} are designed to work with the "settingsgen"
+ * {@link Setting} &amp; {@link Setting.Group} are designed to work with the "settingsgen"
  * annotation processor. It generates documentation and an abstract JDBC datasource
  * named {@link com.impossibl.postgres.jdbc.AbstractGeneratedDataSource} from all
  * of the <b>global</b> settings groups.
@@ -481,7 +481,7 @@ public class Setting<T> {
    * @param defaultValue Default value of the setting in its native type.
    * @param fromString Functional that converts a string to this settings type.
    * @param toString Functional that converts a native setting value to a string.
-   * @param names Primary & alternate names for the setting.
+   * @param names Primary &amp; alternate names for the setting.
    */
   public Setting(Group group, String description, Class<T> type, T defaultValue, Converter<T> fromString, Function<T, String> toString, String[] names) {
     this.staticDefaultValue = defaultValue;
@@ -497,7 +497,7 @@ public class Setting<T> {
    * @param dynamicDefaultSupplier Supplier of the dynamic default value for this setting.
    * @param fromString Functional that converts a string to this settings type.
    * @param toString Functional that converts a native setting value to a string.
-   * @param names Primary & alternate names for the setting.
+   * @param names Primary &amp; alternate names for the setting.
    */
   public Setting(Group group, String description, Class<T> type, Supplier<String> dynamicDefaultSupplier, Converter<T> fromString, Function<T, String> toString, String[] names) {
     this.dynamicDefaultSupplier = dynamicDefaultSupplier;
@@ -534,7 +534,7 @@ public class Setting<T> {
    * @param type Type of the setting.
    * @param fromString Functional that converts a string to this settings type.
    * @param toString Functional that converts a native setting value to a string.
-   * @param names Primary & alternate names for the setting.
+   * @param names Primary &amp; alternate names for the setting.
    */
   public void init(String groupId, String description, Class<T> type, String defaultValue,
                    Converter<T> fromString, Function<T, String> toString, String[] names) {
@@ -552,7 +552,7 @@ public class Setting<T> {
    * @param type Type of the setting.
    * @param fromString Functional that converts a string to this settings type.
    * @param toString Functional that converts a native setting value to a string.
-   * @param names Primary & alternate names for the setting.
+   * @param names Primary &amp; alternate names for the setting.
    */
   public void init(String groupId, String description, Class<T> type, Supplier<String> defaultValue,
                    Converter<T> fromString, Function<T, String> toString, String[] names) {
@@ -696,7 +696,7 @@ public class Setting<T> {
   /**
    * Looks up the setting in system properties.
    *
-   * This method tries all names (primary & alternates) in the
+   * This method tries all names (primary &amp; alternates) in the
    * order in which they were defined and returns the first
    * non-null value.
    *
@@ -718,7 +718,7 @@ public class Setting<T> {
   /**
    * Looks up the setting in the provided {@code properties}.
    *
-   * This method tries all names (primary & alternates) in the
+   * This method tries all names (primary &amp; alternates) in the
    * order in which they were defined and returns the first
    * non-null value.
    *
@@ -741,7 +741,7 @@ public class Setting<T> {
    * Looks up the setting in the provided {@code properties}, returning
    * it as a text value.
    *
-   * This method tries all names (primary & alternates) in the
+   * This method tries all names (primary &amp; alternates) in the
    * order in which they were defined and returns the first
    * non-null value.
    *

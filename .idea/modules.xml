@@ -2,13 +2,22 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/driver/driver.iml" filepath="$PROJECT_DIR$/driver/driver.iml" />
-      <module fileurl="file://$PROJECT_DIR$/jdbc-api/jdbc-api.iml" filepath="$PROJECT_DIR$/jdbc-api/jdbc-api.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/pgjdbc-ng.iml" filepath="$PROJECT_DIR$/.idea/pgjdbc-ng.iml" />
-      <module fileurl="file://$PROJECT_DIR$/settings-gen/settings-gen.iml" filepath="$PROJECT_DIR$/settings-gen/settings-gen.iml" />
-      <module fileurl="file://$PROJECT_DIR$/spy/spy.iml" filepath="$PROJECT_DIR$/spy/spy.iml" />
-      <module fileurl="file://$PROJECT_DIR$/spy-gen/spy-gen.iml" filepath="$PROJECT_DIR$/spy-gen/spy-gen.iml" />
-      <module fileurl="file://$PROJECT_DIR$/udt-gen/udt-gen.iml" filepath="$PROJECT_DIR$/udt-gen/udt-gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.pgjdb-ng-parent.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.pgjdb-ng-parent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.main.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.test.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.iml" filepath="$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.main.iml" filepath="$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.test.iml" filepath="$PROJECT_DIR$/.idea/modules/spy/com.impossibl.pgjdbc-ng.spy.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.iml" filepath="$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.main.iml" filepath="$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.test.iml" filepath="$PROJECT_DIR$/.idea/modules/settings-gen/com.impossibl.pgjdbc-ng.tools.settings-gen.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.iml" filepath="$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.main.iml" filepath="$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.test.iml" filepath="$PROJECT_DIR$/.idea/modules/udt-gen/com.impossibl.pgjdbc-ng.tools.udt-gen.test.iml" />
     </modules>
   </component>
 </project>

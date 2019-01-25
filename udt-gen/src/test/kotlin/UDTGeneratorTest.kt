@@ -1,26 +1,39 @@
+package com.impossibl.postgres.tools.test
 
-import com.google.testing.compile.CompilationSubject.assertThat
+import com.google.testing.compile.Compilation
 import com.google.testing.compile.Compiler.javac
 import com.google.testing.compile.JavaFileObjects
 import com.impossibl.postgres.tools.UDTGenerator
-import org.junit.Test
+import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.CoreMatchers.hasItems
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.jupiter.api.Test
 import java.io.File
 import java.sql.DriverManager
 import java.util.*
 import kotlin.random.Random
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class UDTGeneratorTest {
 
+  companion object {
+
+    private val server = System.getProperty("pgjbdc.test.server", "localhost")
+    private val port = System.getProperty("pgjdbc.test.port", "5432")
+    private val db = System.getProperty("pgjdbc.test.db", "test")
+    private val url = "jdbc:pgsql://$server:$port/$db"
+
+    private val props = Properties().apply {
+      setProperty("user", System.getProperty("pgjdbc.test.user", "test"))
+      setProperty("password", System.getProperty("pgjdbc.test.password", "test"))
+    }
+
+  }
+
   @Test
   fun testCompile() {
+    System.out.println("Generating code from $url")
 
-    val props = Properties()
-    props.setProperty("user", "test")
-    props.setProperty("password", "test")
-
-    DriverManager.getConnection("jdbc:pgsql:test", props).use { connection ->
+    DriverManager.getConnection(url, props).use { connection ->
 
       val schemaName = "test${Random.nextInt(0, 0xffffff).toString(16)}"
       try {
@@ -42,7 +55,7 @@ class UDTGeneratorTest {
         val result = javac()
            .compile(files + JavaFileObjects.forResource("VCardTest.java"))
 
-        assertThat(result).succeeded()
+        assertThat(result.status(), equalTo(Compilation.Status.SUCCESS))
 
       }
       finally {
@@ -56,12 +69,9 @@ class UDTGeneratorTest {
 
   @Test
   fun testGenerate() {
+    System.out.println("Generating code from $url")
 
-    val props = Properties()
-    props.setProperty("user", "test")
-    props.setProperty("password", "test")
-
-    DriverManager.getConnection("jdbc:pgsql:test", props).use { connection ->
+    DriverManager.getConnection(url, props).use { connection ->
 
       val schemaName = "test${Random.nextInt(0, 0xffffff).toString(16)}"
       try {
@@ -74,7 +84,7 @@ class UDTGeneratorTest {
           stmt.execute("SET SEARCH_PATH = public, $schemaName")
         }
 
-        val outDirectory = File("target/test/generated")
+        val outDirectory = File("build/test/generated")
         outDirectory.deleteRecursively()
 
         val pkgName = "udt.test"
@@ -86,10 +96,8 @@ class UDTGeneratorTest {
            .listFiles()
            .map { it.name }
 
-        assertEquals(3, pkgFileNames.size)
-        assertTrue(pkgFileNames.contains("Title.java"))
-        assertTrue(pkgFileNames.contains("Address.java"))
-        assertTrue(pkgFileNames.contains("VCard.java"))
+        assertThat(pkgFileNames.size, equalTo(3))
+        assertThat(pkgFileNames, hasItems("Title.java", "Address.java", "VCard.java"))
 
       }
       finally {

@@ -1,52 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <annotationProcessing>
-      <profile name="Maven default annotation processors profile" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <module name="jdbc-api" />
-        <module name="settings-gen" />
-        <module name="spy-gen" />
-        <module name="udt-gen" />
-      </profile>
-      <profile name="Annotation profile for spy" enabled="true">
-        <sourceOutputDir name="target/generated-sources/spy-gen" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <module name="spy" />
-      </profile>
-      <profile name="Annotation profile for PostgreSQL JDBC - NG (Parent)" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$PROJECT_DIR$/settings-gen/target/classes" />
-          <entry name="$MAVEN_REPOSITORY$/com/squareup/javapoet/1.11.1/javapoet-1.11.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.3.11/kotlin-stdlib-1.3.11.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.3.11/kotlin-stdlib-common-1.3.11.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar" />
-          <entry name="/Library/Java/JavaVirtualMachines/jdk1.8.0_181.jdk/Contents/Home/lib/tools.jar" />
-        </processorPath>
-        <module name="driver" />
-      </profile>
-    </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="driver" target="1.8" />
-      <module name="jdbc-api" target="1.8" />
-      <module name="pgjdbc-ng" target="1.5" />
-      <module name="settings-gen" target="1.5" />
-      <module name="spy" target="1.8" />
-      <module name="spy-gen" target="1.5" />
-      <module name="udt-gen" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.buildSrc.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.buildSrc.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.driver.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.driver.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.pgjdbc-ng.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.pgjdbc-ng.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.spy.generated" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.spy.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.spy.spy" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.spy.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.settings-gen.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.settings-gen.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.spy-gen.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.spy-gen.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.udt-gen.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.tools.udt-gen.test" target="1.8" />
     </bytecodeTargetLevel>
-  </component>
-  <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="jdbc-api" options="-parameters" />
-      <module name="spy" options="-parameters" />
-      <module name="udt-gen" options="-parameters" />
-    </option>
   </component>
 </project>

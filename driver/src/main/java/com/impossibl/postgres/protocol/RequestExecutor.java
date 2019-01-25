@@ -45,7 +45,7 @@ public interface RequestExecutor {
   }
 
   /**
-   * Base type handler for requests that <bold>may</bold> receive a ready callback
+   * Base type handler for requests that <b>may</b> receive a ready callback
    * containing a transaction status.
    */
   interface SynchronizedHandler extends ErrorHandler {
@@ -289,9 +289,9 @@ public interface RequestExecutor {
    * {@link ResumeHandler#handleComplete(String, Long, Long, RowDataSet, List)}
    * callback.
    *
-   * Of particular note is that this request is <bold>not</bold> synchronized. Its
+   * Of particular note is that this request is <b>not</b> synchronized. Its
    * handler does not extend {@link SynchronizedHandler}), thus will not receive a
-   * ready callback. {@link }
+   * ready callback.
    *
    * @param portalName Name of the portal to resume or {@code null} to resume the unnamed portal.
    * @param maxRows Max number of rows to return from this request.

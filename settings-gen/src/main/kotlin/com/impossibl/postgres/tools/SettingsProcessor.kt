@@ -2,10 +2,7 @@ package com.impossibl.postgres.tools
 
 import com.impossibl.postgres.tools.SettingsProcessor.Companion.SETTING_TYPE_NAME
 import com.squareup.javapoet.*
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStreamWriter
-import java.io.StringWriter
+import java.io.*
 import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -24,6 +21,9 @@ import javax.tools.StandardLocation
 @SupportedAnnotationTypes(
    "$SETTING_TYPE_NAME.Factory"
 )
+@SupportedOptions(
+   "doc.dir"
+)
 @SupportedSourceVersion(RELEASE_8)
 class SettingsProcessor : AbstractProcessor() {
 
@@ -38,6 +38,8 @@ class SettingsProcessor : AbstractProcessor() {
 
   companion object {
 
+    private const val KNOWN_FACTORIES_NAME = "META-INF/settings-factories.properties"
+
     private const val PG_PKG = "com.impossibl.postgres"
     private const val SYSTEM_PKG = "$PG_PKG.system"
     private const val JDBC_PKG = "$PG_PKG.jdbc"
@@ -51,6 +53,7 @@ class SettingsProcessor : AbstractProcessor() {
 
   }
 
+  private var documentationDir = File(".")
   private lateinit var types: Types
   private lateinit var elements: Elements
   private lateinit var filer: Filer
@@ -77,6 +80,7 @@ class SettingsProcessor : AbstractProcessor() {
     synchronized(this) {
       super.init(processingEnv)
 
+      documentationDir = File(processingEnv.options["doc.dir"])
       types = processingEnv.typeUtils
       elements = processingEnv.elementUtils
       filer = processingEnv.filer
@@ -118,7 +122,7 @@ class SettingsProcessor : AbstractProcessor() {
 
     try {
       val previouslyKnownFactoryNames =
-         filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "SettingsProcessor.known")
+         filer.getResource(StandardLocation.SOURCE_OUTPUT, "", KNOWN_FACTORIES_NAME)
             .getCharContent(true)
             .split("\n")
 
@@ -139,7 +143,7 @@ class SettingsProcessor : AbstractProcessor() {
 
     // Save new complete list
 
-    val file = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "SettingsProcessor.known")
+    val file = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", KNOWN_FACTORIES_NAME)
     file.openWriter()
        .use { out ->
          knownFactoryNames.forEach { out.append(it).append("\n") }
@@ -165,7 +169,10 @@ class SettingsProcessor : AbstractProcessor() {
 
   private fun generateSettingsDoc(groups: Set<GroupInfo>, settings: Set<SettingInfo>): Boolean {
 
-    OutputStreamWriter(FileOutputStream("./SETTINGS.md"))
+    documentationDir.mkdirs()
+    val file = File(documentationDir, "SETTINGS.md")
+
+    OutputStreamWriter(FileOutputStream(file))
        .use { out ->
 
          val orderedGroups = groups.sortedBy { it.order }
@@ -343,7 +350,7 @@ class SettingsProcessor : AbstractProcessor() {
                               group.global)
     }
 
-    var checkRange: Boolean = false
+    var checkRange = false
 
     for (setting in factory.settings) {
 
@@ -418,17 +425,11 @@ class SettingsProcessor : AbstractProcessor() {
       val names = listOf(setting.name) + (setting.alternateNames ?: emptyList())
 
       val default =
-         if (setting.dynamicDefaultCode != null) {
-           CodeBlock.of("() -> ${setting.dynamicDefaultCode.escapePoet()}")
-         }
-         else if (setting.staticDefaultCode != null) {
-           CodeBlock.of(setting.staticDefaultCode.escapePoet())
-         }
-         else if (setting.default != null) {
-           CodeBlock.of("\$S", setting.default)
-         }
-         else {
-           CodeBlock.of("(\$T) null", ClassName.get(String::class.java))
+         when {
+           setting.dynamicDefaultCode != null -> CodeBlock.of("() -> ${setting.dynamicDefaultCode.escapePoet()}")
+           setting.staticDefaultCode != null -> CodeBlock.of(setting.staticDefaultCode.escapePoet())
+           setting.default != null -> CodeBlock.of("\$S", setting.default)
+           else -> CodeBlock.of("(\$T) null", ClassName.get(String::class.java))
          }
 
       initCode.addStatement("\$T.\$L.init(\$S, \$S, \$T.class, \$L, \$L, \$L, new String[] {\$L})",
