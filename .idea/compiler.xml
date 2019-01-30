@@ -4,6 +4,8 @@
     <bytecodeTargetLevel>
       <module name="com.impossibl.pgjdbc-ng.buildSrc.main" target="1.8" />
       <module name="com.impossibl.pgjdbc-ng.buildSrc.test" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.documentation.main" target="1.8" />
+      <module name="com.impossibl.pgjdbc-ng.documentation.test" target="1.8" />
       <module name="com.impossibl.pgjdbc-ng.driver.main" target="1.8" />
       <module name="com.impossibl.pgjdbc-ng.driver.test" target="1.8" />
       <module name="com.impossibl.pgjdbc-ng.pgjdbc-ng.main" target="1.8" />

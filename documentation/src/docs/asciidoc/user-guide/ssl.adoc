@@ -1,0 +1,120 @@
+[[connection-ssl]]
+== SSL Connections
+
+=== Mode
+
+{drivername} provides a number of SSL modes controlling how and when SSL is attempted and/or required during
+connection to a {vendorname} instance.
+
+[cols="2,1,2,5",options=headers]
+.Available SSL connection modes
+|===
+|Mode |SSL |Guarantees |Description
+
+|disable |Never |None | SSL is not attempted and connection fails if the server requires SSL.
+
+|allow |Maybe |Privacy
+|If the server requires SSL this mode allows it, although {drivername} makes no attempt to enable it
+otherwise. +
+Upon connection, SSL certificate verification is _never_ performed.
+
+|prefer |Maybe |Privacy
+|{drivername} attempts connection using SSL but does not require it and connection will not fail it the server
+does not support SSL. +
+Upon connection, SSL certificate verification is _never_ performed.
+
+|require |Yes |Privacy
+|{drivername} attempts connection using SSL and fails if the server does not support SSL. +
+Upon connection, SSL certificate verification is _never_ performed.
+
+|verify-ca |Yes |Privacy & Trust
+|{drivername} attempts connection using SSL and fails if the server does not support SSL. +
+Upon connection the server's SSL certificate is validated using a provided CA certificate.
+
+|verify-full |Yes |Privacy, Trust & Verification
+|{drivername} attempts connection using SSL and fails if the server does not support SSL. +
+Upon connection the server's SSL certificate is validated using a provided CA certificate & the hostname
+is required to match one available in the server's SSL certificate, ensuring it is the server we
+expected.
+
+|===
+
+==== Recommended
+
+`verify-full` is the preferred mode as it provides the most stringent requirements and is the mode most
+associated with how SSL is designed to work.
+
+==== Related Settings
+
+Enabling one of the SSL modes above is as easy as providing it as the <<ssl_mode, ssl.mode>> connection setting.
+In addition there are a number of companion settings that provide required information depending on the chosen
+mode that may need to be provided.
+
+[cols="2,3a,3a",options=headers]
+.SSL Modes & Related Settings
+|===
+|Mode |Server Settings| Client Settings
+
+|disable |None |None
+
+|allow
+| None
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_certificate_file, ssl.certificate.file>> +
+<<ssl_key_file, ssl.key.file>> +
+<<ssl_key_password, ssl.key.password>> +
+<<ssl_key_password_callback, ssl.key.password.callback>>
+
+|prefer
+| None
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_certificate_file, ssl.certificate.file>> +
+<<ssl_key_file, ssl.key.file>> +
+<<ssl_key_password, ssl.key.password>> +
+<<ssl_key_password_callback, ssl.key.password.callback>>
+
+|require
+| None
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_certificate_file, ssl.certificate.file>> +
+<<ssl_key_file, ssl.key.file>> +
+<<ssl_key_password, ssl.key.password>> +
+<<ssl_key_password_callback, ssl.key.password.callback>>
+
+|verify-ca
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_ca_certificate_file, ssl.ca.certificate.file>> +
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_certificate_file, ssl.certificate.file>> +
+<<ssl_key_file, ssl.key.file>> +
+<<ssl_key_password, ssl.key.password>> +
+<<ssl_key_password_callback, ssl.key.password.callback>>
+
+|verify-full
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_ca_certificate_file, ssl.ca.certificate.file>> +
+|
+<<ssl_home-dir, ssl.home-dir>> +
+<<ssl_certificate_file, ssl.certificate.file>> +
+<<ssl_key_file, ssl.key.file>> +
+<<ssl_key_password, ssl.key.password>> +
+<<ssl_key_password_callback, ssl.key.password.callback>>
+|===
+
+
+=== Client Certificate
+
+As shown above, in all modes _except_ `disable`, when attempting an SSL connection a client certificate and
+private key are searched for using the <<ssl_home-dir, ssl.homedir>>, <<ssl_key_file, ssl.key.file>>,
+<<ssl_key_password, ssl.key.password>> & <<ssl_certificate_file, ssl.certificate.file>> settings. If either of
+the items _cannot_ be located, SSL will continue to be attempted without providing the server with a client
+certificate.
+
+The server can be configured to require an SSL client certificate and connection will fail when connection is
+attempted and the items are not provided to the server.

@@ -1,0 +1,122 @@
+[[udt-generator]]
+== UDT Generator
+
+Supporting SQL **U**ser **D**efined **T**ypes in JDBC 4.2 requires creating a POJO that implements the `SQLData`
+interface. Although this is fairly straightforward it can be time consuming to keep Java objects up-to-date with a
+changing SQL schema. This generator provides a simple way to generate UDT classes from an available schema.
+
+The generator will connect to a provided database, lookup information about a provided set of UDTs and generate
+the matching classes.
+
+=== Generation
+
+The generator can generate _POJOs_ for composite types and enum classes for enumeration types. A simple example
+can be seen in this <<udt-generator-example>>.
+
+==== Referencing/Nested Types
+
+The generator supports generating classes for SQL types that reference/contain other SQL types.
+
+If the referenced type(s) have POJOs or enums being generated during the same execution, the generator will use
+the generated type value instead of the standard mapping.
+
+If not, composite types will be created as `java.sql.Struct`s and enums will be created as ``String``s.
+
+=== Executing
+
+The generator can be executed multiple ways.
+
+==== CLI
+To execute the generator on the command line you can use the _uber jar_ as an executable JAR or by the standard
+method of referencing the main class.
+
+[source,bash,subs="attributes+"]
+----
+java -jar {udtdepname}-{driverdepver}-{driverdepclass}.jar [options] <type names>
+----
+
+===== Options
+To generate classes from a schema the generator needs access to a running server with the schema available and
+a list of type names that it should generate classes for.
+
+====== Generation
+Class generation requires a target Java package and list of types to be specified.
+
+[cols="1m,2m,4"]
+.Class Generation Options
+|===
+|Short Option|Long Option|Description
+
+|-p |--pkg | Target package for generated classes (Required)
+|-o |--out | Output directory for generated files (defaults to `./out`)
+|===
+
+After all options on the command line a list of type names to generate must be provided. Each type can be
+schema qualified and/or quoted as necessary for {vendorname}'s interpretation. For example:
+
+      <exec generator> -o ./generated/udts a_public_type public.b_public_type "MY_SCHEMA"."A_TYPE"
+
+====== Connection
+The generator options for specifying connection properties. The database name is required all other
+options can be left to their defaults.
+
+[cols="1m,2m,4"]
+.Connection Options
+|===
+|Short Option|Long Option|Description
+
+|   |--url      | Database connection URL (overrides name, host, port)
+|-D |--database | Database name
+|-H |--host     | Database server hostname (default: localhost)
+|-T |--port     | Database server port (default: 5432)
+|-U |--user     | Database username (can be used with `--url`)
+|-P |--password | Database password (can be used with `--url`)
+|===
+
+==== Library
+To use the generator as a library and execute it programmatically.
+
+[source,java]
+----
+import com.impossibl.postgres.tools.UDTGenerator;
+import java.sql.Connection;
+import java.util.List;
+import java.io.File;
+
+class ExecGen {
+  public static void executeGenerator(Connection connection, List<String> typeNames) {
+    UDTGenerator.generate(connection, new File("out"), "sql.schema.types", typeNames);
+  }
+}
+----
+
+==== Example
+
+[source,sql]
+.Simple VCard data types in SQL
+----
+include::{exdir}/udt-gen/vcard.sql[]
+----
+
+Generating classes for the custom SQL types above yields the following...
+
+[source,java]
+.Matching VCard Java classes
+----
+include::{exdir}/udt-gen/vcard.java[]
+----
+
+Objects of these Java classes can be inserted and retrieved from the database easily using
+the JDBC API.
+
+[source,java]
+----
+include::{exdir}/udt-gen/vcard-test.java[]
+----
+<1> Create an `Address` object.
+<2> Create a `VCard` object.
+<3> Use the `setObject` method to provide a `VCard` directly to the API.
+<4> Use the `getObject` method with a specific type request to retrieve a `VCard` object.
+<5> Generate a map of SQL type names to Java class implementations, to use with <4>
+<6> Use the `getObject` method with a list of type mappings to retrieve any available custom object
+    mapped to its Java counterpart.

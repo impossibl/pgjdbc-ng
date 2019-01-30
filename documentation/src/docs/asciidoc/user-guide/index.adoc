@@ -1,0 +1,32 @@
+[[user-guide]]
+= PGJDBC-NG User Guide
+include::../maintainers.txt[]
+:docinfo: shared
+:drivername: PGJDBC-NG
+:vendorname: PostgreSQL
+:toclevels: 3
+:sectnums:
+
+include::overview.adoc[]
+
+include::urls.adoc[]
+
+include::datasources.adoc[]
+
+include::ssl.adoc[]
+
+include::settings.adoc[]
+
+include::jdbc.adoc[]
+
+include::extensions.adoc[]
+
+include::logging-tracing.adoc[]
+
+include::udt-generator.adoc[]
+
+include::spy.adoc[]
+
+== Release Notes
+
+Detailed release notes for each version are available link:../release-notes/index.html[here].

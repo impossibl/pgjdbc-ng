@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.buildSrc.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/documentation/com.impossibl.pgjdbc-ng.documentation.iml" filepath="$PROJECT_DIR$/.idea/modules/documentation/com.impossibl.pgjdbc-ng.documentation.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.pgjdb-ng-parent.iml" filepath="$PROJECT_DIR$/.idea/modules/com.impossibl.pgjdbc-ng.pgjdb-ng-parent.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.main.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/com.impossibl.pgjdbc-ng.pgjdbc-ng.main.iml" />

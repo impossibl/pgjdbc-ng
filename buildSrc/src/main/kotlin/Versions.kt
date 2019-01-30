@@ -33,5 +33,7 @@ object Versions {
    */
   const val shadowPlugin = "4.0.4"
   const val dockerComposePlugin = "0.8.13"
+  const val asciiDoctorPlugin = "1.5.9.2"
+  const val gitPublishPlugin = "2.0.0"
 
 }

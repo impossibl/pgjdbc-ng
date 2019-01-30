@@ -1,0 +1,49 @@
+[[spy]]
+== Spy JDBC Interceptor
+
+Spy uses auto-generated relay & listener classes for each JDBC API interface to provide an easy method to
+intercept calls to the JDBC API. Currently it provides the JDBC API level tracing functionality for {drivername}
+(see <<tracing-jdbc>>).
+
+Although the library is used as a tracing system for {drivername} it should be able to be used with any compliant
+JDBC driver.
+
+=== Connection Wrapping
+
+To use the library as a API tracing system you have three options to wrap connections and enable tracing:
+
+==== Manual
+Manually wrapping the a connection returned from a JDBC `Driver` or `DataSource` and using the wrapped connection
+as normal provides an easy way to programmatically decide when to add or disable tracing.
+
+[source,java]
+.Manually wrapping an opened connection
+----
+Connection conn = ConnectionTracer(DriverManager.getConnection(...), FileTracer("api.trace"))
+----
+
+==== Driver
+If you are acquiring connections using the JDBC Driver API (as opposed to the DataSource API) a more declarative
+method can be used by altering the URL used to connect to your server.
+
+Simply prepending the driver scheme of the JDBC URL with `:spy` and leaving the URL in its original form will
+cause the library to automatically wrap all connections.
+
+[source,java]
+.Use special JDBC URL to enable tracing
+----
+Connection conn = DriverManager.getConnection("jdbc:spy:pgjdbc://localhost/db");
+----
+
+==== Automatic
+
+{drivername} has built in support for tracing using the library, see <<tracing-jdbc>>.
+
+
+=== Beyond Tracing
+Spy generates a Relay class and matching Listener interface for each interface in the JDBC API. To support detailed
+tracing an implementation of each Listener interface is generated that produces trace output.
+
+Due to the way its structured the library can be used to do a lot more than tracing by implementing custom
+Listener interfaces and wrapping connections using one of the methods previously outlined.
+

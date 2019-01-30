@@ -15,9 +15,31 @@ fun String.toTitleCase(): String {
      .joinToString(" ") { if (acronyms.contains(it)) it.toUpperCase() else it.capitalize() }
 }
 
-fun String.escapeMarkdown(): String =
+fun String.replaceTag(tag: String, transform: (MatchResult) -> String): String {
+  val tagr = """<$tag>((.|\n)*?)</$tag>""".toRegex(RegexOption.MULTILINE)
+  return this.replace(tagr, transform)
+}
+
+fun String.rewriteAnchorsAsLinks(): String {
+  val tagr = """<a href="(.*)">((.|\n)*?)</a>""".toRegex(RegexOption.MULTILINE)
+  return this.replace(tagr) { res -> "${res.groupValues[1]}[${res.groupValues[2]}]" }
+}
+
+fun String.toAsciiDoc(): String {
+  return replaceTag("ul") { res -> "\n" + res.groupValues[1].replaceTag("li") { res2 -> "- ${res2.groupValues[1]}" } }
+     .replace("""\n[ \t]*-(\s*\n)?""".toRegex(), "\n- ")
+     .replaceTag("ol") { res -> "\n" + res.groupValues[1].replaceTag("li") { res2 -> ". ${res2.groupValues[1]}" } }
+     .replace("""\n[ \t]*\.(\s*\n)?""".toRegex(), "\n- ")
+     .replaceTag("code") { res -> "`${res.groupValues[1]}`" }
+     .replaceTag("i") { res -> "_${res.groupValues[1]}_" }
+     .replaceTag("b") { res -> "*${res.groupValues[1]}*" }
+     .rewriteAnchorsAsLinks()
+     .replace("""\n[ \t]*""".toRegex(), "\n")
+}
+
+fun String.escapeAsciiDoc(): String =
    when (this.first()) {
-     '*', '#', '`', '@' -> "\\${this}"
+     '*', '#', '-', '|' -> "{empty}${this}"
      else -> this
    }
 
