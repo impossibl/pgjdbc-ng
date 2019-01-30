@@ -1,56 +1,11 @@
-{% assign latestRelPost = (site.categories.releases | first) %}
-{% assign latestRelVer = latestRelPost.title %}
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>pgjdbc-ng by impossibl</title>
-
-    <link rel="stylesheet" href="{{ site.baseurl }}/stylesheets/styles.css">
-    <link rel="stylesheet" href="{{ site.baseurl }}/stylesheets/pygment_trac.css">
-    <script src="{{ site.baseurl }}/javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-  </head>
+<!DOCTYPE html>
+<html lang="en">
+  {% include head.html %}
   <body>
-    <div class="wrapper">
-      <header>
-        <h1><a href="{{ site.baseurl }}/index.html">pgjdbc-ng</a></h1>
-        <p>A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres</p>
-        <p class="view"><a href="https://github.com/impossibl/pgjdbc-ng">View the Project on GitHub <small>impossibl/pgjdbc-ng</small></a></p>
-        <ul>
-          <li><a href="{{ site.baseurl }}/get.html">GET <strong>Driver</strong></a></li>
-          <li><a href="https://github.com/impossibl/pgjdbc-ng">View On <strong>GitHub</strong></a></li>
-          <li><a href="{{ site.baseurl }}/apidocs/{{ latestRelVer }}/index.html">View Latest<strong>JavaDoc</strong></a></li>
-        </ul>
-      </header>
-      <section>
-
-		  {{ content }}
-		
-      </section>
+    <div class="container">
+      {% include header.html %} 
+      {{ content }}
     </div>
-    
-    <footer>
-      <p>Project maintained by <a href="https://github.com/impossibl">impossibl</a></p>
-      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
-    </footer>
-    
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-    <script type="text/javascript">
-	    var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-	    document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-	</script>
-	<script type="text/javascript">
-		try {
-		  var pageTracker = _gat._getTracker("UA-44586313-1");
-		pageTracker._trackPageview();
-		} catch(err) {}
-	</script>
-
+    {% include footer.html %}
   </body>
 </html>

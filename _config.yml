@@ -1,1 +1,14 @@
-baseurl: //impossibl.github.io/pgjdbc-ng
+# Site settings
+title: PGJDBC-NG
+email: kevin@wooten.com
+author: kdubb
+description: 
+url: http://impossibl.github.io/pgjdbc-ng
+
+collections:
+- releases
+
+# Build settings
+permalink: :title/
+sass:
+  sass_dir: css
