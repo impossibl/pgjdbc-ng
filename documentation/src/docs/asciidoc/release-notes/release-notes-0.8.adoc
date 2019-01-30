@@ -1,0 +1,81 @@
+[[release-notes-0.8]]
+== Release Notes 0.8
+
+*Date of Release:* ❓
+
+*Scope:* Everything
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/1?closed=1+[0.8] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+The driver went through _a lot_ of changes in this release. Much of the code experienced changes
+to bring it up-to-date, bring performance inline and simplify the implementation in a number
+of areas.
+
+TIP: Due to the *_large_* number of changes, for status of a specific bug it is best to check
+the milestone link above.
+
+==== New Features and Improvements
+
+* Asynchronous FIFO engine
+** Allows query pipelining
+** Paves way for asynchronous API
+* Lazy Parameter Encoding, Result Decoding
+* Dramatically reduced type registry
+** Nearly 80% less information
+** Connections share registry information
+** Startup time ~10ms on localhost
+* Comprehensive Logging & Tracing
+** JDBC API, SQL & Protocol traces available
+* JDBC 4.2 conformance
+** Provides SQLType implementation
+** JSR310 support
+** Numerous conformance updates
+* Unix Domain Socket support
+* Date/Time Rewrite
+** Completely built on JSR 310
+** Simple and easy to understand
+* Detailed asciidoc documentation added.
+** Comprehensive User Guide
+** Detailed Release Notes (this!)
+** Auto-generated settings details (included in User Guide)
+** Documentation is now "code"
+** Each release includes its documentation.
+
+* Switched to multi-project Gradle build
+
+==== Bug Fixes
+
+* Fixed Flyway compatibility
+* Fixed Windows locale support
+* Fixed issue with generated key support
+* Fixed CallableStatement out parameter handling
+* Fixed driver version name/number reporting
+* Fixed allowed DB names in URLs
+* Fixed numerous Time/Date/Timestamp issues
+* Fixed array handling
+* Fixed batch update handling
+
+==== Deprecations and Breaking Changes
+
+* OSGI bundling has been removed due to it being incorrect. A future release may include it again.
+
+
+[[release-notes-0.8-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+The UDT generator is a "suggested" feature of JDBC 4.2. Although one has existed for {drivername}, it
+previously was a separate project and was not documented or updated.  It's now part of the main project,
+documented in the new "User Guide" and will be released and updated as normal.
+
+
+[[release-notes-0.8-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+Spy is a general purpose library that (see User Guide) that {drivername} uses internally to provide
+JDBC API level tracing.

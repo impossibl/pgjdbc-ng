@@ -1,0 +1,88 @@
+[[connection-urls]]
+== Connection URLs
+Connection details can be specified to both the Driver and DataSource implementations alike via an extended
+URL format. The format allows specifying all required and optional details including any and all connection
+settings.
+
+{drivername}'s extended connection URL format is:
+
+    jdbc:pgsql://<user>:<password>@<addresses>/<database>?property1=value1&propertyN=valueN
+
+<user>:<password>::
+Username & password authentication credentials.
+
+<addresses>::
+Zero or more addresses that the connection targets.
++
+An address is comprised of a hostname or IP address and an optional TCP port designation.
++
+If zero addresses are specified, the connection defaults to using the hostname `localhost` and
+{vendorname}'s default port of `5432`. To provide zero addresses the `//` is omitted as well as in
+`jdbc:pgsql:<database>`.
++
+Multiple addresses can also be specified handled in accordance with <<connection-fallback>>.
++
+Finally, a special setting named `unixsocket` can be specified to target a unix domain socket
+address; see <<connection-unix>>.
+
+<database>::
+The name of the database the connection targets.
++
+TIP: The database name is _optional_. When it is absent, the connection targets a database
+named equivalent to the authenticated role name of the connection. To omit the databae name
+and connect to the user database omit the slash preceding the name as well
+(e.g. `jdbc:pgsql//localhost`).
+
+<property1>...<propertyN>::
+List of connection settings specified as query properties.
++
+The properties in the query portion of the URL can be used to specify connection settings. The
+ available settings are detailed in <<connection-settings>>.
+
+
+[[connection-fallback]]
+=== Multiple/Fallback Addresses
+As referenced in <<connection-urls>> multiple addresses can be specified in a connection URL separated by comas.
+
+.URL with 3 addresses `host1`, `host2:5434` and `127.0.0.1`
+
+    jdbc:pgsql://host1,host2:5434,127.0.0.1/db
+
+Each address can be specified as an `IPv4`, `IPv6`, or DNS hostname followed by an optional TCP port. If any
+address doesn't specify a port, {vendorname}'s default port of `5432` is used.
+
+==== Connection Strategy
+When multiple addresses are present, a connection to each address is attempted in the order they were specified
+until a successful connection is made or the connection fails.
+
+NOTE: Fallback addresses are only used during an initial connection attempt. In the event of a successful
+connection and subsequent unexpected disconnection, no attempt is made to re-establish a connection regardless
+of the presence of fallback addresses.
+
+[[connection-unix]]
+=== Unix Domain Sockets
+
+When Netty native libraries are present the driver can connect to a {vendorname} instance via a unix domain
+socket. You specify this address using a special `unixsocket` property supplied in the URL connection
+properties.
+
+    jdbc:pgsql:<database>?unixsocket=/tmp
+
+The property accepts a directory containing a {vendorname} unix socket (as shown above), or a specific socket
+filename belonging to a {vendorname} instance.
+
+When specifying a directory for `unixsocket` the Driver searches the directory for a socket filename matching
+{vendorname}'s known format (e.g. `.s.PGSQL.5432`). This is a convenience to allow easy connection in the most
+common case of a single running {vendorname} instance.
+
+CAUTION: If multiple socket filenames matching {vendorname}'s format are found the Driver will log a warning
+and connect to the first matching socket filename it finds. Specifying an absolute path to a socket file will
+stop logging the warning.
+
+Only a single `unixsocket` property can be specified, although it can be combined with <<connection-fallback>>.
+When used in a fallback configuration the unix socket address is always attempted first.
+
+==== Netty Native Libraries
+Support for Unix Domain Sockets requires the presence of Netty's native libraries. Visit
+https://netty.io/wiki/native-transports.html[Netty's wiki] for more information on how to acquire the correct
+native libraries for your platform.

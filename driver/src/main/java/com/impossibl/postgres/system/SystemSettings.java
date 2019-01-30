@@ -199,7 +199,7 @@ public class SystemSettings {
   @Setting.Info(
       desc =
           "File destination of SQL trace output.\n\n" +
-          "<b><i>NOTE</i></b> `sql.trace` must be `true` to generate trace output",
+          "NOTE: `sql.trace` must be `true` to generate trace output",
       name = "sql.trace.file",
       group = "system"
   )
@@ -324,7 +324,7 @@ public class SystemSettings {
   @Setting.Info(
       desc =
           "File destination of message trace output\n\n" +
-          "<b><i>NOTE</i></b> `protocol.trace` must be `true` to generate trace output",
+          "NOTE: `protocol.trace` must be `true` to generate trace output",
       name = "protocol.trace.file",
       group = "protocol"
   )

@@ -1,0 +1,6 @@
+[[connection-settings]]
+== Connection Settings
+
+{drivername} provides a number of settings that control almost every aspect of the connection.
+
+include::{incdir}/settings.adoc[leveloffset=+1]

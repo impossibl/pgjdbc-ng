@@ -1,30 +1,42 @@
-# pgjdbc-ng   [![Build Status](https://travis-ci.org/impossibl/pgjdbc-ng.png)](https://travis-ci.org/impossibl/pgjdbc-ng)
+![](https://img.shields.io/travis/impossibl/pgjdbc-ng.svg?style=flat)
+![](https://img.shields.io/github/release/impossibl/pgjdbc-ng.svg?style=flat)
 
-A new JDBC driver for PostgreSQL aimed at supporting the advanced features of JDBC and Postgres
+### General
 
-[http://impossibl.github.io/pgjdbc-ng](http://impossibl.github.io/pgjdbc-ng "pgjdbc-ng homepage")
+A great place to start is the [Website](https://impossibl.github.io/pgjdbc-ng).
 
-## Connection format
+For comprehensive documentation see the [User Guide](https://impossibl.github.io/pgjdbc-ng/docs/current/user-guide)
 
-The connection format for the pgjdbc-ng driver is
+For quick reference, here are some useful details
 
-	jdbc:pgsql://<server>[:<port>]/<database>
+#### Dependencies
 
-An example
+![](https://img.shields.io/maven-central/v/com.impossibl.pgjdbc-ng/pgjdbc-ng.svg)
 
-	jdbc:pgsql://localhost:5432/test
+##### Gradle
 
-## Driver
+    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:LATEST"
+    
+##### Maven
 
-The java.sql.Driver class is
+    <dependency>
+      <groupId>com.impossibl.pgjdb-ng</groupId>
+      <artifactId>pgjdb-ng</artifactId>
+      <version>LATEST</version>
+    </dependency>
+    
 
-	com.impossibl.postgres.jdbc.PGDriver
+#### JDBC URL
 
-The driver will accept configuration parameters in the style of
+The driver accepts basic URLs in the following format
 
-	jdbc:pgsql://localhost:5432/test?applicationName=MyApp&networkTimeout=10000
+	jdbc:pgsql://localhost:5432/db
+	
 
-## Data sources
+See the [User Guide](https://impossibl.github.io/pgjdbc-ng/docs/current/user-guide#connection-urls) 
+for complete details on the accepted URL syntax.
+
+#### Data sources
 
 The javax.sql.DataSource class is
 
@@ -38,62 +50,12 @@ and the XADataSource class is
 
 	com.impossibl.postgres.jdbc.xa.PGXADataSource
 
-## Configuration
- 
-### Settings
-
-The `Driver` supports configuration via a large number of number of settings that can be specified as system 
-properties or per connection via URL parameters and/or driver properties.
-
-The `DataSource` supports the same configurability through system properties or via distinct methods on the data
-source classes.
-
-A detailed list of available settings is available [HERE](SETTINGS.md) 
-
-### Host Addresses
-
-#### PGDriver
-The driver supports specifying multiple host addresses via the URL to provide fallback addresses while attempting to 
-connect to a server. Each host will be tried in the order specified until a connection can be made.
-
-##### Multi-host Address URL Format
-
-    jdbc:pgsql://host1,host2:5434,127.0.0.1/db
-
-This format allows providing multiple addresses separated with commas. Each address can be specified as an `IPv4`,
-`IPv6`, or `DNS` address followed by an optional port. Any number of addresses can be specified.
-  
-> In the event of a successful connection and subsequent unexpected disconnection, no attempt is made to 
-re-establish a connection regardless of the presence of fallback addresses. 
-
-##### Unix Domain Sockets
-
-When Netty native libraries are present the driver can connect to a PostgreSQL instance on the same machine via
-its local socket. You specify this connection address using a special `unixsocket` property supplied via the URL.
-
-    jdbc:pgsql:db?unixsocket=/tmp 
-
-The property accepts a directory containing a PostgreSQL unix socket (as shown above), in which case it searches
-the directory for a socket filename matching PostgresSQL's known format. Alternatively, you can specify a complete 
-absolute path to the unix socket. Only a single `unixsocket` property can be specified.
-
-> When combining the `unixsocket` property and internet addresses in a fallback configuration the unix socket 
-address is always attempted first.
-
-> Visit [Netty's wiki](https://netty.io/wiki/native-transports.html) for more information on how to acquire the correct native libraries for your
-platform  
-
-#### Data Sources
-
-Each `DataSource` implementation currently allows specifying at most a single host address. No support for 
-fallback addresses is currently implemented.
-
-## License
+#### License
 
 pgjdbc-ng is released under the 3 clause BSD license.
 
-## Building
-The driver is built with Gradle. To build & test execute:
+#### Building
+The driver is built with Gradle. To build & test, execute:
 
 	./gradlew clean build.
 
@@ -109,7 +71,7 @@ Alternatively, to build the driver without testing you can execute:
 
     ./gradlew clean assemble  
 
-## Testing
+#### Testing
 
 The unit tests need a PostgreSQL database to execute against. The build will start a [Docker](https://docker.com)
 container and setup the test environment to execute against that container automatically.
