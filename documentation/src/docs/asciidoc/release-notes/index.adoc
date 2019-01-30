@@ -1,0 +1,15 @@
+[[release-notes]]
+= PGJDBC-NG Release Notes
+include::../maintainers.txt[]
+:docinfo: shared
+:drivername: PGJDBC-NG
+:vendorname: PostgreSQL
+:toclevels: 3
+:projectrepo: https://github.com/impossibl/pgjdbc-ng
+
+This document contains the release notes for all {drivername} releases since 0.8.
+
+Please refer to the <<../user-guide/index.adoc#user-guide, User Guide>> for comprehensive
+reference documentation on integrating and using {drivername}.
+
+include::release-notes-0.8.adoc[]

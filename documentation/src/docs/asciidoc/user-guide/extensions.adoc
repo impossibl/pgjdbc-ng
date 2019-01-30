@@ -1,0 +1,72 @@
+[[extensions]]
+== Beyond JDBC
+
+Some of the functionality provided by {vendorname} cannot be utilized via JDBC. In some cases {drivername}
+has extended the JDBC API to provide access to this functionality.
+
+[[extensions-pgconnection]]
+=== PGConnection
+
+`PGConnection` is an interface that extends `java.sql.Connection` and provides access to extended
+features and functionality.
+
+In almost all cases to access extended features and functionality you will need a reference to a
+`PGConnection` instead of the standard `java.sql.Connection`.
+
+[[extensions-pgconnection-access]]
+==== Accessing via unwrap
+
+Although many times the Driver or DataSource will hand you an actual implementation of `PGConnection`
+and simply casting to `PGConnection` would work, there are numerous cases where casting will *not*
+succeed.
+
+Thankfully JDBC provides a method to access native connections interfaces, like `PGConnection`, through
+the JDBC API. That mechanism is the `unwrap` method available on the connection.
+
+[source,java]
+.Unwrapping instead of casting
+----
+Connection connection = DriverManager.getConnection(url);
+PGConnection pgConnection = (PGConnection)connection; // <1>
+PGConnection pgConnection = connection.unwrap(PGConnection.class); // <2>
+----
+<1> [red]#Incorrect method assuming PGConnection and casting#
+<2> Correct method using `unwrap`.
+
+Not only does using `unwrap` guarantee success (when using {drivername}) its just as easy as casting.
+
+
+[[extensions-notifications]]
+=== Asynchronous Notifications
+
+{vendorname} provides an asynchronous notification system via its
+https://www.postgresql.org/docs/current/sql-listen.html[LISTEN] &
+https://www.postgresql.org/docs/current/sql-notify.html[NOTIFY] commands.
+
+{drivername} provides the ability to be asynchronously notified when notifications are raised, including
+the ability to filter on channel names and payload values.
+
+[source%nowrap,java]
+.Simple asynchronous notification example
+----
+include::{exdir}/async-notify/simple.java[]
+----
+<1> Acquire `PGConnection` to access extended functionality
+<2> Add a notification listener to the connection.
+<3> Handle incoming notification.
++
+IMPORTANT: Notifications are delivered on I/O threads. Executing long or blocking operations will adversely
+affect performance; it should be avoided in all cases.
+<4> Listeners can be notified when the connection is closed unexpectedly. This allows them to reconnect and
+restart listening, ensuring notifications will always be received.
+<5> Issue the `LISTEN` command to the server, this starts the server delivering notifications to this
+connection.
+<6> An example `NOTIFY` command is issued to and will be received by the handler from <2>
+
+NOTE: As shown above, adding a listener only prepares {drivername} to deliver the notifications inside the
+JVM, until a `LISTEN` command is issued to the server no notifications will be received.
+
+==== Filtering
+
+Notification listeners can also be added with a filter on the channel name. This allows individual listeners to
+handle specific notification channels.
