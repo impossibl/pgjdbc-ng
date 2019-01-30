@@ -10,10 +10,10 @@ wishing to use the advanced features of JDBC integrated with {vendorname}.
 [[overview-what-is]]
 === What is {drivername}?
 
-{drivername} aims to be a JDBC compliant {jdbc-driver-type4}[type 4] driver,
-supporting JDBC 4.2 onwards. A stated goal of the project is to implement all the advanced features of JDBC that
-{vendorname} is able to support; including User Defined Types (aka composite types), Arrays of primitive and
-composite types, asynchronous notifications, and more.
+{drivername} aims to be a fully compliant JDBC driver for {vendorname}, implementing JDBC 4.2 onwards.
+The major goal of the project is to implement all the advanced features of JDBC also supported in
+{vendorname}; including composite types, arrays of primitive and composite types, asynchronous
+notifications, and more.
 
 [[overview-java-versions]]
 === Supported Java Versions

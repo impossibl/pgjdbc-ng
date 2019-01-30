@@ -3,15 +3,39 @@ plugins {
   id("org.ajoberstar.git-publish") version Versions.gitPublishPlugin
 }
 
+val javadocs = configurations.create("javadocs")
 val docs = configurations.create("docs")
 
 dependencies {
+
   docs(project(":pgjdbc-ng", "docs"))
+  javadocs(project(":pgjdbc-ng"))
 }
 
 tasks {
 
-  val collect = register<Sync>("collect") {
+
+  val aggregateJavadocs = register<Javadoc>("aggregateJavadocs") {
+    destinationDir = file("$buildDir/javadoc")
+    options {
+      title = "${project.name} $version API"
+    }
+
+    rootProject.subprojects.filter { project != it }.forEach { project ->
+
+      project.tasks.withType(Javadoc::class.java).forEach { task ->
+        dependsOn(task)
+        source += task.source
+        classpath += task.classpath
+        excludes += task.excludes
+        includes += task.includes
+      }
+    }
+  }
+
+
+
+  val collectDocs = register<Sync>("collectDocs") {
     from(docs)
     from(docs.map { tarTree(it) })
     into("$buildDir/tmp/docs")
@@ -52,7 +76,7 @@ tasks {
        "maintainers" to loadMaintainers(docsDir)
     ))
 
-    dependsOn(collect)
+    dependsOn(collectDocs)
   }
 
   gitPublish {
@@ -65,13 +89,22 @@ tasks {
         from("$buildDir/docs/html5") {
           into("docs/snapshot")
         }
+        from ("$buildDir/javadoc") {
+          into("docs/snapshot/javadoc")
+        }
       }
       else {
         from("$buildDir/docs/html5") {
           into("docs/$version")
         }
+        from ("$buildDir/javadoc") {
+          into("docs/$version/javadoc")
+        }
         from("$buildDir/docs/html5") {
           into("docs/current")
+        }
+        from ("$buildDir/javadoc") {
+          into("docs/current/javadoc")
         }
       }
     }
@@ -80,7 +113,12 @@ tasks {
   }
 
   build {
+    dependsOn(aggregateJavadocs)
     dependsOn(asciidoctor)
+  }
+
+  gitPublishPush.configure {
+    dependsOn(build)
   }
 
 }
