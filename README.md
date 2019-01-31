@@ -15,15 +15,19 @@ For quick reference, here are some useful details
 
 ##### Gradle
 
-    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:LATEST"
+```groovy
+compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:LATEST"
+```
     
 ##### Maven
 
-    <dependency>
-      <groupId>com.impossibl.pgjdb-ng</groupId>
-      <artifactId>pgjdb-ng</artifactId>
-      <version>LATEST</version>
-    </dependency>
+```xml
+<dependency>
+  <groupId>com.impossibl.pgjdb-ng</groupId>
+  <artifactId>pgjdb-ng</artifactId>
+  <version>LATEST</version>
+</dependency>
+```
     
 
 #### JDBC URL

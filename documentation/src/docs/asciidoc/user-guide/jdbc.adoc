@@ -14,7 +14,7 @@ using many of the extended types that {vendorname} provides.
 
 JDBC 4.2 added a new method for specifying extended types, `java.sql.SQLType`. Most of the interfaces in JDBC
 were extended to accept this new, extendable, type in place of the previous integer type code. {drivername} has
-embraced this new method of using/specfiying {vendorname}'s extended types via `PGTYpe`.
+embraced this new method of using/specfiying {vendorname}'s extended types via `PGType`.
 
 ==== PGType
 
@@ -60,7 +60,7 @@ the standard `java.sql.Struct` API or via custom mapped Java classes that implem
 
 ==== java.sql.Struct
 
-{drivername} fully supports UDTs via the JDBC `java.sql.Struct` API for specifying and UDT parameters
+{drivername} fully supports UDTs via the JDBC `java.sql.Struct` API for specifying UDT parameters
 and for retrieving UDT values in from ``ResultSet``s.
 
 ==== java.sql.SQLData
@@ -157,7 +157,7 @@ stmt.setText("Something happened");
 stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now())); <1>
 stmt.setObject(1, LocalDateTime.now()); <2>
 ----
-<1> Incorrect method using convenience API and conversion
+<1> [red]#Incorrect method using convenience API and conversion#
 <2> Correct method using `setObject` and no conversion.
 
 The preceding examples show usage of `LocalDateTime` but support for all of the new Date and Time API classes

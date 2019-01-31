@@ -43,6 +43,10 @@ tasks {
     into("$buildDir/tmp/docs")
   }
 
+  asciidoctorj {
+    version = Versions.asciidoctorJ
+  }
+
   asciidoctor {
 
     val docsDir = "$projectDir/src/docs/asciidoc"
@@ -75,7 +79,8 @@ tasks {
        "udtdepname" to rootProject.project(":udt-gen").name,
        "driverdepclass" to "all",
        "driverdeprepo" to if (isSnapshot) "snapshots" else "releases",
-       "maintainers" to loadMaintainers(docsDir)
+       "maintainers" to loadMaintainers(docsDir),
+       "source-highlighter" to "coderay"
     ))
 
     dependsOn(collectDocs)

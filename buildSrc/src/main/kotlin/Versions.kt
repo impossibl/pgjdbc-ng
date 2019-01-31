@@ -18,6 +18,7 @@ object Versions {
    */
   const val javaPoet = "1.11.1"
   const val argParser = "2.0.7"
+  const val asciidoctorJ = "1.6.1"
 
   /**
    * Testing dependencies

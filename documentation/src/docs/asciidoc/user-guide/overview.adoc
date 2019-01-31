@@ -112,7 +112,7 @@ Obtaining a connection using one of the DataSource implementations is done by ex
 
 [source,java]
 ----
-PGDataSource ds = PGDataSource(); <1>
+PGDataSource ds = new PGDataSource(); <1>
 ds.setServerName("localhost"); <2>
 ds.setDatabaseName("test"); <3>
 ds.setUser("test"); <4>
