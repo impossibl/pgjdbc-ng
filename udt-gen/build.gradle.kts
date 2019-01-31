@@ -24,6 +24,6 @@ dependencies {
 
 apply {
   from("src/build/testing.gradle.kts")
-  from("$rootDir/shared/src/build/packaging.gradle.kts")
+  from("$rootDir/shared/src/build/uber-packaging.gradle.kts")
   from("$rootDir/shared/src/build/publishing.gradle.kts")
 }
