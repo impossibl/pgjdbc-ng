@@ -32,7 +32,8 @@ if (isSnapshot || isRelease) {
       register<MavenPublication>("maven") {
 
         pom {
-          name.set(project.description)
+          name.set(project.name)
+          description.set(project.description)
 
           url.set(projectUrl)
 
