@@ -1,8 +1,5 @@
 
 plugins {
-  id("org.jetbrains.kotlin.jvm") version "1.3.11" apply false
-  id("net.ltgt.apt-idea") version "0.20" apply false
-  id("com.adarshr.test-logger") version "1.6.0" apply false
 }
 
 
@@ -14,6 +11,8 @@ allprojects {
 
   group = "com.impossibl.pgjdbc-ng"
   version = "0.8-SNAPSHOT"
+
+  extra["isSnapshot"] = version.toString().endsWith("SNAPSHOT")
 
   val organization by extra(mapOf(
      "name" to "impossibl.com",

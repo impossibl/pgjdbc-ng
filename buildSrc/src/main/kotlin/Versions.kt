@@ -31,9 +31,13 @@ object Versions {
   /**
    * Plugin dependencies
    */
+  const val kotlinPlugin = kotlin
   const val shadowPlugin = "4.0.4"
   const val dockerComposePlugin = "0.8.13"
   const val asciiDoctorPlugin = "1.5.9.2"
   const val gitPublishPlugin = "2.0.0"
+  const val aptIdeaPlugin = "0.20"
+  const val testLoggerPlugin = "1.6.0"
+  const val githubReleasePlugin = "2.2.4"
 
 }

@@ -3,6 +3,8 @@ plugins {
   id("org.ajoberstar.git-publish") version Versions.gitPublishPlugin
 }
 
+val isSnapshot: Boolean by project
+
 val javadocs = configurations.create("javadocs")
 val docs = configurations.create("docs")
 
@@ -72,7 +74,7 @@ tasks {
        "driverdepver" to version,
        "udtdepname" to rootProject.project(":udt-gen").name,
        "driverdepclass" to "all",
-       "driverdeprepo" to if (version.toString().endsWith("SNAPSHOT")) "snapshots" else "releases",
+       "driverdeprepo" to if (isSnapshot) "snapshots" else "releases",
        "maintainers" to loadMaintainers(docsDir)
     ))
 
@@ -85,7 +87,7 @@ tasks {
     branch.set("gh-pages")
 
     contents {
-      if (version.toString().endsWith("SNAPSHOT")) {
+      if (isSnapshot) {
         from("$buildDir/docs/html5") {
           into("docs/snapshot")
         }

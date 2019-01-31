@@ -1,6 +1,7 @@
 
 plugins {
-  id("org.jetbrains.kotlin.jvm")
+  id("org.jetbrains.kotlin.jvm") version Versions.kotlinPlugin
+  id("com.adarshr.test-logger") version Versions.testLoggerPlugin
 }
 
 

@@ -1,8 +1,8 @@
 
 plugins {
   `java-library`
-  id("net.ltgt.apt-idea")
-  id("com.adarshr.test-logger")
+  id("net.ltgt.apt-idea") version Versions.aptIdeaPlugin
+  id("com.adarshr.test-logger") version Versions.testLoggerPlugin
 }
 
 description = "PostgreSQL JDBC - NG - Driver"

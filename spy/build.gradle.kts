@@ -2,6 +2,7 @@ import com.impossibl.jdbc.spy.tools.SpyGen
 
 plugins {
   `java-library`
+  id("com.adarshr.test-logger") version Versions.testLoggerPlugin
 }
 
 description = "PostgreSQL JDBC - NG - API Spy"

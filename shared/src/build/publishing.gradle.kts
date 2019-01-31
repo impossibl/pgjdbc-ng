@@ -6,11 +6,11 @@ apply {
 }
 
 val version: String by project
+val isSnapshot: Boolean by project
 
-val isSnapshotVersion = version.endsWith("SNAPSHOT")
 val repositoryUrl =
    URI.create(
-      if (isSnapshotVersion)
+      if (isSnapshot)
         "https://oss.sonatype.org/content/repositories/snapshots/"
       else
         "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
@@ -100,6 +100,6 @@ configure<PublishingExtension> {
 
 
 configure<SigningExtension> {
-  isRequired = !isSnapshotVersion && gradle.taskGraph.hasTask("publishMavenPublicationToMavenRepository")
+  isRequired = !isSnapshot && gradle.taskGraph.hasTask("publishMavenPublicationToMavenRepository")
   sign(the<PublishingExtension>().publications["maven"])
 }
