@@ -1,5 +1,5 @@
 [[release-notes-0.8]]
-== Release Notes 0.8
+== 0.8
 
 *Date of Release:* 2019-01-30
 

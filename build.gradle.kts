@@ -15,7 +15,7 @@ allprojects {
   }
 
   group = "com.impossibl.pgjdbc-ng"
-  version = "0.8"
+  version = "0.8.1-SNAPSHOT"
 
   extra["isSnapshot"] = version.toString().endsWith("SNAPSHOT")
 

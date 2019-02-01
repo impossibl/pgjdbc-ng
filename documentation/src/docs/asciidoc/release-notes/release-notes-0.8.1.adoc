@@ -1,0 +1,66 @@
+[[release-notes-0.8.1]]
+== 0.8.1
+
+*Date of Release:* ❓
+
+*Scope:* Bug fixes for 0.8 release
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/3?closed=1+[0.8.1] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.1-pgjdbc-ng]]
+=== PGJDBC-NG General
+
+Fixed source code highlighting in README
+and in asciidoc documentation.
+
+
+[[release-notes-0.8.1-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* None
+
+==== Deprecations and Breaking Changes
+
+* None
+
+==== New Features and Improvements
+
+* None
+
+
+[[release-notes-0.8.1-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+* Uber jar is now packaged and published for easy command line execution.
+
+==== Deprecations and Breaking Changes
+
+* None
+
+==== New Features and Improvements
+
+* None
+
+
+[[release-notes-0.8.1-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+* None
+
+==== Deprecations and Breaking Changes
+
+* None
+
+==== New Features and Improvements
+
+* None
+
