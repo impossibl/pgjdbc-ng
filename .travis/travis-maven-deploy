@@ -1,5 +1,0 @@
-#!/bin/sh
-set -x
-set -e
-
-./gradlew -PpostgresVersions=${PGVERSION} -PossrhUsername=$SONATYPE_USER -PossrhPassword=$SONATYPE_PASS publish

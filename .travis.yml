@@ -1,37 +1,64 @@
 dist: xenial
 language: java
+
 services:
-- docker
+  - docker
+
+
+stages:
+  - name: checks
+  - name: test
+  - name: deploy
+    if: (branch = develop OR branch =~ /^rel\/.+$/) AND type = push
+
 env:
-- PGVERSION=9.4
-- PGVERSION=9.5
-- PGVERSION=9.6
-- PGVERSION=10
-- PGVERSION=11
+  - PGVERSION=11
+  - PGVERSION=10
+  - PGVERSION=9.6
+  - PGVERSION=9.5
+  - PGVERSION=9.4
+
 jdk:
-- openjdk8
-- openjdk9
-- openjdk10
-- openjdk11
-before_install:
-- test $TRAVIS_JDK_VERSION == 'openjdk8' &&
-    _JAVA_OPTIONS="$_JAVA_OPTIONS -Djdk.net.URLClassPath.disableClassPathURLCheck=true" || _JAVA_OPTIONS="$_JAVA_OPTIONS"
+  - openjdk8
+  - openjdk9
+  - openjdk10
+  - openjdk11
+
+before_script:
   # PostgreSQL requires specific permissions... this meets the requirements when running via docker in Travis
-- chmod 0400 ./driver/src/test/resources/certdir/server/server.key
-- sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
-script: "./gradlew -PpostgresVersions=$PGVERSION test"
-after_failure:
-- "./.travis/print_surefire_reports"
-after_success:
-- test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'develop' &&
-  test $TRAVIS_JDK_VERSION == 'openjdk8' && test $PGVERSION == '10' &&
-    ./.travis/setup-deploy-key &&
-    ./.travis/travis-maven-deploy &&
-    ./.travis/travis-ghpages-deploy
+  - chmod 0400 ./driver/src/test/resources/certdir/server/server.key
+  - sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
+script: ./gradlew --stacktrace -PpostgresVersions=$PGVERSION test -x checkstyleMain
+
+jobs:
+  include:
+    - stage: checks
+      env: PGVERSION=11
+      jdk: openjdk8
+      install: skip
+      script: ./gradlew checkstyleMain
+    - stage: deploy
+      env: PGVERSION=11
+      jdk: openjdk8
+      install: skip
+      before_script:
+        # Unpack & add deploy key
+        - openssl aes-256-cbc
+            -K ${encrypted_14b7f04d1600_key} -iv ${encrypted_14b7f04d1600_iv}
+            -in .travis/github_deploy_key.enc -out .travis/github_deploy_key -d
+        - chmod 600 .travis/github_deploy_key
+        - eval "$(ssh-agent -s)"
+        - ssh-add .travis/github_deploy_key
+      script:
+        # Workaround for ajoberstar/gradle-git-publish/issues/65, remove when resolved
+        - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} documentation:gitPublishPush || true
+        - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} documentation:gitPublishPush
+        - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} -PossrhUsername=$SONATYPE_USER -PossrhPassword=$SONATYPE_PASS publish
+
 before_cache:
-- rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-- rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -f  $HOME/.gradle/caches/*/*.lock
+
 cache:
   directories:
-  - "$HOME/.gradle/caches/"
-  - "$HOME/.gradle/wrapper/"
+    - $HOME/.gradle/caches/modules-2
+    - $HOME/.gradle/wrapper/dists

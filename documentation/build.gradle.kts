@@ -124,7 +124,7 @@ tasks {
     dependsOn(asciidoctor)
   }
 
-  gitPublishPush.configure {
+  gitPublishPush {
     dependsOn(build)
   }
 
