@@ -2,10 +2,13 @@
 set -x
 set -e
 
-openssl aes-256-cbc -K ${encrypted_14b7f04d1600_key} -iv ${encrypted_14b7f04d1600_iv} -in .travis/github_deploy_key.enc -out .travis/github_deploy_key -d
+SSH_FILE="$(mktemp -u $HOME/.ssh/XXXXX)"
 
-chmod 600 .travis/github_deploy_key
+openssl aes-256-cbc -K ${encrypted_14b7f04d1600_key} -iv ${encrypted_14b7f04d1600_iv} -in .travis/github_deploy_key.enc -out "$SSH_FILE" -d
+
+chmod 600 "$SSH_FILE"
+printf "%s\n" "Host github.com  IdentityFile $SSH_FILE  LogLevel ERROR" >> ~/.ssh/config
 
 eval "$(ssh-agent -s)"
 
-ssh-add .travis/github_deploy_key
+ssh-add "$SSH_FILE"
