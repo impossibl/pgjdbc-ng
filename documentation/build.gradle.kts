@@ -67,18 +67,28 @@ tasks {
     inputs.dir(includeDocsDir)
     inputs.dir(docinfosDir)
 
+    val driverPrj = rootProject.project(":pgjdbc-ng")
+    val spyPrj = rootProject.project(":spy")
+    val udtPrj = rootProject.project(":udt-gen")
+
     attributes(mapOf(
        "toc" to "left",
        "incdir" to includeDocsDir,
        "exdir" to examplesDir,
        "docinfodir" to docinfosDir,
        "icons" to "font",
-       "driverdepgroup" to rootProject.project(":pgjdbc-ng").group.toString(),
-       "driverdepname" to rootProject.project(":pgjdbc-ng").name,
-       "driverdepver" to version,
-       "udtdepname" to rootProject.project(":udt-gen").name,
-       "driverdepclass" to "all",
-       "driverdeprepo" to if (isSnapshot) "snapshots" else "releases",
+       "revnumber" to version,
+       "driverdepgroup" to driverPrj.group.toString(),
+       "driverdepname" to driverPrj.name,
+       "driverdepver" to driverPrj.version,
+       "spydepgroup" to spyPrj.group.toString(),
+       "spydepname" to spyPrj.name,
+       "spydepver" to spyPrj.version,
+       "udtdepgroup" to udtPrj.group.toString(),
+       "udtdepname" to udtPrj.name,
+       "udtdepver" to udtPrj.version,
+       "uberclass" to "all",
+       "mavenrepo" to if (isSnapshot) "snapshots" else "releases",
        "maintainers" to loadMaintainers(docsDir),
        "source-highlighter" to "coderay"
     ))

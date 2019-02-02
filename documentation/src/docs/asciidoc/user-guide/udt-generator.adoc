@@ -32,7 +32,7 @@ method of referencing the main class.
 
 [source,bash,subs="attributes+"]
 ----
-java -jar {udtdepname}-{driverdepver}-{driverdepclass}.jar [options] <type names>
+java -jar {udtdepname}-{udtdepver}-{uberclass}.jar [options] <type names>
 ----
 
 ===== Options
