@@ -432,6 +432,97 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
+/* Stylesheet for CodeRay to match GitHub theme | MIT License | http://foundation.zurb.com */
+/*pre.CodeRay {background-color:#f7f7f8;}*/
+.CodeRay .line-numbers{border-right:1px solid #d8d8d8;padding:0 0.5em 0 .25em}
+.CodeRay span.line-numbers{display:inline-block;margin-right:.5em;color:rgba(0,0,0,.3)}
+.CodeRay .line-numbers strong{color:rgba(0,0,0,.4)}
+table.CodeRay{border-collapse:separate;border-spacing:0;margin-bottom:0;border:0;background:none}
+table.CodeRay td{vertical-align: top;line-height:1.45}
+table.CodeRay td.line-numbers{text-align:right}
+table.CodeRay td.line-numbers>pre{padding:0;color:rgba(0,0,0,.3)}
+table.CodeRay td.code{padding:0 0 0 .5em}
+table.CodeRay td.code>pre{padding:0}
+.CodeRay .debug{color:#fff !important;background:#000080 !important}
+.CodeRay .annotation{color:#007}
+.CodeRay .attribute-name{color:#000080}
+.CodeRay .attribute-value{color:#700}
+.CodeRay .binary{color:#509}
+.CodeRay .comment{color:#998;font-style:italic}
+.CodeRay .char{color:#04d}
+.CodeRay .char .content{color:#04d}
+.CodeRay .char .delimiter{color:#039}
+.CodeRay .class{color:#458;font-weight:bold}
+.CodeRay .complex{color:#a08}
+.CodeRay .constant,.CodeRay .predefined-constant{color:#008080}
+.CodeRay .color{color:#099}
+.CodeRay .class-variable{color:#369}
+.CodeRay .decorator{color:#b0b}
+.CodeRay .definition{color:#099}
+.CodeRay .delimiter{color:#000}
+.CodeRay .doc{color:#970}
+.CodeRay .doctype{color:#34b}
+.CodeRay .doc-string{color:#d42}
+.CodeRay .escape{color:#666}
+.CodeRay .entity{color:#800}
+.CodeRay .error{color:#808}
+.CodeRay .exception{color:inherit}
+.CodeRay .filename{color:#099}
+.CodeRay .function{color:#900;font-weight:bold}
+.CodeRay .global-variable{color:#008080}
+.CodeRay .hex{color:#058}
+.CodeRay .integer,.CodeRay .float{color:#099}
+.CodeRay .include{color:#555}
+.CodeRay .inline{color:#000}
+.CodeRay .inline .inline{background:#ccc}
+.CodeRay .inline .inline .inline{background:#bbb}
+.CodeRay .inline .inline-delimiter{color:#d14}
+.CodeRay .inline-delimiter{color:#d14}
+.CodeRay .important{color:#555;font-weight:bold}
+.CodeRay .interpreted{color:#b2b}
+.CodeRay .instance-variable{color:#008080}
+.CodeRay .label{color:#970}
+.CodeRay .local-variable{color:#963}
+.CodeRay .octal{color:#40e}
+.CodeRay .predefined{color:#369}
+.CodeRay .preprocessor{color:#579}
+.CodeRay .pseudo-class{color:#555}
+.CodeRay .directive{font-weight:bold}
+.CodeRay .type{font-weight:bold}
+.CodeRay .predefined-type{color:inherit}
+.CodeRay .reserved,.CodeRay .keyword {color:#000;font-weight:bold}
+.CodeRay .key{color:#808}
+.CodeRay .key .delimiter{color:#606}
+.CodeRay .key .char{color:#80f}
+.CodeRay .value{color:#088}
+.CodeRay .regexp .delimiter{color:#808}
+.CodeRay .regexp .content{color:#808}
+.CodeRay .regexp .modifier{color:#808}
+.CodeRay .regexp .char{color:#d14}
+.CodeRay .regexp .function{color:#404;font-weight:bold}
+.CodeRay .string{color:#d20}
+.CodeRay .string .string .string{background:#ffd0d0}
+.CodeRay .string .content{color:#d14}
+.CodeRay .string .char{color:#d14}
+.CodeRay .string .delimiter{color:#d14}
+.CodeRay .shell{color:#d14}
+.CodeRay .shell .delimiter{color:#d14}
+.CodeRay .symbol{color:#990073}
+.CodeRay .symbol .content{color:#a60}
+.CodeRay .symbol .delimiter{color:#630}
+.CodeRay .tag{color:#008080}
+.CodeRay .tag-special{color:#d70}
+.CodeRay .variable{color:#036}
+.CodeRay .insert{background:#afa}
+.CodeRay .delete{background:#faa}
+.CodeRay .change{color:#aaf;background:#007}
+.CodeRay .head{color:#f8f;background:#505}
+.CodeRay .insert .insert{color:#080}
+.CodeRay .delete .delete{color:#800}
+.CodeRay .change .change{color:#66f}
+.CodeRay .head .head{color:#f4f}
+</style>
+<style>
     table.tableblock {
         border-collapse: collapse;
         table-layout: fixed;
@@ -491,14 +582,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_client_certificate">4.2. Client Certificate</a></li>
 </ul>
 </li>
-<li><a href="#connection-settings">5. Connection Settings</a>
-<ul class="sectlevel2">
-<li><a href="#_jdbc_settings">5.1. JDBC Settings</a></li>
-<li><a href="#_jdbc_datasource_settings">5.2. JDBC DataSource Settings</a></li>
-<li><a href="#_system_settings">5.3. System Settings</a></li>
-<li><a href="#_protocol_settings">5.4. Protocol Settings</a></li>
-</ul>
-</li>
+<li><a href="#connection-settings">5. Connection Settings</a></li>
 <li><a href="#jdbc">6. JDBC 4.2</a>
 <ul class="sectlevel2">
 <li><a href="#jdbc-extended-types">6.1. Using Specific PostgreSQL Types</a>
@@ -628,11 +712,11 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-xml" data-lang="xml">&lt;dependency&gt;
-    &lt;groupId&gt;com.impossibl.pgjdbc-ng&lt;/groupId&gt;
-    &lt;artifactId&gt;pgjdbc-ng&lt;/artifactId&gt;
-    &lt;version&gt;0.8-SNAPSHOT&lt;/version&gt;
-&lt;/dependency&gt;</code></pre>
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependency&gt;</span>
+    <span class="tag">&lt;groupId&gt;</span>com.impossibl.pgjdbc-ng<span class="tag">&lt;/groupId&gt;</span>
+    <span class="tag">&lt;artifactId&gt;</span>pgjdbc-ng<span class="tag">&lt;/artifactId&gt;</span>
+    <span class="tag">&lt;version&gt;</span>0.8.1-SNAPSHOT<span class="tag">&lt;/version&gt;</span>
+<span class="tag">&lt;/dependency&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -643,8 +727,8 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-groovy" data-lang="groovy">dependencies {
-    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8-SNAPSHOT"
+<pre class="CodeRay highlight"><code data-lang="groovy">dependencies {
+    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8.1-SNAPSHOT"
 }</code></pre>
 </div>
 </div>
@@ -657,7 +741,7 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 <td class="content">
 Using these artifacts will pull in the driver implementation and its required dependencies. If you wish
 to depend on a version of the driver that embeds its dependencies you can use the artifact name
-<code>pgjdbc-ng-0.8-SNAPSHOT-all</code> instead; this is useful to work around dependency conflicts in certain
+<code>pgjdbc-ng-0.8.1-SNAPSHOT-all</code> instead; this is useful to work around dependency conflicts in certain
 situations but otherwise should not be necessary.
 </td>
 </tr>
@@ -673,7 +757,7 @@ an application server like Glassfish, WildFly or Tomcat you can download the dep
 driver and copy it to the location required by your project or usage.</p>
 </div>
 <div class="paragraph">
-<p><a href="http://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&amp;g=com.impossibl.pgjdbc-ng&amp;a=pgjdbc-ng&amp;c=all&amp;v=0.8-SNAPSHOT">Download JAR</a></p>
+<p><a href="http://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&amp;g=com.impossibl.pgjdbc-ng&amp;a=pgjdbc-ng&amp;c=all&amp;v=0.8.1-SNAPSHOT">Download JAR</a></p>
 </div>
 </div>
 </div>
@@ -692,10 +776,10 @@ driver and copy it to the location required by your project or usage.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">String url = "jdbc:pgsql://localhost/test";  <i class="conum" data-value="1"></i><b>(1)</b>
-String user = "test";
-String password = "test";
-Connection connection = DriverManager.getConnection(url, user, password); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">String</span> url = <span class="string"><span class="delimiter">&quot;</span><span class="content">jdbc:pgsql://localhost/test</span><span class="delimiter">&quot;</span></span>;  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="predefined-type">String</span> user = <span class="string"><span class="delimiter">&quot;</span><span class="content">test</span><span class="delimiter">&quot;</span></span>;
+<span class="predefined-type">String</span> password = <span class="string"><span class="delimiter">&quot;</span><span class="content">test</span><span class="delimiter">&quot;</span></span>;
+<span class="predefined-type">Connection</span> connection = <span class="predefined-type">DriverManager</span>.getConnection(url, user, password); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -730,13 +814,13 @@ and XA transactions.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">PGDataSource ds = PGDataSource(); <i class="conum" data-value="1"></i><b>(1)</b>
-ds.setServerName("localhost"); <i class="conum" data-value="2"></i><b>(2)</b>
-ds.setDatabaseName("test"); <i class="conum" data-value="3"></i><b>(3)</b>
-ds.setUser("test"); <i class="conum" data-value="4"></i><b>(4)</b>
-ds.setPassword("test");
+<pre class="CodeRay highlight"><code data-lang="java">PGDataSource ds = <span class="keyword">new</span> PGDataSource(); <i class="conum" data-value="1"></i><b>(1)</b>
+ds.setServerName(<span class="string"><span class="delimiter">&quot;</span><span class="content">localhost</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="2"></i><b>(2)</b>
+ds.setDatabaseName(<span class="string"><span class="delimiter">&quot;</span><span class="content">test</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="3"></i><b>(3)</b>
+ds.setUser(<span class="string"><span class="delimiter">&quot;</span><span class="content">test</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="4"></i><b>(4)</b>
+ds.setPassword(<span class="string"><span class="delimiter">&quot;</span><span class="content">test</span><span class="delimiter">&quot;</span></span>);
 
-Connection connection = ds.getConnection(); <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+<span class="predefined-type">Connection</span> connection = ds.getConnection(); <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -959,7 +1043,7 @@ provides specific capabilities and is intended to be used for a specific purpose
 <h3 id="_standard_datasource">3.1. Standard DataSource</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">com.impossibl.postgres.jdbc.PGDataSource</code></pre>
+<pre class="CodeRay highlight"><code data-lang="java">com.impossibl.postgres.jdbc.PGDataSource</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -975,7 +1059,7 @@ or XA capabilities are also required.</p>
 <h3 id="_connection_pool_datasource">3.2. Connection Pool DataSource</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">com.impossibl.postgres.jdbc.PGConnectionPoolDataSource</code></pre>
+<pre class="CodeRay highlight"><code data-lang="java">com.impossibl.postgres.jdbc.PGConnectionPoolDataSource</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1001,7 +1085,7 @@ conjunction with <code>PGDataSource</code>, will most likely yield better perfor
 <h3 id="_xa_datasource">3.3. XA DataSource</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">com.impossibl.postgres.jdbc.xa.PGXADataSource</code></pre>
+<pre class="CodeRay highlight"><code data-lang="java">com.impossibl.postgres.jdbc.xa.PGXADataSource</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1227,1490 +1311,8 @@ attempted and the items are not provided to the server.</p>
 <div class="paragraph">
 <p>PGJDBC-NG provides a number of settings that control almost every aspect of the connection.</p>
 </div>
-<div class="sect2">
-<h3 id="_jdbc_settings">5.1. JDBC Settings</h3>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 44.4444%;">
-<col style="width: 33.3333%;">
-<col style="width: 22.2223%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Setting</th>
-<th class="tableblock halign-left valign-top">Property</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="read-only"></a><strong>Read Only</strong></p>
-</div>
 <div class="paragraph">
-<p>Connect in read-only mode</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>read-only</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getReadOnly()
-setReadOnly(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.read-only</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="parsed-sql_cache_size"></a><strong>Parsed SQL Cache Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Size of the parsed SQL text cache.</p>
-</div>
-<div class="paragraph">
-<p>A value of zero disables the cache.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>parsed-sql.cache.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>250</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getParsedSqlCacheSize()
-setParsedSqlCacheSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.parsed-sql.cache.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="prepared-statement_cache_size"></a><strong>Prepared Statement Cache Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Size of the prepared statement cache</p>
-</div>
-<div class="paragraph">
-<p>A value of zero disables the cache.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>prepared-statement.cache.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>50</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getPreparedStatementCacheSize()
-setPreparedStatementCacheSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.prepared-statement.cache.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="prepared-statement_cache_threshold"></a><strong>Prepared Statement Cache Threshold</strong></p>
-</div>
-<div class="paragraph">
-<p># of times a query is seen before it is cached as a prepared statement.</p>
-</div>
-<div class="paragraph">
-<p>A value of zero prepares all statements in advance.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>prepared-statement.cache.threshold</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getPreparedStatementCacheThreshold()
-setPreparedStatementCacheThreshold(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.prepared-statement.cache.threshold</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="description_cache_size"></a><strong>Description Cache Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Size of the query description cache.</p>
-</div>
-<div class="paragraph">
-<p>A value of zero disables the cache.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>description.cache.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>250</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getDescriptionCacheSize()
-setDescriptionCacheSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.description.cache.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="network_timeout"></a><strong>Network Timeout</strong></p>
-</div>
-<div class="paragraph">
-<p>Default timeout for network communication.</p>
-</div>
-<div class="paragraph">
-<p>Value can be changed at runtime through API.</p>
-</div>
-<div class="paragraph">
-<p>Value of zero disables the timeout.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>network.timeout</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getNetworkTimeout()
-setNetworkTimeout(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.network.timeout</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="strict-mode"></a><strong>Strict Mode</strong></p>
-</div>
-<div class="paragraph">
-<p>Enable or disable strict adherence to JDBC specification.</p>
-</div>
-<div class="paragraph">
-<p>Affected behavior when disabled:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>ResultSetMetaData.getColumnName(int)</code> returns a value equivalent to <code>ResultSetMetaData.getColumnLabel(int)</code>, if a label is available.</p>
-</li>
-<li>
-<p>The <code>Statement.executeBatch(&#8230;&#8203;)</code> family of methods insert an extraneous EXECUTE_FAILED status into <code>BatchUpdateException.getUpdateCounts()</code> even though PostgreSQL stops executing at the first error.</p>
-</li>
-</ul>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>strict-mode</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getStrictMode()
-setStrictMode(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.strict-mode</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="fetch_size"></a><strong>Fetch Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Default fetch size of query results.</p>
-</div>
-<div class="paragraph">
-<p>Value can be changed at runtime.</p>
-</div>
-<div class="paragraph">
-<p>A value of zero disables batching results.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>fetch.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getFetchSize()
-setFetchSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.fetch.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="housekeeper"></a><strong>Housekeeper</strong></p>
-</div>
-<div class="paragraph">
-<p>Enables or disables the housekeeping system for leaked JDBC objects.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>housekeeper</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getHousekeeper()
-setHousekeeper(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.housekeeper</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="registry_sharing"></a><strong>Registry Sharing</strong></p>
-</div>
-<div class="paragraph">
-<p>Enables or disables sharing type registries between connections.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>registry.sharing</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getRegistrySharing()
-setRegistrySharing(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.registry.sharing</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="api_trace"></a><strong>API Trace</strong></p>
-</div>
-<div class="paragraph">
-<p>Enables or disables API trace output.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>api.trace</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getApiTrace()
-setApiTrace(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.api.trace</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="api_trace_file"></a><strong>API Trace File</strong></p>
-</div>
-<div class="paragraph">
-<p>File destination of API trace output.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<code>api.trace</code> must be <code>true</code> to generate trace output
-</td>
-</tr>
-</table>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>api.trace.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getApiTraceFile()
-setApiTraceFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.api.trace.file</code></p>
-</div></div></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sect2">
-<h3 id="_jdbc_datasource_settings">5.2. JDBC DataSource Settings</h3>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 44.4444%;">
-<col style="width: 33.3333%;">
-<col style="width: 22.2223%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Setting</th>
-<th class="tableblock halign-left valign-top">Property</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p><a id="data-source_name"></a><strong>Data Source Name</strong></p>
-</div>
-<div class="paragraph">
-<p>Name of data source.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getDataSourceName()
-setDataSourceName(String)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.data-source.name</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p><a id="server_name"></a><strong>Server Name</strong></p>
-</div>
-<div class="paragraph">
-<p>Host name for TCP connections.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getServerName()
-setServerName(String)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>localhost</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.server.name</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p><a id="port_number"></a><strong>Port Number</strong></p>
-</div>
-<div class="paragraph">
-<p>Port number for TCP connections.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getPortNumber()
-setPortNumber(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5432</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.port.number</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Must be between <code>1</code> and <code>65535</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p><a id="login_timeout"></a><strong>Login Timeout</strong></p>
-</div>
-<div class="paragraph">
-<p>Maximum time to wait for a connection to be established.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getLoginTimeout()
-setLoginTimeout(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.login.timeout</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sect2">
-<h3 id="_system_settings">5.3. System Settings</h3>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 44.4444%;">
-<col style="width: 33.3333%;">
-<col style="width: 22.2223%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Setting</th>
-<th class="tableblock halign-left valign-top">Property</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="database_url"></a><strong>Database URL</strong></p>
-</div>
-<div class="paragraph">
-<p>URL of database connection</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>database.url</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getDatabaseUrl()
-setDatabaseUrl(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.database.url</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="database_name"></a><strong>Database Name</strong></p>
-</div>
-<div class="paragraph">
-<p>Name of database related to connection</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>database.name</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">Empty</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getDatabaseName()
-setDatabaseName(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.database.name</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="application_name"></a><strong>Application Name</strong></p>
-</div>
-<div class="paragraph">
-<p>Name of the client application</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>application.name</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p>Driver implementation name</p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getApplicationName()
-setApplicationName(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.application.name</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="user"></a><strong>User</strong></p>
-</div>
-<div class="paragraph">
-<p>Username for server authentication &amp; authorization.</p>
-</div>
-<div class="paragraph">
-<p>If no value is provided is defaults to the Java system property <code>user.name</code>.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>user</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p>Current user via <code>user.name</code> system property</p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getUser()
-setUser(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.user</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="password"></a><strong>Password</strong></p>
-</div>
-<div class="paragraph">
-<p>Password for server authentication.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>password</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">Empty</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getPassword()
-setPassword(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.password</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="field_format"></a><strong>Field Format</strong></p>
-</div>
-<div class="paragraph">
-<p>Preferred format of result fields.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>text</p>
-</li>
-<li>
-<p>binary</p>
-</li>
-</ul>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>field.format</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>binary</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getFieldFormat()
-setFieldFormat(FieldFormat)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.field.format</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="field_length_max"></a><strong>Field Length Max</strong></p>
-</div>
-<div class="paragraph">
-<p>Default maximum allowed length of field.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>field.length.max</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getFieldLengthMax()
-setFieldLengthMax(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.field.length.max</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="param_format"></a><strong>Param Format</strong></p>
-</div>
-<div class="paragraph">
-<p>Preferred format of prepared statement parameters.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>text</p>
-</li>
-<li>
-<p>binary</p>
-</li>
-</ul>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>param.format</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>binary</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getParamFormat()
-setParamFormat(FieldFormat)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.param.format</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="money_fractional-digits"></a><strong>Money Fractional Digits</strong></p>
-</div>
-<div class="paragraph">
-<p># of fractional digits for money fields.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>money.fractional-digits</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>2</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getMoneyFractionalDigits()
-setMoneyFractionalDigits(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be between <code>0</code> and <code>20</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.money.fractional-digits</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_mode"></a><strong>SSL Mode</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL connection mode.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>disable</p>
-</li>
-<li>
-<p>allow</p>
-</li>
-<li>
-<p>prefer</p>
-</li>
-<li>
-<p>require</p>
-</li>
-<li>
-<p>verify-ca</p>
-</li>
-<li>
-<p>verify-full</p>
-</li>
-</ul>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.mode</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>disable</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslMode()
-setSslMode(SSLMode)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.mode</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_certificate_file"></a><strong>SSL Certificate File</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL client certificate file name.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.certificate.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>postgresql.crt</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslCertificateFile()
-setSslCertificateFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.certificate.file</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_ca_certificate_file"></a><strong>SSL CA Certificate File</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL certificate authority file name.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.ca.certificate.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>root.crt</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslCaCertificateFile()
-setSslCaCertificateFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.ca.certificate.file</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_key_file"></a><strong>SSL Key File</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL key file name.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.key.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>postgresql.pk8</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslKeyFile()
-setSslKeyFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.key.file</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_key_password"></a><strong>SSL Key Password</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL key file password.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.key.password</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslKeyPassword()
-setSslKeyPassword(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.key.password</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_key_password_callback"></a><strong>SSL Key Password Callback</strong></p>
-</div>
-<div class="paragraph">
-<p>SSL key file password callback class name.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.key.password.callback</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslKeyPasswordCallback()
-setSslKeyPasswordCallback(Class)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.key.password.callback</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="ssl_home-dir"></a><strong>SSL Home Dir</strong></p>
-</div>
-<div class="paragraph">
-<p>Directory that SSL files are located in.</p>
-</div>
-<div class="paragraph">
-<p>If the value begins with a path separator (e.g. <code>/</code>) it will be considered an absolute path. In all other
-cases it is considered a value relative to the user&#8217;s home directory.
-On Windows <code>$APPDATA</code> is used as the
-home directory, all others use the <code>user.home</code> system property.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>ssl.home-dir</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>.postgresql</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSslHomeDir()
-setSslHomeDir(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.ssl.home-dir</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="sql_trace"></a><strong>SQL Trace</strong></p>
-</div>
-<div class="paragraph">
-<p>Enables or disables SQL trace output</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>sql.trace</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSqlTrace()
-setSqlTrace(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.sql.trace</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="sql_trace_file"></a><strong>SQL Trace File</strong></p>
-</div>
-<div class="paragraph">
-<p>File destination of SQL trace output.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<code>sql.trace</code> must be <code>true</code> to generate trace output
-</td>
-</tr>
-</table>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>sql.trace.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getSqlTraceFile()
-setSqlTraceFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.sql.trace.file</code></p>
-</div></div></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sect2">
-<h3 id="_protocol_settings">5.4. Protocol Settings</h3>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 44.4444%;">
-<col style="width: 33.3333%;">
-<col style="width: 22.2223%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Setting</th>
-<th class="tableblock halign-left valign-top">Property</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_version"></a><strong>Protocol Version</strong></p>
-</div>
-<div class="paragraph">
-<p>Version of server protocol to use.</p>
-</div>
-<div class="paragraph">
-<p>Valid protocol versions:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>3.0</code></p>
-</li>
-</ul>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.version</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>3.0</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolVersion()
-setProtocolVersion(Version)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.version</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_io_mode"></a><strong>Protocol I/O Mode</strong></p>
-</div>
-<div class="paragraph">
-<p>I/O subsystem selection mode.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">any</dt>
-<dd>
-<p>Attempts to use each other subsystem in order of <code>native</code>, <code>nio</code>, <code>oio</code>.</p>
-</dd>
-<dt class="hdlist1">native</dt>
-<dd>
-<p>Native subsystem using <strong>kqueue</strong> on macOS and <strong>epoll</strong> on Linux.
-Native libraries must be provided, <a href="https://netty.io/wiki/native-transports.html">see Netty&#8217;s wiki</a>.</p>
-</dd>
-<dt class="hdlist1">nio</dt>
-<dd>
-<p>Java NIO subsystem.</p>
-</dd>
-<dt class="hdlist1">oio</dt>
-<dd>
-<p>Java Blocking I/O subsystem.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.io.mode</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>any</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolIoMode()
-setProtocolIoMode(ProtocolIOMode)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.io.mode</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_io_threads"></a><strong>Protocol I/O Threads</strong></p>
-</div>
-<div class="paragraph">
-<p>Number of I/O threads in pool</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.io.threads</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>3</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolIoThreads()
-setProtocolIoThreads(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>1</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.io.threads</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_encoding"></a><strong>Protocol Encoding</strong></p>
-</div>
-<div class="paragraph">
-<p>Text encoding</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.encoding</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>UTF-8</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolEncoding()
-setProtocolEncoding(Charset)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.encoding</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_socket_recv-buffer_size"></a><strong>Protocol Socket Receive Buffer Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Socket receive buffer size</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.socket.recv-buffer.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolSocketRecvBufferSize()
-setProtocolSocketRecvBufferSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.socket.recv-buffer.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_socket_send-buffer_size"></a><strong>Protocol Socket Send Buffer Size</strong></p>
-</div>
-<div class="paragraph">
-<p>Socket send buffer size</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.socket.send-buffer.size</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolSocketSendBufferSize()
-setProtocolSocketSendBufferSize(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.socket.send-buffer.size</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_buffer_pooling"></a><strong>Protocol Buffer Pooling</strong></p>
-</div>
-<div class="paragraph">
-<p>Enable or disable pooling of byte buffers</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.buffer.pooling</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolBufferPooling()
-setProtocolBufferPooling(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.buffer.pooling</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_message_size_max"></a><strong>Protocol Message Size Max</strong></p>
-</div>
-<div class="paragraph">
-<p>Maximum size message that can be received</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.message.size.max</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>20971520</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolMessageSizeMax()
-setProtocolMessageSizeMax(Integer)</code></pre>
-</div>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Must be greater than or equal to <code>0</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.message.size.max</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_trace"></a><strong>Protocol Trace</strong></p>
-</div>
-<div class="paragraph">
-<p>Enable or disable message trace output</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.trace</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolTrace()
-setProtocolTrace(Boolean)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.trace</code></p>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
-<p><a id="protocol_trace_file"></a><strong>Protocol Trace File</strong></p>
-</div>
-<div class="paragraph">
-<p>File destination of message trace output</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<code>protocol.trace</code> must be <code>true</code> to generate trace output
-</td>
-</tr>
-</table>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">Driver</div>
-<p><code>protocol.trace.file</code></p>
-</div></div></td>
-<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
-<div class="title">DataSource</div>
-<div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">getProtocolTraceFile()
-setProtocolTraceFile(String)</code></pre>
-</div>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<div class="title">System</div>
-<p><code>pgjdbc.protocol.trace.file</code></p>
-</div></div></td>
-</tr>
-</tbody>
-</table>
+<p>Unresolved directive in settings.adoc - include::/home/travis/impossibl/pgjdbc-ng/documentation/build/tmp/docs/settings.adoc[leveloffset=+1]</p>
 </div>
 </div>
 </div>
@@ -2732,7 +1334,7 @@ using many of the extended types that PostgreSQL provides.</p>
 <div class="paragraph">
 <p>JDBC 4.2 added a new method for specifying extended types, <code>java.sql.SQLType</code>. Most of the interfaces in JDBC
 were extended to accept this new, extendable, type in place of the previous integer type code. PGJDBC-NG has
-embraced this new method of using/specfiying PostgreSQL&#8217;s extended types via <code>PGTYpe</code>.</p>
+embraced this new method of using/specfiying PostgreSQL&#8217;s extended types via <code>PGType</code>.</p>
 </div>
 <div class="sect3">
 <h4 id="_pgtype">6.1.1. PGType</h4>
@@ -2747,8 +1349,8 @@ wanted or required.</p>
 <div class="listingblock">
 <div class="title">Setting a parameter value, specifying PostgreSQL's money type</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">PreparedStatement pstmt = connection.prepareStatement("INSERT INTO ledger(balance) VALUES (?)");
-pstmt.setObject(1, 113.54, PGType.MONEY); <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">PreparedStatement</span> pstmt = connection.prepareStatement(<span class="string"><span class="delimiter">&quot;</span><span class="content">INSERT INTO ledger(balance) VALUES (?)</span><span class="delimiter">&quot;</span></span>);
+pstmt.setObject(<span class="integer">1</span>, <span class="float">113.54</span>, PGType.MONEY); <i class="conum" data-value="1"></i><b>(1)</b>
 pstmt.executeUpdate();</code></pre>
 </div>
 </div>
@@ -2774,8 +1376,8 @@ provides usable <code>SQLType</code>s.</p>
 <div class="listingblock">
 <div class="title">Resolving a type to a PGAnyType</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">PGConnection pgConnection = connection.unwrap(PGConnection.class); <i class="conum" data-value="1"></i><b>(1)</b>
-PGAnyType myType = pgConnection.resolveType("my_type"); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+<pre class="CodeRay highlight"><code data-lang="java">PGConnection pgConnection = connection.unwrap(PGConnection.class); <i class="conum" data-value="1"></i><b>(1)</b>
+PGAnyType myType = pgConnection.resolveType(<span class="string"><span class="delimiter">&quot;</span><span class="content">my_type</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -2802,7 +1404,7 @@ the standard <code>java.sql.Struct</code> API or via custom mapped Java classes 
 <div class="sect3">
 <h4 id="_java_sql_struct">6.2.1. java.sql.Struct</h4>
 <div class="paragraph">
-<p>PGJDBC-NG fully supports UDTs via the JDBC <code>java.sql.Struct</code> API for specifying and UDT parameters
+<p>PGJDBC-NG fully supports UDTs via the JDBC <code>java.sql.Struct</code> API for specifying UDT parameters
 and for retrieving UDT values in from <code>ResultSet</code>s.</p>
 </div>
 </div>
@@ -2839,7 +1441,7 @@ manual updates when schema changes.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-SQL" data-lang="SQL">CREATE TYPE address AS (street text, city text, state char(2), zip text);</code></pre>
+<pre class="CodeRay highlight"><code data-lang="SQL"><span class="class">CREATE</span> TYPE address <span class="keyword">AS</span> (street <span class="predefined-type">text</span>, city <span class="predefined-type">text</span>, state <span class="predefined-type">char</span>(<span class="integer">2</span>), zip <span class="predefined-type">text</span>);</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2847,27 +1449,27 @@ manual updates when schema changes.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">import java.sql.SQLData;
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">import</span> <span class="include">java.sql.SQLData</span>;
 
-class Address implements SQLData {
+<span class="type">class</span> <span class="class">Address</span> <span class="directive">implements</span> <span class="predefined-type">SQLData</span> {
 
-  public String street;
-  public String city;
-  public String state;
-  public String zip;
+  <span class="directive">public</span> <span class="predefined-type">String</span> street;
+  <span class="directive">public</span> <span class="predefined-type">String</span> city;
+  <span class="directive">public</span> <span class="predefined-type">String</span> state;
+  <span class="directive">public</span> <span class="predefined-type">String</span> zip;
 
-  public String getSQLTypeName() { <i class="conum" data-value="1"></i><b>(1)</b>
-    return "address";
+  <span class="directive">public</span> <span class="predefined-type">String</span> getSQLTypeName() { <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="keyword">return</span> <span class="string"><span class="delimiter">&quot;</span><span class="content">address</span><span class="delimiter">&quot;</span></span>;
   }
 
-  public void readSQL(SQLInput stream, String typeName) throws java.sql.SQLException { <i class="conum" data-value="2"></i><b>(2)</b>
+  <span class="directive">public</span> <span class="type">void</span> readSQL(<span class="predefined-type">SQLInput</span> stream, <span class="predefined-type">String</span> typeName) <span class="directive">throws</span> java.sql.SQLException { <i class="conum" data-value="2"></i><b>(2)</b>
     street = stream.readString();
     city = stream.readString();
     state = stream.readString();
     zip = stream.readString();
   }
 
-  public void writeSQL (SQLOutput stream) throws SQLException { <i class="conum" data-value="3"></i><b>(3)</b>
+  <span class="directive">public</span> <span class="type">void</span> writeSQL (<span class="predefined-type">SQLOutput</span> stream) <span class="directive">throws</span> <span class="exception">SQLException</span> { <i class="conum" data-value="3"></i><b>(3)</b>
     stream.writeString(street);
     stream.writeString(city);
     stream.writeString(state);
@@ -2950,9 +1552,9 @@ counterpart datatype, and instead use <code>getObject</code> providing the type 
 <div class="listingblock">
 <div class="title">Retrieve a LocalDateTime from a TIMESTAMP WITHOUT TIMEZONE</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">ResultSet rs = statement.getResultSet();
-LocalDateTime incorrect = rs.getTimestamp(1).toLocalDateTime(); <i class="conum" data-value="1"></i><b>(1)</b>
-LocalDateTime correct = rs.getObjecct(1, LocalDateTime.class); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">ResultSet</span> rs = statement.getResultSet();
+LocalDateTime incorrect = rs.getTimestamp(<span class="integer">1</span>).toLocalDateTime(); <i class="conum" data-value="1"></i><b>(1)</b>
+LocalDateTime correct = rs.getObjecct(<span class="integer">1</span>, LocalDateTime.class); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -2974,17 +1576,17 @@ LocalDateTime correct = rs.getObjecct(1, LocalDateTime.class); <i class="conum" 
 <div class="listingblock">
 <div class="title">Providing LocalDateTime for a TIMESTAMP WITHOUT TIMEZONE</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">PreparedStatement stmt = conn.prepareStatement("INSERT INTO log VALUES (? , ?)");
-stmt.setText("Something happened");
-stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now())); <i class="conum" data-value="1"></i><b>(1)</b>
-stmt.setObject(1, LocalDateTime.now()); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">PreparedStatement</span> stmt = conn.prepareStatement(<span class="string"><span class="delimiter">&quot;</span><span class="content">INSERT INTO log VALUES (? , ?)</span><span class="delimiter">&quot;</span></span>);
+stmt.setText(<span class="string"><span class="delimiter">&quot;</span><span class="content">Something happened</span><span class="delimiter">&quot;</span></span>);
+stmt.setTimestamp(<span class="integer">1</span>, <span class="predefined-type">Timestamp</span>.valueOf(LocalDateTime.now())); <i class="conum" data-value="1"></i><b>(1)</b>
+stmt.setObject(<span class="integer">1</span>, LocalDateTime.now()); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Incorrect method using convenience API and conversion</td>
+<td><span class="red">Incorrect method using convenience API and conversion</span></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -3044,7 +1646,7 @@ the JDBC API. That mechanism is the <code>unwrap</code> method available on the 
 <div class="listingblock">
 <div class="title">Unwrapping instead of casting</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">Connection connection = DriverManager.getConnection(url);
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">Connection</span> connection = <span class="predefined-type">DriverManager</span>.getConnection(url);
 PGConnection pgConnection = (PGConnection)connection; <i class="conum" data-value="1"></i><b>(1)</b>
 PGConnection pgConnection = connection.unwrap(PGConnection.class); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
@@ -3080,24 +1682,24 @@ the ability to filter on channel names and payload values.</p>
 <div class="listingblock">
 <div class="title">Simple asynchronous notification example</div>
 <div class="content">
-<pre class="highlight nowrap"><code class="language-java" data-lang="java">PGConnection connection = DriverManager.getConnection(url).unwrap(PGConnection.class); <i class="conum" data-value="1"></i><b>(1)</b>
-connection.addListener(new PGNotificationListener() { <i class="conum" data-value="2"></i><b>(2)</b>
+<pre class="CodeRay highlight nowrap"><code data-lang="java">PGConnection connection = <span class="predefined-type">DriverManager</span>.getConnection(url).unwrap(PGConnection.class); <i class="conum" data-value="1"></i><b>(1)</b>
+connection.addListener(<span class="keyword">new</span> PGNotificationListener() { <i class="conum" data-value="2"></i><b>(2)</b>
 
-  void notification(int processId, String channelName, String payload) {
-    System.out.println("Received Notification: " + processId + ", " + channelName + ", " + payload); <i class="conum" data-value="3"></i><b>(3)</b>
+  <span class="type">void</span> notification(<span class="type">int</span> processId, <span class="predefined-type">String</span> channelName, <span class="predefined-type">String</span> payload) {
+    <span class="predefined-type">System</span>.out.println(<span class="string"><span class="delimiter">&quot;</span><span class="content">Received Notification: </span><span class="delimiter">&quot;</span></span> + processId + <span class="string"><span class="delimiter">&quot;</span><span class="content">, </span><span class="delimiter">&quot;</span></span> + channelName + <span class="string"><span class="delimiter">&quot;</span><span class="content">, </span><span class="delimiter">&quot;</span></span> + payload); <i class="conum" data-value="3"></i><b>(3)</b>
   }
 
-  void closed() { <i class="conum" data-value="4"></i><b>(4)</b>
-    // initiate reconnection &amp; restart listening
+  <span class="type">void</span> closed() { <i class="conum" data-value="4"></i><b>(4)</b>
+    <span class="comment">// initiate reconnection &amp; restart listening</span>
   }
 
 });
 
 
-Statement stmt = connection.createStatement();
-stmt.executeUpdate("LISTEN msgs"); <i class="conum" data-value="5"></i><b>(5)</b>
+<span class="predefined-type">Statement</span> stmt = connection.createStatement();
+stmt.executeUpdate(<span class="string"><span class="delimiter">&quot;</span><span class="content">LISTEN msgs</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="5"></i><b>(5)</b>
 
-stmt.executeUpdate("NOTIFY msgs"); <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
+stmt.executeUpdate(<span class="string"><span class="delimiter">&quot;</span><span class="content">NOTIFY msgs</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -3325,7 +1927,7 @@ method of referencing the main class.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">java -jar udt-gen-0.8-SNAPSHOT-all.jar [options] &lt;type names&gt;</code></pre>
+<pre class="CodeRay highlight"><code data-lang="bash">java -jar udt-gen-0.8.1-SNAPSHOT-all.jar [options] &lt;type names&gt;</code></pre>
 </div>
 </div>
 <div class="sect4">
@@ -3439,14 +2041,14 @@ options can be left to their defaults.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">import com.impossibl.postgres.tools.UDTGenerator;
-import java.sql.Connection;
-import java.util.List;
-import java.io.File;
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">import</span> <span class="include">com.impossibl.postgres.tools.UDTGenerator</span>;
+<span class="keyword">import</span> <span class="include">java.sql.Connection</span>;
+<span class="keyword">import</span> <span class="include">java.util.List</span>;
+<span class="keyword">import</span> <span class="include">java.io.File</span>;
 
-class ExecGen {
-  public static void executeGenerator(Connection connection, List&lt;String&gt; typeNames) {
-    UDTGenerator.generate(connection, new File("out"), "sql.schema.types", typeNames);
+<span class="type">class</span> <span class="class">ExecGen</span> {
+  <span class="directive">public</span> <span class="directive">static</span> <span class="type">void</span> executeGenerator(<span class="predefined-type">Connection</span> connection, <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; typeNames) {
+    UDTGenerator.generate(connection, <span class="keyword">new</span> <span class="predefined-type">File</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">out</span><span class="delimiter">&quot;</span></span>), <span class="string"><span class="delimiter">&quot;</span><span class="content">sql.schema.types</span><span class="delimiter">&quot;</span></span>, typeNames);
   }
 }</code></pre>
 </div>
@@ -3457,9 +2059,9 @@ class ExecGen {
 <div class="listingblock">
 <div class="title">Simple VCard data types in SQL</div>
 <div class="content">
-<pre class="highlight"><code class="language-sql" data-lang="sql">CREATE TYPE title as enum ('mr', 'mrs', 'ms', 'dr');
-CREATE TYPE address as (street text, city text, state char(2), zip char(5));
-CREATE TYPE v_card as (id int4, name text, title title, addresses address[]);</code></pre>
+<pre class="CodeRay highlight"><code data-lang="sql"><span class="class">CREATE</span> TYPE title <span class="keyword">as</span> <span class="predefined-type">enum</span> (<span class="string"><span class="delimiter">'</span><span class="content">mr</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">mrs</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">ms</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">dr</span><span class="delimiter">'</span></span>);
+<span class="class">CREATE</span> TYPE address <span class="keyword">as</span> (street <span class="predefined-type">text</span>, city <span class="predefined-type">text</span>, state <span class="predefined-type">char</span>(<span class="integer">2</span>), zip <span class="predefined-type">char</span>(<span class="integer">5</span>));
+<span class="class">CREATE</span> TYPE v_card <span class="keyword">as</span> (id int4, name <span class="predefined-type">text</span>, title title, addresses address[]);</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3468,160 +2070,160 @@ CREATE TYPE v_card as (id int4, name text, title title, addresses address[]);</c
 <div class="listingblock">
 <div class="title">Matching VCard Java classes</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">public class Address implements SQLData {
-  private static final String TYPE_NAME = "public.address";
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">class</span> <span class="class">Address</span> <span class="directive">implements</span> <span class="predefined-type">SQLData</span> {
+  <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">String</span> TYPE_NAME = <span class="string"><span class="delimiter">&quot;</span><span class="content">public.address</span><span class="delimiter">&quot;</span></span>;
 
-  private String street;
+  <span class="directive">private</span> <span class="predefined-type">String</span> street;
 
-  private String city;
+  <span class="directive">private</span> <span class="predefined-type">String</span> city;
 
-  private String state;
+  <span class="directive">private</span> <span class="predefined-type">String</span> state;
 
-  private String zip;
+  <span class="directive">private</span> <span class="predefined-type">String</span> zip;
 
-  @Override
-  public String getSQLTypeName() throws SQLException {
-    return TYPE_NAME;
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="predefined-type">String</span> getSQLTypeName() <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    <span class="keyword">return</span> TYPE_NAME;
   }
 
-  public String getStreet() {
-    return street;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getStreet() {
+    <span class="keyword">return</span> street;
   }
 
-  public void setStreet(String street) {
-    this.street = street;
+  <span class="directive">public</span> <span class="type">void</span> setStreet(<span class="predefined-type">String</span> street) {
+    <span class="local-variable">this</span>.street = street;
   }
 
-  public String getCity() {
-    return city;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getCity() {
+    <span class="keyword">return</span> city;
   }
 
-  public void setCity(String city) {
-    this.city = city;
+  <span class="directive">public</span> <span class="type">void</span> setCity(<span class="predefined-type">String</span> city) {
+    <span class="local-variable">this</span>.city = city;
   }
 
-  public String getState() {
-    return state;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getState() {
+    <span class="keyword">return</span> state;
   }
 
-  public void setState(String state) {
-    this.state = state;
+  <span class="directive">public</span> <span class="type">void</span> setState(<span class="predefined-type">String</span> state) {
+    <span class="local-variable">this</span>.state = state;
   }
 
-  public String getZip() {
-    return zip;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getZip() {
+    <span class="keyword">return</span> zip;
   }
 
-  public void setZip(String zip) {
-    this.zip = zip;
+  <span class="directive">public</span> <span class="type">void</span> setZip(<span class="predefined-type">String</span> zip) {
+    <span class="local-variable">this</span>.zip = zip;
   }
 
-  @Override
-  public void readSQL(SQLInput in, String typeName) throws SQLException {
-    this.street = in.readString();
-    this.city = in.readString();
-    this.state = in.readString();
-    this.zip = in.readString();
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="type">void</span> readSQL(<span class="predefined-type">SQLInput</span> in, <span class="predefined-type">String</span> typeName) <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    <span class="local-variable">this</span>.street = in.readString();
+    <span class="local-variable">this</span>.city = in.readString();
+    <span class="local-variable">this</span>.state = in.readString();
+    <span class="local-variable">this</span>.zip = in.readString();
   }
 
-  @Override
-  public void writeSQL(SQLOutput out) throws SQLException {
-    out.writeString(this.street);
-    out.writeString(this.city);
-    out.writeString(this.state);
-    out.writeString(this.zip);
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="type">void</span> writeSQL(<span class="predefined-type">SQLOutput</span> out) <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    out.writeString(<span class="local-variable">this</span>.street);
+    out.writeString(<span class="local-variable">this</span>.city);
+    out.writeString(<span class="local-variable">this</span>.state);
+    out.writeString(<span class="local-variable">this</span>.zip);
   }
 }
 
-public enum Title {
-  MR("mr"),
+<span class="directive">public</span> <span class="type">enum</span> Title {
+  MR(<span class="string"><span class="delimiter">&quot;</span><span class="content">mr</span><span class="delimiter">&quot;</span></span>),
 
-  MRS("mrs"),
+  MRS(<span class="string"><span class="delimiter">&quot;</span><span class="content">mrs</span><span class="delimiter">&quot;</span></span>),
 
-  MS("ms"),
+  MS(<span class="string"><span class="delimiter">&quot;</span><span class="content">ms</span><span class="delimiter">&quot;</span></span>),
 
-  DR("dr");
+  DR(<span class="string"><span class="delimiter">&quot;</span><span class="content">dr</span><span class="delimiter">&quot;</span></span>);
 
-  private String label;
+  <span class="directive">private</span> <span class="predefined-type">String</span> label;
 
-  Title(String label) {
-    this.label = label;
+  Title(<span class="predefined-type">String</span> label) {
+    <span class="local-variable">this</span>.label = label;
   }
 
-  public String getLabel() {
-    return label;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getLabel() {
+    <span class="keyword">return</span> label;
   }
 
-  public static Title valueOfLabel(String label) {
-    for (Title value : values()) {
-      if (value.label.equals(label)) return value;
+  <span class="directive">public</span> <span class="directive">static</span> Title valueOfLabel(<span class="predefined-type">String</span> label) {
+    <span class="keyword">for</span> (Title value : values()) {
+      <span class="keyword">if</span> (value.label.equals(label)) <span class="keyword">return</span> value;
     }
-    throw new IllegalArgumentException("Invalid label");}
+    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">IllegalArgumentException</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">Invalid label</span><span class="delimiter">&quot;</span></span>);}
 }
 
 
-public class VCard implements SQLData {
-  private static final String TYPE_NAME = "public.v_card";
+<span class="directive">public</span> <span class="type">class</span> <span class="class">VCard</span> <span class="directive">implements</span> <span class="predefined-type">SQLData</span> {
+  <span class="directive">private</span> <span class="directive">static</span> <span class="directive">final</span> <span class="predefined-type">String</span> TYPE_NAME = <span class="string"><span class="delimiter">&quot;</span><span class="content">public.v_card</span><span class="delimiter">&quot;</span></span>;
 
-  private Integer id;
+  <span class="directive">private</span> <span class="predefined-type">Integer</span> id;
 
-  private String name;
+  <span class="directive">private</span> <span class="predefined-type">String</span> name;
 
-  private Title title;
+  <span class="directive">private</span> Title title;
 
-  private PGStruct[] addresses;
+  <span class="directive">private</span> PGStruct<span class="type">[]</span> addresses;
 
-  @Override
-  public String getSQLTypeName() throws SQLException {
-    return TYPE_NAME;
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="predefined-type">String</span> getSQLTypeName() <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    <span class="keyword">return</span> TYPE_NAME;
   }
 
-  public Integer getId() {
-    return id;
+  <span class="directive">public</span> <span class="predefined-type">Integer</span> getId() {
+    <span class="keyword">return</span> id;
   }
 
-  public void setId(Integer id) {
-    this.id = id;
+  <span class="directive">public</span> <span class="type">void</span> setId(<span class="predefined-type">Integer</span> id) {
+    <span class="local-variable">this</span>.id = id;
   }
 
-  public String getName() {
-    return name;
+  <span class="directive">public</span> <span class="predefined-type">String</span> getName() {
+    <span class="keyword">return</span> name;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  <span class="directive">public</span> <span class="type">void</span> setName(<span class="predefined-type">String</span> name) {
+    <span class="local-variable">this</span>.name = name;
   }
 
-  public Title getTitle() {
-    return title;
+  <span class="directive">public</span> Title getTitle() {
+    <span class="keyword">return</span> title;
   }
 
-  public void setTitle(Title title) {
-    this.title = title;
+  <span class="directive">public</span> <span class="type">void</span> setTitle(Title title) {
+    <span class="local-variable">this</span>.title = title;
   }
 
-  public PGStruct[] getAddresses() {
-    return addresses;
+  <span class="directive">public</span> PGStruct<span class="type">[]</span> getAddresses() {
+    <span class="keyword">return</span> addresses;
   }
 
-  public void setAddresses(PGStruct[] addresses) {
-    this.addresses = addresses;
+  <span class="directive">public</span> <span class="type">void</span> setAddresses(PGStruct<span class="type">[]</span> addresses) {
+    <span class="local-variable">this</span>.addresses = addresses;
   }
 
-  @Override
-  public void readSQL(SQLInput in, String typeName) throws SQLException {
-    this.id = in.readInt();
-    this.name = in.readString();
-    this.title = Title.valueOfLabel(in.readString());
-    this.addresses = in.readObject(PGStruct[].class);
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="type">void</span> readSQL(<span class="predefined-type">SQLInput</span> in, <span class="predefined-type">String</span> typeName) <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    <span class="local-variable">this</span>.id = in.readInt();
+    <span class="local-variable">this</span>.name = in.readString();
+    <span class="local-variable">this</span>.title = Title.valueOfLabel(in.readString());
+    <span class="local-variable">this</span>.addresses = in.readObject(PGStruct<span class="type">[]</span>.class);
   }
 
-  @Override
-  public void writeSQL(SQLOutput out) throws SQLException {
-    out.writeInt(this.id);
-    out.writeString(this.name);
-    out.writeString(this.title.getLabel());
-    out.writeObject(this.addresses, null);
+  <span class="annotation">@Override</span>
+  <span class="directive">public</span> <span class="type">void</span> writeSQL(<span class="predefined-type">SQLOutput</span> out) <span class="directive">throws</span> <span class="exception">SQLException</span> {
+    out.writeInt(<span class="local-variable">this</span>.id);
+    out.writeString(<span class="local-variable">this</span>.name);
+    out.writeString(<span class="local-variable">this</span>.title.getLabel());
+    out.writeObject(<span class="local-variable">this</span>.addresses, <span class="predefined-constant">null</span>);
   }
 }</code></pre>
 </div>
@@ -3632,31 +2234,31 @@ the JDBC API.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">Address address = new Address();        <i class="conum" data-value="1"></i><b>(1)</b>
-address.setStreet("123 Easy Street");
-address.setCity("Easy Town");
-address.setState("IL");
-address.setZip("12345");
+<pre class="CodeRay highlight"><code data-lang="java">Address address = <span class="keyword">new</span> Address();        <i class="conum" data-value="1"></i><b>(1)</b>
+address.setStreet(<span class="string"><span class="delimiter">&quot;</span><span class="content">123 Easy Street</span><span class="delimiter">&quot;</span></span>);
+address.setCity(<span class="string"><span class="delimiter">&quot;</span><span class="content">Easy Town</span><span class="delimiter">&quot;</span></span>);
+address.setState(<span class="string"><span class="delimiter">&quot;</span><span class="content">IL</span><span class="delimiter">&quot;</span></span>);
+address.setZip(<span class="string"><span class="delimiter">&quot;</span><span class="content">12345</span><span class="delimiter">&quot;</span></span>);
 
-VCard vCard = new VCard();              <i class="conum" data-value="2"></i><b>(2)</b>
-vCard.setId(5);
+VCard vCard = <span class="keyword">new</span> VCard();              <i class="conum" data-value="2"></i><b>(2)</b>
+vCard.setId(<span class="integer">5</span>);
 vCard.setTitle(Title.MR);
-vCard.setName("A Guy");
-vCard.setAddresses(new Address[]{address});
+vCard.setName(<span class="string"><span class="delimiter">&quot;</span><span class="content">A Guy</span><span class="delimiter">&quot;</span></span>);
+vCard.setAddresses(<span class="keyword">new</span> Address<span class="type">[]</span>{address});
 
-PreparedStatement stmt = connection.prepareStatement("INSERT INTO contacts(card) VALUES (?)");
-stmt.setObject(1, vCard); <i class="conum" data-value="3"></i><b>(3)</b>
+<span class="predefined-type">PreparedStatement</span> stmt = connection.prepareStatement(<span class="string"><span class="delimiter">&quot;</span><span class="content">INSERT INTO contacts(card) VALUES (?)</span><span class="delimiter">&quot;</span></span>);
+stmt.setObject(<span class="integer">1</span>, vCard); <i class="conum" data-value="3"></i><b>(3)</b>
 
-Statement stmt = connection.createStatement();
-ResultSet rs = stmt.executeQuery("SELECT card FROM contacts;")
-while (rs.next()) {
-  VCard vCard = (VCard) rs.getObject(1, VCard.class); <i class="conum" data-value="4"></i><b>(4)</b>
+<span class="predefined-type">Statement</span> stmt = connection.createStatement();
+<span class="predefined-type">ResultSet</span> rs = stmt.executeQuery(<span class="string"><span class="delimiter">&quot;</span><span class="content">SELECT card FROM contacts;</span><span class="delimiter">&quot;</span></span>)
+<span class="keyword">while</span> (rs.next()) {
+  VCard vCard = (VCard) rs.getObject(<span class="integer">1</span>, VCard.class); <i class="conum" data-value="4"></i><b>(4)</b>
 
-  HashMap&lt;String, Class&lt;?&gt;&gt; customTypes = new HashMap&lt;&gt;(); <i class="conum" data-value="5"></i><b>(5)</b>
-  customTypes.put("v_card", VCard.class);
-  customTypes.put("address", Address.class);
+  <span class="predefined-type">HashMap</span>&lt;<span class="predefined-type">String</span>, <span class="predefined-type">Class</span>&lt;?&gt;&gt; customTypes = <span class="keyword">new</span> <span class="predefined-type">HashMap</span>&lt;&gt;(); <i class="conum" data-value="5"></i><b>(5)</b>
+  customTypes.put(<span class="string"><span class="delimiter">&quot;</span><span class="content">v_card</span><span class="delimiter">&quot;</span></span>, VCard.class);
+  customTypes.put(<span class="string"><span class="delimiter">&quot;</span><span class="content">address</span><span class="delimiter">&quot;</span></span>, Address.class);
 
-  VCard vCard = (VCard) rs.getObject(1, customTypes); <i class="conum" data-value="6"></i><b>(6)</b>
+  VCard vCard = (VCard) rs.getObject(<span class="integer">1</span>, customTypes); <i class="conum" data-value="6"></i><b>(6)</b>
 }</code></pre>
 </div>
 </div>
@@ -3719,7 +2321,7 @@ as normal provides an easy way to programmatically decide when to add or disable
 <div class="listingblock">
 <div class="title">Manually wrapping an opened connection</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">Connection conn = ConnectionTracer(DriverManager.getConnection(...), FileTracer("api.trace"))</code></pre>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">Connection</span> conn = ConnectionTracer(<span class="predefined-type">DriverManager</span>.getConnection(...), FileTracer(<span class="string"><span class="delimiter">&quot;</span><span class="content">api.trace</span><span class="delimiter">&quot;</span></span>))</code></pre>
 </div>
 </div>
 </div>
@@ -3736,7 +2338,7 @@ cause the library to automatically wrap all connections.</p>
 <div class="listingblock">
 <div class="title">Use special JDBC URL to enable tracing</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">Connection conn = DriverManager.getConnection("jdbc:spy:pgjdbc://localhost/db");</code></pre>
+<pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">Connection</span> conn = <span class="predefined-type">DriverManager</span>.getConnection(<span class="string"><span class="delimiter">&quot;</span><span class="content">jdbc:spy:pgjdbc://localhost/db</span><span class="delimiter">&quot;</span></span>);</code></pre>
 </div>
 </div>
 </div>
@@ -3771,7 +2373,7 @@ Listener interfaces and wrapping connections using one of the methods previously
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-01-29 15:38:13 -0700
+Last updated 2019-02-02 00:49:21 UTC
 </div>
 </div>
 </body>
