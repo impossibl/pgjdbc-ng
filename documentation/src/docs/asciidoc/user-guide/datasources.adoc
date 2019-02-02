@@ -8,7 +8,7 @@ provides specific capabilities and is intended to be used for a specific purpose
 === Standard DataSource
 [source,java]
 ----
-com.impossibl.postgres.jdbc.PGDataSource
+import com.impossibl.postgres.jdbc.PGDataSource
 ----
 
 Basic DataSource implementation that provides similar functionality to that of connections vended by the Driver
@@ -21,7 +21,7 @@ or XA capabilities are also required.
 === Connection Pool DataSource
 [source,java]
 ----
-com.impossibl.postgres.jdbc.PGConnectionPoolDataSource
+import com.impossibl.postgres.jdbc.PGConnectionPoolDataSource
 ----
 
 The pooling DataSource provides connections that can be reused. Reuse avoids costly connection time and
@@ -35,7 +35,7 @@ conjunction with `PGDataSource`, will most likely yield better performance.
 === XA DataSource
 [source,java]
 ----
-com.impossibl.postgres.jdbc.xa.PGXADataSource
+import com.impossibl.postgres.jdbc.xa.PGXADataSource
 ----
 
 DataSource with XA support for prepared transactions and two phase commit.

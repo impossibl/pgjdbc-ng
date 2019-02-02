@@ -1,0 +1,197 @@
+[[appservers-wildfly]]
+== WildFly
+
+http://www.wildfly.org[WildFly] is a Java EE application server that {drivername} is compatible with for
+providing access to {vendorname} instances.
+
+[[appservers-wildfly-file-deploy]]
+=== File Deployment
+
+For people experienced in WildFly configuration, sample configuration files required to get started
+using {drivername} are provided. If you wish to deploy from the WildFly Admin Console see
+<<appservers-wildfly-console-deploy>>.
+
+<<overview-getting-started-download, Download>> the driver JAR file and copy it to your WildFly installation's
+deployment directory (or deploy it using the <<appservers-wildfly-console-deploy, console>>).
+
+Use the provided XML configuration snippets to get you up and running.
+
+NOTE: While `module.xml` is require for all installations, only a single connector is required based
+on your desired configuration.
+
+[source,xml,sub=attributes+]
+.module.xml
+----
+<module xmlns="urn:jboss:module:1.3" name="com.impossibl.postgres">
+  <resources>
+    <resource-root path="{driverdepname}-{driverdepver}-{uberclass}.jar"/>
+  </resources>
+  <dependencies>
+    <module name="javax.api"/>
+    <module name="javax.transaction.api"/>
+  </dependencies>
+</module>
+----
+
+[source,xml,sub=attributes+]
+.DataSource Connector
+----
+<datasource jndi-name="java:jboss/datasources/PGSQLDS" pool-name="PGSQLDS">
+   <connection-url>jdbc:pgsql://localhost:5432/test</connection-url> <!--1-->
+   <connection-property name="housekeeper">false</connection-property> <!--2-->
+   <connection-property name="parsedSqlCacheSize">50</connection-property> <!--2-->
+   <connection-property name="preparedStatementCacheSize">0</connection-property> <!--2-->
+   <driver>pgsql</driver>
+   <security>
+     <user-name>user</user-name> <!--3-->
+     <password>secret</password> <!--4-->
+   </security>
+   <validation>
+     <validate-on-match>true</validate-on-match>
+     <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"></valid-connection-checker>
+     <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"></exception-sorter>
+   </validation>
+   <statement>
+     <track-statements>nowarn</track-statements>
+     <prepared-statement-cache-size>32</prepared-statement-cache-size>
+   </statement>
+</datasource>
+----
+<1> A valid URL specifying your {vendorname} instance. See <<connection-urls>> for details.
+<2> Suggested properties for {drivername} with WildFly.
++
+NOTE: Any valid <<connection-settings>> can be specified here.
+<3> Authentication username for your {vendorname} instance.
+<4> Authentication password for your {vendorname} instance.
+
+[source,xml,sub=attributes+]
+.XA DataSource Connector
+----
+<xa-datasource jndi-name="java:jboss/datasources/PGSQLXADS" pool-name="PGSQLXADS">
+   <xa-datasource-property name="host">localhost</xa-datasource-property> <!--1-->
+   <xa-datasource-property name="port">5432</xa-datasource-property> <!--2-->
+   <xa-datasource-property name="database">test</xa-datasource-property> <!--3-->
+   <xa-datasource-property name="housekeeper">false</xa-datasource-property> <!--4-->
+   <xa-datasource-property name="parsedSqlCacheSize">50</xa-datasource-property> <!--4-->
+   <xa-datasource-property name="preparedStatementCacheSize">0</xa-datasource-property> <!--4-->
+   <driver>pgsql</driver>
+   <security>
+     <user-name>user</user-name> <!--5-->
+     <password>secret</password> <!--6-->
+   </security>
+   <validation>
+     <validate-on-match>true</validate-on-match>
+     <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"></valid-connection-checker>
+     <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"></exception-sorter>
+   </validation>
+   <statement>
+     <track-statements>nowarn</track-statements>
+     <prepared-statement-cache-size>32</prepared-statement-cache-size>
+   </statement>
+</xa-datasource>
+----
+<1> Hostname specifying your {vendorname} instance.
+<2> Port number specifying your {vendorname} instance.
+<3> Target Database for connections.
+<4> Suggested properties for {drivername} with WildFly.
++
+NOTE: Any valid <<connection-settings>> can be specified here.
+<5> Authentication username for your {vendorname} instance.
+<6> Authentication password for your {vendorname} instance.
+
+[source,xml,sub=attributes+]
+.Driver Connector
+----
+<driver name="pgsql" module="com.impossibl.postgres">
+  <xa-datasource-class>com.impossibl.postgres.jdbc.xa.PGXADataSource</xa-datasource-class>
+</driver>
+----
+
+[[appservers-wildfly-console-deploy]]
+=== Console Deployment
+
+To use {drivername} as the source of JDBC connections in WildFly the following steps needs to be taken:
+
+. <<appservers-wildfly-console-deploy-driver>>
+. <<appservers-wildfly-console-deploy-config-ds>>
+. <<appservers-wildfly-console-deploy-test-ds>>
+
+[[appservers-wildfly-console-deploy-driver]]
+==== JDBC Driver Deployment
+
+In the WildFly Admin Console, navigate to the "Manage Deployments" sections under the "Runtime" tab.
+Add the `{driverdepname}-{driverdepver}-{uberclass}.jar` file as a deployment.
+
+After adding the driver as a deployment, *select the Driver in the list and enable it*.
+
+[[appservers-wildfly-console-deploy-config-ds]]
+==== Configure DataSource
+
+In the WildFly Admin Console, visit the Profile Tab. Expand the Connector node in the treeview and select
+DataSources from the child node.
+
+All currently available DataSources will now be displayed. Add a new DataSource and use the following steps
+to complete its configuration.
+
+[[appservers-wildfly-console-deploy-driver-config-ds-1]]
+===== Step (1/3): DataSource Attributes
+
+Provide the required attributes described below, once complete choose `Next`.
+
+Name::
+    Give your DataSource a name such as `pgTest`. This name can be anything but should be kept short and descriptive.
+
+JNDI Name::
+    WildFly requires JNDI Name to start with `java:jboss`, give it a name such as `java:jboss/datasources/PGSQLDS`. +
+     +
+    After the required prefix, `java:jboss`, the name can be any allowable freeform text; it is advisable to keep to
+    a name that clearly marks it as a DataSource.
+
+[[appservers-wildfly-console-deploy-driver-config-ds-2]]
+===== Step (2/3): JDBC Driver
+
+You will need to select the deployed {drivername} driver. If <<appservers-wildfly-console-deploy-driver>> was
+completed correctly, you will see the Jar file name in the list of detected drivers.
+
+Select `{driverdepname}-{driverdepver}-{uberclass}.jar` from the list and choose `Next`.
+
+TIP: If you do not see the driver in the list of detected drivers ensure you enabled it after deployment as
+detailed in <<appservers-wildfly-console-deploy-driver>>.
+
+[[appservers-wildfly-console-deploy-driver-config-ds-3]]
+===== Step (3/3): Connection Settings
+
+Provided the required connection settings described below, once complete choose `Done`.
+
+URL::
+    Provide a valid {drivername} connection url as in `jdbc:pgsql://<server-name>:<port>/<databasename>` (see
+    <<connection-urls>> for complete details).
+
+Username::
+    Connection authentication username.
+
+Password::
+    Connection authentication password.
+
+===== Finishing Up
+
+The DataSource will now be listed in the WildFly Admin Console under the name you chose in
+<<appservers-wildfly-console-deploy-driver-config-ds-1, Step 1>> (e.g. `PGSQLDS`),
+but it will be disabled.
+
+*Select the DataSource in the list and then enable it*.
+
+[[appservers-wildfly-console-deploy-test-ds]]
+==== Testing the DataSource
+
+Visit the "Runtime" table in the WildFly Admin Console and select the DataSources child node of the Subsystem node
+in the treeview. Select your DataSource by name click the test connection button.
+
+If all has gone well WildFly will report that a valid connection was made. If not, see <<appservers-wildfly-trouble>>
+
+[[appservers-wildfly-trouble]]
+=== Troubleshooting
+
+The best advice is to view the logs in the WildFly installation folder. All exceptions will be logged here and
+should provide information as to the issue with your installation and/or configurations.
+

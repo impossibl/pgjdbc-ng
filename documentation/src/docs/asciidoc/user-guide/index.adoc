@@ -11,6 +11,8 @@ include::overview.adoc[]
 
 include::urls.adoc[]
 
+include::drivers.adoc[]
+
 include::datasources.adoc[]
 
 include::ssl.adoc[]
@@ -30,3 +32,5 @@ include::spy.adoc[]
 == Release Notes
 
 Detailed release notes for each version are available link:../release-notes/index.html[here].
+
+include::appendices.adoc[]
