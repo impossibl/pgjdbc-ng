@@ -170,7 +170,7 @@ class SettingsProcessor : AbstractProcessor() {
   private fun generateSettingsDoc(groups: Set<GroupInfo>, settings: Set<SettingInfo>): Boolean {
 
     documentationDir.mkdirs()
-    val file = File(documentationDir, "SETTINGS.adoc")
+    val file = File(documentationDir, "settings.adoc")
 
     OutputStreamWriter(FileOutputStream(file))
        .use { out ->
