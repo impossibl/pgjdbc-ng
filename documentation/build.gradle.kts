@@ -90,7 +90,8 @@ tasks {
        "uberclass" to "all",
        "mavenrepo" to if (isSnapshot) "snapshots" else "releases",
        "maintainers" to loadMaintainers(docsDir),
-       "source-highlighter" to "coderay"
+       "source-highlighter" to "coderay",
+       "favicon" to "../../../images/ng-logo.png"
     ))
 
     dependsOn(collectDocs)
