@@ -52,7 +52,7 @@ title: PGJDBC-NG
                 <div class="list-group-item flex-column align-items-start">
                   <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1">${name}</h6>
-                    <small></small>
+                    <small>${new Date(rel.published_at).toLocaleDateString()}</small>
                   </div>
                   <p class="mb-1"><a href="docs/${name}/user-guide">User Guide</a>&nbsp;&nbsp;&nbsp;<a href="docs/${name}/release-notes">Release Notes</a>&nbsp;&nbsp;&nbsp;<a href="docs/${name}/javadoc">Javadoc</a></p>
                   </div>`);
