@@ -1,5 +1,5 @@
-![https://travis-ci.org/impossibl/pgjdbc-ng/branches](https://img.shields.io/travis/impossibl/pgjdbc-ng/develop.svg?style=flat)
-![https://github.com/impossibl/pgjdbc-ng/releases/latest](https://img.shields.io/github/release/impossibl/pgjdbc-ng.svg?style=flat)
+[![](https://img.shields.io/travis/impossibl/pgjdbc-ng/develop.svg?style=flat)](https://travis-ci.org/impossibl/pgjdbc-ng/branches)
+[![](https://img.shields.io/github/release/impossibl/pgjdbc-ng.svg?style=flat)](https://github.com/impossibl/pgjdbc-ng/releases/latest)
 
 ### General
 
@@ -11,7 +11,7 @@ For quick reference, here are some useful details
 
 #### Dependencies
 
-![https://search.maven.org/search?q=g:com.impossibl.pgjdbc-ng%20AND%20a:pgjdbc-ng&core=gav](https://img.shields.io/maven-central/v/com.impossibl.pgjdbc-ng/pgjdbc-ng.svg)
+[![](https://img.shields.io/maven-central/v/com.impossibl.pgjdbc-ng/pgjdbc-ng.svg)](https://search.maven.org/search?q=g:com.impossibl.pgjdbc-ng%20AND%20a:pgjdbc-ng&core=gav)
 
 ##### Gradle
 
