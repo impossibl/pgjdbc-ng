@@ -582,7 +582,14 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_client_certificate">4.2. Client Certificate</a></li>
 </ul>
 </li>
-<li><a href="#connection-settings">5. Connection Settings</a></li>
+<li><a href="#connection-settings">5. Connection Settings</a>
+<ul class="sectlevel2">
+<li><a href="#_jdbc_settings">5.1. JDBC Settings</a></li>
+<li><a href="#_jdbc_datasource_settings">5.2. JDBC DataSource Settings</a></li>
+<li><a href="#_system_settings">5.3. System Settings</a></li>
+<li><a href="#_protocol_settings">5.4. Protocol Settings</a></li>
+</ul>
+</li>
 <li><a href="#jdbc">6. JDBC 4.2</a>
 <ul class="sectlevel2">
 <li><a href="#jdbc-extended-types">6.1. Using Specific PostgreSQL Types</a>
@@ -1311,8 +1318,1490 @@ attempted and the items are not provided to the server.</p>
 <div class="paragraph">
 <p>PGJDBC-NG provides a number of settings that control almost every aspect of the connection.</p>
 </div>
+<div class="sect2">
+<h3 id="_jdbc_settings">5.1. JDBC Settings</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 44.4444%;">
+<col style="width: 33.3333%;">
+<col style="width: 22.2223%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Setting</th>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="read-only"></a><strong>Read Only</strong></p>
+</div>
 <div class="paragraph">
-<p>Unresolved directive in settings.adoc - include::/home/travis/impossibl/pgjdbc-ng/documentation/build/tmp/docs/settings.adoc[leveloffset=+1]</p>
+<p>Connect in read-only mode</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>read-only</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getReadOnly()
+setReadOnly(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.read-only</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="parsed-sql_cache_size"></a><strong>Parsed SQL Cache Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Size of the parsed SQL text cache.</p>
+</div>
+<div class="paragraph">
+<p>A value of zero disables the cache.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>parsed-sql.cache.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>250</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getParsedSqlCacheSize()
+setParsedSqlCacheSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.parsed-sql.cache.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="prepared-statement_cache_size"></a><strong>Prepared Statement Cache Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Size of the prepared statement cache</p>
+</div>
+<div class="paragraph">
+<p>A value of zero disables the cache.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>prepared-statement.cache.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>50</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getPreparedStatementCacheSize()
+setPreparedStatementCacheSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.prepared-statement.cache.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="prepared-statement_cache_threshold"></a><strong>Prepared Statement Cache Threshold</strong></p>
+</div>
+<div class="paragraph">
+<p># of times a query is seen before it is cached as a prepared statement.</p>
+</div>
+<div class="paragraph">
+<p>A value of zero prepares all statements in advance.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>prepared-statement.cache.threshold</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getPreparedStatementCacheThreshold()
+setPreparedStatementCacheThreshold(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.prepared-statement.cache.threshold</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="description_cache_size"></a><strong>Description Cache Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Size of the query description cache.</p>
+</div>
+<div class="paragraph">
+<p>A value of zero disables the cache.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>description.cache.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>250</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getDescriptionCacheSize()
+setDescriptionCacheSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.description.cache.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="network_timeout"></a><strong>Network Timeout</strong></p>
+</div>
+<div class="paragraph">
+<p>Default timeout for network communication.</p>
+</div>
+<div class="paragraph">
+<p>Value can be changed at runtime through API.</p>
+</div>
+<div class="paragraph">
+<p>Value of zero disables the timeout.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>network.timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getNetworkTimeout()
+setNetworkTimeout(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.network.timeout</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="strict-mode"></a><strong>Strict Mode</strong></p>
+</div>
+<div class="paragraph">
+<p>Enable or disable strict adherence to JDBC specification.</p>
+</div>
+<div class="paragraph">
+<p>Affected behavior when disabled:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ResultSetMetaData.getColumnName(int)</code> returns a value equivalent to <code>ResultSetMetaData.getColumnLabel(int)</code>, if a label is available.</p>
+</li>
+<li>
+<p>The <code>Statement.executeBatch(&#8230;&#8203;)</code> family of methods insert an extraneous EXECUTE_FAILED status into <code>BatchUpdateException.getUpdateCounts()</code> even though PostgreSQL stops executing at the first error.</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>strict-mode</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getStrictMode()
+setStrictMode(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.strict-mode</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="fetch_size"></a><strong>Fetch Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Default fetch size of query results.</p>
+</div>
+<div class="paragraph">
+<p>Value can be changed at runtime.</p>
+</div>
+<div class="paragraph">
+<p>A value of zero disables batching results.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>fetch.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getFetchSize()
+setFetchSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.fetch.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="housekeeper"></a><strong>Housekeeper</strong></p>
+</div>
+<div class="paragraph">
+<p>Enables or disables the housekeeping system for leaked JDBC objects.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>housekeeper</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getHousekeeper()
+setHousekeeper(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.housekeeper</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="registry_sharing"></a><strong>Registry Sharing</strong></p>
+</div>
+<div class="paragraph">
+<p>Enables or disables sharing type registries between connections.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>registry.sharing</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getRegistrySharing()
+setRegistrySharing(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.registry.sharing</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="api_trace"></a><strong>API Trace</strong></p>
+</div>
+<div class="paragraph">
+<p>Enables or disables API trace output.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>api.trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getApiTrace()
+setApiTrace(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.api.trace</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="api_trace_file"></a><strong>API Trace File</strong></p>
+</div>
+<div class="paragraph">
+<p>File destination of API trace output.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>api.trace</code> must be <code>true</code> to generate trace output
+</td>
+</tr>
+</table>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>api.trace.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getApiTraceFile()
+setApiTraceFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.api.trace.file</code></p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_jdbc_datasource_settings">5.2. JDBC DataSource Settings</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 44.4444%;">
+<col style="width: 33.3333%;">
+<col style="width: 22.2223%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Setting</th>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="data-source_name"></a><strong>Data Source Name</strong></p>
+</div>
+<div class="paragraph">
+<p>Name of data source.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getDataSourceName()
+setDataSourceName(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.data-source.name</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="server_name"></a><strong>Server Name</strong></p>
+</div>
+<div class="paragraph">
+<p>Host name for TCP connections.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getServerName()
+setServerName(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>localhost</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.server.name</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="port_number"></a><strong>Port Number</strong></p>
+</div>
+<div class="paragraph">
+<p>Port number for TCP connections.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getPortNumber()
+setPortNumber(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5432</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.port.number</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Must be between <code>1</code> and <code>65535</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="login_timeout"></a><strong>Login Timeout</strong></p>
+</div>
+<div class="paragraph">
+<p>Maximum time to wait for a connection to be established.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getLoginTimeout()
+setLoginTimeout(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.login.timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_system_settings">5.3. System Settings</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 44.4444%;">
+<col style="width: 33.3333%;">
+<col style="width: 22.2223%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Setting</th>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="database_url"></a><strong>Database URL</strong></p>
+</div>
+<div class="paragraph">
+<p>URL of database connection</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>database.url</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getDatabaseUrl()
+setDatabaseUrl(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.database.url</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="database_name"></a><strong>Database Name</strong></p>
+</div>
+<div class="paragraph">
+<p>Name of database related to connection</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>database.name</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">Empty</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getDatabaseName()
+setDatabaseName(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.database.name</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="application_name"></a><strong>Application Name</strong></p>
+</div>
+<div class="paragraph">
+<p>Name of the client application</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>application.name</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p>Driver implementation name</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getApplicationName()
+setApplicationName(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.application.name</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="user"></a><strong>User</strong></p>
+</div>
+<div class="paragraph">
+<p>Username for server authentication &amp; authorization.</p>
+</div>
+<div class="paragraph">
+<p>If no value is provided is defaults to the Java system property <code>user.name</code>.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>user</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p>Current user via <code>user.name</code> system property</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getUser()
+setUser(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.user</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="password"></a><strong>Password</strong></p>
+</div>
+<div class="paragraph">
+<p>Password for server authentication.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>password</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">Empty</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getPassword()
+setPassword(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.password</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="field_format"></a><strong>Field Format</strong></p>
+</div>
+<div class="paragraph">
+<p>Preferred format of result fields.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>text</p>
+</li>
+<li>
+<p>binary</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>field.format</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>binary</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getFieldFormat()
+setFieldFormat(FieldFormat)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.field.format</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="field_length_max"></a><strong>Field Length Max</strong></p>
+</div>
+<div class="paragraph">
+<p>Default maximum allowed length of field.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>field.length.max</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getFieldLengthMax()
+setFieldLengthMax(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.field.length.max</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="param_format"></a><strong>Param Format</strong></p>
+</div>
+<div class="paragraph">
+<p>Preferred format of prepared statement parameters.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>text</p>
+</li>
+<li>
+<p>binary</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>param.format</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>binary</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getParamFormat()
+setParamFormat(FieldFormat)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.param.format</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="money_fractional-digits"></a><strong>Money Fractional Digits</strong></p>
+</div>
+<div class="paragraph">
+<p># of fractional digits for money fields.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>money.fractional-digits</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>2</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getMoneyFractionalDigits()
+setMoneyFractionalDigits(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be between <code>0</code> and <code>20</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.money.fractional-digits</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_mode"></a><strong>SSL Mode</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL connection mode.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>disable</p>
+</li>
+<li>
+<p>allow</p>
+</li>
+<li>
+<p>prefer</p>
+</li>
+<li>
+<p>require</p>
+</li>
+<li>
+<p>verify-ca</p>
+</li>
+<li>
+<p>verify-full</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.mode</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>disable</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslMode()
+setSslMode(SSLMode)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.mode</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_certificate_file"></a><strong>SSL Certificate File</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL client certificate file name.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.certificate.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>postgresql.crt</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslCertificateFile()
+setSslCertificateFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.certificate.file</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_ca_certificate_file"></a><strong>SSL CA Certificate File</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL certificate authority file name.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.ca.certificate.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>root.crt</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslCaCertificateFile()
+setSslCaCertificateFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.ca.certificate.file</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_key_file"></a><strong>SSL Key File</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL key file name.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.key.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>postgresql.pk8</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslKeyFile()
+setSslKeyFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.key.file</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_key_password"></a><strong>SSL Key Password</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL key file password.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.key.password</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslKeyPassword()
+setSslKeyPassword(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.key.password</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_key_password_callback"></a><strong>SSL Key Password Callback</strong></p>
+</div>
+<div class="paragraph">
+<p>SSL key file password callback class name.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.key.password.callback</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>com.impossibl.postgres.protocol.ssl.ConsolePasswordCallbackHandler</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslKeyPasswordCallback()
+setSslKeyPasswordCallback(<span class="predefined-type">Class</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.key.password.callback</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="ssl_home-dir"></a><strong>SSL Home Dir</strong></p>
+</div>
+<div class="paragraph">
+<p>Directory that SSL files are located in.</p>
+</div>
+<div class="paragraph">
+<p>If the value begins with a path separator (e.g. <code>/</code>) it will be considered an absolute path. In all other
+cases it is considered a value relative to the user&#8217;s home directory.
+On Windows <code>$APPDATA</code> is used as the
+home directory, all others use the <code>user.home</code> system property.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>ssl.home-dir</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>.postgresql</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSslHomeDir()
+setSslHomeDir(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.ssl.home-dir</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="sql_trace"></a><strong>SQL Trace</strong></p>
+</div>
+<div class="paragraph">
+<p>Enables or disables SQL trace output</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>sql.trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSqlTrace()
+setSqlTrace(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.sql.trace</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="sql_trace_file"></a><strong>SQL Trace File</strong></p>
+</div>
+<div class="paragraph">
+<p>File destination of SQL trace output.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>sql.trace</code> must be <code>true</code> to generate trace output
+</td>
+</tr>
+</table>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>sql.trace.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getSqlTraceFile()
+setSqlTraceFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.sql.trace.file</code></p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_protocol_settings">5.4. Protocol Settings</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 44.4444%;">
+<col style="width: 33.3333%;">
+<col style="width: 22.2223%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Setting</th>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_version"></a><strong>Protocol Version</strong></p>
+</div>
+<div class="paragraph">
+<p>Version of server protocol to use.</p>
+</div>
+<div class="paragraph">
+<p>Valid protocol versions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>3.0</code></p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.version</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>3.0</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolVersion()
+setProtocolVersion(Version)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.version</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_io_mode"></a><strong>Protocol I/O Mode</strong></p>
+</div>
+<div class="paragraph">
+<p>I/O subsystem selection mode.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">any</dt>
+<dd>
+<p>Attempts to use each other subsystem in order of <code>native</code>, <code>nio</code>, <code>oio</code>.</p>
+</dd>
+<dt class="hdlist1">native</dt>
+<dd>
+<p>Native subsystem using <strong>kqueue</strong> on macOS and <strong>epoll</strong> on Linux.
+Native libraries must be provided, <a href="https://netty.io/wiki/native-transports.html">see Netty&#8217;s wiki</a>.</p>
+</dd>
+<dt class="hdlist1">nio</dt>
+<dd>
+<p>Java NIO subsystem.</p>
+</dd>
+<dt class="hdlist1">oio</dt>
+<dd>
+<p>Java Blocking I/O subsystem.</p>
+</dd>
+</dl>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.io.mode</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>any</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolIoMode()
+setProtocolIoMode(ProtocolIOMode)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.io.mode</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_io_threads"></a><strong>Protocol I/O Threads</strong></p>
+</div>
+<div class="paragraph">
+<p>Number of I/O threads in pool</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.io.threads</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>3</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolIoThreads()
+setProtocolIoThreads(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>1</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.io.threads</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_encoding"></a><strong>Protocol Encoding</strong></p>
+</div>
+<div class="paragraph">
+<p>Text encoding</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.encoding</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>UTF-8</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolEncoding()
+setProtocolEncoding(<span class="predefined-type">Charset</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.encoding</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_socket_recv-buffer_size"></a><strong>Protocol Socket Receive Buffer Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Socket receive buffer size</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.socket.recv-buffer.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolSocketRecvBufferSize()
+setProtocolSocketRecvBufferSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.socket.recv-buffer.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_socket_send-buffer_size"></a><strong>Protocol Socket Send Buffer Size</strong></p>
+</div>
+<div class="paragraph">
+<p>Socket send buffer size</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.socket.send-buffer.size</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolSocketSendBufferSize()
+setProtocolSocketSendBufferSize(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.socket.send-buffer.size</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_buffer_pooling"></a><strong>Protocol Buffer Pooling</strong></p>
+</div>
+<div class="paragraph">
+<p>Enable or disable pooling of byte buffers</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.buffer.pooling</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>true</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolBufferPooling()
+setProtocolBufferPooling(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.buffer.pooling</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_message_size_max"></a><strong>Protocol Message Size Max</strong></p>
+</div>
+<div class="paragraph">
+<p>Maximum size message that can be received</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.message.size.max</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>20971520</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolMessageSizeMax()
+setProtocolMessageSizeMax(<span class="predefined-type">Integer</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>Must be greater than or equal to <code>0</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.message.size.max</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_trace"></a><strong>Protocol Trace</strong></p>
+</div>
+<div class="paragraph">
+<p>Enable or disable message trace output</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolTrace()
+setProtocolTrace(<span class="predefined-type">Boolean</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.trace</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><div class="content"><div class="paragraph">
+<p><a id="protocol_trace_file"></a><strong>Protocol Trace File</strong></p>
+</div>
+<div class="paragraph">
+<p>File destination of message trace output</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>protocol.trace</code> must be <code>true</code> to generate trace output
+</td>
+</tr>
+</table>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">Driver</div>
+<p><code>protocol.trace.file</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getProtocolTraceFile()
+setProtocolTraceFile(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.protocol.trace.file</code></p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 </div>
@@ -2373,7 +3862,7 @@ Listener interfaces and wrapping connections using one of the methods previously
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-02 00:49:21 UTC
+Last updated 2019-02-02 03:34:36 UTC
 </div>
 </div>
 </body>
