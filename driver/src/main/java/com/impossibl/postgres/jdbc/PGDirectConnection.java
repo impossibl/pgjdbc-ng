@@ -49,6 +49,7 @@ import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
+import com.impossibl.postgres.utils.CacheMap;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
@@ -118,10 +119,8 @@ import java.sql.Struct;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -140,6 +139,7 @@ import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.util.Arrays.asList;
+import static java.util.Collections.synchronizedMap;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -227,37 +227,19 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE);
     if (descriptionCacheSize > 0) {
-      this.descriptionCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, StatementDescription>(descriptionCacheSize + 1, 1.1f, true) {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<StatementCacheKey, StatementDescription> eldest) {
-          return size() > descriptionCacheSize;
-        }
-      });
+      this.descriptionCache = synchronizedMap(new CacheMap<>(descriptionCacheSize, 1.1f, true));
     }
 
     final int statementCacheSize = getSetting(PREPARED_STATEMENT_CACHE_SIZE);
     if (statementCacheSize > 0) {
-      preparedStatementCache = Collections.synchronizedMap(new LinkedHashMap<StatementCacheKey, PreparedStatementDescription>(statementCacheSize + 1, 1.1f, true) {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<StatementCacheKey, PreparedStatementDescription> eldest) {
-          if (size() > statementCacheSize) {
-            try {
-              PGStatement.dispose(PGDirectConnection.this, eldest.getValue().name);
-            }
-            catch (SQLException e) {
-              // Ignore...
-            }
-            return true;
-          }
-          else {
-            return false;
-          }
+      WeakReference<PGDirectConnection> weakThis = new WeakReference<>(this);
+      preparedStatementCache = synchronizedMap(new CacheMap<>(statementCacheSize, 1.1f, true, eldest -> {
+        try {
+          PGStatement.dispose(weakThis.get(), eldest.getValue().name);
         }
-      });
+        catch (SQLException ignored) {
+        }
+      }));
     }
 
     final int statementCacheThreshold = getSetting(PREPARED_STATEMENT_CACHE_THRESHOLD);
@@ -270,14 +252,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     if (sqlCacheSize > 0) {
       synchronized (PGDirectConnection.class) {
         if (parsedSqlCache == null) {
-          parsedSqlCache = Collections.synchronizedMap(new LinkedHashMap<String, SQLText>(sqlCacheSize + 1, 1.1f, true) {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, SQLText> eldest) {
-              return size() > sqlCacheSize;
-            }
-          });
+          parsedSqlCache = synchronizedMap(new CacheMap<>(sqlCacheSize, 1.1f, true));
         }
       }
     }
@@ -290,7 +265,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     this.housekeeper = housekeeper;
     if (this.housekeeper != null)
-      this.cleanupKey = this.housekeeper.add(this, new Cleanup(serverConnection, activeStatements, getSetting(DATABASE_URL)));
+      this.cleanupKey = this.housekeeper.add(this, new Cleanup(getServerConnection(), activeStatements, getSetting(DATABASE_URL)));
     else
       this.cleanupKey = null;
   }
@@ -317,7 +292,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   public TransactionStatus getTransactionStatus() throws SQLException {
     try {
-      return serverConnection.getTransactionStatus();
+      return getServerConnection().getTransactionStatus();
     }
     catch (ClosedChannelException e) {
       internalClose();
@@ -496,8 +471,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   <T> T execute(QueryResultFunction<T> function) throws SQLException {
 
     try {
-      if (!autoCommit && serverConnection.getTransactionStatus() == Idle) {
-        serverConnection.getRequestExecutor().lazyExecute("TB");
+      if (!autoCommit && getTransactionStatus() == Idle) {
+        getRequestExecutor().lazyExecute("TB");
       }
 
       return function.query(networkTimeout);
@@ -517,7 +492,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     }
     catch (IOException e) {
 
-      if (!serverConnection.isConnected()) {
+      if (!getServerConnection().isConnected()) {
         internalClose();
       }
 
@@ -537,13 +512,13 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     // This ensures we don't cancel a request _after_ this one
     // by mistake.
 
-    synchronized (serverConnection.getRequestExecutor()) {
+    synchronized (getRequestExecutor()) {
 
       // Schedule task to run at execution timeout
 
-      ExecutionTimerTask task = new CancelRequestTask(serverConnection.getRemoteAddress(), getKeyData());
+      ExecutionTimerTask task = new CancelRequestTask(getServerConnection().getRemoteAddress(), getKeyData());
 
-      ScheduledFuture<?> taskHandle = serverConnection.getIOExecutor().schedule(task, executionTimeout, MILLISECONDS);
+      ScheduledFuture<?> taskHandle = getServerConnection().getIOExecutor().schedule(task, executionTimeout, MILLISECONDS);
 
       try {
 
@@ -721,7 +696,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    */
   @Override
   public boolean isServerMinimumVersion(int major, int minor) {
-    return serverConnection.getServerInfo().getVersion().isMinimum(major, minor);
+    return getServerConnection().getServerInfo().getVersion().isMinimum(major, minor);
   }
 
   @Override
@@ -1355,7 +1330,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   @Override
   public boolean isClosed() {
-    return !serverConnection.isConnected();
+    return !getServerConnection().isConnected();
   }
 
   @Override
@@ -1375,7 +1350,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       return;
 
     // Save socket address (as shutdown might erase it)
-    SocketAddress serverAddress = serverConnection.getRemoteAddress();
+    SocketAddress serverAddress = getServerConnection().getRemoteAddress();
 
     //Shutdown socket (also guarantees no more commands begin execution)
     ChannelFuture shutdown = shutdown();

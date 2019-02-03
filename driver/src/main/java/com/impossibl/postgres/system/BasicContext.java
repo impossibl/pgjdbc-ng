@@ -161,6 +161,7 @@ public class BasicContext extends AbstractContext {
   protected Registry registry;
   protected Map<String, Class<?>> typeMap;
   protected Charset charset;
+  protected Settings settings;
   private TimeZone timeZone;
   private ZoneId timeZoneId;
   private DateTimeFormat dateFormat;
@@ -169,8 +170,8 @@ public class BasicContext extends AbstractContext {
   private NumberFormat integerFormatter;
   private DecimalFormat decimalFormatter;
   private DecimalFormat currencyFormatter;
-  protected Settings settings;
-  protected ServerConnection serverConnection;
+  private ServerConnection serverConnection;
+  private ServerConnectionListener serverConnectionListener;
   private Map<String, QueryDescription> utilQueries;
 
 
@@ -182,7 +183,8 @@ public class BasicContext extends AbstractContext {
     this.dateFormat = new ISODateFormat();
     this.timeFormat = new ISOTimeFormat();
     this.timestampFormat = new ISOTimestampFormat();
-    this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, new ServerConnectionListener());
+    this.serverConnectionListener = new ServerConnectionListener();
+    this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, serverConnectionListener);
     this.utilQueries = new HashMap<>();
   }
 
@@ -208,6 +210,10 @@ public class BasicContext extends AbstractContext {
 
   public ByteBufAllocator getAllocator() {
     return serverConnection.getAllocator();
+  }
+
+  protected ServerConnection getServerConnection() {
+    return serverConnection;
   }
 
   @Override
