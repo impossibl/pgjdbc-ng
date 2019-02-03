@@ -28,7 +28,6 @@
  */
 package com.impossibl.postgres.jdbc;
 
-import java.lang.ref.WeakReference;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -54,14 +53,12 @@ import static org.junit.Assert.assertTrue;
 @RunWith(JUnit4.class)
 public class LeakTest {
 
-  WeakReference<Connection> connRef;
   Connection conn;
   ResourceLeakDetector.Level savedLevel;
 
   @Before
   public void before() throws Exception {
     conn = TestUtil.openDB();
-    connRef = new WeakReference<>(conn);
     savedLevel = ResourceLeakDetector.getLevel();
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
     getHousekeeper().setLogLeakedReferences(false);
