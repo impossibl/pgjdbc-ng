@@ -1,4 +1,5 @@
 :jdbc-driver-type4: https://en.wikipedia.org/wiki/JDBC_driver#Type_4_driver_–_Database-Protocol_driver_(Pure_Java_driver)
+:maven-central: http://oss.sonatype.org/service/local/artifact/maven/redirect
 
 [[overview]]
 == Overview
@@ -59,16 +60,17 @@ dependencies {
 
 NOTE: Using these artifacts will pull in the driver implementation and its required dependencies. If you wish
 to depend on a version of the driver that embeds its dependencies you can use the artifact name
-`{driverdepname}-{driverdepver}-{uberclass}` instead; this is useful to work around dependency conflicts in certain
+`{driveruberjar}` instead; this is useful to work around dependency conflicts in certain
 situations but otherwise should not be necessary.
 
+[[overview-getting-started-download]]
 ===== Manual Download
 
 If you are using a project that does not support Maven style dependencies or you wish to add the driver globally to
-an application server like Glassfish, WildFly or Tomcat you can download the dependency embedded version of the
-driver and copy it to the location required by your project or usage.
+an application server like Glassfish, <<appservers-wildfly>> or Tomcat you can download the dependency embedded
+version of the driver and copy it to the location required by your project or usage.
 
-http://oss.sonatype.org/service/local/artifact/maven/redirect?r={mavenrepo}&g={driverdepgroup}&a={driverdepname}&c={uberclass}&v={driverdepver}[Download JAR]
+{maven-central}?r={mavenrepo}&g={driverdepgroup}&a={driverdepname}&c={uberclass}&v={driverdepver}[Download JAR]
 
 
 [[overview-getting-started-connect]]
