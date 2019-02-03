@@ -57,8 +57,11 @@ public class ByteBufs {
 
   public static ByteBuf[] retainedDuplicateAll(ByteBuf[] buffers) {
     buffers = buffers.clone();
-    for (int c = 0; c < buffers.length; ++c)
-      buffers[c] = buffers[c].retainedDuplicate();
+    for (int c = 0; c < buffers.length; ++c) {
+      if (buffers[c] != null) {
+        buffers[c] = buffers[c].retainedDuplicate();
+      }
+    }
     return buffers;
   }
 

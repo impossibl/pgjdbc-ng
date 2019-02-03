@@ -45,6 +45,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
 import org.junit.After;
 import org.junit.Before;
@@ -363,6 +364,28 @@ public class BatchExecuteTest {
     assertEquals(0, rs.getInt(1));
     rs.close();
     stmt.close();
+  }
+
+  @Test
+  public void testPreparedStatementWithNulls() throws SQLException {
+
+    try (Statement stmt = con.createStatement()) {
+
+      stmt.execute("CREATE TEMP TABLE batchstring (a text)");
+
+      con.commit();
+
+      try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO batchstring VALUES (?)")) {
+
+        pstmt.setNull(1, Types.VARCHAR);
+        pstmt.addBatch();
+        pstmt.execute();
+
+        con.commit();
+      }
+
+    }
+
   }
 
   @Test
