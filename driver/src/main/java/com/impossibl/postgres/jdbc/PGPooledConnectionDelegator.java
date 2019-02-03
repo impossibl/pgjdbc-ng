@@ -32,6 +32,8 @@ import com.impossibl.postgres.api.jdbc.PGAnyType;
 import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.api.jdbc.PGNotificationListener;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -148,6 +150,34 @@ public class PGPooledConnectionDelegator implements PGConnection {
     try {
       checkClosed();
       delegator.removeNotificationListener(listener);
+    }
+    catch (SQLException se) {
+      // Nothing to do
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void copyIn(String sql, InputStream inputStream) {
+    try {
+      checkClosed();
+      delegator.copyIn(sql, inputStream);
+    }
+    catch (SQLException se) {
+      // Nothing to do
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void copyOut(String sql, OutputStream outputStream) {
+    try {
+      checkClosed();
+      delegator.copyOut(sql, outputStream);
     }
     catch (SQLException se) {
       // Nothing to do

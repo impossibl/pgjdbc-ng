@@ -69,6 +69,8 @@ import static com.impossibl.postgres.system.SystemSettings.STANDARD_CONFORMING_S
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
@@ -128,6 +130,16 @@ public class BasicContext extends AbstractContext {
     }
 
     @Override
+    public InputStream openStandardInput() {
+      return System.in;
+    }
+
+    @Override
+    public OutputStream openStandardOutput() {
+      return System.out;
+    }
+
+    @Override
     public void closed() {
       connectionClosed();
     }
@@ -173,7 +185,6 @@ public class BasicContext extends AbstractContext {
   private ServerConnection serverConnection;
   private ServerConnectionListener serverConnectionListener;
   private Map<String, QueryDescription> utilQueries;
-
 
   public BasicContext(SocketAddress address, Settings settings) throws IOException {
     this.typeMap = new HashMap<>();

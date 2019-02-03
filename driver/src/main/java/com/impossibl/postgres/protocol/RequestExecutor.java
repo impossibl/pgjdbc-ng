@@ -29,6 +29,8 @@
 package com.impossibl.postgres.protocol;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
@@ -397,5 +399,26 @@ public interface RequestExecutor {
     void handleNotification(int processId, String channelName, String payload) throws IOException;
 
   }
+
+  /*****
+   * Copy In & Out
+   */
+
+  interface CopyInHandler extends SynchronizedHandler {
+
+    void handleComplete() throws IOException;
+
+  }
+
+  void copyIn(String sql, InputStream stream, CopyInHandler handler) throws IOException;
+
+
+  interface CopyOutHandler extends SynchronizedHandler {
+
+    void handleComplete() throws IOException;
+
+  }
+
+  void copyOut(String sql, OutputStream stream, CopyOutHandler handler) throws IOException;
 
 }

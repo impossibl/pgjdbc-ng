@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
@@ -42,6 +43,7 @@ import static com.impossibl.postgres.protocol.v30.ProtocolHandlers.SYNC;
 import static com.impossibl.postgres.utils.ByteBufs.readCString;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
@@ -207,7 +209,8 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
         // Try default handler (which should always return Resume)
         action = parseAndDispatch(ctx, id, data.resetReaderIndex(), defaultHandler);
         if (action != ProtocolHandler.Action.Resume) {
-          String failMessage = "Unhandled message: " + (char) id + " @ " + protocolHandler.getClass().getName();
+          String handlerName = protocolHandler != null ? protocolHandler.getClass().getName() : "<No Handler>";
+          String failMessage = "Unhandled message: " + (char) id + " @ " + handlerName;
           throw new IllegalStateException(failMessage);
         }
       }
@@ -269,6 +272,12 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   private static final byte BIND_COMPLETE_MSG_ID = '2';
   private static final byte CLOSE_COMPLETE_MSG_ID = '3';
   private static final byte FUNCTION_RESULT_MSG_ID = 'V';
+  private static final byte COPY_IN_RESPONSE_MSG_ID = 'G';
+  private static final byte COPY_OUT_RESPONSE_MSG_ID = 'H';
+  private static final byte COPY_BOTH_RESPONSE_MSG_ID = 'W';
+  private static final byte COPY_DATA_MSG_ID = 'd';
+  private static final byte COPY_DONE_MSG_ID = 'c';
+  private static final byte COPY_FAIL_MSG_ID = 'f';
 
   private static boolean isReadyForQuery(byte id) {
     return id == READY_FOR_QUERY_MSG_ID;
@@ -357,6 +366,30 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
       case READY_FOR_QUERY_MSG_ID:
         if (!(handler instanceof ProtocolHandler.ReadyForQuery)) return null;
         return receiveReadyForQuery(data, (ProtocolHandler.ReadyForQuery) handler);
+
+      case COPY_IN_RESPONSE_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyInResponse)) return null;
+        return receiveCopyInResponse(ctx, data, (ProtocolHandler.CopyInResponse) handler);
+
+      case COPY_OUT_RESPONSE_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyOutResponse)) return null;
+        return receiveCopyOutResponse(data, (ProtocolHandler.CopyOutResponse) handler);
+
+      case COPY_BOTH_RESPONSE_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyBothResponse)) return null;
+        return receiveCopyBothResponse(data, (ProtocolHandler.CopyBothResponse) handler);
+
+      case COPY_DATA_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyData)) return null;
+        return receiveCopyData(data, (ProtocolHandler.CopyData) handler);
+
+      case COPY_DONE_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyDone)) return null;
+        return receiveCopyDone(data, (ProtocolHandler.CopyDone) handler);
+
+      case COPY_FAIL_MSG_ID:
+        if (!(handler instanceof ProtocolHandler.CopyFail)) return null;
+        return receiveCopyFail(data, (ProtocolHandler.CopyFail) handler);
 
       default:
         throw new IOException("unsupported message type: " + (id & 0xff));
@@ -559,6 +592,88 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
   private ProtocolHandler.Action receiveFunctionResult(ByteBuf buffer, ProtocolHandler.FunctionResult handler) throws IOException {
 
     return handler.functionResult(buffer);
+  }
+
+  private ProtocolHandler.Action receiveCopyInResponse(ChannelHandlerContext ctx, ByteBuf buffer, ProtocolHandler.CopyInResponse handler) throws IOException {
+
+    CopyFormat copyFormat = buffer.readByte() == 0 ? CopyFormat.Text : CopyFormat.Binary;
+
+    FieldFormat[] fieldFormats = new FieldFormat[buffer.readUnsignedShort()];
+    for (int fieldFormatIdx = 0; fieldFormatIdx < fieldFormats.length; ++fieldFormatIdx) {
+      fieldFormats[fieldFormatIdx] = buffer.readUnsignedShort() == 0 ? FieldFormat.Text : FieldFormat.Binary;
+    }
+
+    InputStream stream = handler.copyIn(copyFormat, fieldFormats);
+    if (stream == null) {
+      throw new IOException("No InputStream for Copy-In");
+    }
+
+    new ProtocolChannel(ctx.channel(), charset)
+        .writeCopyData(stream)
+        .flush();
+
+    return ProtocolHandler.Action.Resume;
+  }
+
+  private ProtocolHandler.Action receiveCopyOutResponse(ByteBuf buffer, ProtocolHandler.CopyOutResponse handler) throws IOException {
+
+    CopyFormat copyFormat = buffer.readByte() == 0 ? CopyFormat.Text : CopyFormat.Binary;
+
+    FieldFormat[] fieldFormats = new FieldFormat[buffer.readUnsignedShort()];
+    for (int fieldFormatIdx = 0; fieldFormatIdx < fieldFormats.length; ++fieldFormatIdx) {
+      fieldFormats[fieldFormatIdx] = buffer.readUnsignedShort() == 0 ? FieldFormat.Text : FieldFormat.Binary;
+    }
+
+    ProtocolHandler subProtocolHandler = handler.copyOut(copyFormat, fieldFormats);
+    if (subProtocolHandler == null) {
+      throw new IOException("Copy-Out Not Handled");
+    }
+
+    protocolHandlers.offerFirst(subProtocolHandler);
+
+    return ProtocolHandler.Action.Resume;
+  }
+
+  private ProtocolHandler.Action receiveCopyBothResponse(ByteBuf buffer, ProtocolHandler.CopyBothResponse handler) throws IOException {
+
+    CopyFormat copyFormat = buffer.readByte() == 0 ? CopyFormat.Text : CopyFormat.Binary;
+
+    FieldFormat[] fieldFormats = new FieldFormat[buffer.readUnsignedShort()];
+    for (int fieldFormatIdx = 0; fieldFormatIdx < fieldFormats.length; ++fieldFormatIdx) {
+      fieldFormats[fieldFormatIdx] = buffer.readUnsignedShort() == 0 ? FieldFormat.Text : FieldFormat.Binary;
+    }
+
+    ProtocolHandler subProtocolHandler = handler.copyBoth(copyFormat, fieldFormats);
+    if (subProtocolHandler == null) {
+      throw new IOException("Copy-Both Not Handled");
+    }
+
+    protocolHandlers.offer(subProtocolHandler);
+
+    return ProtocolHandler.Action.Resume;
+  }
+
+  private ProtocolHandler.Action receiveCopyData(ByteBuf data, ProtocolHandler.CopyData handler) throws IOException {
+
+    handler.copyData(data);
+
+    return ProtocolHandler.Action.Resume;
+  }
+
+  private ProtocolHandler.Action receiveCopyDone(ByteBuf data, ProtocolHandler.CopyDone handler) throws IOException {
+
+    handler.copyDone();
+
+    return ProtocolHandler.Action.Complete;
+  }
+
+  private ProtocolHandler.Action receiveCopyFail(ByteBuf data, ProtocolHandler.CopyFail handler) throws IOException {
+
+    String message = data.readCharSequence(data.readableBytes(), charset).toString();
+
+    handler.copyFail(message);
+
+    return ProtocolHandler.Action.Complete;
   }
 
   private ProtocolHandler.Action receiveCommandComplete(ByteBuf buffer, ProtocolHandler.CommandComplete handler) throws IOException {

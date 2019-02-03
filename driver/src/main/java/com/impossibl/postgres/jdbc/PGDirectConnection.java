@@ -35,6 +35,9 @@ import com.impossibl.postgres.jdbc.Housekeeper.CleanupRunnable;
 import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.FieldFormatRef;
+import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyInHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyOutHandler;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
@@ -48,11 +51,13 @@ import com.impossibl.postgres.types.ArrayType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.SharedRegistry;
 import com.impossibl.postgres.types.Type;
+import com.impossibl.postgres.utils.Await;
 import com.impossibl.postgres.utils.BlockingReadTimeoutException;
 import com.impossibl.postgres.utils.CacheMap;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.chainWarnings;
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
+import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLWarningChain;
 import static com.impossibl.postgres.jdbc.Exceptions.CLOSED_CONNECTION;
 import static com.impossibl.postgres.jdbc.Exceptions.INVALID_COMMAND_FOR_GENERATED_KEYS;
 import static com.impossibl.postgres.jdbc.Exceptions.NOT_SUPPORTED;
@@ -95,7 +100,9 @@ import static com.impossibl.postgres.utils.Nulls.firstNonNull;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
@@ -126,8 +133,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -1584,6 +1593,100 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     descriptionCache.putIfAbsent(new StatementCacheKey(key.getSql(), EMPTY_TYPES), cached);
 
     return cached;
+  }
+
+  @Override
+  public void copyIn(String sql, InputStream inputStream) throws SQLException {
+
+    AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
+
+    execute(timeout -> {
+
+      CountDownLatch latch = new CountDownLatch(1);
+
+      getRequestExecutor().copyIn(sql, inputStream, new CopyInHandler() {
+
+        @Override
+        public void handleComplete() {
+        }
+
+        @Override
+        public void handleError(Throwable cause, List<Notice> notices) {
+          warningChain = chainWarnings(warningChain, makeSQLWarningChain(notices));
+          errorRef.set(cause);
+        }
+
+        @Override
+        public void handleReady(TransactionStatus transactionStatus) {
+          latch.countDown();
+        }
+
+      });
+
+      Await.awaitUninterruptibly(timeout, MILLISECONDS, latch::await);
+
+    });
+
+    Throwable error = errorRef.get();
+    if (error != null) {
+      if (error instanceof RuntimeException) {
+        throw (RuntimeException) error;
+      }
+      else if (error instanceof Error) {
+        throw (Error) error;
+      }
+      else {
+        throw makeSQLException((Exception) error);
+      }
+    }
+
+  }
+
+  @Override
+  public void copyOut(String sql, OutputStream outputStream) throws SQLException {
+
+    AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
+
+    execute(timeout -> {
+
+      CountDownLatch latch = new CountDownLatch(1);
+
+      getRequestExecutor().copyOut(sql, outputStream, new CopyOutHandler() {
+
+        @Override
+        public void handleComplete() {
+        }
+
+        @Override
+        public void handleError(Throwable cause, List<Notice> notices) {
+          warningChain = chainWarnings(warningChain, makeSQLWarningChain(notices));
+          errorRef.set(cause);
+        }
+
+        @Override
+        public void handleReady(TransactionStatus transactionStatus) {
+          latch.countDown();
+        }
+
+      });
+
+      Await.awaitUninterruptibly(timeout, MILLISECONDS, latch::await);
+
+    });
+
+    Throwable error = errorRef.get();
+    if (error != null) {
+      if (error instanceof RuntimeException) {
+        throw (RuntimeException) error;
+      }
+      else if (error instanceof Error) {
+        throw (Error) error;
+      }
+      else {
+        throw makeSQLException((Exception) error);
+      }
+    }
+
   }
 
 }

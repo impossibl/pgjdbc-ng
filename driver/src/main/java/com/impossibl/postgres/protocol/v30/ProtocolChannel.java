@@ -46,6 +46,7 @@ import static com.impossibl.postgres.utils.ByteBufs.writeCString;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Map;
 
@@ -70,6 +71,9 @@ public class ProtocolChannel {
   private static final byte EXECUTE_MSG_ID = 'E';
   private static final byte CLOSE_MSG_ID = 'C';
   private static final byte FUNCTION_CALL_MSG_ID = 'F';
+  private static final byte COPY_DONE_MSG_ID = 'c';
+  private static final byte COPY_FAIL_MSG_ID = 'f';
+  private static final byte COPY_DATA_MSG_ID = 'd';
 
   private Channel channel;
   private ChannelOutboundInvoker flusher;
@@ -263,6 +267,62 @@ public class ProtocolChannel {
     msg.writeShort(1);
 
     endMessage(msg);
+
+    return this;
+  }
+
+  ProtocolChannel writeCopyData(InputStream stream) throws IOException {
+
+    try {
+
+      while (true) {
+
+        ByteBuf buffer = channel.pipeline().channel().alloc().buffer(0x1000);
+        try {
+
+          int read = buffer.writeBytes(stream, buffer.capacity());
+          if (read < 0) break;
+
+          writeCopyData(buffer);
+
+        }
+        finally {
+          buffer.release();
+        }
+      }
+
+    }
+    catch (IOException e) {
+      writeCopyFail(e.getMessage());
+      throw e;
+    }
+
+    return writeCopyDone();
+  }
+
+  ProtocolChannel writeCopyData(ByteBuf data) throws IOException {
+
+    ByteBuf msg = beginMessage(COPY_DATA_MSG_ID);
+
+    msg.writeBytes(data);
+
+    endMessage(msg);
+
+    return this;
+  }
+
+  ProtocolChannel writeCopyDone() throws IOException {
+
+    writeMessage(COPY_DONE_MSG_ID);
+
+    return this;
+  }
+
+  ProtocolChannel writeCopyFail(String message) throws IOException {
+
+    ByteBuf msg = beginMessage(COPY_FAIL_MSG_ID);
+
+    msg.writeCharSequence(message, charset);
 
     return this;
   }

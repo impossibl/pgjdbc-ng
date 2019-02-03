@@ -50,6 +50,7 @@ import static com.impossibl.postgres.system.SystemSettings.SQL_TRACE_FILE;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -250,6 +251,22 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
       sqlTrace.query("CALL: " + functionId);
     }
     submit(new FunctionCallRequest(functionId, parameterFormats, parameterBuffers, handler));
+  }
+
+  @Override
+  public void copyIn(String sql, InputStream stream, CopyInHandler handler) throws IOException {
+    if (sqlTrace != null) {
+      sqlTrace.query("COPY-IN: " + sql);
+    }
+    submit(new CopyInRequest(sql, stream, handler));
+  }
+
+  @Override
+  public void copyOut(String sql, OutputStream stream, CopyOutHandler handler) throws IOException {
+    if (sqlTrace != null) {
+      sqlTrace.query("COPY-OUT: " + sql);
+    }
+    submit(new CopyOutRequest(sql, stream, handler));
   }
 
   @Override

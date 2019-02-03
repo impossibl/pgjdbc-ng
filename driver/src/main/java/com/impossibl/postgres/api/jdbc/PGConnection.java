@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -140,5 +142,9 @@ public interface PGConnection extends Connection {
    * @return Type instance representing the current name to type mapping.
    */
   PGAnyType resolveType(String name) throws SQLException;
+
+
+  void copyIn(String sql, InputStream inputStream) throws SQLException;
+  void copyOut(String sql, OutputStream outputStream) throws SQLException;
 
 }
