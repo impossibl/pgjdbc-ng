@@ -60,7 +60,7 @@ dependencies {
 
 NOTE: Using these artifacts will pull in the driver implementation and its required dependencies. If you wish
 to depend on a version of the driver that embeds its dependencies you can use the artifact name
-`{driverdepname}-{driverdepver}-{uberclass}` instead; this is useful to work around dependency conflicts in certain
+`{driveruberjar}` instead; this is useful to work around dependency conflicts in certain
 situations but otherwise should not be necessary.
 
 [[overview-getting-started-download]]
