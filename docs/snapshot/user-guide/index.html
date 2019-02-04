@@ -535,7 +535,7 @@ table.CodeRay td.code>pre{padding:0}
 <h1>PGJDBC-NG User Guide</h1>
 <div class="details">
 <span id="author" class="author">Kevin Wooten, Jesper Pedersen, Brett Wooldridge</span><br>
-<span id="revnumber">version 0.8.1-SNAPSHOT</span>
+<span id="revnumber">version 0.9-SNAPSHOT</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -744,7 +744,7 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;dependency&gt;</span>
     <span class="tag">&lt;groupId&gt;</span>com.impossibl.pgjdbc-ng<span class="tag">&lt;/groupId&gt;</span>
     <span class="tag">&lt;artifactId&gt;</span>pgjdbc-ng<span class="tag">&lt;/artifactId&gt;</span>
-    <span class="tag">&lt;version&gt;</span>0.8.1-SNAPSHOT<span class="tag">&lt;/version&gt;</span>
+    <span class="tag">&lt;version&gt;</span>0.9-SNAPSHOT<span class="tag">&lt;/version&gt;</span>
 <span class="tag">&lt;/dependency&gt;</span></code></pre>
 </div>
 </div>
@@ -757,7 +757,7 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="groovy">dependencies {
-    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8.1-SNAPSHOT"
+    compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:0.9-SNAPSHOT"
 }</code></pre>
 </div>
 </div>
@@ -770,7 +770,7 @@ JDBC 4.3 is forthcoming and will be backwards compatible.</p>
 <td class="content">
 Using these artifacts will pull in the driver implementation and its required dependencies. If you wish
 to depend on a version of the driver that embeds its dependencies you can use the artifact name
-<code>pgjdbc-ng-0.8.1-SNAPSHOT-all.jar</code> instead; this is useful to work around dependency conflicts in certain
+<code>pgjdbc-ng-0.9-SNAPSHOT-all.jar</code> instead; this is useful to work around dependency conflicts in certain
 situations but otherwise should not be necessary.
 </td>
 </tr>
@@ -786,7 +786,7 @@ an application server like Glassfish, <a href="#appservers-wildfly">WildFly</a> 
 version of the driver and copy it to the location required by your project or usage.</p>
 </div>
 <div class="paragraph">
-<p><a href="http://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&amp;g=com.impossibl.pgjdbc-ng&amp;a=pgjdbc-ng&amp;c=all&amp;v=0.8.1-SNAPSHOT">Download JAR</a></p>
+<p><a href="http://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots&amp;g=com.impossibl.pgjdbc-ng&amp;a=pgjdbc-ng&amp;c=all&amp;v=0.9-SNAPSHOT">Download JAR</a></p>
 </div>
 </div>
 </div>
@@ -3451,7 +3451,7 @@ method of referencing the main class.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">java -jar udt-gen-0.8.1-SNAPSHOT-all.jar [options] &lt;type names&gt;</code></pre>
+<pre class="CodeRay highlight"><code data-lang="bash">java -jar udt-gen-0.9-SNAPSHOT-all.jar [options] &lt;type names&gt;</code></pre>
 </div>
 </div>
 <div class="sect4">
@@ -3934,7 +3934,7 @@ deployment remain similar.
 <div class="listingblock">
 <div class="title">Add the Driver Jar as a module</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="shell">module add --name=com.impossibl.pgjdbc-ng --resources=pgjdbc-ng-0.8.1-SNAPSHOT-all.jar --dependencies=javax.api,javax.transaction.api</code></pre>
+<pre class="CodeRay highlight"><code data-lang="shell">module add --name=com.impossibl.pgjdbc-ng --resources=pgjdbc-ng-0.9-SNAPSHOT-all.jar --dependencies=javax.api,javax.transaction.api</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -4017,7 +4017,7 @@ following module definition.</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;module</span> <span class="attribute-name">xmlns</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:jboss:module:1.3</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">com.impossibl.pgjdbc-ng</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
   <span class="tag">&lt;resources&gt;</span>
-    <span class="tag">&lt;resource-root</span> <span class="attribute-name">path</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pgjdbc-ng-0.8.1-SNAPSHOT-all.jar</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;resource-root</span> <span class="attribute-name">path</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">pgjdbc-ng-0.9-SNAPSHOT-all.jar</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
   <span class="tag">&lt;/resources&gt;</span>
   <span class="tag">&lt;dependencies&gt;</span>
     <span class="tag">&lt;module</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">javax.api</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
@@ -4194,7 +4194,7 @@ Any valid <a href="#connection-settings">Connection Settings</a> can be specifie
 <p>In the WildFly Admin Console, navigate to the "Deployments" tab and choose "Upload Deployment".</p>
 </div>
 <div class="paragraph">
-<p>Add the <code>pgjdbc-ng-0.8.1-SNAPSHOT-all.jar</code> file and choose <code>Next</code>.</p>
+<p>Add the <code>pgjdbc-ng-0.9-SNAPSHOT-all.jar</code> file and choose <code>Next</code>.</p>
 </div>
 <div class="paragraph">
 <p>On the following step, ensure the "Enabled" option is selected and choose <code>Finish</code></p>
@@ -4213,7 +4213,7 @@ Any valid <a href="#connection-settings">Connection Settings</a> can be specifie
 <i class="fa icon-caution" title="Caution"></i>
 </td>
 <td class="content">
-If <a href="#appservers-wildfly-console-deploy-driver">Driver Deployment</a> was completed correctly, <code>pgjdbc-ng-0.8.1-SNAPSHOT-all.jar</code>
+If <a href="#appservers-wildfly-console-deploy-driver">Driver Deployment</a> was completed correctly, <code>pgjdbc-ng-0.9-SNAPSHOT-all.jar</code>
 should be visible under the "Drivers" subsection.
 </td>
 </tr>
@@ -4258,7 +4258,7 @@ a name that clearly marks it as a DataSource.</p>
 name in the list of detected drivers.</p>
 </div>
 <div class="paragraph">
-<p>Select <code>pgjdbc-ng-0.8.1-SNAPSHOT-all.jar</code> from the dropdown list, leaving the other non-required fields blank, and choose <code>Next</code>.</p>
+<p>Select <code>pgjdbc-ng-0.9-SNAPSHOT-all.jar</code> from the dropdown list, leaving the other non-required fields blank, and choose <code>Next</code>.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -4336,8 +4336,8 @@ should provide information as to the issue with your installation and/or configu
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.8.1-SNAPSHOT<br>
-Last updated 2019-02-04 00:26:24 UTC
+Version 0.9-SNAPSHOT<br>
+Last updated 2019-02-03 17:00:21 -0700
 </div>
 </div>
 </body>
