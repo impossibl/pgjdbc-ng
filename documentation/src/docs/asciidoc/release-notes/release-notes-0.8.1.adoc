@@ -1,7 +1,7 @@
 [[release-notes-0.8.1]]
 == 0.8.1
 
-*Date of Release:* ❓
+*Date of Release:* 2019-02-03
 
 *Scope:* Bug fixes for 0.8 release
 
@@ -22,7 +22,8 @@ and in asciidoc documentation.
 
 ==== Bug Fixes
 
-* None
+* Fix notification delivery
+* Fix NPE in prepared statement batches
 
 ==== Deprecations and Breaking Changes
 
