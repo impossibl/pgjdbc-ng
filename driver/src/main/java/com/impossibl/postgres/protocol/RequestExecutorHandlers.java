@@ -81,6 +81,15 @@ public class RequestExecutorHandlers {
       completed.countDown();
     }
 
+    public boolean isCompleted() {
+      try {
+        return completed.await(0, SECONDS);
+      }
+      catch (InterruptedException ignored) {
+        return false;
+      }
+    }
+
     void checkCompleted() {
       try {
         if (completed.await(0, SECONDS))

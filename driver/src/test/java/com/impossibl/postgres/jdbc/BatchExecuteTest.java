@@ -36,6 +36,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.api.jdbc.PGConnection;
+import com.impossibl.postgres.utils.Timer;
 
 import java.sql.Array;
 import java.sql.BatchUpdateException;
@@ -49,6 +50,7 @@ import java.sql.Types;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -266,6 +268,28 @@ public class BatchExecuteTest {
 
     con.rollback();
     assertCol1HasValue(10);
+
+    pstmt.close();
+  }
+
+  @Ignore
+  @Test
+  public void testPreparedStatementPerformance() throws Exception {
+    PreparedStatement pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+
+    for (int c = 0; c < 10000; ++c) {
+      pstmt.setInt(1, c);
+      pstmt.setInt(2, c);
+      pstmt.addBatch();
+    }
+
+    Timer timer = new Timer();
+
+    con.setAutoCommit(false);
+    pstmt.executeBatch();
+    con.commit();
+
+    System.out.println("Total time: " + timer.getTotalSeconds());
 
     pstmt.close();
   }
