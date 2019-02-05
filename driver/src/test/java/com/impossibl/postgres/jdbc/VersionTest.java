@@ -106,6 +106,66 @@ public class VersionTest {
     assertEquals("beta", ver.getTag());
     assertEquals("12.0  beta", ver.toString());
 
+    ver = Version.parse("1 (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(1, ver.getMajor());
+    assertNull(ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1", ver.toString());
+
+    ver = Version.parse("1.2 (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(1, ver.getMajor());
+    assertEquals((Integer) 2, ver.getMinor());
+    assertEquals(2, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1.2", ver.toString());
+
+    ver = Version.parse("1.2.3 (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(1, ver.getMajor());
+    assertEquals((Integer) 2, ver.getMinor());
+    assertEquals(2, ver.getMinorValue());
+    assertEquals((Integer) 3, ver.getRevision());
+    assertEquals(3, ver.getRevisionValue());
+    assertNull(ver.getTag());
+    assertEquals("1.2.3", ver.toString());
+
+    ver = Version.parse("10devel (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(ver.getMajor(), 10);
+    assertNull(ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("devel", ver.getTag());
+    assertEquals("10devel", ver.toString());
+
+    ver = Version.parse("11.1rc1 (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(ver.getMajor(), 11);
+    assertEquals((Integer) 1, ver.getMinor());
+    assertEquals(1, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("rc1", ver.getTag());
+    assertEquals("11.1rc1", ver.toString());
+
+    ver = Version.parse("12.0  beta (Ubuntu 10.6-1.pgdg16.04+1)");
+
+    assertEquals(ver.getMajor(), 12);
+    assertEquals((Integer) 0, ver.getMinor());
+    assertEquals(0, ver.getMinorValue());
+    assertNull(ver.getRevision());
+    assertEquals(0, ver.getRevisionValue());
+    assertEquals("beta", ver.getTag());
+    assertEquals("12.0  beta", ver.toString());
+
     try {
       Version.parse("1.");
       fail("Version shouldn't be allowed");

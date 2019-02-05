@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 
 public class Version {
 
-  private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?([\\sa-zA-Z-][\\s\\w_-]+)?");
+  private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(?:\\.(\\d+)(?:\\.(\\d+))?)?(\\s*[a-zA-Z0-9-]+)?(\\s+.*)?");
   private static final HashMap<Version, Version> all = new HashMap<>();
 
   private int major;
