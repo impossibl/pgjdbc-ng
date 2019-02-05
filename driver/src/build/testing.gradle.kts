@@ -1,5 +1,6 @@
 import com.avast.gradle.dockercompose.ComposeExtension
 import com.avast.gradle.dockercompose.DockerComposePlugin
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.nio.file.Files
@@ -21,6 +22,9 @@ val defaultPostgresVersions by extra("11, 10, 9.6, 9.5, 9.4")
 
 val testTask = tasks.named<Test>("test") {
   useJUnitPlatform()
+  testLogging {
+    exceptionFormat = TestExceptionFormat.FULL
+  }
   exclude(
      "**/RequiredTests.*",
      "**/DateTimeTests.*",
