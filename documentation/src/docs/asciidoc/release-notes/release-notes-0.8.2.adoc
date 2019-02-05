@@ -1,0 +1,37 @@
+[[release-notes-0.8.2]]
+== 0.8.2
+
+*Date of Release:* ❓
+
+*Scope:* Bug fixes for 0.8 release
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/4?closed=1+[0.8.2] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.2-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Fix parsing of server versions with packaging information.
+
+==== Deprecations and Breaking Changes
+
+* ❓
+
+==== New Features and Improvements
+
+* ❓
+
+
+[[release-notes-0.8.2-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+No Changes
+
+[[release-notes-0.8.2-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+No Changes

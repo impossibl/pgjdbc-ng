@@ -13,6 +13,8 @@ Please refer to the <<../user-guide/index.adoc#user-guide, User Guide>> for comp
 reference documentation on integrating and using {drivername}.
 
 
+include::release-notes-0.8.2.adoc[]
+
 include::release-notes-0.8.1.adoc[]
 
 include::release-notes-0.8.adoc[]
