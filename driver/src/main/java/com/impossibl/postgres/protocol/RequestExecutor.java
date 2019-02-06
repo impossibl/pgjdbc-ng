@@ -401,24 +401,24 @@ public interface RequestExecutor {
   }
 
   /*****
-   * Copy In & Out
+   * Copy In &amp; Out
    */
 
-  interface CopyInHandler extends SynchronizedHandler {
+  interface CopyFromHandler extends SynchronizedHandler {
 
     void handleComplete() throws IOException;
 
   }
 
-  void copyIn(String sql, InputStream stream, CopyInHandler handler) throws IOException;
+  void copyFrom(String sql, InputStream stream, CopyFromHandler handler) throws IOException;
 
 
-  interface CopyOutHandler extends SynchronizedHandler {
+  interface CopyToHandler extends SynchronizedHandler {
 
     void handleComplete() throws IOException;
 
   }
 
-  void copyOut(String sql, OutputStream stream, CopyOutHandler handler) throws IOException;
+  void copyTo(String sql, OutputStream stream, CopyToHandler handler) throws IOException;
 
 }

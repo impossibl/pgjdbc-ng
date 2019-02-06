@@ -99,7 +99,7 @@ public class CopyTest {
   public void testCopyFromSpecifiedIn() throws SQLException {
 
     InputStream in = new ByteArrayInputStream("ab\t1\nbc\t20\ncd\t300".getBytes(UTF_8));
-    con.unwrap(PGConnection.class).copyIn("COPY copytbl FROM STDIN", in);
+    con.unwrap(PGConnection.class).copyFrom("COPY copytbl FROM STDIN", in);
 
     try (Statement statement = con.createStatement()) {
       try (ResultSet rs = statement.executeQuery("SELECT * FROM copytbl")) {
@@ -152,7 +152,7 @@ public class CopyTest {
 
       ByteArrayOutputStream os = new ByteArrayOutputStream();
 
-      con.unwrap(PGConnection.class).copyOut("COPY copytbl TO STDOUT", os);
+      con.unwrap(PGConnection.class).copyTo("COPY copytbl TO STDOUT", os);
 
       os.flush();
 
@@ -168,7 +168,7 @@ public class CopyTest {
 
       ByteArrayInputStream is = new ByteArrayInputStream(new byte[0]);
 
-      con.unwrap(PGConnection.class).copyIn("SELECT * FROM copytbl", is);
+      con.unwrap(PGConnection.class).copyFrom("SELECT * FROM copytbl", is);
     });
   }
 
@@ -179,7 +179,7 @@ public class CopyTest {
 
       ByteArrayOutputStream os = new ByteArrayOutputStream();
 
-      con.unwrap(PGConnection.class).copyOut("SELECT * FROM copytbl", os);
+      con.unwrap(PGConnection.class).copyTo("SELECT * FROM copytbl", os);
     });
   }
 

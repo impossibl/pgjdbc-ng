@@ -31,7 +31,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.CopyInHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyFromHandler;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
@@ -52,10 +52,10 @@ public class CopyInRequest implements ServerRequest {
 
   private String sql;
   private InputStream stream;
-  private CopyInHandler handler;
+  private CopyFromHandler handler;
   private List<Notice> notices;
 
-  CopyInRequest(String sql, InputStream stream, CopyInHandler handler) {
+  CopyInRequest(String sql, InputStream stream, CopyFromHandler handler) {
     this.sql = sql;
     this.stream = stream;
     this.handler = handler;

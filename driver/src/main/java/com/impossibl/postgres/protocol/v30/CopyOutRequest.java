@@ -31,7 +31,7 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.CopyOutHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyToHandler;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandComplete;
@@ -57,10 +57,10 @@ public class CopyOutRequest implements ServerRequest {
 
   private String sql;
   private OutputStream stream;
-  private CopyOutHandler handler;
+  private CopyToHandler handler;
   private List<Notice> notices;
 
-  CopyOutRequest(String sql, OutputStream stream, CopyOutHandler handler) {
+  CopyOutRequest(String sql, OutputStream stream, CopyToHandler handler) {
     this.sql = sql;
     this.stream = stream;
     this.handler = handler;

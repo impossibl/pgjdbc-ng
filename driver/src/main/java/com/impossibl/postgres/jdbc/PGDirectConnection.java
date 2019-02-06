@@ -36,8 +36,8 @@ import com.impossibl.postgres.jdbc.SQLTextTree.ParameterPiece;
 import com.impossibl.postgres.jdbc.SQLTextTree.Processor;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.RequestExecutor.CopyInHandler;
-import com.impossibl.postgres.protocol.RequestExecutor.CopyOutHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyFromHandler;
+import com.impossibl.postgres.protocol.RequestExecutor.CopyToHandler;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
@@ -1596,7 +1596,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void copyIn(String sql, InputStream inputStream) throws SQLException {
+  public void copyFrom(String sql, InputStream inputStream) throws SQLException {
 
     AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
 
@@ -1604,7 +1604,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       CountDownLatch latch = new CountDownLatch(1);
 
-      getRequestExecutor().copyIn(sql, inputStream, new CopyInHandler() {
+      getRequestExecutor().copyFrom(sql, inputStream, new CopyFromHandler() {
 
         @Override
         public void handleComplete() {
@@ -1643,7 +1643,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
   @Override
-  public void copyOut(String sql, OutputStream outputStream) throws SQLException {
+  public void copyTo(String sql, OutputStream outputStream) throws SQLException {
 
     AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
 
@@ -1651,7 +1651,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       CountDownLatch latch = new CountDownLatch(1);
 
-      getRequestExecutor().copyOut(sql, outputStream, new CopyOutHandler() {
+      getRequestExecutor().copyTo(sql, outputStream, new CopyToHandler() {
 
         @Override
         public void handleComplete() {

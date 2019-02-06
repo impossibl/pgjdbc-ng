@@ -254,7 +254,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void copyIn(String sql, InputStream stream, CopyInHandler handler) throws IOException {
+  public void copyFrom(String sql, InputStream stream, CopyFromHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query("COPY-IN: " + sql);
     }
@@ -262,7 +262,7 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
-  public void copyOut(String sql, OutputStream stream, CopyOutHandler handler) throws IOException {
+  public void copyTo(String sql, OutputStream stream, CopyToHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query("COPY-OUT: " + sql);
     }

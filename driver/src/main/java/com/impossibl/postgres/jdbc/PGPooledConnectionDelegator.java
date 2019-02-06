@@ -160,10 +160,10 @@ public class PGPooledConnectionDelegator implements PGConnection {
    * {@inheritDoc}
    */
   @Override
-  public void copyIn(String sql, InputStream inputStream) {
+  public void copyFrom(String sql, InputStream inputStream) {
     try {
       checkClosed();
-      delegator.copyIn(sql, inputStream);
+      delegator.copyFrom(sql, inputStream);
     }
     catch (SQLException se) {
       // Nothing to do
@@ -174,10 +174,10 @@ public class PGPooledConnectionDelegator implements PGConnection {
    * {@inheritDoc}
    */
   @Override
-  public void copyOut(String sql, OutputStream outputStream) {
+  public void copyTo(String sql, OutputStream outputStream) {
     try {
       checkClosed();
-      delegator.copyOut(sql, outputStream);
+      delegator.copyTo(sql, outputStream);
     }
     catch (SQLException se) {
       // Nothing to do
