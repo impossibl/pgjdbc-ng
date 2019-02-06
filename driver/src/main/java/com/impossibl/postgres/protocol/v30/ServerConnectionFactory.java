@@ -582,7 +582,10 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     IOException io;
 
     // Unwrap
-    if (e instanceof IOException) {
+    if (e instanceof ClosedChannelException) {
+      io = new IOException("Channel Closed", e);
+    }
+    else if (e instanceof IOException) {
       io = (IOException) e;
     }
     else if (e.getCause() == null) {

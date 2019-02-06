@@ -128,13 +128,14 @@ public class ErrorUtils {
     return new SQLWarning(notice.getMessage(), notice.getCode());
   }
 
-  public static SQLException makeSQLException(String message, String sqlState, Exception cause) {
+  public static SQLException makeSQLException(String messagePrefix, String sqlState, Exception cause) {
 
     if (cause instanceof NoticeException) {
-      return makeSQLException(message, ((NoticeException) cause).getNotice());
+      return makeSQLException(messagePrefix, ((NoticeException) cause).getNotice());
     }
 
-    return new PGSQLSimpleException(message + (cause != null ? cause.getMessage() : ""), sqlState, cause);
+    String message = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "Unknown";
+    return new PGSQLSimpleException(messagePrefix + message, sqlState, cause);
   }
 
   public static SQLException makeSQLException(String message, Exception cause) {
@@ -180,7 +181,7 @@ public class ErrorUtils {
    *          Notice to convert
    * @return SQLException
    */
-  public static SQLException makeSQLException(String message, Notice notice) {
+  public static SQLException makeSQLException(String messagePrefix, Notice notice) {
 
     PGSQLExceptionInfo e;
 
@@ -188,12 +189,12 @@ public class ErrorUtils {
 
     if (code.startsWith("23")) {
 
-      e = new PGSQLIntegrityConstraintViolationException(message + nullToEmpty(notice.getMessage()), notice.getCode());
+      e = new PGSQLIntegrityConstraintViolationException(messagePrefix + nullToEmpty(notice.getMessage()), notice.getCode());
 
     }
     else {
 
-      e = new PGSQLSimpleException(message + nullToEmpty(notice.getMessage()), notice.getCode());
+      e = new PGSQLSimpleException(messagePrefix + nullToEmpty(notice.getMessage()), notice.getCode());
 
     }
 
