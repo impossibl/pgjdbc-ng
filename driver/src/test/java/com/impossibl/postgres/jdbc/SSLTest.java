@@ -38,6 +38,8 @@ package com.impossibl.postgres.jdbc;
 import static com.impossibl.postgres.jdbc.TestUtil.isDatabaseCreated;
 
 import java.io.FileInputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -74,15 +76,15 @@ public class SSLTest {
     assumeTrue("Missing certdb", isDatabaseCreated("certdb"));
   }
 
-  protected String certdir;
-  protected String connstr;
-  protected String sslmode;
-  protected boolean goodclient;
-  protected boolean goodserver;
-  protected String prefix;
-  protected Object[] expected;
+  private String certdir;
+  private String connstr;
+  private String sslmode;
+  private boolean goodclient;
+  private boolean goodserver;
+  private String prefix;
+  private Object[] expected;
 
-  public SSLTest(String name, String certdir, String connstr, String sslmode, boolean goodclient, boolean goodserver, String prefix, Object[] expected) {
+  public SSLTest(@SuppressWarnings("unused") String name, String certdir, String connstr, String sslmode, boolean goodclient, boolean goodserver, String prefix, Object[] expected) {
     this.certdir = certdir;
     this.connstr = connstr;
     this.sslmode = sslmode;
@@ -93,7 +95,7 @@ public class SSLTest {
   }
 
   @Test
-  public void testConnection() throws Throwable {
+  public void testConnection() {
     driver(makeConnStr(sslmode, goodclient, goodserver), expected);
   }
 
@@ -114,9 +116,8 @@ public class SSLTest {
    *          Expected values. the first element is a String holding the
    *          expected message of PSQLException or null, if no exception is
    *          expected, the second indicates weather ssl is to be used (Boolean)
-   * @throws SQLException
    */
-  protected void driver(String connstr, Object[] expected) throws SQLException {
+  protected void driver(String connstr, Object[] expected) {
     String exmsg = (String) expected[0];
     try {
       try (Connection conn = DriverManager.getConnection(connstr, TestUtil.getUser(), TestUtil.getPassword())) {
@@ -126,7 +127,7 @@ public class SSLTest {
         try (Statement stmt = conn.createStatement()) {
           try (ResultSet rs = stmt.executeQuery("select ssl_is_used()")) {
             assertTrue(rs.next());
-            assertEquals("ssl_is_used: ", ((Boolean) expected[1]).booleanValue(), rs.getBoolean(1));
+            assertEquals("ssl_is_used: ", expected[1], rs.getBoolean(1));
           }
         }
       }
@@ -136,8 +137,9 @@ public class SSLTest {
         fail("Exception thrown: " + ex.getMessage());
       }
       else {
-        assertTrue("expected: " + exmsg + " actual: " + ex.getMessage(), ex.getMessage().matches(exmsg));
-        return;
+        StringWriter trace = new StringWriter();
+        ex.printStackTrace(new PrintWriter(trace));
+        assertTrue("Unexpected Exception Message: " + ex.getMessage() + "\nfrom\n" + trace.toString(), ex.getMessage().matches(exmsg));
       }
     }
   }
@@ -193,26 +195,25 @@ public class SSLTest {
 
     Collection<Object[]> data = new ArrayList<>();
 
-    for (int i = 0; i < csslmode.length; i++) {
-      data.add(new Object[] {param + "-" + csslmode[i] + "GG", certdir, sconnstr, csslmode[i], true, true, sprefix, expected.get(csslmode[i] + "GG")});
-      data.add(new Object[] {param + "-" + csslmode[i] + "GB", certdir, sconnstr, csslmode[i], true, false, sprefix, expected.get(csslmode[i] + "GB")});
-      data.add(new Object[] {param + "-" + csslmode[i] + "BG", certdir, sconnstr, csslmode[i], false, true, sprefix, expected.get(csslmode[i] + "BG")});
+    for (String sslmode : csslmode) {
+      data.add(new Object[] {param + "-" + sslmode + "GG", certdir, sconnstr, sslmode, true, true, sprefix, expected.get(sslmode + "GG")});
+      data.add(new Object[] {param + "-" + sslmode + "GB", certdir, sconnstr, sslmode, true, false, sprefix, expected.get(sslmode + "GB")});
+      data.add(new Object[] {param + "-" + sslmode + "BG", certdir, sconnstr, sslmode, false, true, sprefix, expected.get(sslmode + "BG")});
     }
     return data;
   }
 
-  static Map<String, Map<String, Object[]>> expectedmap;
-  static TreeMap<String, Object[]> defaultexpected;
-
-  static String PG_HBA_ON = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
-  static String PG_HBA_OFF = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
-  static String FAILED = "The connection attempt failed.";
-  static String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
-  static String ANY = ".*";
-  static String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
-  static String HOSTNAME = "Connection Error: SSL Error: The hostname .* could not be verified";
+  private static Map<String, Map<String, Object[]>> expectedmap;
+  private static TreeMap<String, Object[]> defaultexpected;
 
   static {
+    String PG_HBA_ON = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
+    String PG_HBA_OFF = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
+    String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
+    String ANY = ".*";
+    String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
+    String HOSTNAME = "Connection Error: SSL Error: The hostname .* could not be verified";
+
     defaultexpected = new TreeMap<>();
     defaultexpected.put("disableGG", new Object[] {null, Boolean.FALSE});
     defaultexpected.put("disableGB", new Object[] {null, Boolean.FALSE});
