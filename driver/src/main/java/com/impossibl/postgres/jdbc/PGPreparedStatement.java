@@ -69,6 +69,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -89,6 +90,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Integer.toHexString;
 import static java.lang.Long.min;
@@ -225,9 +227,8 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
   void verifyParameterSet() throws SQLException {
     if (parameterCount > 0) {
       int count = 0;
-      for (Boolean b : parameterSet) {
-        if (b != null && Boolean.TRUE.equals(b))
-          count++;
+      for (boolean b : parameterSet) {
+        if (b) count++;
       }
       if (count != parameterCount)
         throw new SQLException("Incorrect parameter count, was " + count + ", expected: " + parameterCount);
@@ -449,16 +450,24 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
       ResultField[] lastResultFields = null;
 
       int batchIdx = 0;
+      AtomicInteger completedBatchIdx = new AtomicInteger(0);
       int sz = batchParameterBuffers.size();
 
       try {
         RequestExecutor requestExecutor = connection.getRequestExecutor();
+        List<ExecuteResult> requestHandlers = new ArrayList<>();
 
         while (batchIdx < sz) {
 
           Type[] suggestedParameterTypes = mergedTypes(batchParameterTypes.get(batchIdx), lastParameterTypes);
 
           if (lastParameterTypes == null || !Arrays.equals(lastParameterTypes, parameterTypes)) {
+
+            /**
+             * Note: This causes all in-flight requests to finish at
+             * this point; negating any pipe-lining effect we could
+             * have achieved.
+             **/
 
             PrepareResult prep = connection.execute((timeout) -> {
               PrepareResult handler = new PrepareResult();
@@ -478,37 +487,19 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
           ByteBuf[] parameterBuffers = batchParameterBuffers.get(batchIdx);
           ResultField[] resultFields = lastResultFields;
 
-          ExecuteResult exec = connection.execute((timeout) -> {
-            ExecuteResult handler = new ExecuteResult(resultFields);
-            requestExecutor.execute(null, null, parameterFormats, parameterBuffers, resultFields, 0, handler);
-            handler.await(timeout, MILLISECONDS);
-            return handler;
-          });
-
-          warningChain = chainWarnings(warningChain, exec);
-
-          try (ResultBatch resultBatch = exec.getBatch()) {
-
-            if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
-              throw results.getException(batchIdx, "SELECT in executeBatch", null);
-            }
-            else if (resultBatch.getRowsAffected() != null) {
-              results.setUpdateCount(batchIdx, resultBatch.getRowsAffected());
-            }
-            else {
-              results.setUpdateCount(batchIdx, SUCCESS_NO_INFO);
-            }
-
-            if (wantsGeneratedKeys) {
-              generatedKeys.add(resultBatch.borrowRows().take(0));
-            }
-          }
+          ExecuteResult handler = new ExecuteResult(resultFields);
+          requestExecutor.execute(null, null, parameterFormats, parameterBuffers, resultFields, 0, handler);
+          requestHandlers.add(handler);
 
           batchIdx++;
+
+          finishCompletedRequests(requestHandlers, completedBatchIdx, results, generatedKeys);
         }
+
+        finishRequests(requestHandlers, completedBatchIdx, results, generatedKeys);
       }
       catch (IOException | SQLException se) {
-        throw results.getException(batchIdx, null, se);
+        throw results.getException(completedBatchIdx.get(), null, se);
       }
 
       generatedKeysResultSet = createResultSet(lastResultFields, generatedKeys, true, connection.getTypeMap());
@@ -520,6 +511,61 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
         batchParameterBuffers.forEach(ByteBufs::releaseAll);
         batchParameterBuffers = null;
       }
+    }
+
+  }
+
+  private void finishRequest(AtomicInteger batchIdx, ExecuteResult request, BatchResults results, RowDataSet generatedKeys) throws BatchUpdateException {
+
+    warningChain = chainWarnings(warningChain, request);
+
+    Throwable error = request.getError();
+    if (error != null) {
+      throw results.getException(batchIdx.get(), null, (Exception) error);
+    }
+
+    try (ResultBatch resultBatch = request.getBatch()) {
+
+      if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
+        throw results.getException(batchIdx.get(), "SELECT in executeBatch", null);
+      }
+      else if (resultBatch.getRowsAffected() != null) {
+        results.setUpdateCount(batchIdx.get(), resultBatch.getRowsAffected());
+      }
+      else {
+        results.setUpdateCount(batchIdx.get(), SUCCESS_NO_INFO);
+      }
+
+      if (wantsGeneratedKeys) {
+        generatedKeys.add(resultBatch.borrowRows().take(0));
+      }
+    }
+  }
+
+  private void finishCompletedRequests(List<ExecuteResult> batchRequests, AtomicInteger batchIdx, BatchResults results, RowDataSet generatedKeys) throws BatchUpdateException {
+
+    while (!batchRequests.isEmpty() && batchRequests.get(0).isCompleted()) {
+      ExecuteResult request = batchRequests.remove(0);
+
+      finishRequest(batchIdx, request, results, generatedKeys);
+
+      batchIdx.incrementAndGet();
+    }
+
+  }
+
+  private void finishRequests(List<ExecuteResult> batchRequests, AtomicInteger batchIdx, BatchResults results, RowDataSet generatedKeys) throws SQLException {
+
+    while (!batchRequests.isEmpty()) {
+      ExecuteResult request = batchRequests.remove(0);
+
+      connection.execute(timeout -> {
+        request.await(timeout, MILLISECONDS);
+      });
+
+      finishRequest(batchIdx, request, results, generatedKeys);
+
+      batchIdx.incrementAndGet();
     }
 
   }

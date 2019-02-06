@@ -1,5 +1,6 @@
 import com.avast.gradle.dockercompose.ComposeExtension
 import com.avast.gradle.dockercompose.DockerComposePlugin
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 buildscript {
   repositories { jcenter() }
@@ -22,6 +23,9 @@ val pgVersion = (project.properties["postgresVersions"] as? String ?: defaultPos
 
 val testTask = tasks.named<Test>("test") {
   useJUnitPlatform()
+  testLogging {
+    exceptionFormat = TestExceptionFormat.FULL
+  }
 }
 
 

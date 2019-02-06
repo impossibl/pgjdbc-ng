@@ -3,6 +3,7 @@ import com.github.breadmoirai.GithubReleaseTask
 import de.undercouch.gradle.tasks.download.Download
 
 plugins {
+  base
   id("de.undercouch.download") version "3.4.3"
   id("com.github.breadmoirai.github-release") version Versions.githubReleasePlugin
 }
@@ -85,9 +86,17 @@ fun centralDownload(group: String, artifact: String, classifier: String? = null)
   val base = "http://oss.sonatype.org/service/local/artifact/maven/redirect"
   val repo = if(isSnapshot) "snapshots" else "releases"
   val queryClassifier = classifier?.let { "&c=$it" } ?: ""
+  val dest = "$buildDir/artifacts/$artifact-$version${classifier?.let { "-$it" } ?: ""}.jar"
+
+  tasks.named("clean") {
+    doFirst {
+      file(dest).delete()
+    }
+  }
+
   return tasks.register<Download>("downloadCentral" + "$group-$artifact-${classifier ?: ""}") {
     src("$base?r=$repo&g=$group&a=$artifact$queryClassifier&v=$version")
-    dest("$buildDir/artifacts/$artifact-$version${classifier?.let { "-$it" } ?: ""}.jar")
+    dest(dest)
   }
 
 }

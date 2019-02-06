@@ -28,7 +28,7 @@ before_script:
   # PostgreSQL requires specific permissions... this meets the requirements when running via docker in Travis
   - chmod 0400 ./driver/src/test/resources/certdir/server/server.key
   - sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
-script: ./gradlew --stacktrace -PpostgresVersions=$PGVERSION test -x checkstyleMain
+script: ./gradlew -PpostgresVersions=$PGVERSION test -x checkstyleMain
 
 jobs:
   include:
