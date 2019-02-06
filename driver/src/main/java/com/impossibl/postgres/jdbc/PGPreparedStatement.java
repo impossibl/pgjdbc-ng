@@ -519,6 +519,11 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
 
     warningChain = chainWarnings(warningChain, request);
 
+    Throwable error = request.getError();
+    if (error != null) {
+      throw results.getException(batchIdx.get(), null, (Exception) error);
+    }
+
     try (ResultBatch resultBatch = request.getBatch()) {
 
       if (!allowBatchSelects() && resultBatch.getCommand().equals("SELECT")) {
