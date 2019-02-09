@@ -12,6 +12,8 @@ This document contains the release notes for all {drivername} releases since 0.8
 Please refer to the <<../user-guide/index.adoc#user-guide, User Guide>> for comprehensive
 reference documentation on integrating and using {drivername}.
 
+include::release-notes-0.9.adoc[]
+
 include::release-notes-0.8.2.adoc[]
 
 include::release-notes-0.8.1.adoc[]
