@@ -1,7 +1,7 @@
 [[release-notes-0.8.2]]
 == 0.8.2
 
-*Date of Release:* ❓
+*Date of Release:* 2019-02-09
 
 *Scope:* Bug fixes for 0.8 release
 
@@ -19,11 +19,11 @@ on GitHub.
 
 ==== Deprecations and Breaking Changes
 
-* ❓
+* None
 
 ==== New Features and Improvements
 
-* ❓
+* None
 
 
 [[release-notes-0.8.2-pgjdbc-ng-udt]]
