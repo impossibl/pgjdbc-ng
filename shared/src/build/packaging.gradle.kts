@@ -46,8 +46,8 @@ val javadoc = tasks.named<Javadoc>("javadoc") {
     encoding = "UTF-8"
     (this as StandardJavadocDocletOptions).apply {
       addBooleanOption("Xdoclint:none", true)
-      addBooleanOption("html5", true)
       if (JavaVersion.current().isJava9Compatible) {
+        addBooleanOption("html5", true)
         addBooleanOption("-no-module-directories", true)
       }
       source("8")

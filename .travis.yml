@@ -39,7 +39,7 @@ jobs:
       script: ./gradlew checkstyleMain
     - stage: deploy
       env: PGVERSION=11
-      jdk: openjdk8
+      jdk: openjdk11
       install: skip
       before_script:
         # Unpack & add deploy key
