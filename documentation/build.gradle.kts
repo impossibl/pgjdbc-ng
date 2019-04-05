@@ -24,8 +24,10 @@ tasks {
       encoding = "UTF-8"
       (this as StandardJavadocDocletOptions).apply {
         addBooleanOption("Xdoclint:none", true)
-        addBooleanOption("html5", true)
-        addBooleanOption("-no-module-directories", true)
+        if (JavaVersion.current().isJava9Compatible) {
+          addBooleanOption("html5", true)
+          addBooleanOption("-no-module-directories", true)
+        }
         source("8")
         links("https://docs.oracle.com/javase/8/docs/api/")
         use(true)
