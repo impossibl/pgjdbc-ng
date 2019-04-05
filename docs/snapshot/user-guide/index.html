@@ -627,6 +627,12 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_filtering">8.2.1. Filtering</a></li>
 </ul>
 </li>
+<li><a href="#extensions-copy">8.3. COPY FROM/TO</a>
+<ul class="sectlevel3">
+<li><a href="#extensions-copy-std">8.3.1. Standard Input &amp; Output</a></li>
+<li><a href="#extensions-copy-ext">8.3.2. copyFrom / copyTo</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#logging-tracing">9. Logging &amp; Tracing</a>
@@ -3290,6 +3296,146 @@ handle specific notification channels.</p>
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="extensions-copy">8.3. COPY FROM/TO</h3>
+<div class="paragraph">
+<p>PostgreSQL provides the capability to bulk load data from an external file, using <code>COPY &lt;table/spec&gt; FROM STDIN</code> and
+to bulk save data to an external file, using <code>COPY &lt;table/spec&gt; TO STDOUT</code>.</p>
+</div>
+<div class="paragraph">
+<p>PGJDBC-NG supports these commands using two different methods, using <a href="#extensions-copy-std">Standard Input &amp; Output</a> or
+<a href="#extensions-copy-ext">copyFrom / copyTo</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="extensions-copy-std">8.3.1. Standard Input &amp; Output</h4>
+<div class="paragraph">
+<p>Issuing a relevant command via a <code>Statement</code> or <code>PreparedStatement</code> will read or write respectively from
+Java&#8217;s <code>System.in</code> or <code>System.out</code>.</p>
+</div>
+<div class="paragraph">
+<p>This method can be useful when redirecting the standard streams from the console or when redirecting the standard
+streams via Java&#8217;s <code>System.setIn</code> or <code>System.setOut</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Read from redirected System.in using a Statement</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java"><span class="predefined-type">System</span>.setIn(<span class="keyword">new</span> <span class="predefined-type">ByteArrayInputStream</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">1-1</span><span class="char">\t</span><span class="content">1-2</span><span class="char">\n</span><span class="content">2-1</span><span class="char">\t</span><span class="content">2-2</span><span class="char">\n</span><span class="content">3-1</span><span class="char">\t</span><span class="content">3-2</span><span class="delimiter">&quot;</span></span>.getBytes(UTF_8))); <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="keyword">try</span> (<span class="predefined-type">Statement</span> statement = connection.createStatement()) {
+  statement.execute(<span class="string"><span class="delimiter">&quot;</span><span class="content">COPY a_table FROM STDIN</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="2"></i><b>(2)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Redirect <code>System.in</code> to a data stream in <code>COPY</code> format</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Issue the <code>COPY</code> using a standard <code>Statement</code></td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Write to redirected System.out using a Statement</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java"><span class="predefined-type">System</span>.setOut(<span class="keyword">new</span> <span class="predefined-type">FileOutputStream</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">table.txt</span><span class="delimiter">&quot;</span></span>)); <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="keyword">try</span> (<span class="predefined-type">Statement</span> statement = connection.createStatement()) {
+  statement.execute(<span class="string"><span class="delimiter">&quot;</span><span class="content">COPY a_table TO STDOUT</span><span class="delimiter">&quot;</span></span>); <i class="conum" data-value="2"></i><b>(2)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Redirect <code>System.out</code> to a file stream that will receive table data in <code>COPY</code> format</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Issue the <code>COPY</code> using a standard <code>Statement</code></td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Redirecting <code>System.in</code> or <code>System.out</code> can have unwanted global ramifications. See <a href="#extensions-copy-ext">copyFrom / copyTo</a>
+for a method that does not require global redirection.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="extensions-copy-ext">8.3.2. copyFrom / copyTo</h4>
+<div class="paragraph">
+<p>PGJDBC-NG&#8217;s <code>PGConnection</code> provides methods to issue <code>COPY</code> commands targeting provided input or output streams.
+Using these methods allows specifying stream without globally redirecting the standard streams like when using
+<a href="#extensions-copy-std">Standard Input &amp; Output</a>.</p>
+</div>
+<div class="paragraph">
+<p>Although, they require access to <code>PGConnection</code>, using <code>copyFrom</code> &amp; <code>copyTo</code> are easy and thread-safe.</p>
+</div>
+<div class="listingblock">
+<div class="title">Read from a specified stream using copyFrom</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java"><span class="predefined-type">InputStream</span> tableData = <span class="keyword">new</span> <span class="predefined-type">ByteArrayInputStream</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">1-1</span><span class="char">\t</span><span class="content">1-2</span><span class="char">\n</span><span class="content">2-1</span><span class="char">\t</span><span class="content">2-2</span><span class="char">\n</span><span class="content">3-1</span><span class="char">\t</span><span class="content">3-2</span><span class="delimiter">&quot;</span></span>.getBytes(UTF_8)); <i class="conum" data-value="1"></i><b>(1)</b>
+connection.unwrap(PGConnection.class).copyFrom(<span class="string"><span class="delimiter">&quot;</span><span class="content">COPY a_table FROM STDIN</span><span class="delimiter">&quot;</span></span>, tableData); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Declare a data stream in <code>COPY</code> format</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Issue the <code>COPY</code> using <code>PGConnection.copyFrom</code></td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Write to a specified stream using copyTo</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java"><span class="predefined-type">OutputStream</span> fileOut = <span class="keyword">new</span> <span class="predefined-type">FileOutputStream</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">table.txt</span><span class="delimiter">&quot;</span></span>)); <i class="conum" data-value="1"></i><b>(1)</b>
+connection.unwrap(PGConnection.class).copyTo(<span class="string"><span class="delimiter">&quot;</span><span class="content">COPY a_table TO STDOUT</span><span class="delimiter">&quot;</span></span>, fileOut); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Declare a file stream to receive the table data in <code>COPY</code> format</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Issue the <code>COPY</code> using <code>PGConnection.copyTo</code></td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+When using <code>copyFrom</code> the SQL command must only be a valid <code>COPY &#8230;&#8203; FROM STDIN</code> command and when using <code>copyTo</code>
+the SQL command must only be a valid <code>COPY &#8230;&#8203; TO STDOUT</code>. Any other commands issued will result in an exception begin
+thrown.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -4337,7 +4483,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2019-04-05 21:49:40 UTC
+Last updated 2019-04-05 22:47:49 UTC
 </div>
 </div>
 </body>
