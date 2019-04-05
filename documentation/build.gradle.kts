@@ -18,9 +18,19 @@ tasks {
 
 
   val aggregateJavadocs = register<Javadoc>("aggregateJavadocs") {
-    destinationDir = file("$buildDir/javadoc")
+    setDestinationDir(file("$buildDir/javadoc"))
     options {
-      title = "${project.name} $version API"
+      title = "PGJDBC-NG $version"
+      encoding = "UTF-8"
+      (this as StandardJavadocDocletOptions).apply {
+        addBooleanOption("Xdoclint:none", true)
+        addBooleanOption("html5", true)
+        addBooleanOption("-no-module-directories", true)
+        source("8")
+        links("https://docs.oracle.com/javase/8/docs/api/")
+        use(true)
+        noTimestamp(true)
+      }
     }
 
     rootProject.subprojects.filter { project != it }.forEach { project ->
