@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.api.jdbc;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -140,5 +142,27 @@ public interface PGConnection extends Connection {
    * @return Type instance representing the current name to type mapping.
    */
   PGAnyType resolveType(String name) throws SQLException;
+
+
+  /**
+   * Allows issuing PostgreSQL's COPY command providing an {@link InputStream}
+   * stream to read from, instead of relying on {@link System#in}.
+   *
+   * @param sql SQL text for a valid <code>COPY ... FROM STDIN</code> command.
+   * @param inputStream {@link InputStream} containing data in <code>COPY</code> format.
+   * @throws SQLException If an error occurs during the copy operation or if an alternate command is provided.
+   */
+  void copyFrom(String sql, InputStream inputStream) throws SQLException;
+
+
+  /**
+   * Allows issuing PostgreSQL's COPY command providing an {@link OutputStream}
+   * stream to write to, instead of relying on {@link System#out}.
+   *
+   * @param sql SQL text for a valid <code>COPY ... TO STDOUT</code> command.
+   * @param outputStream {@link OutputStream} to write data in <code>COPY</code> format.
+   * @throws SQLException If an error occurs during the copy operation or if an alternate command is provided.
+   */
+  void copyTo(String sql, OutputStream outputStream) throws SQLException;
 
 }

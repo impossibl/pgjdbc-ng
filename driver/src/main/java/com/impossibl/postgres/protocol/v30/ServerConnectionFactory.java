@@ -35,10 +35,17 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.CopyFormat;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CopyData;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CopyDone;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CopyFail;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CopyInResponse;
+import com.impossibl.postgres.protocol.v30.ProtocolHandler.CopyOutResponse;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.Notification;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReportNotice;
@@ -73,6 +80,7 @@ import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -620,7 +628,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return io;
   }
 
-  static class DefaultHandler implements ParameterStatus, ReportNotice, Notification, CommandError {
+  static class DefaultHandler implements ParameterStatus, ReportNotice, Notification, CopyInResponse, CopyOutResponse, CommandError {
 
     private static final Logger logger = Logger.getLogger(ServerConnection.class.getName());
 
@@ -657,6 +665,20 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     }
 
     @Override
+    public InputStream copyIn(CopyFormat format, FieldFormat[] fieldFormats) {
+      ServerConnection.Listener listener = getListener();
+      if (listener == null) return null;
+      return listener.openStandardInput();
+    }
+
+    @Override
+    public ProtocolHandler copyOut(CopyFormat format, FieldFormat[] fieldFormats) {
+      ServerConnection.Listener listener = getListener();
+      if (listener == null) return null;
+      return new DefaultCopyOutHandler(listener.openStandardOutput());
+    }
+
+    @Override
     public void exception(Channel channel, Throwable cause) {
       if (!channel.isOpen()) {
         ServerConnection.Listener listener = getListener();
@@ -682,6 +704,37 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       logger.warning(notice.getMessage());
       return Action.Resume;
     }
+
+  }
+
+  static class DefaultCopyOutHandler implements CopyData, CopyDone, CopyFail {
+
+    OutputStream stream;
+
+    DefaultCopyOutHandler(OutputStream stream) {
+      this.stream = stream;
+    }
+
+    @Override
+    public void copyData(ByteBuf data) throws IOException {
+
+      while (data.isReadable()) {
+        data.readBytes(stream, data.readableBytes());
+      }
+
+    }
+
+    @Override
+    public void copyDone() {
+    }
+
+    public void copyFail(String message) {
+    }
+
+    @Override
+    public void exception(Throwable cause) {
+    }
+
   }
 
 }

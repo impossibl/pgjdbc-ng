@@ -70,3 +70,69 @@ JVM, until a `LISTEN` command is issued to the server no notifications will be r
 
 Notification listeners can also be added with a filter on the channel name. This allows individual listeners to
 handle specific notification channels.
+
+[[extensions-copy]]
+=== COPY FROM/TO
+
+{vendorname} provides the capability to bulk load data from an external file, using `COPY <table/spec> FROM STDIN` and
+to bulk save data to an external file, using `COPY <table/spec> TO STDOUT`.
+
+{drivername} supports these commands using two different methods, using <<extensions-copy-std>> or
+<<extensions-copy-ext>>.
+
+[[extensions-copy-std]]
+==== Standard Input & Output
+
+Issuing a relevant command via a `Statement` or `PreparedStatement` will read or write respectively from
+Java's `System.in` or `System.out`.
+
+This method can be useful when redirecting the standard streams from the console or when redirecting the standard
+streams via Java's `System.setIn` or `System.setOut`.
+
+[source,java,options=nowrap]
+.Read from redirected System.in using a Statement
+----
+include::{exdir}/copy/from_system_in.java[]
+----
+<1> Redirect `System.in` to a data stream in `COPY` format
+<2> Issue the `COPY` using a standard `Statement`
+
+[source,java,options=nowrap]
+.Write to redirected System.out using a Statement
+----
+include::{exdir}/copy/to_system_out.java[]
+----
+<1> Redirect `System.out` to a file stream that will receive table data in `COPY` format
+<2> Issue the `COPY` using a standard `Statement`
+
+TIP: Redirecting `System.in` or `System.out` can have unwanted global ramifications. See <<extensions-copy-ext>>
+for a method that does not require global redirection.
+
+[[extensions-copy-ext]]
+==== copyFrom / copyTo
+
+{drivername}'s `PGConnection` provides methods to issue `COPY` commands targeting provided input or output streams.
+Using these methods allows specifying stream without globally redirecting the standard streams like when using
+<<extensions-copy-std>>.
+
+Although, they require access to `PGConnection`, using `copyFrom` & `copyTo` are easy and thread-safe.
+
+[source,java,options=nowrap]
+.Read from a specified stream using copyFrom
+----
+include::{exdir}/copy/from_spec_in.java[]
+----
+<1> Declare a data stream in `COPY` format
+<2> Issue the `COPY` using `PGConnection.copyFrom`
+
+[source,java,options=nowrap]
+.Write to a specified stream using copyTo
+----
+include::{exdir}/copy/to_spec_out.java[]
+----
+<1> Declare a file stream to receive the table data in `COPY` format
+<2> Issue the `COPY` using `PGConnection.copyTo`
+
+WARNING: When using `copyFrom` the SQL command must only be a valid `COPY ... FROM STDIN` command and when using `copyTo`
+the SQL command must only be a valid `COPY ... TO STDOUT`. Any other commands issued will result in an exception begin
+thrown.

@@ -35,12 +35,15 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.protocol.CopyFormat;
+import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.TransactionStatus;
 import com.impossibl.postgres.protocol.TypeRef;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
@@ -181,6 +184,41 @@ public interface ProtocolHandler {
   interface Notification {
 
     void notification(int processId, String channelName, String payload) throws IOException;
+
+  }
+
+  interface CopyInResponse extends ProtocolHandler {
+
+    InputStream copyIn(CopyFormat format, FieldFormat[] fieldFormats) throws IOException;
+
+  }
+
+  interface CopyOutResponse extends ProtocolHandler {
+
+    ProtocolHandler copyOut(CopyFormat format, FieldFormat[] fieldFormats) throws IOException;
+
+  }
+
+  interface CopyBothResponse extends ProtocolHandler {
+
+    ProtocolHandler copyBoth(CopyFormat format, FieldFormat[] fieldFormats) throws IOException;
+
+  }
+
+  interface CopyData extends ProtocolHandler {
+
+    void copyData(ByteBuf data) throws IOException;
+
+  }
+
+  interface CopyDone extends ProtocolHandler {
+
+    void copyDone() throws IOException;
+  }
+
+  interface CopyFail extends ProtocolHandler {
+
+    void copyFail(String message) throws IOException;
 
   }
 

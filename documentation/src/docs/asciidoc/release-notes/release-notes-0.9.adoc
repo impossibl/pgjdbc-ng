@@ -24,7 +24,7 @@ on GitHub.
 ==== New Features and Improvements
 
 * Batch executions use pipelined requests to increase performance by as much as 70%
-
+* PostgreSQL COPY FROM/TO support
 
 [[release-notes-0.9-pgjdbc-ng-udt]]
 === PGJDBC-NG UDT Generator

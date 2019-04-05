@@ -26,75 +26,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004-2011, PostgreSQL Global Development Group
- *
- *
- *-------------------------------------------------------------------------
- */
 package com.impossibl.postgres.protocol;
 
-import com.impossibl.postgres.system.ServerInfo;
-import com.impossibl.postgres.system.Version;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.SocketAddress;
-import java.util.concurrent.ScheduledExecutorService;
-
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.ChannelFuture;
-
-public interface ServerConnection {
-
-  interface Listener {
-    void parameterStatusChanged(String name, String value);
-    void notificationReceived(int processId, String channelName, String payload);
-    InputStream openStandardInput();
-    OutputStream openStandardOutput();
-    void closed();
-  }
-
-  class KeyData {
-    private int processId;
-    private int secretKey;
-
-    public KeyData(int processId, int secretKey) {
-      this.processId = processId;
-      this.secretKey = secretKey;
-    }
-
-    public int getProcessId() {
-      return processId;
-    }
-
-    public int getSecretKey() {
-      return secretKey;
-    }
-  }
-
-  ServerInfo getServerInfo();
-
-  Version getProtocolVersion();
-
-  KeyData getKeyData();
-
-  ByteBufAllocator getAllocator();
-
-  SocketAddress getRemoteAddress();
-
-  TransactionStatus getTransactionStatus() throws IOException;
-
-  RequestExecutor getRequestExecutor();
-
-  ChannelFuture shutdown();
-
-  ChannelFuture kill();
-
-  boolean isConnected();
-
-  ScheduledExecutorService getIOExecutor();
-
+public enum CopyFormat {
+  Text,
+  Binary;
 }
