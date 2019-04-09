@@ -183,10 +183,10 @@ public class Numerics extends SimpleProcProvider {
           value instanceof java.lang.Short ||
           value instanceof java.lang.Byte) {
 
-          decimal = BigDecimal.valueOf(value.longValue());
+        decimal = BigDecimal.valueOf(value.longValue());
       }
       else {
-          decimal = (BigDecimal) value;
+        decimal = (BigDecimal) value;
       }
 
       if (sourceContext != null) {
