@@ -122,11 +122,14 @@ abstract class AutoConvertingBinaryEncoder<N> extends BaseBinaryEncoder implemen
 
   protected N convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
+    if (converter != null) {
+      N res = converter.convert(context, source, sourceContext);
+      if (res != null) {
+        return res;
+      }
+    }
     if (getDefaultClass().isInstance(source)) {
       return getDefaultClass().cast(source);
-    }
-    if (converter != null) {
-      return converter.convert(context, source, sourceContext);
     }
 
     throw new ConversionException(source.getClass(), type);
@@ -185,11 +188,14 @@ abstract class AutoConvertingTextEncoder<N> extends BaseTextEncoder implements A
 
   protected N convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
 
+    if (converter != null) {
+      N res = converter.convert(context, source, sourceContext);
+      if (res != null) {
+        return res;
+      }
+    }
     if (getDefaultClass().isInstance(source)) {
       return getDefaultClass().cast(source);
-    }
-    if (converter != null) {
-      return converter.convert(context, source, sourceContext);
     }
 
     throw new ConversionException(source.getClass(), type);
