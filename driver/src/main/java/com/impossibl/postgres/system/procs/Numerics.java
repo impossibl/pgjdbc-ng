@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -68,7 +69,7 @@ public class Numerics extends SimpleProcProvider {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 
-  private static Number convertInput(Number source) {
+  private static Number convertInput(Number source) throws ConversionException {
 
     if (source instanceof BigDecimal) {
       return source;
@@ -92,16 +93,22 @@ public class Numerics extends SimpleProcProvider {
 
     if (source instanceof Float) {
       Float source1 = (Float) source;
-      if (source1.isNaN() || source1.isInfinite()) {
+      if (source1.isNaN()) {
         return source1.doubleValue();
+      }
+      if (source1.isInfinite()) {
+        throw new ConversionException("Numeric types cannot represent +/- infinity");
       }
       return BigDecimal.valueOf(source1);
     }
 
     if (source instanceof Double) {
       Double source1 = (Double) source;
-      if (source1.isNaN() || source1.isInfinite()) {
+      if (source1.isNaN()) {
         return source1;
+      }
+      if (source1.isInfinite()) {
+        throw new ConversionException("Numeric types cannot represent +/- infinity");
       }
       return BigDecimal.valueOf(source1);
     }
