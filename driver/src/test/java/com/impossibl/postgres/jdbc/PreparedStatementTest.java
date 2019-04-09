@@ -534,6 +534,97 @@ public class PreparedStatementTest {
   }
 
   @Test
+  public void testSetDecimalIntObject() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE dec_tab (max_val decimal, min_val decimal, null_val decimal)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Integer maxInteger = 2147483647, minInteger = -2147483648;
+    Double maxFloat = 2147483647d, minFloat = -2147483648d;
+
+    pstmt = conn.prepareStatement("insert into dec_tab values (?,?,?)");
+    pstmt.setObject(1, maxInteger);
+    pstmt.setObject(2, minInteger);
+    pstmt.setNull(3, Types.INTEGER);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from dec_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+
+    assertEquals("expected " + maxFloat + " ,received " + rs.getObject(1), rs.getObject(1), BigDecimal.valueOf(maxFloat));
+    assertEquals("expected " + minFloat + " ,received " + rs.getObject(2), rs.getObject(2), BigDecimal.valueOf(minFloat));
+    rs.getFloat(3);
+    assertTrue(rs.wasNull());
+    rs.close();
+    pstmt.close();
+
+  }
+
+  @Test
+  public void testSetDecimalDoubleNan() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE dec_tab (nan_val decimal)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into dec_tab values (?)");
+    pstmt.setObject(1, Double.NaN);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from dec_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+
+    assertEquals("expected NaN ,received " + rs.getObject(1), rs.getObject(1), Double.NaN);
+    rs.close();
+    pstmt.close();
+
+  }
+
+  @Test
+  public void testSetDecimalFloatNan() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE dec_tab (nan_val decimal)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into dec_tab values (?)");
+    pstmt.setObject(1, Float.NaN);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("select * from dec_tab");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+
+    assertEquals("expected NaN ,received " + rs.getObject(1), rs.getObject(1), Double.NaN);
+    rs.close();
+    pstmt.close();
+
+  }
+
+  @Test(expected = SQLException.class)
+  public void testSetDecimalDoubleInfinity() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE dec_tab (nan_val decimal)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into dec_tab values (?)");
+    pstmt.setObject(1, Double.POSITIVE_INFINITY);
+  }
+
+  @Test(expected = SQLException.class)
+  public void testSetDecimalFloatInfinity() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE dec_tab (nan_val decimal)");
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    pstmt = conn.prepareStatement("insert into dec_tab values (?)");
+    pstmt.setObject(1, Float.POSITIVE_INFINITY);
+  }
+
+  @Test
   public void testSetFloatInteger() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
     pstmt.executeUpdate();
