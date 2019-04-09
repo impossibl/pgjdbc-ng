@@ -177,7 +177,18 @@ public class Numerics extends SimpleProcProvider {
         return;
       }
 
-      BigDecimal decimal = (BigDecimal) value;
+      BigDecimal decimal;
+      if (value instanceof java.lang.Integer ||
+          value instanceof java.lang.Long ||
+          value instanceof java.lang.Short ||
+          value instanceof java.lang.Byte) {
+
+          decimal = BigDecimal.valueOf(value.longValue());
+      }
+      else {
+          decimal = (BigDecimal) value;
+      }
+
       if (sourceContext != null) {
         int scale = ((Number)sourceContext).intValue();
         decimal = decimal.setScale(scale, RoundingMode.HALF_UP);
