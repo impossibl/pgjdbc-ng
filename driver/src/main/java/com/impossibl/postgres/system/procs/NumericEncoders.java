@@ -29,12 +29,17 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 
-import java.util.function.Function;
+interface ConversionFunction<T, R> {
+
+  R apply(T t) throws ConversionException;
+
+}
 
 abstract class NumericBinaryEncoder<N extends Number> extends AutoConvertingBinaryEncoder<N> {
 
-  protected NumericBinaryEncoder(Integer binaryLength, Function<String, N> stringCast, Function<Boolean, N> boolCast, Function<Number, N> numberCast) {
+  protected NumericBinaryEncoder(Integer binaryLength, ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     super(binaryLength, new NumericEncodingConverter<>(stringCast, boolCast, numberCast));
   }
 
@@ -42,7 +47,7 @@ abstract class NumericBinaryEncoder<N extends Number> extends AutoConvertingBina
 
 abstract class NumericTextEncoder<N extends Number> extends AutoConvertingTextEncoder<N> {
 
-  protected NumericTextEncoder(Function<String, N> stringCast, Function<Boolean, N> boolCast, Function<Number, N> numberCast) {
+  protected NumericTextEncoder(ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     super(new NumericEncodingConverter<>(stringCast, boolCast, numberCast));
   }
 
@@ -50,18 +55,18 @@ abstract class NumericTextEncoder<N extends Number> extends AutoConvertingTextEn
 
 class NumericEncodingConverter<N extends Number> implements AutoConvertingEncoder.Converter<N> {
 
-  private Function<String, N> stringCast;
-  private Function<Boolean, N> boolCast;
-  private Function<Number, N> numberCast;
+  private ConversionFunction<String, N> stringCast;
+  private ConversionFunction<Boolean, N> boolCast;
+  private ConversionFunction<Number, N> numberCast;
 
-  NumericEncodingConverter(Function<String, N> stringCast, Function<Boolean, N> boolCast, Function<Number, N> numberCast) {
+  NumericEncodingConverter(ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     this.stringCast = stringCast;
     this.boolCast = boolCast;
     this.numberCast = numberCast;
   }
 
   @Override
-  public N convert(Context context, Object source, Object sourceContext) {
+  public N convert(Context context, Object source, Object sourceContext) throws ConversionException {
 
     if (source instanceof String) {
       return stringCast.apply((String) source);
