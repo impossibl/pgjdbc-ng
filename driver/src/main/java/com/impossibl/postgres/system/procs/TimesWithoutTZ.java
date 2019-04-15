@@ -228,7 +228,7 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
         micros = Long.MAX_VALUE;
       }
       else if (time.equals(LocalTime.MIN)) {
-        micros = Long.MIN_VALUE;
+        micros = 0L;
       }
       else {
         // Convert to micros rounding nanoseconds
