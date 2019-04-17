@@ -318,6 +318,7 @@ private val <T> Class<T>.readerTypeName: String
       Reader::class.java -> "CharacterStream"
       InputStream::class.java -> "BinaryStream"
       Struct::class.java -> "Object"
+
       else ->
         if (`package`.name == "java.lang" || `package`.name == "java.sql") {
           simpleName
@@ -418,6 +419,7 @@ private fun getTypeAttributes(connection: Connection, typeName: QualifiedName): 
         LEFT JOIN pg_namespace n ON (t.typnamespace = n.oid)
        where
         attrelid = ?::text::regclass and attnum > 0 and not attisdropped
+       order by attnum
      """.trimIndent()
 
   val attrs = mutableListOf<TypeAttribute>()
