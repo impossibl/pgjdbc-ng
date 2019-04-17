@@ -87,7 +87,7 @@ public class PGSQLOutput implements SQLOutput {
 
     Type attributeType = JDBCTypeMapping.getType(sqlType, val, context.getRegistry());
     if (attributeType == null) {
-      throw new PGSQLSimpleException("Unknown/Unsupported type");
+      attributeType = JDBCTypeMapping.getType(JDBCType.NULL, val, context.getRegistry());
     }
 
     writeNextAttributeValue(attributeType, val);
@@ -130,7 +130,7 @@ public class PGSQLOutput implements SQLOutput {
 
   @Override
   public void writeFloat(float x) throws SQLException {
-    writeNextAttributeValue(JDBCType.FLOAT, x);
+    writeNextAttributeValue(JDBCType.REAL, x);
   }
 
   @Override
