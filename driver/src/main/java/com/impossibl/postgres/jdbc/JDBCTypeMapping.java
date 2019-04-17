@@ -325,7 +325,7 @@ class JDBCTypeMapping {
             Type elementType;
             if (java.lang.reflect.Array.getLength(val) > 0) {
               Object element = java.lang.reflect.Array.get(val, 0);
-              elementType = getType(getJDBCType(element.getClass()), element, reg);
+              elementType = getType(getJDBCType(element), element, reg);
             }
             else {
               elementType = JavaTypeMapping.getType(val.getClass().getComponentType(), reg);
