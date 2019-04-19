@@ -33,8 +33,6 @@ import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
-import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
 import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
 import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
 
@@ -76,8 +74,6 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     }
 
     if (value instanceof LocalTime) {
-      if (value == LocalTime.MAX) return OffsetTime.MAX;
-      if (value == LocalTime.MIN) return OffsetTime.MIN;
       LocalTime localTime = (LocalTime) value;
       ZoneOffset offset =
           ZoneOffset.ofTotalSeconds((int) MILLISECONDS.toSeconds(sourceCalendar.getTimeZone().getRawOffset()));
@@ -86,9 +82,6 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
     if (value instanceof CharSequence) {
       CharSequence chars = (CharSequence) value;
-
-      if (value.equals(POS_INFINITY)) return OffsetTime.MAX;
-      if (value.equals(NEG_INFINITY)) return OffsetTime.MIN;
 
       TemporalAccessor parsed = context.getTimeFormat().getParser().parse(chars);
 
@@ -103,50 +96,20 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
     if (value instanceof Time) {
       Time t = (Time) value;
-      if (t.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return OffsetTime.MAX;
-      if (t.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return OffsetTime.MIN;
-
       return Instant.ofEpochMilli(t.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toOffsetDateTime().toOffsetTime();
     }
 
     if (value instanceof Date) {
-      java.sql.Date d = (java.sql.Date) value;
-      if (d.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return OffsetTime.MAX;
-      if (d.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return OffsetTime.MIN;
-
+      Date d = (Date) value;
       return Instant.ofEpochMilli(d.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toOffsetDateTime().toOffsetTime();
     }
 
     if (value instanceof Timestamp) {
       Timestamp ts = (Timestamp) value;
-      if (ts.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return OffsetTime.MAX;
-      if (ts.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return OffsetTime.MIN;
-
       return ts.toInstant().atZone(sourceCalendar.getTimeZone().toZoneId()).toOffsetDateTime().toOffsetTime();
     }
 
     throw new ConversionException(value.getClass(), type);
-  }
-
-  private static Object convertInfinityOutput(boolean positive, Type type, Class<?> targetClass) throws ConversionException {
-
-    if (targetClass == OffsetTime.class) {
-      return positive ? OffsetTime.MAX : OffsetTime.MIN;
-    }
-
-    if (targetClass == String.class) {
-      return positive ? POS_INFINITY : NEG_INFINITY;
-    }
-
-    if (targetClass == Time.class) {
-      return new Time(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
-    }
-
-    if (targetClass == Timestamp.class) {
-      return new Timestamp(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
-    }
-
-    throw new ConversionException(type, targetClass);
   }
 
   private static Object convertOutput(Context context, Type type, OffsetTime time, Class<?> targetClass, Calendar targetCalendar) throws ConversionException {
@@ -195,10 +158,6 @@ public class TimesWithTZ extends SettingSelectProcProvider {
       long micros = buffer.readLong();
       int tzOffsetSecs = -buffer.readInt();
 
-      if (micros == Long.MAX_VALUE || micros == Long.MIN_VALUE) {
-        return convertInfinityOutput(micros == Long.MAX_VALUE, type, targetClass);
-      }
-
       ZoneOffset offset = ZoneOffset.ofTotalSeconds(tzOffsetSecs);
       OffsetTime time = LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(micros)).atOffset(offset);
 
@@ -221,17 +180,9 @@ public class TimesWithTZ extends SettingSelectProcProvider {
       OffsetTime time = convertInput(context, type, value, calendar);
 
       int tzOffsetSecs = -time.getOffset().getTotalSeconds();
-      long micros;
-      if (time.equals(OffsetTime.MAX)) {
-        micros = Long.MAX_VALUE;
-      }
-      else if (time.equals(OffsetTime.MIN)) {
-        micros = Long.MIN_VALUE;
-      }
-      else {
-        // Convert to micros rounding nanoseconds
-        micros = NANOSECONDS.toMicros(time.toLocalTime().toNanoOfDay() + 500) % DAYS.toMicros(1);
-      }
+
+       // Convert to micros rounding nanoseconds
+      long micros = NANOSECONDS.toMicros(time.toLocalTime().toNanoOfDay() + 500) % DAYS.toMicros(1);
 
       buffer.writeLong(micros);
       buffer.writeInt(tzOffsetSecs);
@@ -250,10 +201,6 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     protected Object decodeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
 
       Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
-
-      if (buffer.equals(POS_INFINITY) || buffer.equals(NEG_INFINITY)) {
-        return convertInfinityOutput(buffer.equals(POS_INFINITY), type, targetClass);
-      }
 
       TemporalAccessor parsed = context.getTimeFormat().getParser().parse(buffer);
 

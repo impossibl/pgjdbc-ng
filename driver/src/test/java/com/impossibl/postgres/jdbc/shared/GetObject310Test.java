@@ -68,17 +68,15 @@ public class GetObject310Test {
    */
   @Test
   public void testGetLocalDate() throws SQLException {
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '1999-01-08'"));
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "DATE '1999-01-08'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
-    try {
-      assertTrue(rs.next());
-      LocalDate localDate = LocalDate.of(1999, 1, 8);
-      assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
-      assertEquals(localDate, rs.getObject(1, LocalDate.class));
-    } finally {
-      rs.close();
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"))) {
+        assertTrue(rs.next());
+        LocalDate localDate = LocalDate.of(1999, 1, 8);
+        assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
+        assertEquals(localDate, rs.getObject(1, LocalDate.class));
+      }
     }
   }
 
@@ -87,17 +85,22 @@ public class GetObject310Test {
    */
   @Test
   public void testGetLocalTime() throws SQLException {
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","TIME '04:05:06.123456'"));
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '04:05:06.123456'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '00:00:00'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '23:59:59.999999'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '23:59:59.9999999'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"));
-    try {
-      assertTrue(rs.next());
-      LocalTime localTime = LocalTime.of(4, 5, 6, 123456000);
-      assertEquals(localTime, rs.getObject("time_without_time_zone_column", LocalTime.class));
-      assertEquals(localTime, rs.getObject(1, LocalTime.class));
-    } finally {
-      rs.close();
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
+        assertTrue(rs.next());
+        assertEquals(LocalTime.of(4, 5, 6, 123456000), rs.getObject(1, LocalTime.class));
+        assertTrue(rs.next());
+        assertEquals(LocalTime.MIN, rs.getObject(1, LocalTime.class));
+        assertTrue(rs.next());
+        assertEquals(LocalTime.of(23, 59, 59, 999999000), rs.getObject(1, LocalTime.class));
+        assertTrue(rs.next());
+        assertEquals(LocalTime.MIN, rs.getObject(1, LocalTime.class));
+      }
     }
   }
 

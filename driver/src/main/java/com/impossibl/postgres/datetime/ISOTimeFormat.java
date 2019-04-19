@@ -37,6 +37,7 @@ import java.time.temporal.TemporalAccessor;
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.OFFSET_SECONDS;
 import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 
 public class ISOTimeFormat implements DateTimeFormat {
@@ -54,7 +55,50 @@ public class ISOTimeFormat implements DateTimeFormat {
     return printer;
   }
 
-  private static final DateTimeFormatter FMT =
+  private static final DateTimeFormatter PARSE_FMT =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .parseLenient()
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+          .optionalStart()
+          .appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 2)
+          .optionalStart()
+          .appendFraction(NANO_OF_SECOND, 0, 9, true)
+          .optionalEnd()
+          .optionalEnd()
+          .optionalStart()
+          .appendOffset("+HH:MM:ss", "+00")
+          .optionalEnd()
+          .optionalStart()
+          .appendOffset("+HH:mm", "+00")
+          .optionalEnd()
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
+
+  private static final DateTimeFormatter PRINT_FMT =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .parseLenient()
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+          .optionalStart()
+          .appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 2)
+          .optionalStart()
+          .appendFraction(NANO_OF_SECOND, 0, 9, true)
+          .optionalEnd()
+          .optionalEnd()
+          .optionalStart()
+          .appendOffset("+HH:MM:ss", "+00")
+          .optionalEnd()
+          .toFormatter()
+          .withChronology(IsoChronology.INSTANCE);
+
+  private static final DateTimeFormatter PRINT_FMT2 =
       new DateTimeFormatterBuilder()
           .parseCaseInsensitive()
           .parseLenient()
@@ -74,12 +118,11 @@ public class ISOTimeFormat implements DateTimeFormat {
           .toFormatter()
           .withChronology(IsoChronology.INSTANCE);
 
-
   static class Parser implements DateTimeFormat.Parser {
 
     @Override
     public TemporalAccessor parse(CharSequence time) {
-      return FMT.parse(time);
+      return PARSE_FMT.parse(time);
     }
 
   }
@@ -88,7 +131,10 @@ public class ISOTimeFormat implements DateTimeFormat {
 
     @Override
     public String format(Temporal value) {
-      return FMT.format(value);
+      if (value.isSupported(OFFSET_SECONDS) && value.get(OFFSET_SECONDS) % 3600 != 0)
+        return PRINT_FMT.format(value);
+      else
+        return PRINT_FMT2.format(value);
     }
 
   }
