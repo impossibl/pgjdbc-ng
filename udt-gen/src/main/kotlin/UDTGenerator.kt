@@ -263,7 +263,7 @@ class UDTGenerator(
       writeSQLBldr.addCode(
          when {
            attrTypeName is ArrayTypeName ->
-             CodeBlock.of("out.writeObject(this.\$L, null);\n", attrPropName)
+             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "ARRAY")
 
            typesInfo[attr.typeName] == TypeCategory.Composite ->
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, PGType::class.java, "RECORD")
@@ -272,7 +272,7 @@ class UDTGenerator(
              CodeBlock.of("out.writeString(this.\$L.getLabel());\n", attrPropName)
 
            attrSqlType.javaType.writerTypeName == "Object" ->
-             CodeBlock.of("out.writeObject(this.\$L, null);\n")
+             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "STRUCT")
 
            else ->
              CodeBlock.of("out.write\$L(this.\$L);\n", attrSqlType.javaType.readerTypeName, attrPropName)
