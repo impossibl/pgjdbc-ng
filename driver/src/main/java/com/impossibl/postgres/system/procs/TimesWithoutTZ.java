@@ -33,11 +33,6 @@ import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.types.Type;
 
-import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_NEGATIVE_INFINITY_MSECS;
-import static com.impossibl.postgres.system.procs.DatesTimes.JAVA_DATE_POSITIVE_INFINITY_MSECS;
-import static com.impossibl.postgres.system.procs.DatesTimes.NEG_INFINITY;
-import static com.impossibl.postgres.system.procs.DatesTimes.POS_INFINITY;
-
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Time;
@@ -79,9 +74,6 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
     if (value instanceof CharSequence) {
       CharSequence chars = (CharSequence) value;
 
-      if (value.equals(POS_INFINITY)) return LocalTime.MAX;
-      if (value.equals(NEG_INFINITY)) return LocalTime.MIN;
-
       TemporalAccessor parsed = context.getTimeFormat().getParser().parse(chars);
 
       ZoneOffset offset =
@@ -96,58 +88,20 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
     if (value instanceof Time) {
       Time t = (Time) value;
-      if (t.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
-      if (t.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
-
       return Instant.ofEpochMilli(t.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
     }
 
     if (value instanceof Date) {
-      java.sql.Date d = (java.sql.Date) value;
-      if (d.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
-      if (d.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
-
+      Date d = (Date) value;
       return Instant.ofEpochMilli(d.getTime()).atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
     }
 
     if (value instanceof Timestamp) {
       Timestamp ts = (Timestamp) value;
-      if (ts.getTime() == JAVA_DATE_POSITIVE_INFINITY_MSECS) return LocalTime.MAX;
-      if (ts.getTime() == JAVA_DATE_NEGATIVE_INFINITY_MSECS) return LocalTime.MIN;
-
       return ts.toInstant().atZone(sourceCalendar.getTimeZone().toZoneId()).toLocalTime();
     }
 
     throw new ConversionException(value.getClass(), type);
-  }
-
-  private static Object convertInfinityOutput(boolean positive, Type type, Class<?> targetClass) throws ConversionException {
-
-    if (targetClass == LocalTime.class) {
-      return positive ? LocalTime.MAX : LocalTime.MIN;
-    }
-
-    if (targetClass == OffsetTime.class) {
-      return positive ? OffsetTime.MAX : OffsetTime.MIN;
-    }
-
-    if (targetClass == String.class) {
-      return positive ? POS_INFINITY : NEG_INFINITY;
-    }
-
-    if (targetClass == Time.class) {
-      return new Time(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
-    }
-
-    if (targetClass == Date.class) {
-      return new Date(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
-    }
-
-    if (targetClass == Timestamp.class) {
-      return new Timestamp(positive ? JAVA_DATE_POSITIVE_INFINITY_MSECS : JAVA_DATE_NEGATIVE_INFINITY_MSECS);
-    }
-
-    throw new ConversionException(type, targetClass);
   }
 
   private static Object convertOutput(Context context, Type type, LocalTime time, Class<?> targetClass, Calendar targetCalendar) throws ConversionException {
@@ -199,10 +153,6 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       long micros = buffer.readLong();
 
-      if (micros == Long.MAX_VALUE || micros == Long.MIN_VALUE) {
-        return convertInfinityOutput(micros == Long.MAX_VALUE, type, targetClass);
-      }
-
       LocalTime time = LocalTime.ofNanoOfDay(MICROSECONDS.toNanos(micros));
 
       return convertOutput(context, type, time, targetClass, calendar);
@@ -223,17 +173,8 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       LocalTime time = convertInput(context, type, value, calendar);
 
-      long micros;
-      if (time.equals(LocalTime.MAX)) {
-        micros = Long.MAX_VALUE;
-      }
-      else if (time.equals(LocalTime.MIN)) {
-        micros = Long.MIN_VALUE;
-      }
-      else {
-        // Convert to micros rounding nanoseconds
-        micros = NANOSECONDS.toMicros(time.toNanoOfDay() + 500) % DAYS.toMicros(1);
-      }
+      // Convert to micros rounding nanoseconds
+      long micros = NANOSECONDS.toMicros(time.toNanoOfDay() + 500) % DAYS.toMicros(1);
 
       buffer.writeLong(micros);
     }
@@ -270,19 +211,9 @@ public class TimesWithoutTZ extends SettingSelectProcProvider {
 
       LocalTime time = convertInput(context, type, value, calendar);
 
-      if (time.equals(LocalTime.MAX)) {
-        buffer.append(POS_INFINITY);
-      }
-      else if (time.equals(LocalTime.MIN)) {
-        buffer.append(NEG_INFINITY);
-      }
-      else {
+      String strVal = context.getTimeFormat().getPrinter().format(time);
 
-        String strVal = context.getTimeFormat().getPrinter().format(time);
-
-        buffer.append(strVal);
-      }
-
+      buffer.append(strVal);
     }
 
   }

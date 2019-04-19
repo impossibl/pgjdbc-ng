@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.chrono.IsoChronology;
@@ -369,12 +370,23 @@ public class SetObject310Test {
    */
   @Test
   public void testSetLocalTimeAndReadBack() throws SQLException {
-    LocalTime data = LocalTime.parse("16:21:51.123456");
+    String test = "16:21:51.123456";
 
-    insertWithoutType(data, "time_without_time_zone_column");
+    insertWithoutType(LocalTime.parse(test), "time_without_time_zone_column");
+    assertEquals(test, readString("time_without_time_zone_column"));
+    deleteRows();
 
-    String readBack = readString("time_without_time_zone_column");
-    assertEquals("16:21:51.123456", readBack);
+    insertWithoutType(LocalTime.MIN, "time_without_time_zone_column");
+    assertEquals("00:00:00", readString("time_without_time_zone_column"));
+    deleteRows();
+
+    insertWithoutType(LocalTime.MAX, "time_without_time_zone_column");
+    assertEquals("00:00:00", readString("time_without_time_zone_column"));
+    deleteRows();
+
+    insertWithoutType(LocalTime.MAX.withNano(999999000), "time_without_time_zone_column");
+    assertEquals("23:59:59.999999", readString("time_without_time_zone_column"));
+    deleteRows();
   }
 
   /**
@@ -397,6 +409,30 @@ public class SetObject310Test {
     Time actual = insertThenReadWithoutType(data, "time_without_time_zone_column", Time.class);
     Time expected = Time.valueOf("16:21:51");
     assertEquals(expected, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time with tz columns.
+   */
+  @Test
+  public void testSetOffsetTimeAndReadBack() throws SQLException {
+    String test = "16:21:51.123456+02:00";
+
+    insertWithoutType(OffsetTime.parse(test), "time_with_time_zone_column");
+    assertEquals(test.substring(0, test.length()-3), readString("time_with_time_zone_column"));
+    deleteRows();
+
+    insertWithoutType(LocalTime.MIN.atOffset(ZoneOffset.ofHoursMinutesSeconds(15,59,59)), "time_with_time_zone_column");
+    assertEquals("00:00:00+15:59:59", readString("time_with_time_zone_column"));
+    deleteRows();
+
+    insertWithoutType(LocalTime.MAX.atOffset(ZoneOffset.ofHoursMinutesSeconds(-15, -59, -59)), "time_with_time_zone_column");
+    assertEquals("00:00:00-15:59:59", readString("time_with_time_zone_column"));
+    deleteRows();
+
+    insertWithoutType(LocalTime.MAX.withNano(999999000).atOffset(ZoneOffset.ofHours(5)), "time_with_time_zone_column");
+    assertEquals("23:59:59.999999+05", readString("time_with_time_zone_column"));
+    deleteRows();
   }
 
 }
