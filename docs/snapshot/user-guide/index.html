@@ -662,7 +662,7 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel3">
 <li><a href="#_cli">10.2.1. CLI</a></li>
 <li><a href="#_library">10.2.2. Library</a></li>
-<li><a href="#_example">10.2.3. Example</a></li>
+<li><a href="#udt-generator-example">10.2.3. Example</a></li>
 </ul>
 </li>
 </ul>
@@ -3567,8 +3567,8 @@ the matching classes.</p>
 <div class="sect2">
 <h3 id="_generation">10.1. Generation</h3>
 <div class="paragraph">
-<p>The generator can generate <em>POJOs</em> for composite types and enum classes for enumeration types. A simple example
-can be seen in this <a href="#udt-generator-example">[udt-generator-example]</a>.</p>
+<p>The generator can generate <em>POJOs</em> for composite types and enum classes for enumeration types as well as mapping
+to standard Java types for all other supported types.</p>
 </div>
 <div class="sect3">
 <h4 id="_referencingnested_types">10.1.1. Referencing/Nested Types</h4>
@@ -3580,7 +3580,7 @@ can be seen in this <a href="#udt-generator-example">[udt-generator-example]</a>
 the generated type value instead of the standard mapping.</p>
 </div>
 <div class="paragraph">
-<p>If not, composite types will be created as `java.sql.Struct`s and enums will be created as <code>String</code>s.</p>
+<p>If not, composite types will be created as <code>java.sql.Struct</code>s and enums will be created as <code>String</code>s.</p>
 </div>
 </div>
 </div>
@@ -3718,14 +3718,15 @@ options can be left to their defaults.</p>
 
 <span class="type">class</span> <span class="class">ExecGen</span> {
   <span class="directive">public</span> <span class="directive">static</span> <span class="type">void</span> executeGenerator(<span class="predefined-type">Connection</span> connection, <span class="predefined-type">List</span>&lt;<span class="predefined-type">String</span>&gt; typeNames) {
-    UDTGenerator.generate(connection, <span class="keyword">new</span> <span class="predefined-type">File</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">out</span><span class="delimiter">&quot;</span></span>), <span class="string"><span class="delimiter">&quot;</span><span class="content">sql.schema.types</span><span class="delimiter">&quot;</span></span>, typeNames);
+    <span class="keyword">new</span> UDTGenerator(connection, <span class="string"><span class="delimiter">&quot;</span><span class="content">sql.schema.types</span><span class="delimiter">&quot;</span></span>, typeNames)
+        .generate(<span class="keyword">new</span> <span class="predefined-type">File</span>(<span class="string"><span class="delimiter">&quot;</span><span class="content">out</span><span class="delimiter">&quot;</span></span>));
   }
 }</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_example">10.2.3. Example</h4>
+<h4 id="udt-generator-example">10.2.3. Example</h4>
 <div class="listingblock">
 <div class="title">Simple VCard data types in SQL</div>
 <div class="content">
@@ -4483,7 +4484,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2019-04-19 22:48:20 UTC
+Last updated 2019-04-20 02:13:30 UTC
 </div>
 </div>
 </body>
