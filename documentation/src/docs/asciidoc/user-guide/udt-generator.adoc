@@ -10,8 +10,8 @@ the matching classes.
 
 === Generation
 
-The generator can generate _POJOs_ for composite types and enum classes for enumeration types. A simple example
-can be seen in this <<udt-generator-example>>.
+The generator can generate _POJOs_ for composite types and enum classes for enumeration types as well as mapping
+to standard Java types for all other supported types.
 
 ==== Referencing/Nested Types
 
@@ -20,7 +20,7 @@ The generator supports generating classes for SQL types that reference/contain o
 If the referenced type(s) have POJOs or enums being generated during the same execution, the generator will use
 the generated type value instead of the standard mapping.
 
-If not, composite types will be created as `java.sql.Struct`s and enums will be created as ``String``s.
+If not, composite types will be created as ``java.sql.Struct``s and enums will be created as ``String``s.
 
 === Executing
 
@@ -85,11 +85,13 @@ import java.io.File;
 
 class ExecGen {
   public static void executeGenerator(Connection connection, List<String> typeNames) {
-    UDTGenerator.generate(connection, new File("out"), "sql.schema.types", typeNames);
+    new UDTGenerator(connection, "sql.schema.types", typeNames)
+        .generate(new File("out"));
   }
 }
 ----
 
+[[udt-generator-example]]
 ==== Example
 
 [source,sql]
