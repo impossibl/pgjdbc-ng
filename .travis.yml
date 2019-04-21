@@ -56,9 +56,12 @@ jobs:
         - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} -PossrhUsername=$SONATYPE_USER -PossrhPassword=$SONATYPE_PASS publish
 
 before_cache:
-  - rm -f  $HOME/.gradle/caches/*/*.lock
+  - rm -f  .gradle/caches/*/*.lock
+  - rm -f  buildSrc/.gradle/caches/*/*.lock
 
 cache:
   directories:
-    - $HOME/.gradle/caches/modules-2
-    - $HOME/.gradle/wrapper/dists
+    - .build-cache
+    - .gradle
+    - buildSrc/.build-cache
+    - buildSrc/.gradle

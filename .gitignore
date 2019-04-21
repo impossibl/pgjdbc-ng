@@ -9,3 +9,4 @@ target/
 **/.gradle/
 /bin
 **/out/
+.build-cache
