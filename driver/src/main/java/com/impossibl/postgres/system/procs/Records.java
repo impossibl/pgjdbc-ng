@@ -101,7 +101,7 @@ public class Records extends SimpleProcProvider {
         data = (SQLData) targetClass.getConstructor().newInstance();
       }
       catch (Exception e) {
-        throw new IOException("Unable to instantiate custom type", e);
+        throw new IOException("Unable to instantiate custom type; an accessible no-arg constructor is required", e);
       }
 
       try {
@@ -215,6 +215,7 @@ public class Records extends SimpleProcProvider {
       StringBuilder attributeText = null;
 
       int charIdx;
+      int lastDelimIdx = -1;
 
       scan:
       for (charIdx = 0; charIdx < len; ++charIdx) {
@@ -223,12 +224,11 @@ public class Records extends SimpleProcProvider {
         switch (ch) {
 
           case '(':
+            lastDelimIdx = charIdx;
             break;
 
           case ')':
-            if (attributeText != null) {
-              addTextElement(attributeText, attributes);
-            }
+            addTextElement(attributeText, lastDelimIdx == charIdx - 1, attributes);
             break scan;
 
           case '"':
@@ -245,9 +245,8 @@ public class Records extends SimpleProcProvider {
             }
 
             if (ch == delim) {
-              if (attributeText != null) {
-                attributeText = addTextElement(attributeText, attributes);
-              }
+              attributeText = addTextElement(attributeText, lastDelimIdx == charIdx - 1, attributes);
+              lastDelimIdx = charIdx;
               break;
             }
 
@@ -261,13 +260,18 @@ public class Records extends SimpleProcProvider {
 
     }
 
-    StringBuilder addTextElement(StringBuilder text, List<CharSequence> attributes) {
-      String textStr = text.toString();
-      if (textStr.equalsIgnoreCase("NULL")) {
+    StringBuilder addTextElement(StringBuilder text, boolean empty, List<CharSequence> attributes) {
+      if (empty) {
         attributes.add(null);
       }
       else {
-        attributes.add(textStr);
+        String textStr = text.toString();
+        if (textStr.equalsIgnoreCase("NULL")) {
+          attributes.add(null);
+        }
+        else {
+          attributes.add(textStr);
+        }
       }
       return null;
     }
