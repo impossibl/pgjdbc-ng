@@ -41,8 +41,6 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.function.Function;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 
@@ -273,14 +271,6 @@ abstract class AutoConvertingTextDecoder<N> extends BaseTextDecoder implements A
       }
 
       return binaryResult;
-    }
-
-    // Handle binary conversions by skipping decode
-    if (targetClass == InputStream.class) {
-      return new ByteArrayInputStream(buffer.toString().getBytes(UTF_8));
-    }
-    else if (targetClass == byte[].class) {
-      return buffer.toString().getBytes(UTF_8);
     }
 
     // Decode to the native type of the decoder
