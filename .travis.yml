@@ -62,7 +62,7 @@ before_cache:
 cache:
   directories:
     - $HOME/.gradle
-    - .build-cache
-    - .gradle
-    - buildSrc/.build-cache
-    - buildSrc/.gradle
+    - $TRAVIS_BUILD_DIR/.build-cache
+    - $TRAVIS_BUILD_DIR/.gradle
+    - $TRAVIS_BUILD_DIR/buildSrc/.build-cache
+    - $TRAVIS_BUILD_DIR/buildSrc/.gradle
