@@ -110,6 +110,10 @@ public abstract class PGSQLInput<Buffer> implements SQLInput {
     currentAttrIdx++;
     Type type = attributeTypes[currentAttrIdx];
     Buffer buffer = attributeBuffers[currentAttrIdx];
+    if (buffer == null) {
+      nullFlag = true;
+      return null;
+    }
 
     try {
       Object result =
@@ -131,37 +135,44 @@ public abstract class PGSQLInput<Buffer> implements SQLInput {
 
   @Override
   public boolean readBoolean() throws SQLException {
-    return getNextAttributeValue(Boolean.class);
+    Boolean val = getNextAttributeValue(Boolean.class);
+    return val != null ? val : false;
   }
 
   @Override
   public byte readByte() throws SQLException {
-    return getNextAttributeValue(Byte.class);
+    Byte val = getNextAttributeValue(Byte.class);
+    return val != null ? val : 0;
   }
 
   @Override
   public short readShort() throws SQLException {
-    return getNextAttributeValue(Short.class);
+    Short val = getNextAttributeValue(Short.class);
+    return val != null ? val : 0;
   }
 
   @Override
   public int readInt() throws SQLException {
-    return getNextAttributeValue(Integer.class);
+    Integer val = getNextAttributeValue(Integer.class);
+    return val != null ? val : 0;
   }
 
   @Override
   public long readLong() throws SQLException {
-    return getNextAttributeValue(Long.class);
+    Long val = getNextAttributeValue(Long.class);
+    return val != null ? val : 0;
   }
 
   @Override
   public float readFloat() throws SQLException {
-    return getNextAttributeValue(Float.class);
+    Float val = getNextAttributeValue(Float.class);
+    return val != null ? val : 0;
   }
 
   @Override
   public double readDouble() throws SQLException {
-    return getNextAttributeValue(Double.class);
+    Double val = getNextAttributeValue(Double.class);
+    return val != null ? val : 0;
   }
 
   @Override
