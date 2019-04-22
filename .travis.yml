@@ -61,6 +61,7 @@ before_cache:
 
 cache:
   directories:
+    - $HOME/.gradle
     - .build-cache
     - .gradle
     - buildSrc/.build-cache
