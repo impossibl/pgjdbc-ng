@@ -37,3 +37,10 @@ apply {
   from("src/build/packaging.gradle.kts")
   from("$rootDir/shared/src/build/publishing.gradle.kts")
 }
+
+
+tasks {
+  compileJava {
+    outputs.dir("$buildDir/generated/docs")
+  }
+}
