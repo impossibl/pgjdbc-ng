@@ -23,8 +23,8 @@ compile "com.impossibl.pgjdbc-ng:pgjdbc-ng:LATEST"
 
 ```xml
 <dependency>
-  <groupId>com.impossibl.pgjdb-ng</groupId>
-  <artifactId>pgjdb-ng</artifactId>
+  <groupId>com.impossibl.pgjdbc-ng</groupId>
+  <artifactId>pgjdbc-ng</artifactId>
   <version>LATEST</version>
 </dependency>
 ```
