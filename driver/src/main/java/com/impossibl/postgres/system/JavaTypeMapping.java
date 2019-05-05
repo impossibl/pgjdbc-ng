@@ -52,6 +52,7 @@ import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -129,13 +130,17 @@ public class JavaTypeMapping {
       return reg.loadBaseType("record");
     }
     if (SQLData.class.isAssignableFrom(cls)) {
-      return reg.loadBaseType("record");
+      String typeName = getSQLDataTypeName(cls.asSubclass(SQLData.class));
+      return reg.loadTransientType(typeName);
     }
     if (SQLXML.class.isAssignableFrom(cls)) {
       return reg.loadBaseType("xml");
     }
     if (RowId.class.isAssignableFrom(cls)) {
       return reg.loadBaseType("tid");
+    }
+    if (cls.isArray()) {
+      return reg.loadType(getType(cls.getComponentType(), reg).getArrayTypeId());
     }
     return getExtendedType(cls, reg);
   }
@@ -166,6 +171,21 @@ public class JavaTypeMapping {
       return reg.loadBaseType("inet");
     }
     return null;
+  }
+
+  private static final Map<Class<? extends SQLData>, String> sqlDataTypeNameMap = new HashMap<>();
+
+  public static String getSQLDataTypeName(Class<? extends SQLData> cls) throws IOException {
+    String typeName = sqlDataTypeNameMap.get(cls);
+    if (typeName == null) {
+      try {
+        typeName = cls.asSubclass(SQLData.class).newInstance().getSQLTypeName();
+      }
+      catch (Exception e) {
+        throw new IOException("Unable to determine type of SQLData; a no-arg constructor is required");
+      }
+    }
+    return typeName;
   }
 
 }

@@ -28,6 +28,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGType;
+
 import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
@@ -49,6 +51,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class StructTest {
@@ -70,15 +73,36 @@ public class StructTest {
       str = in.readString();
       str2 = in.readString();
       id = in.readObject(UUID.class);
-      num = in.readDouble();
+      num = in.readObject(Double.class);
     }
 
     @Override
     public void writeSQL(SQLOutput out) throws SQLException {
       out.writeString(str);
       out.writeString(str2);
-      out.writeObject(id, JDBCType.OTHER);
-      out.writeDouble(num);
+      out.writeObject(id, PGType.UUID);
+      out.writeObject(num, JDBCType.DOUBLE);
+    }
+
+  }
+
+  public static class TestStructArray implements SQLData {
+
+    TestStruct[] values;
+
+    @Override
+    public String getSQLTypeName() {
+      return "teststructarray";
+    }
+
+    @Override
+    public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      values = stream.readObject(TestStruct[].class);
+    }
+
+    @Override
+    public void writeSQL(SQLOutput stream) throws SQLException {
+      stream.writeObject(values, JDBCType.ARRAY);
     }
 
   }
@@ -90,14 +114,60 @@ public class StructTest {
   public void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createType(conn, "teststruct", "str varchar, str2 varchar, id uuid, num float");
+    TestUtil.createType(conn, "teststructarray", "vals teststruct[]");
     TestUtil.createTable(conn, "struct_test", "val teststruct");
+    TestUtil.createTable(conn, "struct_array_test", "val teststructarray");
   }
 
   @After
   public void tearDown() throws Exception {
     TestUtil.dropTable(conn, "struct_test");
     TestUtil.dropType(conn, "teststruct");
+    TestUtil.dropType(conn, "teststructarray");
     TestUtil.closeDB(conn);
+  }
+
+  @Test
+  public void testEmbedded() throws Exception {
+
+    TestStruct nullts = new TestStruct();
+
+    TestStruct ts = new TestStruct();
+    ts.id = UUID.randomUUID();
+    ts.num = new Random().nextDouble();
+    ts.str = "A string";
+    ts.str2 = "A second string";
+
+    TestStructArray tsa = new TestStructArray(), tsa2;
+    tsa.values = new TestStruct[] { ts, nullts, null };
+
+    PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_array_test VALUES (?)");
+    pst.setObject(1, tsa);
+    pst.executeUpdate();
+    pst.close();
+
+    Statement st = conn.createStatement();
+    ResultSet rs = st.executeQuery("SELECT * FROM struct_array_test;");
+    assertTrue(rs.next());
+    assertNotNull(tsa2 = rs.getObject(1, TestStructArray.class));
+    assertNotNull(tsa2.values[0]);
+    assertNotNull(tsa2.values[1]);
+    assertNull(tsa2.values[2]);
+
+    TestStruct ts0 = tsa2.values[0];
+    assertEquals(ts.str, ts0.str);
+    assertEquals(ts.str2, ts0.str2);
+    assertEquals(ts.id, ts0.id);
+    assertEquals(ts.num, ts0.num, 0.00000001);
+
+    TestStruct ts1 = tsa2.values[1];
+    assertNull(ts1.str);
+    assertNull(ts1.str2);
+    assertNull(ts1.id);
+    assertNull(ts1.num);
+
+    rs.close();
+    st.close();
   }
 
   @Test

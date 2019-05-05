@@ -256,7 +256,10 @@ class UDTGenerator(
              CodeBlock.of("this.\$L = \$T.valueOfLabel(in.readString());\n", attrPropName, attrTypeName)
 
            else ->
-             CodeBlock.of("this.\$L = in.read\$L();\n", attrPropName, attrSqlType.javaType.readerTypeName)
+             if (attrTypeName.box().isBoxedPrimitive)
+               CodeBlock.of("this.\$L = in.readObject(\$T.class);\n", attrPropName, attrSqlType.javaType)
+             else
+               CodeBlock.of("this.\$L = in.read\$L();\n", attrPropName, attrSqlType.javaType.readerTypeName)
          }
       )
 
@@ -275,7 +278,10 @@ class UDTGenerator(
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "STRUCT")
 
            else ->
-             CodeBlock.of("out.write\$L(this.\$L);\n", attrSqlType.javaType.readerTypeName, attrPropName)
+             if (attrTypeName.box().isBoxedPrimitive)
+               CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, attrTypeName.primitiveJDBCType)
+             else
+               CodeBlock.of("out.write\$L(this.\$L);\n", attrSqlType.javaType.readerTypeName, attrPropName)
          }
       )
 
@@ -452,3 +458,16 @@ private fun String.javaTypeName(): String {
 private fun String.javaPropertyName(): String {
   return javaTypeName().decapitalize()
 }
+
+private val TypeName.primitiveJDBCType: JDBCType
+  get() =
+    when (if (isBoxedPrimitive) unbox() else this) {
+      TypeName.BOOLEAN -> JDBCType.BOOLEAN
+      TypeName.BYTE -> JDBCType.TINYINT
+      TypeName.SHORT -> JDBCType.SMALLINT
+      TypeName.INT -> JDBCType.INTEGER
+      TypeName.LONG -> JDBCType.BIGINT
+      TypeName.FLOAT -> JDBCType.REAL
+      TypeName.DOUBLE -> JDBCType.DOUBLE
+      else -> throw IllegalArgumentException("Not a primitive/box type")
+    }
