@@ -44,10 +44,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.logging.Logger;
 
 import io.netty.channel.unix.DomainSocketAddress;
 
 public class CancelRequestTask extends ExecutionTimerTask {
+
+  private static final Logger logger = Logger.getLogger(CancelRequestTask.class.getName());
 
   private SocketAddress serverAddress;
   private ServerConnection.KeyData keyData;
@@ -63,6 +66,11 @@ public class CancelRequestTask extends ExecutionTimerTask {
   }
 
   private void sendCancelRequest() {
+
+    if (keyData.getProcessId() == 0 && keyData.getSecretKey() == 0) {
+      logger.warning("Cannot send CancelRequest because of missing BackendKeyData.");
+      return;
+    }
 
     try {
 

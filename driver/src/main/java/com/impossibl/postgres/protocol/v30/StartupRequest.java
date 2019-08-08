@@ -63,7 +63,7 @@ public class StartupRequest implements ServerRequest {
 
     void handleNegotiate(Version maxProtocolVersion, List<String> unrecognizedParameters) throws IOException;
 
-    void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) throws IOException;
+    void handleComplete(int processId, int secretKey, Map<String, String> parameterStatuses, List<Notice> notices) throws IOException;
     void handleError(Throwable cause, List<Notice> notices) throws IOException;
 
   }
@@ -71,8 +71,8 @@ public class StartupRequest implements ServerRequest {
   private Version protocolVersion;
   private Map<String, Object> startupParameters;
   private CompletionHandler handler;
-  private Integer backendProcessId;
-  private Integer backendSecretKey;
+  private int backendProcessId;
+  private int backendSecretKey;
   private Map<String, String> parameterStatuses;
   private List<Notice> notices;
 

@@ -495,7 +495,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       }
 
       @Override
-      public void handleComplete(Integer processId, Integer secretKey, Map<String, String> parameterStatuses, List<Notice> notices) {
+      public void handleComplete(int processId, int secretKey, Map<String, String> parameterStatuses, List<Notice> notices) {
 
         startupParameterStatuses.putAll(parameterStatuses);
         startupKeyData.set(new KeyData(processId, secretKey));
