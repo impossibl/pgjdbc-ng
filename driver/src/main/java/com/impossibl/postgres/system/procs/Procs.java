@@ -35,12 +35,15 @@ import com.impossibl.postgres.types.Type.Codec;
 
 import static com.impossibl.postgres.utils.guava.Strings.isNullOrEmpty;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import io.netty.buffer.ByteBuf;
 
-
 public class Procs {
+
+  private static final int MIN_PROC_PROVIDER_SERVICES = 45;
 
   public static final Type.Codec.Decoder<CharSequence> DEFAULT_TEXT_DECODER = new Unknowns.TxtDecoder();
   public static final Type.Codec.Decoder<ByteBuf> DEFAULT_BINARY_DECODER = new Unknowns.BinDecoder();
@@ -51,16 +54,27 @@ public class Procs {
   public static final Modifiers.Parser DEFAULT_MOD_PARSER = new Unknowns.ModParser();
 
   private ServerInfo serverInfo;
-  private ServiceLoader<ProcProvider> providers;
+  private List<ProcProvider> providers;
 
   public Procs(ServerInfo serverInfo, ClassLoader classLoader) {
     this.serverInfo = serverInfo;
     try {
-      providers = ServiceLoader.load(ProcProvider.class, classLoader);
+      providers = load(ServiceLoader.load(ProcProvider.class, classLoader));
     }
     catch (Exception e) {
-      providers = ServiceLoader.load(ProcProvider.class, Procs.class.getClassLoader());
+      providers = load(ServiceLoader.load(ProcProvider.class, Procs.class.getClassLoader()));
     }
+  }
+
+  private static List<ProcProvider> load(ServiceLoader<ProcProvider> services) {
+    ArrayList<ProcProvider> all = new ArrayList<>();
+    for (ProcProvider procProvider: services) {
+      all.add(procProvider);
+    }
+    if (all.size() < MIN_PROC_PROVIDER_SERVICES) {
+      throw new IllegalStateException("Loaded ProcProvider services is below the required threshold, a class loading issue may exist. Found:\n" + all);
+    }
+    return all;
   }
 
   public static boolean isDefaultDecoder(Type.Codec.Decoder<?> decoder) {
