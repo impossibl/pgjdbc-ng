@@ -61,6 +61,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.sql.Statement.RETURN_GENERATED_KEYS;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,6 +72,7 @@ import org.junit.runners.JUnit4;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -1352,6 +1355,38 @@ public class PreparedStatementTest {
         rs.close();
       }
     }
+  }
+
+  @Test
+  public void testCustomReturning() throws Exception {
+
+    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?) RETURNING vc", RETURN_GENERATED_KEYS)) {
+      ps.setString(1, "12345");
+      assertFalse(ps.execute());
+      try (ResultSet rs = ps.getGeneratedKeys()) {
+        assertTrue(rs.next());
+        assertNull(rs.getString(1));
+      }
+    }
+
+    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?) RETURNING te || 'suffix'", RETURN_GENERATED_KEYS)) {
+      ps.setString(1, "12345");
+      assertFalse(ps.execute());
+      try (ResultSet rs = ps.getGeneratedKeys()) {
+        assertTrue(rs.next());
+        assertEquals("12345suffix", rs.getString(1));
+      }
+    }
+
+    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?) RETURNING (SELECT 'some')", RETURN_GENERATED_KEYS)) {
+      ps.setString(1, "12345");
+      assertFalse(ps.execute());
+      try (ResultSet rs = ps.getGeneratedKeys()) {
+        assertTrue(rs.next());
+        assertEquals("some", rs.getString(1));
+      }
+    }
+
   }
 
 }
