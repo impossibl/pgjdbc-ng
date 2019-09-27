@@ -49,6 +49,8 @@ public class Locales {
    * @throws IllegalArgumentException in case of an invalid locale specification
    */
   public static Locale parseLocale(String localeValue) {
+    // Strip encoding/codepage
+    localeValue = localeValue.split("\\.", 2)[0];
 
     switch (localeValue.toUpperCase(Locale.ROOT)) {
       case "C":
@@ -84,8 +86,6 @@ public class Locales {
   }
 
   private static String[] tokenizeLocaleSource(String localeSource) {
-    // Strip encoding/codepage
-    localeSource = localeSource.split("\\.", 2)[0];
     return localeSource.split("_");
   }
 
