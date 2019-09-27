@@ -59,20 +59,26 @@ import java.util.stream.Stream;
  */
 public class PGDriver implements Driver, DriverAction {
 
+  private static final Properties DRIVER = new Properties();
+  static {
+    try {
+      DRIVER.load(PGDriver.class.getClassLoader().getResourceAsStream("META-INF/pgjdbc-ng.properties"));
+    }
+    catch (Throwable t) {
+      throw new RuntimeException(t);
+    }
+  }
+
   /** The name of the driver */
   public static final String NAME;
   static {
-    String name = PGDriver.class.getPackage().getImplementationTitle();
-    name = name != null ? name : "DEVELOP"; // Ensure it works when in IDE
-    NAME = name;
+    NAME = DRIVER.getProperty("name");
   }
 
   /** The version of the driver */
   public static final Version VERSION;
   static {
-    String version = PGDriver.class.getPackage().getImplementationVersion();
-    version = version != null ? version : "0.0.0-DEVELOP"; // Ensure it works when in IDE
-    VERSION = Version.parse(version);
+    VERSION = Version.parse(DRIVER.getProperty("version"));
   }
 
   public static final Logger logger = Logger.getLogger(PGDriver.class.getName());
