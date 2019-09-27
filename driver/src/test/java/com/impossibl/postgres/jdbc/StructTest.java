@@ -139,7 +139,7 @@ public class StructTest {
     ts.str2 = "A second string";
 
     TestStructArray tsa = new TestStructArray(), tsa2;
-    tsa.values = new TestStruct[] { ts, nullts, null };
+    tsa.values = new TestStruct[] {ts, nullts, null};
 
     PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_array_test VALUES (?)");
     pst.setObject(1, tsa);

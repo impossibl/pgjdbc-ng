@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.system.SystemSettings;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.Connection;
@@ -72,30 +74,43 @@ public class DriverTest {
     // These are always correct
     verifyUrl(drv, "jdbc:pgsql:test", "test", "localhost", 5432);
     verifyUrl(drv, "jdbc:pgsql://localhost/test", "test", "localhost", 5432);
-    verifyUrl(drv, "jdbc:pgsql://localhost:5432/test", "test",  "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://user@localhost/test", "test", "user", null, "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://user:pass@localhost/test", "test", "user", "pass", "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://@localhost/test", "test", "", null, "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://:@localhost/test", "test", "", "", "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://us%26%24%23%40%3Aer:pa%26%25dss@localhost/test", "test", "us&$#@:er", "pa&%dss", "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://localhost/test?user=us%26%24%23%40%3Aer&password=pa%26%25dss", "test", "us&$#@:er", "pa&%dss", "localhost", 5432);
+    verifyUrl(drv, "jdbc:pgsql://localhost:5432/test", "test", "localhost", 5432);
     verifyUrl(drv, "jdbc:pgsql://127.0.0.1/anydbname", "anydbname", "127.0.0.1", 5432);
     verifyUrl(drv, "jdbc:pgsql://127.0.0.1:5433/hidden", "hidden", "127.0.0.1", 5433);
     verifyUrl(drv, "jdbc:pgsql://[::1]:5740/db", "db", "0:0:0:0:0:0:0:1", 5740);
-    verifyUrl(drv, "jdbc:pgsql:test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", null);
+    verifyUrl(drv, "jdbc:pgsql:test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", (Object) null);
 
     // Badly formatted url's
-    assertTrue(!drv.acceptsURL("jdbc:postgres:test"));
-    assertTrue(!drv.acceptsURL("postgresql:test"));
-    assertTrue(!drv.acceptsURL("db"));
-    assertTrue(!drv.acceptsURL("jdbc:pgsql://localhost:5432a/test"));
+    assertFalse(drv.acceptsURL("jdbc:postgres:test"));
+    assertFalse(drv.acceptsURL("postgresql:test"));
+    assertFalse(drv.acceptsURL("db"));
+    assertFalse(drv.acceptsURL("jdbc:pgsql://localhost:5432a/test"));
 
     // failover urls
     verifyUrl(drv, "jdbc:pgsql://localhost,127.0.0.1:5432/test", "test", "localhost", 5432, "127.0.0.1", 5432);
     verifyUrl(drv, "jdbc:pgsql://localhost:5433,127.0.0.1:5432/test", "test", "localhost", 5433, "127.0.0.1", 5432);
     verifyUrl(drv, "jdbc:pgsql://[::1],[::1]:5432/db", "db", "0:0:0:0:0:0:0:1", 5432, "0:0:0:0:0:0:0:1", 5432);
     verifyUrl(drv, "jdbc:pgsql://[::1]:5740,127.0.0.1:5432/db", "db", "0:0:0:0:0:0:0:1", 5740, "127.0.0.1", 5432);
-    verifyUrl(drv, "jdbc:pgsql://localhost,127.0.0.1:5432/test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", null, "localhost", 5432, "127.0.0.1", 5432);
+    verifyUrl(drv, "jdbc:pgsql://localhost,127.0.0.1:5432/test?unixsocket=/tmp/.s.PGSQL.5432", "test", "/tmp/.s.PGSQL.5432", (Object) null, "localhost", 5432, "127.0.0.1", 5432);
   }
 
   private void verifyUrl(PGDriver drv, String url, String dbName, Object... hosts) throws Exception {
+    verifyUrl(drv, url, dbName, null, null, hosts);
+  }
+
+  private void verifyUrl(PGDriver drv, String url, String dbName, String user, String pass, Object... hosts) throws Exception {
     assertTrue(url, drv.acceptsURL(url));
     ConnectionUtil.ConnectionSpecifier connSpec = ConnectionUtil.parseURL(url);
+    assertNotNull(connSpec);
     assertEquals(url, dbName, connSpec.getDatabase());
+    assertEquals(url, user, connSpec.getParameters().getProperty(SystemSettings.CREDENTIALS_USERNAME.getName()));
+    assertEquals(url, pass, connSpec.getParameters().getProperty(SystemSettings.CREDENTIALS_PASSWORD.getName()));
     assertEquals(url, hosts.length / 2, connSpec.getAddresses().size());
     for (int c = 0; c < hosts.length / 2; ++c) {
       SocketAddress addr = connSpec.getAddresses().get(c);

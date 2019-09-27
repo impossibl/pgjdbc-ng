@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Settings;
+import com.impossibl.postgres.system.SystemSettings;
 import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
@@ -41,6 +42,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -143,14 +145,13 @@ class ConnectionUtil {
      */
     @Override
     public String toString() {
-      return new StringBuilder("ConnectionSpecifier[")
-          .append("hosts=").append(getHosts())
-          .append(",")
-          .append("database=").append(getDatabase())
-          .append(",")
-          .append("parameters=").append(getParameters())
-          .append("]")
-          .toString();
+      return "ConnectionSpecifier[" +
+          "hosts=" + getHosts() +
+          "," +
+          "database=" + getDatabase() +
+          "," +
+          "parameters=" + getParameters() +
+          "]";
     }
   }
 
@@ -215,6 +216,10 @@ class ConnectionUtil {
     }
 
     //Couldn't connect so report that last exception we saw
+    if (lastException == null) {
+      lastException = new SQLException("Connection Error: unknown");
+    }
+
     throw lastException;
   }
 
@@ -246,14 +251,14 @@ class ConnectionUtil {
   }
 
   /*
-   * URL Pattern jdbc:pgsql:(?://((?:[a-zA-Z0-9\-.]+|\[[0-9a-f:]+])(?::(?:\d+))?(?:,(?:[a-zA-Z0-9\-.]+|\[[0-9a-f:]+])(?::(?:\d+))?)*)/)?([^?&]+)(?:[?&](.*))?
+   * URL Pattern jdbc:pgsql:(?://(?:(\w+)(?::(\w+))@)((?:[a-zA-Z0-9\-.]+|\[[0-9a-f:]+])(?::(?:\d+))?(?:,(?:[a-zA-Z0-9\-.]+|\[[0-9a-f:]+])(?::(?:\d+))?)*)/)?([^?&]+)(?:[?&](.*))?
    *  Capturing Groups:
    *    1 = (host name, IPv4, IPv6 : port) pairs  (optional)
    *    2 = database name         (required)
    *    3 = parameters            (optional)
    */
   private static final Pattern URL_PATTERN =
-      Pattern.compile("jdbc:pgsql:(?://((?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?([^?&/]+)(?:[?&](.*))?");
+      Pattern.compile("jdbc:pgsql:(?://(?:(?<username>[^:@]*)(?::(?<password>[^@]*))?@)?(?<addresses>(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?(?:,(?:[a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(?:\\d+))?)*)/)?(?<database>[^?&/]+)(?:[?&](?<parameters>.*))?");
 
   private static final Pattern ADDRESS_PATTERN = Pattern.compile("(?:([a-zA-Z0-9\\-.]+|\\[[0-9a-f:]+])(?::(\\d+))?)");
 
@@ -285,7 +290,7 @@ class ConnectionUtil {
       ConnectionSpecifier spec = new ConnectionSpecifier();
 
       //Parse hosts into list of addresses
-      String hosts = nullToEmpty(urlMatcher.group(1));
+      String hosts = nullToEmpty(urlMatcher.group("addresses"));
       Matcher hostsMatcher = ADDRESS_PATTERN.matcher(hosts);
       while (hostsMatcher.find()) {
 
@@ -303,12 +308,26 @@ class ConnectionUtil {
 
       //Assign the database
 
-      spec.setDatabase(urlMatcher.group(2));
+      spec.setDatabase(urlMatcher.group("database"));
+
+      //Assign username/password (if available)
+
+      String username = urlMatcher.group("username");
+      if (username != null) {
+        username = URLDecoder.decode(username, "UTF-8");
+        spec.addParameter(SystemSettings.CREDENTIALS_USERNAME.getName(), username);
+
+        String password = urlMatcher.group("password");
+        if (password != null) {
+          password = URLDecoder.decode(password, "UTF-8");
+          spec.addParameter(SystemSettings.CREDENTIALS_PASSWORD.getName(), password);
+        }
+      }
 
       //Parse the query string as a list of name=value pairs separated by '&'
       //then assign them as extra parameters
 
-      String params = urlMatcher.group(3);
+      String params = urlMatcher.group("parameters");
       if (params != null && !params.isEmpty()) {
 
         for (String nameValue : params.split("&")) {
@@ -316,10 +335,17 @@ class ConnectionUtil {
           String[] items = nameValue.split("=");
 
           if (items.length == 1) {
-            spec.addParameter(items[0], "");
+
+            String name = URLDecoder.decode(items[0], "UTF-8");
+
+            spec.addParameter(name, "");
           }
           else if (items.length == 2) {
-            spec.addParameter(items[0], items[1]);
+
+            String name = URLDecoder.decode(items[0], "UTF-8");
+            String value = URLDecoder.decode(items[1], "UTF-8");
+
+            spec.addParameter(name, value);
           }
         }
       }
