@@ -43,4 +43,7 @@ tasks {
   compileJava {
     outputs.dir("$buildDir/generated/docs")
   }
+  processResources {
+    expand(project.properties)
+  }
 }
