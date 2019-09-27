@@ -381,7 +381,7 @@ public class UpdatableResultTest {
 
     rs.close();
 
-    rs = st.executeQuery("select oid,* from updatable");
+    rs = st.executeQuery("select serid,* from updatable");
     assertTrue(rs.first());
     rs.updateInt("id", 3);
     rs.updateString("name", "dave3");

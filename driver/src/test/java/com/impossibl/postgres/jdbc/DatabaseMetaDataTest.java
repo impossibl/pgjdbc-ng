@@ -194,7 +194,12 @@ public class DatabaseMetaDataTest {
       assertTrue(fkColumnName.equals("m") || fkColumnName.equals("n"));
 
       String fkName = rs.getString("FK_NAME");
-      assertEquals("ww_m_fkey", fkName);
+      if (((PGDirectConnection)con).isServerMinimumVersion(12, 0)) {
+        assertEquals("ww_m_n_fkey", fkName);
+      }
+      else {
+        assertEquals("ww_m_fkey", fkName);
+      }
 
       String pkName = rs.getString("PK_NAME");
       assertEquals("vv_pkey", pkName);

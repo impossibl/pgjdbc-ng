@@ -97,7 +97,7 @@ public class ResultSetMetaDataTest {
   @Test
   public void testStandardResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
+    ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,serid,b as d FROM rsmd1");
     runStandardTests(rs.getMetaData());
     rs.close();
     stmt.close();
@@ -106,7 +106,7 @@ public class ResultSetMetaDataTest {
   @Test
   public void testPreparedResultSet() throws SQLException {
 
-    PreparedStatement pstmt = conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
+    PreparedStatement pstmt = conn.prepareStatement("SELECT a,b,c,a+c as total,serid,b as d FROM rsmd1 WHERE b = ?");
     runStandardTests(pstmt.getMetaData());
     pstmt.close();
   }
@@ -119,7 +119,7 @@ public class ResultSetMetaDataTest {
     assertEquals("total", rsmd.getColumnLabel(4));
 
     assertEquals("a", rsmd.getColumnName(1));
-    assertEquals("oid", rsmd.getColumnName(5));
+    assertEquals("serid", rsmd.getColumnName(5));
     assertEquals("total", rsmd.getColumnName(4));
     assertEquals("b", rsmd.getColumnName(6));
 
