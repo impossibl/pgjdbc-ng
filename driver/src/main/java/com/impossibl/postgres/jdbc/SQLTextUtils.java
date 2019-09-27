@@ -290,6 +290,25 @@ class SQLTextUtils {
   }
 
   /**
+   * Checks a statement node for an existing RETURNING clause
+   * @param statement Statement to check for clause
+   * @return True if statement contains RETURNING
+   */
+  public static boolean hasReturningClause(StatementNode statement) {
+
+    for (SQLTextTree.Node node : statement.nodes) {
+
+      if (node instanceof SQLTextTree.UnquotedIdentifierPiece &&
+          ((SQLTextTree.UnquotedIdentifierPiece) node).getText().equals("RETURNING")) {
+        return true;
+      }
+
+    }
+
+    return false;
+  }
+
+  /**
    * Appends a RETURNING clause, containing only the provided columns, to the
    * given SQL text.
    *
@@ -298,6 +317,10 @@ class SQLTextUtils {
    *          appended to
    */
   public static boolean appendReturningClause(SQLText sqlText, List<String> columns) {
+
+    if (hasReturningClause(sqlText.getLastStatement())) {
+      return true;
+    }
 
     return appendClause(sqlText, " RETURNING " + joinColumns(columns, " , "));
   }
@@ -310,6 +333,10 @@ class SQLTextUtils {
    *          appended to
    */
   public static boolean appendReturningClause(SQLText sqlText) {
+
+    if (hasReturningClause(sqlText.getLastStatement())) {
+      return true;
+    }
 
     return appendClause(sqlText, " RETURNING *");
   }
