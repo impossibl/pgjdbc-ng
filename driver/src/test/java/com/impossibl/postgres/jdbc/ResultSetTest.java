@@ -488,7 +488,7 @@ public class ResultSetTest {
     while (rs.next()) {
       try {
         rs.getLong(1);
-        fail("Exception expected." + rs.getString(1));
+        fail("Exception expected. " + rs.getString(1));
       }
       catch (Exception e) {
         // Ok

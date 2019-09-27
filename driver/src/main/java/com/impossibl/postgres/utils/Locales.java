@@ -28,33 +28,137 @@
  */
 package com.impossibl.postgres.utils;
 
+import com.impossibl.postgres.utils.guava.Strings;
+
 import java.util.Locale;
 
 public class Locales {
 
   /**
-   * If the locale specifier matches a win32 type locale (e.g. "English_United States.1252") it is
-   * mapped to a matching Java locale spec by manually looking through available locales and matching
-   * it based on full language name and full country name.
-   *
-   * @param localeSpec Locale specifier to test and transform
-   * @return Java compatible locale specifier
+   * Parse the given {@code String} value into a {@link Locale}, accepting
+   * the {@link Locale#toString} format as well as BCP 47 language tags and
+   * Win32 verbose locale names. If the locale may include an encoding
+   * (e.g. UTF-8) or codepage (e.g. 1252) following a '.', it will be stripped.
+   * "C" &amp; "POSIX" locales are always mapped to {@link Locale#ROOT}
+   * @param localeValue the locale value: following either {@code Locale's}
+   * {@code toString()} format ("en", "en_UK", etc), or BCP 47 (e.g. "en-UK")
+   * as specified by {@link Locale#forLanguageTag} on Java 7+, or Win32 verbose
+   * locale names (e.g. "English_United States"). Optionally including an ignored
+   * encoding or Win32 codepage.
+   * @return a corresponding {@code Locale} instance, or {@code null} if none
+   * @throws IllegalArgumentException in case of an invalid locale specification
    */
-  public static String getJavaCompatibleLocale(String localeSpec) {
-    String[] parts = localeSpec.split("\\.");
-    if (parts.length == 1)
-      return localeSpec;
-    parts = parts[0].split("_");
-    if (parts.length != 2) {
-      return localeSpec;
+  public static Locale parseLocale(String localeValue) {
+
+    switch (localeValue.toUpperCase(Locale.ROOT)) {
+      case "C":
+      case "POSIX":
+        return Locale.ROOT;
     }
-    // Manual search for locale...
-    for (Locale locale : Locale.getAvailableLocales()) {
-      if (locale.getDisplayLanguage().equals(parts[0]) && locale.getDisplayCountry().equals(parts[1])) {
-        return locale.toString();
+
+    String[] tokens = tokenizeLocaleSource(localeValue);
+    if (tokens.length == 1) {
+      validateLocalePart(localeValue);
+      Locale resolved = Locale.forLanguageTag(localeValue);
+      if (resolved.getLanguage().length() > 0) {
+        return resolved;
       }
     }
-    return localeSpec;
+
+    Locale locale = parseLocaleTokens(localeValue, tokens);
+
+    if (locale == null) {
+      // Manually search verbose names (handles win32 names)
+      String language = tokens.length > 0 ? tokens[0] : "";
+      String country = tokens.length > 1 ? tokens[1] : "";
+      for (Locale availLocale : Locale.getAvailableLocales()) {
+        if (availLocale.getDisplayLanguage(Locale.ENGLISH).equals(language) &&
+            availLocale.getDisplayCountry(Locale.ENGLISH).equals(country)) {
+          locale = availLocale;
+          break;
+        }
+      }
+    }
+
+    return locale;
+  }
+
+  private static String[] tokenizeLocaleSource(String localeSource) {
+    // Strip encoding/codepage
+    localeSource = localeSource.split("\\.", 2)[0];
+    return localeSource.split("_");
+  }
+
+  private static Locale parseLocaleTokens(String localeString, String[] tokens) {
+    String language = (tokens.length > 0 ? tokens[0] : "");
+    String country = (tokens.length > 1 ? tokens[1] : "");
+    validateLocalePart(language);
+    validateLocalePart(country);
+
+    String variant = "";
+    if (tokens.length > 2) {
+      // There is definitely a variant, and it is everything after the country
+      // code sans the separator between the country code and the variant.
+      int endIndexOfCountryCode = localeString.indexOf(country, language.length()) + country.length();
+      // Strip off any leading '_' and whitespace, what's left is the variant.
+      variant = trimLeadingWhitespace(localeString.substring(endIndexOfCountryCode));
+      if (variant.startsWith("_")) {
+        variant = trimLeadingCharacter(variant, '_');
+      }
+    }
+
+    if (variant.isEmpty() && country.startsWith("#")) {
+      variant = country;
+      country = "";
+    }
+
+    return (language.length() > 0 ? new Locale(language, country, variant) : null);
+  }
+
+  private static void validateLocalePart(String localePart) {
+    for (int i = 0; i < localePart.length(); i++) {
+      char ch = localePart.charAt(i);
+      if (ch != ' ' && ch != '_' && ch != '-' && ch != '#' && !Character.isLetterOrDigit(ch)) {
+        throw new IllegalArgumentException(
+            "Locale part \"" + localePart + "\" contains invalid characters");
+      }
+    }
+  }
+
+  /**
+   * Trim leading whitespace from the given {@code String}.
+   * @param str the {@code String} to check
+   * @return the trimmed {@code String}
+   * @see java.lang.Character#isWhitespace
+   */
+  private static String trimLeadingWhitespace(String str) {
+    if (Strings.isNullOrEmpty(str)) {
+      return str;
+    }
+
+    StringBuilder sb = new StringBuilder(str);
+    while (sb.length() > 0 && Character.isWhitespace(sb.charAt(0))) {
+      sb.deleteCharAt(0);
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Trim all occurrences of the supplied leading character from the given {@code String}.
+   * @param str the {@code String} to check
+   * @param leadingCharacter the leading character to be trimmed
+   * @return the trimmed {@code String}
+   */
+  private static String trimLeadingCharacter(String str, char leadingCharacter) {
+    if (Strings.isNullOrEmpty(str)) {
+      return str;
+    }
+
+    StringBuilder sb = new StringBuilder(str);
+    while (sb.length() > 0 && sb.charAt(0) == leadingCharacter) {
+      sb.deleteCharAt(0);
+    }
+    return sb.toString();
   }
 
 }

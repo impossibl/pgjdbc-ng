@@ -34,7 +34,6 @@ import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.util.Map;
@@ -83,33 +82,53 @@ class DecoratorContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getDateFormat() {
-    return base.getDateFormat();
+  public DateTimeFormat getServerDateFormat() {
+    return base.getServerDateFormat();
   }
 
   @Override
-  public DateTimeFormat getTimeFormat() {
-    return base.getTimeFormat();
+  public DateTimeFormat getClientDateFormat() {
+    return base.getClientDateFormat();
   }
 
   @Override
-  public NumberFormat getIntegerFormatter() {
-    return base.getIntegerFormatter();
+  public DateTimeFormat getServerTimeFormat() {
+    return base.getServerTimeFormat();
   }
 
   @Override
-  public DateTimeFormat getTimestampFormat() {
-    return base.getTimestampFormat();
+  public DateTimeFormat getClientTimeFormat() {
+    return base.getClientTimeFormat();
   }
 
   @Override
-  public DecimalFormat getDecimalFormatter() {
-    return base.getDecimalFormatter();
+  public DateTimeFormat getServerTimestampFormat() {
+    return base.getServerTimestampFormat();
   }
 
   @Override
-  public DecimalFormat getCurrencyFormatter() {
-    return base.getCurrencyFormatter();
+  public DateTimeFormat getClientTimestampFormat() {
+    return base.getClientTimestampFormat();
+  }
+
+  @Override
+  public NumberFormat getClientIntegerFormatter() {
+    return base.getClientIntegerFormatter();
+  }
+
+  @Override
+  public NumberFormat getClientDecimalFormatter() {
+    return base.getClientDecimalFormatter();
+  }
+
+  @Override
+  public NumberFormat getServerCurrencyFormatter() {
+    return base.getServerCurrencyFormatter();
+  }
+
+  @Override
+  public NumberFormat getClientCurrencyFormatter() {
+    return base.getClientCurrencyFormatter();
   }
 
   @Override

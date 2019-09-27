@@ -34,7 +34,6 @@ import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.Registry;
 
 import java.nio.charset.Charset;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.util.Map;
@@ -60,17 +59,20 @@ public interface Context extends Configuration {
 
   ServerConnection.KeyData getKeyData();
 
-  NumberFormat getIntegerFormatter();
+  NumberFormat getClientIntegerFormatter();
+  NumberFormat getClientDecimalFormatter();
 
-  DecimalFormat getDecimalFormatter();
+  NumberFormat getServerCurrencyFormatter();
+  NumberFormat getClientCurrencyFormatter();
 
-  DecimalFormat getCurrencyFormatter();
+  DateTimeFormat getServerDateFormat();
+  DateTimeFormat getClientDateFormat();
 
-  DateTimeFormat getDateFormat();
+  DateTimeFormat getServerTimeFormat();
+  DateTimeFormat getClientTimeFormat();
 
-  DateTimeFormat getTimeFormat();
-
-  DateTimeFormat getTimestampFormat();
+  DateTimeFormat getServerTimestampFormat();
+  DateTimeFormat getClientTimestampFormat();
 
   Map<String, Class<?>> getCustomTypeMap();
 

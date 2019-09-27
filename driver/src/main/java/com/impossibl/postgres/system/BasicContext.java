@@ -83,6 +83,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -176,12 +177,16 @@ public class BasicContext extends AbstractContext {
   protected Settings settings;
   private TimeZone timeZone;
   private ZoneId timeZoneId;
-  private DateTimeFormat dateFormat;
-  private DateTimeFormat timeFormat;
-  private DateTimeFormat timestampFormat;
-  private NumberFormat integerFormatter;
-  private DecimalFormat decimalFormatter;
-  private DecimalFormat currencyFormatter;
+  private DateTimeFormat clientDateFormat;
+  private DateTimeFormat serverDateFormat;
+  private DateTimeFormat clientTimeFormat;
+  private DateTimeFormat serverTimeFormat;
+  private DateTimeFormat clientTimestampFormat;
+  private DateTimeFormat serverTimestampFormat;
+  private NumberFormat clientIntegerFormatter;
+  private NumberFormat clientDecimalFormatter;
+  private NumberFormat clientCurrencyFormatter;
+  private NumberFormat serverCurrencyFormatter;
   private ServerConnection serverConnection;
   private ServerConnectionListener serverConnectionListener;
   private Map<String, QueryDescription> utilQueries;
@@ -191,9 +196,12 @@ public class BasicContext extends AbstractContext {
     this.settings = settings;
     this.charset = UTF_8;
     this.timeZone = TimeZone.getTimeZone("UTC");
-    this.dateFormat = new ISODateFormat();
-    this.timeFormat = new ISOTimeFormat();
-    this.timestampFormat = new ISOTimestampFormat();
+    this.clientDateFormat = new ISODateFormat();
+    this.serverDateFormat = clientDateFormat;
+    this.clientTimeFormat = new ISOTimeFormat();
+    this.serverTimeFormat = clientTimeFormat;
+    this.clientTimestampFormat = new ISOTimestampFormat();
+    this.serverTimestampFormat = clientTimestampFormat;
     this.serverConnectionListener = new ServerConnectionListener();
     this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, serverConnectionListener);
     this.utilQueries = new HashMap<>();
@@ -276,32 +284,53 @@ public class BasicContext extends AbstractContext {
   }
 
   @Override
-  public DateTimeFormat getDateFormat() {
-    return dateFormat;
+  public DateTimeFormat getServerDateFormat() {
+    return serverDateFormat;
   }
 
   @Override
-  public DateTimeFormat getTimeFormat() {
-    return timeFormat;
+  public DateTimeFormat getClientDateFormat() {
+    return clientDateFormat;
   }
 
   @Override
-  public DateTimeFormat getTimestampFormat() {
-    return timestampFormat;
-  }
-
-  public NumberFormat getIntegerFormatter() {
-    return integerFormatter;
+  public DateTimeFormat getServerTimeFormat() {
+    return serverTimeFormat;
   }
 
   @Override
-  public DecimalFormat getDecimalFormatter() {
-    return decimalFormatter;
+  public DateTimeFormat getClientTimeFormat() {
+    return clientTimeFormat;
   }
 
   @Override
-  public DecimalFormat getCurrencyFormatter() {
-    return currencyFormatter;
+  public DateTimeFormat getServerTimestampFormat() {
+    return serverTimestampFormat;
+  }
+
+  @Override
+  public DateTimeFormat getClientTimestampFormat() {
+    return clientTimestampFormat;
+  }
+
+  @Override
+  public NumberFormat getClientIntegerFormatter() {
+    return clientIntegerFormatter;
+  }
+
+  @Override
+  public NumberFormat getClientDecimalFormatter() {
+    return clientDecimalFormatter;
+  }
+
+  @Override
+  public NumberFormat getServerCurrencyFormatter() {
+    return serverCurrencyFormatter;
+  }
+
+  @Override
+  public NumberFormat getClientCurrencyFormatter() {
+    return clientCurrencyFormatter;
   }
 
   protected void init(SharedRegistry.Factory sharedRegistryFactory) throws IOException {
@@ -313,64 +342,50 @@ public class BasicContext extends AbstractContext {
 
     registry = new Registry(sharedRegistryFactory.get(serverConnectionInfo), new RegistryTypeLoader());
 
-    integerFormatter = NumberFormat.getIntegerInstance();
-    integerFormatter.setGroupingUsed(false);
+    clientIntegerFormatter = NumberFormat.getIntegerInstance(Locale.getDefault());
+    clientIntegerFormatter.setGroupingUsed(false);
+    clientIntegerFormatter.setParseIntegerOnly(true);
 
-    decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance();
-    decimalFormatter.setGroupingUsed(false);
+    clientDecimalFormatter = DecimalFormat.getNumberInstance(Locale.getDefault());
+    clientDecimalFormatter.setGroupingUsed(false);
+    ((DecimalFormat)clientDecimalFormatter).setParseBigDecimal(true);
 
-    currencyFormatter = (DecimalFormat) DecimalFormat.getCurrencyInstance();
-    currencyFormatter.setGroupingUsed(false);
+    serverCurrencyFormatter = DecimalFormat.getCurrencyInstance(Locale.ROOT);
+    serverCurrencyFormatter.setGroupingUsed(false);
+    ((DecimalFormat)serverCurrencyFormatter).setParseBigDecimal(true);
+
+    clientCurrencyFormatter = DecimalFormat.getCurrencyInstance(Locale.getDefault());
+    clientCurrencyFormatter.setGroupingUsed(false);
+    ((DecimalFormat)clientCurrencyFormatter).setParseBigDecimal(true);
 
     loadTypes();
 
     prepareRefreshTypeQueries();
 
-    loadLocale();
+    loadServerLocales();
   }
 
-  private void loadLocale() throws IOException {
+  private void loadServerLocales() throws IOException {
 
     try (ResultBatch resultBatch =
-        queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_numeric', 'lc_time')", INTERNAL_QUERY_TIMEOUT)) {
+        queryBatch("SELECT name, setting FROM pg_settings WHERE name IN ('lc_monetary')", INTERNAL_QUERY_TIMEOUT)) {
 
       for (RowData rowData : resultBatch.borrowRows().borrowAll()) {
 
         String localeSpec = rowData.getField(1, resultBatch.getFields()[1], this, String.class, null).toString();
 
-        switch (localeSpec.toUpperCase(Locale.US)) {
-          case "C":
-          case "POSIX":
-            localeSpec = "en_US";
-            break;
+        Locale locale = Locales.parseLocale(localeSpec);
+        if (locale == null) {
+          // Default to ROOT locale with appropriate warning
+          logger.log(Level.WARNING, "Locale {} could not be mapped to a Java locale, using the default (aka POSIX) locale", localeSpec);
+          locale = Locale.ROOT;
         }
 
-        localeSpec = Locales.getJavaCompatibleLocale(localeSpec);
-
-        String[] localeIds = localeSpec.split("[_.]");
-
         String name = rowData.getField(0, resultBatch.getFields()[1], this, String.class, null).toString();
-        switch (name) {
-          case "lc_numeric":
-
-            Locale numLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
-
-            integerFormatter = NumberFormat.getIntegerInstance(numLocale);
-            integerFormatter.setParseIntegerOnly(true);
-            integerFormatter.setGroupingUsed(false);
-
-            decimalFormatter = (DecimalFormat) DecimalFormat.getNumberInstance(numLocale);
-            decimalFormatter.setParseBigDecimal(true);
-            decimalFormatter.setGroupingUsed(false);
-
-            currencyFormatter = (DecimalFormat) NumberFormat.getCurrencyInstance(numLocale);
-            currencyFormatter.setParseBigDecimal(true);
-            currencyFormatter.setGroupingUsed(false);
-            break;
-
-          case "lc_time":
-            // TODO setup time locale
-            // Locale timeLocale = new Locale.Builder().setLanguageTag(localeIds[0]).setRegion(localeIds[1]).build();
+        if ("lc_monetary".equals(name)) {
+          serverCurrencyFormatter = NumberFormat.getCurrencyInstance(locale);
+          serverCurrencyFormatter.setGroupingUsed(false);
+          ((DecimalFormat)serverCurrencyFormatter).setParseBigDecimal(true);
         }
 
       }
@@ -733,22 +748,22 @@ public class BasicContext extends AbstractContext {
         }
         else {
 
-          dateFormat = DateStyle.getDateFormat(parsedDateStyle);
-          if (dateFormat == null) {
+          serverDateFormat = DateStyle.getDateFormat(parsedDateStyle);
+          if (serverDateFormat == null) {
             logger.warning("Unknown Date format, reverting to default");
-            dateFormat = new ISODateFormat();
+            serverDateFormat = new ISODateFormat();
           }
 
-          timeFormat = DateStyle.getTimeFormat(parsedDateStyle);
-          if (timeFormat == null) {
+          serverTimeFormat = DateStyle.getTimeFormat(parsedDateStyle);
+          if (serverTimeFormat == null) {
             logger.warning("Unknown Time format, reverting to default");
-            timeFormat = new ISOTimeFormat();
+            serverTimeFormat = new ISOTimeFormat();
           }
 
-          timestampFormat = DateStyle.getTimestampFormat(parsedDateStyle);
-          if (timestampFormat == null) {
+          serverTimestampFormat = DateStyle.getTimestampFormat(parsedDateStyle);
+          if (serverTimestampFormat == null) {
             logger.warning("Unknown Timestamp format, reverting to default");
-            timestampFormat = new ISOTimestampFormat();
+            serverTimestampFormat = new ISOTimestampFormat();
           }
         }
         break;

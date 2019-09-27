@@ -85,7 +85,7 @@ public class Dates extends SimpleProcProvider {
       if (s.equals(POS_INFINITY)) return LocalDate.MAX;
       if (s.equals(NEG_INFINITY)) return LocalDate.MIN;
 
-      TemporalAccessor parsed = context.getDateFormat().getParser().parse(s);
+      TemporalAccessor parsed = context.getClientDateFormat().getParser().parse(s);
 
       return LocalDate.from(parsed);
     }
@@ -121,7 +121,7 @@ public class Dates extends SimpleProcProvider {
     }
 
     if (targetClass == String.class) {
-      return context.getDateFormat().getPrinter().format(date);
+      return context.getClientDateFormat().getPrinter().format(date);
     }
 
     if (targetClass == Timestamp.class) {
@@ -214,7 +214,7 @@ public class Dates extends SimpleProcProvider {
         return convertInfinityOutput(buffer.equals(POS_INFINITY), type, targetClass);
       }
 
-      TemporalAccessor parsed = context.getDateFormat().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getServerDateFormat().getParser().parse(buffer);
 
       LocalDate date = LocalDate.from(parsed);
 
@@ -240,7 +240,7 @@ public class Dates extends SimpleProcProvider {
       }
       else {
 
-        String strVal = context.getDateFormat().getPrinter().format(date);
+        String strVal = context.getServerDateFormat().getPrinter().format(date);
 
         buffer.append(strVal);
       }

@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -42,10 +43,23 @@ public class Int2s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int2");
   }
 
+  private static Short convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return context.getClientIntegerFormatter().parse(value).shortValue();
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientIntegerFormatter().format(number);
+  }
+
   static class BinDecoder extends NumericBinaryDecoder<Short> {
 
     BinDecoder() {
-      super(2, Number::toString);
+      super(2, Int2s::convertStringOutput);
     }
 
     @Override
@@ -63,7 +77,7 @@ public class Int2s extends SimpleProcProvider {
   static class BinEncoder extends NumericBinaryEncoder<Short> {
 
     BinEncoder() {
-      super(2, Short::parseShort, val -> val ? (short) 1 : (short) 0, Number::shortValue);
+      super(2, Int2s::convertStringInput, val -> val ? (short) 1 : (short) 0, Number::shortValue);
     }
 
     @Override
@@ -81,7 +95,7 @@ public class Int2s extends SimpleProcProvider {
   static class TxtDecoder extends NumericTextDecoder<Short> {
 
     TxtDecoder() {
-      super(Object::toString);
+      super(Int2s::convertStringOutput);
     }
 
     @Override
@@ -91,7 +105,7 @@ public class Int2s extends SimpleProcProvider {
 
     @Override
     protected Short decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return context.getIntegerFormatter().parse(buffer.toString()).shortValue();
+      return Short.valueOf(buffer.toString());
     }
 
   }
@@ -99,7 +113,7 @@ public class Int2s extends SimpleProcProvider {
   static class TxtEncoder extends NumericTextEncoder<Short> {
 
     TxtEncoder() {
-      super(Short::parseShort, val -> val ? (short) 1 : (short) 0, Number::shortValue);
+      super(Int2s::convertStringInput, val -> val ? (short) 1 : (short) 0, Number::shortValue);
     }
 
     @Override

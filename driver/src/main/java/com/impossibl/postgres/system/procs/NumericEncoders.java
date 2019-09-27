@@ -37,9 +37,15 @@ interface ConversionFunction<T, R> {
 
 }
 
+interface ContextConversionFunction<T, R> {
+
+  R apply(Context context, T t) throws ConversionException;
+
+}
+
 abstract class NumericBinaryEncoder<N extends Number> extends AutoConvertingBinaryEncoder<N> {
 
-  protected NumericBinaryEncoder(Integer binaryLength, ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
+  protected NumericBinaryEncoder(Integer binaryLength, ContextConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     super(binaryLength, new NumericEncodingConverter<>(stringCast, boolCast, numberCast));
   }
 
@@ -47,7 +53,7 @@ abstract class NumericBinaryEncoder<N extends Number> extends AutoConvertingBina
 
 abstract class NumericTextEncoder<N extends Number> extends AutoConvertingTextEncoder<N> {
 
-  protected NumericTextEncoder(ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
+  protected NumericTextEncoder(ContextConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     super(new NumericEncodingConverter<>(stringCast, boolCast, numberCast));
   }
 
@@ -55,11 +61,11 @@ abstract class NumericTextEncoder<N extends Number> extends AutoConvertingTextEn
 
 class NumericEncodingConverter<N extends Number> implements AutoConvertingEncoder.Converter<N> {
 
-  private ConversionFunction<String, N> stringCast;
+  private ContextConversionFunction<String, N> stringCast;
   private ConversionFunction<Boolean, N> boolCast;
   private ConversionFunction<Number, N> numberCast;
 
-  NumericEncodingConverter(ConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
+  NumericEncodingConverter(ContextConversionFunction<String, N> stringCast, ConversionFunction<Boolean, N> boolCast, ConversionFunction<Number, N> numberCast) {
     this.stringCast = stringCast;
     this.boolCast = boolCast;
     this.numberCast = numberCast;
@@ -69,7 +75,7 @@ class NumericEncodingConverter<N extends Number> implements AutoConvertingEncode
   public N convert(Context context, Object source, Object sourceContext) throws ConversionException {
 
     if (source instanceof String) {
-      return stringCast.apply((String) source);
+      return stringCast.apply(context, (String) source);
     }
 
     if (source instanceof Boolean) {
