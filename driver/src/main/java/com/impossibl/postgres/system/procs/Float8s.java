@@ -29,10 +29,10 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
@@ -43,10 +43,23 @@ public class Float8s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float8");
   }
 
+  private static Double convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return context.getClientDecimalFormatter().parse(value).doubleValue();
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientDecimalFormatter().format(number);
+  }
+
   static class BinDecoder extends NumericBinaryDecoder<Double> {
 
     BinDecoder() {
-      super(8, Number::toString);
+      super(8, Float8s::convertStringOutput);
     }
 
     @Override
@@ -64,7 +77,7 @@ public class Float8s extends SimpleProcProvider {
   static class BinEncoder extends NumericBinaryEncoder<Double> {
 
     BinEncoder() {
-      super(8, Double::valueOf, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
+      super(8, Float8s::convertStringInput, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
     }
 
     @Override
@@ -82,7 +95,7 @@ public class Float8s extends SimpleProcProvider {
   static class TxtDecoder extends NumericTextDecoder<Double> {
 
     TxtDecoder() {
-      super(Number::toString);
+      super(Float8s::convertStringOutput);
     }
 
     @Override
@@ -92,7 +105,7 @@ public class Float8s extends SimpleProcProvider {
 
     @Override
     protected Double decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return new BigDecimal(buffer.toString()).doubleValue();
+      return Double.valueOf(buffer.toString());
     }
 
   }
@@ -100,7 +113,7 @@ public class Float8s extends SimpleProcProvider {
   static class TxtEncoder extends NumericTextEncoder<Double> {
 
     TxtEncoder() {
-      super(Double::valueOf, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
+      super(Float8s::convertStringInput, val -> val ? (double) 1 : (double) 0, Number::doubleValue);
     }
 
     @Override

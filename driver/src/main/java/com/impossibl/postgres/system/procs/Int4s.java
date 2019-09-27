@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -44,10 +45,23 @@ public class Int4s extends SimpleProcProvider {
     );
   }
 
+  private static Integer convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return context.getClientIntegerFormatter().parse(value).intValue();
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientIntegerFormatter().format(number);
+  }
+
   static class BinDecoder extends NumericBinaryDecoder<Integer> {
 
     BinDecoder() {
-      super(4, Number::toString);
+      super(4, Int4s::convertStringOutput);
     }
 
     @Override
@@ -65,7 +79,7 @@ public class Int4s extends SimpleProcProvider {
   static class BinEncoder extends NumericBinaryEncoder<Integer> {
 
     BinEncoder() {
-      super(4, Integer::parseInt, val -> val ? 1 : 0, Number::intValue);
+      super(4, Int4s::convertStringInput, val -> val ? 1 : 0, Number::intValue);
     }
 
     @Override
@@ -83,7 +97,7 @@ public class Int4s extends SimpleProcProvider {
   static class TxtDecoder extends NumericTextDecoder<Integer> {
 
     TxtDecoder() {
-      super(Number::toString);
+      super(Int4s::convertStringOutput);
     }
 
     @Override
@@ -93,7 +107,7 @@ public class Int4s extends SimpleProcProvider {
 
     @Override
     protected Integer decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return context.getIntegerFormatter().parse(buffer.toString()).intValue();
+      return Integer.valueOf(buffer.toString());
     }
 
   }
@@ -101,7 +115,7 @@ public class Int4s extends SimpleProcProvider {
   static class TxtEncoder extends NumericTextEncoder<Integer> {
 
     TxtEncoder() {
-      super(Integer::parseInt, val -> val ? 1 : 0, Number::intValue);
+      super(Int4s::convertStringInput, val -> val ? 1 : 0, Number::intValue);
     }
 
     @Override

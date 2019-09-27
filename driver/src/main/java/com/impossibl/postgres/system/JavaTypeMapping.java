@@ -179,7 +179,7 @@ public class JavaTypeMapping {
     String typeName = sqlDataTypeNameMap.get(cls);
     if (typeName == null) {
       try {
-        typeName = cls.asSubclass(SQLData.class).newInstance().getSQLTypeName();
+        typeName = cls.getConstructor().newInstance().getSQLTypeName();
       }
       catch (Exception e) {
         throw new IOException("Unable to determine type of SQLData; a no-arg constructor is required");

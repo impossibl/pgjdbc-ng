@@ -82,7 +82,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
       if (value.equals(POS_INFINITY)) return OffsetDateTime.MAX;
       if (value.equals(NEG_INFINITY)) return OffsetDateTime.MIN;
 
-      TemporalAccessor parsed = context.getTimestampFormat().getParser().parse(chars);
+      TemporalAccessor parsed = context.getClientTimestampFormat().getParser().parse(chars);
 
       if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
         return OffsetDateTime.from(parsed);
@@ -147,7 +147,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
     }
 
     if (targetClass == String.class) {
-      return context.getTimestampFormat().getPrinter().format(dateTime);
+      return context.getClientTimestampFormat().getPrinter().format(dateTime);
     }
 
     ZoneId targetZoneId = targetCalendar.getTimeZone().toZoneId();
@@ -253,7 +253,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
         return convertInfinityOutput(buffer.equals(POS_INFINITY), type, targetClass);
       }
 
-      TemporalAccessor parsed = context.getTimestampFormat().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getServerTimestampFormat().getParser().parse(buffer);
 
       ZonedDateTime dateTime;
       if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
@@ -284,7 +284,7 @@ public class TimestampsWithTZ extends SettingSelectProcProvider {
       }
       else {
 
-        String strVal = context.getTimestampFormat().getPrinter().format(dateTime);
+        String strVal = context.getServerTimestampFormat().getPrinter().format(dateTime);
 
         buffer.append(strVal);
       }

@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -42,10 +43,23 @@ public class Int8s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int8");
   }
 
+  private static Long convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return context.getClientIntegerFormatter().parse(value).longValue();
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientIntegerFormatter().format(number);
+  }
+
   static class BinDecoder extends NumericBinaryDecoder<Long> {
 
     BinDecoder() {
-      super(8, Number::toString);
+      super(8, Int8s::convertStringOutput);
     }
 
     @Override
@@ -63,7 +77,7 @@ public class Int8s extends SimpleProcProvider {
   static class BinEncoder extends NumericBinaryEncoder<Long> {
 
     BinEncoder() {
-      super(8, Long::parseLong, val -> val ? (long) 1 : (long) 0, Number::longValue);
+      super(8, Int8s::convertStringInput, val -> val ? (long) 1 : (long) 0, Number::longValue);
     }
 
     @Override
@@ -81,7 +95,7 @@ public class Int8s extends SimpleProcProvider {
   static class TxtDecoder extends NumericTextDecoder<Long> {
 
     TxtDecoder() {
-      super(Number::toString);
+      super(Int8s::convertStringOutput);
     }
 
     @Override
@@ -91,7 +105,7 @@ public class Int8s extends SimpleProcProvider {
 
     @Override
     protected Long decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return context.getIntegerFormatter().parse(buffer.toString()).longValue();
+      return Long.valueOf(buffer.toString());
     }
 
   }
@@ -99,7 +113,7 @@ public class Int8s extends SimpleProcProvider {
   static class TxtEncoder extends NumericTextEncoder<Long> {
 
     TxtEncoder() {
-      super(Long::parseLong, val -> val ? (long) 1 : (long) 0, Number::longValue);
+      super(Int8s::convertStringInput, val -> val ? (long) 1 : (long) 0, Number::longValue);
     }
 
     @Override

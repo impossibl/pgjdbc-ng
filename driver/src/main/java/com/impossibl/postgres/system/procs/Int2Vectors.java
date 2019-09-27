@@ -73,7 +73,7 @@ public class Int2Vectors extends SimpleProcProvider {
         String[] items = buffer.toString().split(" ");
         values = new Short[items.length];
         for (int c = 0; c < items.length; ++c) {
-          values[c] = Short.parseShort(items[c]);
+          values[c] = Short.valueOf(items[c]);
         }
       }
 

@@ -29,20 +29,16 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.util.function.Function;
 
 
 abstract class NumericBinaryDecoder<N extends Number> extends AutoConvertingBinaryDecoder<N> {
 
-  protected NumericBinaryDecoder(Integer requiredLength) {
-    this(requiredLength, Number::toString);
-  }
-
-  protected NumericBinaryDecoder(Integer requiredLength, Function<N, String> converter) {
+  protected NumericBinaryDecoder(Integer requiredLength, ContextConversionFunction<N, String> converter) {
     super(requiredLength, new NumericDecodingConverter<>(converter));
   }
 
@@ -50,29 +46,25 @@ abstract class NumericBinaryDecoder<N extends Number> extends AutoConvertingBina
 
 abstract class NumericTextDecoder<N extends Number> extends AutoConvertingTextDecoder<N> {
 
-  protected NumericTextDecoder(Function<N, String> converter) {
+  protected NumericTextDecoder(ContextConversionFunction<N, String> converter) {
     super(new NumericDecodingConverter<>(converter));
-  }
-
-  protected NumericTextDecoder(Converter<N> converter) {
-    super(converter);
   }
 
 }
 
 class NumericDecodingConverter<N extends Number> implements AutoConvertingDecoder.Converter<N> {
 
-  private Function<N, String> stringConverter;
+  private ContextConversionFunction<N, String> stringConverter;
 
-  NumericDecodingConverter(Function<N, String> stringConverter) {
+  NumericDecodingConverter(ContextConversionFunction<N, String> stringConverter) {
     this.stringConverter = stringConverter;
   }
 
   @Override
-  public Object convert(Context context, N decoded, Class<?> targetClass, Object targetContext) {
+  public Object convert(Context context, N decoded, Class<?> targetClass, Object targetContext) throws ConversionException {
 
     if (targetClass == String.class) {
-      return stringConverter.apply(decoded);
+      return stringConverter.apply(context, decoded);
     }
 
     if (targetClass == BigDecimal.class) {

@@ -83,7 +83,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     if (value instanceof CharSequence) {
       CharSequence chars = (CharSequence) value;
 
-      TemporalAccessor parsed = context.getTimeFormat().getParser().parse(chars);
+      TemporalAccessor parsed = context.getClientTimeFormat().getParser().parse(chars);
 
       if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
         return OffsetTime.from(parsed);
@@ -119,7 +119,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
     }
 
     if (targetClass == String.class) {
-      return context.getTimeFormat().getPrinter().format(time);
+      return context.getClientTimeFormat().getPrinter().format(time);
     }
 
     if (targetClass == Time.class) {
@@ -202,7 +202,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
 
       Calendar calendar = targetContext != null ? (Calendar) targetContext : Calendar.getInstance();
 
-      TemporalAccessor parsed = context.getTimeFormat().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getServerTimeFormat().getParser().parse(buffer);
 
       OffsetTime time;
       if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
@@ -236,7 +236,7 @@ public class TimesWithTZ extends SettingSelectProcProvider {
       }
       else {
 
-        String strVal = context.getTimeFormat().getPrinter().format(time);
+        String strVal = context.getServerTimeFormat().getPrinter().format(time);
 
         buffer.append(strVal);
       }

@@ -81,7 +81,7 @@ public class TimestampsWithoutTZ extends SettingSelectProcProvider {
       if (value.equals(POS_INFINITY)) return LocalDateTime.MAX;
       if (value.equals(NEG_INFINITY)) return LocalDateTime.MIN;
 
-      TemporalAccessor parsed = context.getTimestampFormat().getParser().parse(chars);
+      TemporalAccessor parsed = context.getClientTimestampFormat().getParser().parse(chars);
 
       return LocalDateTime.from(parsed);
     }
@@ -151,7 +151,7 @@ public class TimestampsWithoutTZ extends SettingSelectProcProvider {
     }
 
     if (targetClass == String.class) {
-      return context.getTimestampFormat().getPrinter().format(dateTime);
+      return context.getClientTimestampFormat().getPrinter().format(dateTime);
     }
 
     ZoneId targetZoneId = targetCalendar.getTimeZone().toZoneId();
@@ -257,7 +257,7 @@ public class TimestampsWithoutTZ extends SettingSelectProcProvider {
         return convertInfinityOutput(buffer.equals(POS_INFINITY), type, targetClass);
       }
 
-      TemporalAccessor parsed = context.getTimestampFormat().getParser().parse(buffer);
+      TemporalAccessor parsed = context.getServerTimestampFormat().getParser().parse(buffer);
 
       LocalDateTime localDateTime = LocalDateTime.from(parsed);
 
@@ -283,7 +283,7 @@ public class TimestampsWithoutTZ extends SettingSelectProcProvider {
       }
       else {
 
-        String strVal = context.getTimestampFormat().getPrinter().format(dateTime);
+        String strVal = context.getServerTimestampFormat().getPrinter().format(dateTime);
 
         buffer.append(strVal);
       }

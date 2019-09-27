@@ -52,7 +52,7 @@ public class Numerics extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "numeric_");
   }
 
-  private static Number convertStringInput(String value) {
+  private static Number convertStringInput(Context context, String value) throws ConversionException {
     if (value.equalsIgnoreCase("NaN")) {
       return Double.NaN;
     }
@@ -62,7 +62,12 @@ public class Numerics extends SimpleProcProvider {
     if (value.equalsIgnoreCase("-infinity")) {
       return Double.POSITIVE_INFINITY;
     }
-    return new BigDecimal(value);
+    try {
+      return context.getClientDecimalFormatter().parse(value);
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Numeric Value", e);
+    }
   }
 
   private static BigDecimal convertBoolInput(Boolean value) {
@@ -116,8 +121,8 @@ public class Numerics extends SimpleProcProvider {
     return null;
   }
 
-  private static String convertStringOutput(Number value) {
-    return value.toString();
+  private static String convertStringOutput(Context context, Number value) {
+    return context.getClientDecimalFormatter().format(value);
   }
 
   static class BinDecoder extends NumericBinaryDecoder<Number> {
@@ -222,7 +227,7 @@ public class Numerics extends SimpleProcProvider {
 
     @Override
     protected Number decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return context.getDecimalFormatter().parse(buffer.toString());
+      return new BigDecimal(buffer.toString());
     }
 
   }
@@ -240,7 +245,7 @@ public class Numerics extends SimpleProcProvider {
 
     @Override
     protected void encodeNativeValue(Context context, Type type, Number value, Object sourceContext, StringBuilder buffer) throws IOException {
-      buffer.append(context.getDecimalFormatter().format(value));
+      buffer.append(value);
     }
 
   }

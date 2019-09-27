@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import static com.impossibl.postgres.system.SystemSettings.MONEY_FRACTIONAL_DIGITS;
@@ -48,6 +49,19 @@ public class Moneys extends SimpleProcProvider {
 
   public Moneys() {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "cash_");
+  }
+
+  private static BigDecimal convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return (BigDecimal) context.getClientDecimalFormatter().parse(value);
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientDecimalFormatter().format(number);
   }
 
   static class BinDecoder extends AutoConvertingBinaryDecoder<BigDecimal> {
@@ -76,7 +90,7 @@ public class Moneys extends SimpleProcProvider {
   static class BinEncoder extends AutoConvertingBinaryEncoder<BigDecimal> {
 
     BinEncoder() {
-      super(8, new NumericEncodingConverter<>(BigDecimal::new, val -> val ? ONE : ZERO, val -> BigDecimal.valueOf(val.doubleValue())));
+      super(8, new NumericEncodingConverter<>(Moneys::convertStringInput, val -> val ? ONE : ZERO, val -> BigDecimal.valueOf(val.doubleValue())));
     }
 
     @Override
@@ -99,7 +113,7 @@ public class Moneys extends SimpleProcProvider {
   static class TxtDecoder extends AutoConvertingTextDecoder<BigDecimal> {
 
     TxtDecoder() {
-      super(new NumericDecodingConverter<>(BigDecimal::toPlainString));
+      super(new NumericDecodingConverter<>(Moneys::convertStringOutput));
     }
 
     @Override
@@ -110,7 +124,7 @@ public class Moneys extends SimpleProcProvider {
     @Override
     protected BigDecimal decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException {
       try {
-        return (BigDecimal) context.getCurrencyFormatter().parse(buffer.toString());
+        return (BigDecimal) context.getServerCurrencyFormatter().parse(buffer.toString());
       }
       catch (ParseException e) {
         throw new IOException(e);
@@ -122,7 +136,7 @@ public class Moneys extends SimpleProcProvider {
   static class TxtEncoder extends AutoConvertingTextEncoder<BigDecimal> {
 
     protected TxtEncoder() {
-      super((StringConverter<BigDecimal>) BigDecimal::new);
+      super(new NumericEncodingConverter<>(Moneys::convertStringInput, val -> val ? ONE : ZERO, val -> BigDecimal.valueOf(val.doubleValue())));
     }
 
     @Override
@@ -132,7 +146,7 @@ public class Moneys extends SimpleProcProvider {
 
     @Override
     protected void encodeNativeValue(Context context, Type type, BigDecimal value, Object sourceContext, StringBuilder buffer) throws IOException {
-      buffer.append(context.getCurrencyFormatter().format(value));
+      buffer.append(context.getServerCurrencyFormatter().format(value));
     }
 
   }

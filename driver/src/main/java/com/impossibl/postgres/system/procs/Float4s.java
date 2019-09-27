@@ -29,10 +29,10 @@
 package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.text.ParseException;
 
 import io.netty.buffer.ByteBuf;
@@ -43,10 +43,23 @@ public class Float4s extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "float4");
   }
 
+  private static Float convertStringInput(Context context, String value) throws ConversionException {
+    try {
+      return context.getClientDecimalFormatter().parse(value).floatValue();
+    }
+    catch (ParseException e) {
+      throw new ConversionException("Invalid Long", e);
+    }
+  }
+
+  private static String convertStringOutput(Context context, Number number) {
+    return context.getClientDecimalFormatter().format(number);
+  }
+
   static class BinDecoder extends NumericBinaryDecoder<Float> {
 
     BinDecoder() {
-      super(4);
+      super(4, Float4s::convertStringOutput);
     }
 
     @Override
@@ -64,7 +77,7 @@ public class Float4s extends SimpleProcProvider {
   static class BinEncoder extends NumericBinaryEncoder<Float> {
 
     BinEncoder() {
-      super(4, Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
+      super(4, Float4s::convertStringInput, val -> val ? (float) 1 : (float) 0, Number::floatValue);
     }
 
     @Override
@@ -82,7 +95,7 @@ public class Float4s extends SimpleProcProvider {
   static class TxtDecoder extends NumericTextDecoder<Float> {
 
     protected TxtDecoder() {
-      super(Number::toString);
+      super(Float4s::convertStringOutput);
     }
 
     @Override
@@ -92,7 +105,7 @@ public class Float4s extends SimpleProcProvider {
 
     @Override
     protected Float decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return new BigDecimal(buffer.toString()).floatValue();
+      return Float.valueOf(buffer.toString());
     }
 
   }
@@ -100,7 +113,7 @@ public class Float4s extends SimpleProcProvider {
   static class TxtEncoder extends NumericTextEncoder<Float> {
 
     TxtEncoder() {
-      super(Float::valueOf, val -> val ? (float) 1 : (float) 0, Number::floatValue);
+      super(Float4s::convertStringInput, val -> val ? (float) 1 : (float) 0, Number::floatValue);
     }
 
     @Override
