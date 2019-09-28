@@ -53,9 +53,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.util.Comparator.comparing;
 
 import io.netty.channel.unix.DomainSocketAddress;
 
@@ -163,6 +167,13 @@ class ConnectionUtil {
       return unixSockets.get(0).path();
     }
 
+    private SortedSet<Map.Entry<Object, Object>> getSortedParameters() {
+      SortedSet<Map.Entry<Object, Object>> sortedParams =
+          new TreeSet<>(comparing((Map.Entry<Object, Object> a) -> a.getKey().toString()).reversed());
+      sortedParams.addAll(parameters.entrySet());
+      return sortedParams;
+    }
+
     private String getParameterQuery() {
       if (parameters.isEmpty()) {
         return null;
@@ -170,7 +181,7 @@ class ConnectionUtil {
 
       StringBuilder query = new StringBuilder();
 
-      Iterator<Map.Entry<Object, Object>> entryIter = parameters.entrySet().iterator();
+      Iterator<Map.Entry<Object, Object>> entryIter = getSortedParameters().iterator();
       while (entryIter.hasNext()) {
 
         Map.Entry<Object, Object> entry = entryIter.next();
