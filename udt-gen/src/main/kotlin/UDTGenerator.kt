@@ -2,7 +2,6 @@ package com.impossibl.postgres.tools
 
 import com.impossibl.postgres.api.jdbc.PGAnyType
 import com.impossibl.postgres.api.jdbc.PGConnection
-import com.impossibl.postgres.api.jdbc.PGType
 import com.impossibl.postgres.types.QualifiedName
 import com.squareup.javapoet.*
 import com.xenomachina.argparser.*
@@ -190,6 +189,47 @@ class UDTGenerator(
              .initializer("\$S", sqlTypeName.toString(false))
              .build()
        )
+       .addField(
+          FieldSpec.builder(PGAnyType::class.java, "TYPE", Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+             .initializer("\$L",
+                TypeSpec.anonymousClassBuilder("")
+                   .addSuperinterface(ClassName.get(PGAnyType::class.java))
+                   .addMethod(
+                      MethodSpec.methodBuilder("getName")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(String::class.java))
+                         .addCode("return \$T.TYPE_NAME;\n", className)
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getVendor")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(String::class.java))
+                         .addCode("return \$S;\n", "UDT Generated")
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getVendorTypeNumber")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(Integer::class.java))
+                         .addCode("return null;\n")
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getJavaType")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(Class::class.java))
+                         .addCode("return \$T.class;\n", className)
+                         .build()
+                   )
+                   .build()
+             )
+             .build()
+       )
        .addMethod(
           MethodSpec.methodBuilder("getSQLTypeName")
              .addAnnotation(Override::class.java)
@@ -269,7 +309,7 @@ class UDTGenerator(
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "ARRAY")
 
            typesInfo[attr.typeName] == TypeCategory.Composite ->
-             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, PGType::class.java, "RECORD")
+             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, attrTypeName, "TYPE")
 
            typesInfo[attr.typeName] == TypeCategory.Enum ->
              CodeBlock.of("out.writeString(this.\$L.getLabel());\n", attrPropName)
