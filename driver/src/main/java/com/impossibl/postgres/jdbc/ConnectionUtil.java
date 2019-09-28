@@ -36,17 +36,22 @@ import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.JDBCSettings.HOUSEKEEPER;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.utils.guava.Strings.emptyToNull;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -105,31 +110,39 @@ class ConnectionUtil {
       parameters.setProperty(key, value);
     }
 
-    String getHosts() {
+    private <T extends SocketAddress> List<T> getAddresses(Class<T> type) {
+      List<T> found = new ArrayList<>();
+      for (SocketAddress address : addresses) {
+        if (type.isInstance(address)) {
+          found.add(type.cast(address));
+        }
+      }
+      return found;
+    }
+
+    private String getInetHosts() {
+
+      List<InetSocketAddress> inetAddresses = getAddresses(InetSocketAddress.class);
+      if (inetAddresses.isEmpty()) {
+        return null;
+      }
 
       StringBuilder hosts = new StringBuilder();
 
-      Iterator<SocketAddress> addrIter = addresses.iterator();
+      Iterator<InetSocketAddress> addrIter = inetAddresses.iterator();
       while (addrIter.hasNext()) {
 
-        SocketAddress addr = addrIter.next();
-
-        if (addr instanceof InetSocketAddress) {
-          InetSocketAddress inetAddr = (InetSocketAddress) addr;
-
-          hosts.append(inetAddr.getHostString());
-
-          if (inetAddr.getPort() != 5432) {
-            hosts.append(':');
-            hosts.append(inetAddr.getPort());
-          }
-        }
-        else if (addr instanceof DomainSocketAddress) {
-          DomainSocketAddress domainAddr = (DomainSocketAddress) addr;
-          hosts.append("unix:").append(domainAddr.path());
+        InetSocketAddress addr = addrIter.next();
+        if (addr.getAddress() instanceof Inet6Address) {
+          hosts.append("[").append(addr.getHostString()).append("]");
         }
         else {
-          throw new IllegalStateException("Unsupported socket address");
+          hosts.append(addr.getHostString());
+        }
+
+        if (addr.getPort() != 5432) {
+          hosts.append(':');
+          hosts.append(addr.getPort());
         }
 
         if (addrIter.hasNext()) {
@@ -140,13 +153,94 @@ class ConnectionUtil {
       return hosts.toString();
     }
 
+    private String getUnixPath() {
+
+      List<DomainSocketAddress> unixSockets = getAddresses(DomainSocketAddress.class);
+      if (unixSockets.isEmpty()) {
+        return null;
+      }
+
+      return unixSockets.get(0).path();
+    }
+
+    private String getParameterQuery() {
+      if (parameters.isEmpty()) {
+        return null;
+      }
+
+      StringBuilder query = new StringBuilder();
+
+      Iterator<Map.Entry<Object, Object>> entryIter = parameters.entrySet().iterator();
+      while (entryIter.hasNext()) {
+
+        Map.Entry<Object, Object> entry = entryIter.next();
+        String key = entry.getKey().toString();
+        String value = emptyToNull(entry.getValue() != null ? entry.getValue().toString() : null);
+
+        try {
+          query.append(URLEncoder.encode(key, "UTF-8"));
+        }
+        catch (UnsupportedEncodingException e) {
+          query.append(entry.getKey());
+        }
+
+        if (value != null) {
+
+          query.append("=");
+
+          try {
+            query.append(URLEncoder.encode(value, "UTF-8"));
+          }
+          catch (UnsupportedEncodingException e) {
+            query.append(entry.getValue());
+          }
+
+        }
+
+        if (entryIter.hasNext()) {
+          query.append("&");
+        }
+      }
+      return query.toString();
+    }
+
+    String getURL() {
+      String url = "jdbc:pgsql:";
+
+      String inetHosts = getInetHosts();
+      if (inetHosts != null) {
+        url += "//" + inetHosts + "/";
+      }
+
+      if (database != null) {
+        url += database;
+      }
+
+      String unixPath = getUnixPath();
+      String query = getParameterQuery();
+      if (unixPath != null || query != null) {
+        url += "?";
+      }
+      if (unixPath != null) {
+        url += "unixsocket=" + unixPath;
+        if (query != null) {
+          url += "&";
+        }
+      }
+      if (query != null) {
+        url += query;
+      }
+
+      return url;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public String toString() {
       return "ConnectionSpecifier[" +
-          "hosts=" + getHosts() +
+          "addresses=" + addresses +
           "," +
           "database=" + getDatabase() +
           "," +
@@ -245,7 +339,7 @@ class ConnectionUtil {
     settings.set(DATABASE_NAME, connSpec.getDatabase());
 
     //Create & store URL
-    settings.set(DATABASE_URL, "jdbc:pgsql://" + connSpec.getHosts() + "/" + connSpec.getDatabase());
+    settings.set(DATABASE_URL, connSpec.getURL());
 
     return settings;
   }
