@@ -176,10 +176,12 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <th class="colLast" scope="col">Description</th>
 </tr>
 <tr id="i0" class="altColor">
-<td class="colFirst"><code>static <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getJavaCompatibleLocale(java.lang.String)">getJavaCompatibleLocale</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;localeSpec)</code></th>
+<td class="colFirst"><code>static <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true" title="class or interface in java.util" class="externalLink">Locale</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#parseLocale(java.lang.String)">parseLocale</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;localeValue)</code></th>
 <td class="colLast">
-<div class="block">If the locale specifier matches a win32 type locale (e.g.</div>
+<div class="block">Parse the given <code>String</code> value into a <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true" title="class or interface in java.util" class="externalLink"><code>Locale</code></a>, accepting
+ the <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true#toString()" title="class or interface in java.util" class="externalLink"><code>Locale.toString()</code></a> format as well as BCP 47 language tags and
+ Win32 verbose locale names.</div>
 </td>
 </tr>
 </table>
@@ -225,21 +227,29 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <!--   -->
 </a>
 <h3>Method Detail</h3>
-<a id="getJavaCompatibleLocale(java.lang.String)">
+<a id="parseLocale(java.lang.String)">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
-<h4>getJavaCompatibleLocale</h4>
-<pre class="methodSignature">public static&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;getJavaCompatibleLocale&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;localeSpec)</pre>
-<div class="block">If the locale specifier matches a win32 type locale (e.g. "English_United States.1252") it is
- mapped to a matching Java locale spec by manually looking through available locales and matching
- it based on full language name and full country name.</div>
+<h4>parseLocale</h4>
+<pre class="methodSignature">public static&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true" title="class or interface in java.util" class="externalLink">Locale</a>&nbsp;parseLocale&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;localeValue)</pre>
+<div class="block">Parse the given <code>String</code> value into a <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true" title="class or interface in java.util" class="externalLink"><code>Locale</code></a>, accepting
+ the <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true#toString()" title="class or interface in java.util" class="externalLink"><code>Locale.toString()</code></a> format as well as BCP 47 language tags and
+ Win32 verbose locale names. If the locale may include an encoding
+ (e.g. UTF-8) or codepage (e.g. 1252) following a '.', it will be stripped.
+ "C" &amp; "POSIX" locales are always mapped to <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true#ROOT" title="class or interface in java.util" class="externalLink"><code>Locale.ROOT</code></a></div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>localeSpec</code> - Locale specifier to test and transform</dd>
+<dd><code>localeValue</code> - the locale value: following either <code>Locale's</code>
+ <code>toString()</code> format ("en", "en_UK", etc), or BCP 47 (e.g. "en-UK")
+ as specified by <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Locale.html?is-external=true#forLanguageTag(java.lang.String)" title="class or interface in java.util" class="externalLink"><code>Locale.forLanguageTag(java.lang.String)</code></a> on Java 7+, or Win32 verbose
+ locale names (e.g. "English_United States"). Optionally including an ignored
+ encoding or Win32 codepage.</dd>
 <dt><span class="returnLabel">Returns:</span></dt>
-<dd>Java compatible locale specifier</dd>
+<dd>a corresponding <code>Locale</code> instance, or <code>null</code> if none</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/IllegalArgumentException.html?is-external=true" title="class or interface in java.lang" class="externalLink">IllegalArgumentException</a></code> - in case of an invalid locale specification</dd>
 </dl>
 </li>
 </ul>

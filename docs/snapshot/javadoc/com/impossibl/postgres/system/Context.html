@@ -27,7 +27,7 @@
     catch(err) {
     }
 //-->
-var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6,"i11":6,"i12":6,"i13":6,"i14":6,"i15":6};
+var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6,"i11":6,"i12":6,"i13":6,"i14":6,"i15":6,"i16":6,"i17":6,"i18":6,"i19":6};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],4:["t3","Abstract Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -165,71 +165,91 @@ extends <a href="Configuration.html" title="interface in com.impossibl.postgres.
 <td class="colLast">&nbsp;</td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">DecimalFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getCurrencyFormatter()">getCurrencyFormatter</a></span>()</code></th>
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientCurrencyFormatter()">getClientCurrencyFormatter</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
 <tr id="i3" class="rowColor">
+<td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientDateFormat()">getClientDateFormat</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i4" class="altColor">
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientDecimalFormatter()">getClientDecimalFormatter</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i5" class="rowColor">
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientIntegerFormatter()">getClientIntegerFormatter</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i6" class="altColor">
+<td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientTimeFormat()">getClientTimeFormat</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i7" class="rowColor">
+<td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getClientTimestampFormat()">getClientTimestampFormat</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i8" class="altColor">
 <td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Map.html?is-external=true" title="class or interface in java.util" class="externalLink">Map</a>&lt;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>,&#8203;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang" class="externalLink">Class</a>&lt;?&gt;&gt;</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getCustomTypeMap()">getCustomTypeMap</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i4" class="altColor">
-<td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getDateFormat()">getDateFormat</a></span>()</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr id="i5" class="rowColor">
-<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">DecimalFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getDecimalFormatter()">getDecimalFormatter</a></span>()</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr id="i6" class="altColor">
-<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getIntegerFormatter()">getIntegerFormatter</a></span>()</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr id="i7" class="rowColor">
+<tr id="i9" class="rowColor">
 <td class="colFirst"><code><a href="../protocol/ServerConnection.KeyData.html" title="class in com.impossibl.postgres.protocol">ServerConnection.KeyData</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getKeyData()">getKeyData</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i8" class="altColor">
+<tr id="i10" class="altColor">
 <td class="colFirst"><code><a href="../types/Registry.html" title="class in com.impossibl.postgres.types">Registry</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getRegistry()">getRegistry</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i9" class="rowColor">
+<tr id="i11" class="rowColor">
 <td class="colFirst"><code><a href="../protocol/RequestExecutor.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getRequestExecutor()">getRequestExecutor</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i10" class="altColor">
+<tr id="i12" class="altColor">
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getServerCurrencyFormatter()">getServerCurrencyFormatter</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i13" class="rowColor">
+<td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getServerDateFormat()">getServerDateFormat</a></span>()</code></th>
+<td class="colLast">&nbsp;</td>
+</tr>
+<tr id="i14" class="altColor">
 <td class="colFirst"><code><a href="ServerInfo.html" title="class in com.impossibl.postgres.system">ServerInfo</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getServerInfo()">getServerInfo</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i11" class="rowColor">
+<tr id="i15" class="rowColor">
 <td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getTimeFormat()">getTimeFormat</a></span>()</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getServerTimeFormat()">getServerTimeFormat</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i12" class="altColor">
+<tr id="i16" class="altColor">
 <td class="colFirst"><code><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a></code></td>
-<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getTimestampFormat()">getTimestampFormat</a></span>()</code></th>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getServerTimestampFormat()">getServerTimestampFormat</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i13" class="rowColor">
+<tr id="i17" class="rowColor">
 <td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/util/TimeZone.html?is-external=true" title="class or interface in java.util" class="externalLink">TimeZone</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getTimeZone()">getTimeZone</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i14" class="altColor">
+<tr id="i18" class="altColor">
 <td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html?is-external=true" title="class or interface in java.time" class="externalLink">ZoneId</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#getTimeZoneId()">getTimeZoneId</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr id="i15" class="rowColor">
+<tr id="i19" class="rowColor">
 <td class="colFirst"><code><a href="Context.html" title="interface in com.impossibl.postgres.system">Context</a></code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#unwrap()">unwrap</a></span>()</code></th>
 <td class="colLast">&nbsp;</td>
@@ -330,58 +350,94 @@ extends <a href="Configuration.html" title="interface in com.impossibl.postgres.
 <pre class="methodSignature"><a href="../protocol/ServerConnection.KeyData.html" title="class in com.impossibl.postgres.protocol">ServerConnection.KeyData</a>&nbsp;getKeyData()</pre>
 </li>
 </ul>
-<a id="getIntegerFormatter()">
+<a id="getClientIntegerFormatter()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getIntegerFormatter</h4>
-<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a>&nbsp;getIntegerFormatter()</pre>
+<h4>getClientIntegerFormatter</h4>
+<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a>&nbsp;getClientIntegerFormatter()</pre>
 </li>
 </ul>
-<a id="getDecimalFormatter()">
+<a id="getClientDecimalFormatter()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getDecimalFormatter</h4>
-<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">DecimalFormat</a>&nbsp;getDecimalFormatter()</pre>
+<h4>getClientDecimalFormatter</h4>
+<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a>&nbsp;getClientDecimalFormatter()</pre>
 </li>
 </ul>
-<a id="getCurrencyFormatter()">
+<a id="getServerCurrencyFormatter()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getCurrencyFormatter</h4>
-<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">DecimalFormat</a>&nbsp;getCurrencyFormatter()</pre>
+<h4>getServerCurrencyFormatter</h4>
+<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a>&nbsp;getServerCurrencyFormatter()</pre>
 </li>
 </ul>
-<a id="getDateFormat()">
+<a id="getClientCurrencyFormatter()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getDateFormat</h4>
-<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getDateFormat()</pre>
+<h4>getClientCurrencyFormatter</h4>
+<pre class="methodSignature"><a href="https://docs.oracle.com/javase/8/docs/api/java/text/NumberFormat.html?is-external=true" title="class or interface in java.text" class="externalLink">NumberFormat</a>&nbsp;getClientCurrencyFormatter()</pre>
 </li>
 </ul>
-<a id="getTimeFormat()">
+<a id="getServerDateFormat()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getTimeFormat</h4>
-<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getTimeFormat()</pre>
+<h4>getServerDateFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getServerDateFormat()</pre>
 </li>
 </ul>
-<a id="getTimestampFormat()">
+<a id="getClientDateFormat()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getTimestampFormat</h4>
-<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getTimestampFormat()</pre>
+<h4>getClientDateFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getClientDateFormat()</pre>
+</li>
+</ul>
+<a id="getServerTimeFormat()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getServerTimeFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getServerTimeFormat()</pre>
+</li>
+</ul>
+<a id="getClientTimeFormat()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getClientTimeFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getClientTimeFormat()</pre>
+</li>
+</ul>
+<a id="getServerTimestampFormat()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getServerTimestampFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getServerTimestampFormat()</pre>
+</li>
+</ul>
+<a id="getClientTimestampFormat()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getClientTimestampFormat</h4>
+<pre class="methodSignature"><a href="../datetime/DateTimeFormat.html" title="interface in com.impossibl.postgres.datetime">DateTimeFormat</a>&nbsp;getClientTimestampFormat()</pre>
 </li>
 </ul>
 <a id="getCustomTypeMap()">
