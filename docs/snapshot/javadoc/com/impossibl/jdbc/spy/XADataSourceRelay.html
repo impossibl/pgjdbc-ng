@@ -349,6 +349,22 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
+<a id="getParentLogger()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getParentLogger</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/util/logging/Logger.html?is-external=true" title="class or interface in java.util.logging" class="externalLink">Logger</a>&nbsp;getParentLogger()
+                       throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true#getParentLogger()" title="class or interface in javax.sql" class="externalLink">getParentLogger</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">CommonDataSource</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></code></dd>
+</dl>
+</li>
+</ul>
 <a id="getXAConnection()">
 <!--   -->
 </a>
@@ -365,19 +381,21 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="getParentLogger()">
+<a id="getLoginTimeout()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getParentLogger</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/util/logging/Logger.html?is-external=true" title="class or interface in java.util.logging" class="externalLink">Logger</a>&nbsp;getParentLogger()
-                       throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></pre>
+<h4>getLoginTimeout</h4>
+<pre class="methodSignature">public&nbsp;int&nbsp;getLoginTimeout()
+                    throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true#getParentLogger()" title="class or interface in javax.sql" class="externalLink">getParentLogger</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">CommonDataSource</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true#getLoginTimeout()" title="class or interface in javax.sql" class="externalLink">getLoginTimeout</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">CommonDataSource</a></code></dd>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true#getLoginTimeout()" title="class or interface in javax.sql" class="externalLink">getLoginTimeout</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">XADataSource</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -429,24 +447,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true#setLogWriter(java.io.PrintWriter)" title="class or interface in javax.sql" class="externalLink">setLogWriter</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">CommonDataSource</a></code></dd>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true#setLogWriter(java.io.PrintWriter)" title="class or interface in javax.sql" class="externalLink">setLogWriter</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">XADataSource</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="getLoginTimeout()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getLoginTimeout</h4>
-<pre class="methodSignature">public&nbsp;int&nbsp;getLoginTimeout()
-                    throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true#getLoginTimeout()" title="class or interface in javax.sql" class="externalLink">getLoginTimeout</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/CommonDataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">CommonDataSource</a></code></dd>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true#getLoginTimeout()" title="class or interface in javax.sql" class="externalLink">getLoginTimeout</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XADataSource.html?is-external=true" title="class or interface in javax.sql" class="externalLink">XADataSource</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
