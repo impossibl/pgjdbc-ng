@@ -39,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -46,6 +47,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -68,6 +70,8 @@ public class NotificationTest {
       });
 
     }
+
+    Thread.sleep(50);
 
     assertTrue(flag.get());
 
@@ -224,6 +228,58 @@ public class NotificationTest {
       assertTrue(allFlag.get());
     }
 
+  }
+
+  static void log(String msg) {
+    System.out.println(String.format("%d [%20s] %s",
+        System.currentTimeMillis(), Thread.currentThread().getName(), msg));
+  }
+
+  private static Listener listenOpenClose() throws Exception {
+    log("----- running one iteration -----");
+
+    PGConnection conn = TestUtil.openDB().unwrap(PGConnection.class);
+
+    Listener listener = new Listener();
+    conn.addNotificationListener(listener);
+    conn.close();
+
+    Thread.sleep(50);
+
+    return listener;
+  }
+
+  @Test
+  public void testMultiClose() throws Exception {
+    Listener listener1 = listenOpenClose();
+    assertEquals(1, listener1.closeCount.get());
+
+    Listener listener2 = listenOpenClose();
+    assertEquals(1, listener2.closeCount.get());
+
+    Listener listener3 = listenOpenClose();
+    assertEquals(1, listener3.closeCount.get());
+
+    Listener listener4 = listenOpenClose();
+    assertEquals(1, listener4.closeCount.get());
+  }
+
+}
+
+
+class Listener implements PGNotificationListener {
+
+  AtomicInteger closeCount = new AtomicInteger(0);
+
+  @Override
+  public void notification(int processId, String channelName, String payload) {
+    NotificationTest.log("notification " + processId);
+  }
+
+  @Override
+  public void closed() {
+    NotificationTest.log("closed");
+    closeCount.incrementAndGet();
   }
 
 }

@@ -681,13 +681,14 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    *
    */
   private void internalClose() {
-
-    closeStatements();
+    cleanupClosed();
 
     shutdown().awaitUninterruptibly(networkTimeout > 0 ? networkTimeout : Integer.MAX_VALUE);
+  }
 
-    reportClosed();
-    notificationListeners.clear();
+  private void cleanupClosed() {
+
+    closeStatements();
 
     if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
@@ -697,7 +698,11 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   @Override
   protected void connectionClosed() {
-    internalClose();
+
+    cleanupClosed();
+
+    reportClosed();
+    notificationListeners.clear();
   }
 
   /**
