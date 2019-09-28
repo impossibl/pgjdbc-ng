@@ -112,7 +112,37 @@ public class Locales {
       country = "";
     }
 
+    if (!isISOLanguage(language) || !isISOCountry(country)) {
+      return null;
+    }
+
     return (language.length() > 0 ? new Locale(language, country, variant) : null);
+  }
+
+  private static boolean isISOCountry(String code) {
+    if (code.length() > 2) {
+      return false;
+    }
+    code = code.toUpperCase();
+    for (String isoCode : Locale.getISOCountries()) {
+      if (code.equals(isoCode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isISOLanguage(String code) {
+    if (code.length() > 2) {
+      return false;
+    }
+    code = code.toLowerCase();
+    for (String isoCode : Locale.getISOLanguages()) {
+      if (code.equals(isoCode)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void validateLocalePart(String localePart) {
