@@ -535,28 +535,28 @@ table.CodeRay td.code>pre{padding:0}
 <h1>PGJDBC-NG Release Notes</h1>
 <div class="details">
 <span id="author" class="author">Kevin Wooten, Jesper Pedersen, Brett Wooldridge</span><br>
-<span id="revnumber">version 0.9-SNAPSHOT</span>
+<span id="revnumber">version 0.8.3-SNAPSHOT</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#release-notes-0.9">0.9</a>
+<li><a href="#release-notes-0.8.3">0.8.3</a>
 <ul class="sectlevel2">
-<li><a href="#release-notes-0.9-pgjdbc-ng-driver">PGJDBC-NG Driver</a>
+<li><a href="#release-notes-0.8.3-pgjdbc-ng-driver">PGJDBC-NG Driver</a>
 <ul class="sectlevel3">
 <li><a href="#_bug_fixes">Bug Fixes</a></li>
 <li><a href="#_deprecations_and_breaking_changes">Deprecations and Breaking Changes</a></li>
 <li><a href="#_new_features_and_improvements">New Features and Improvements</a></li>
 </ul>
 </li>
-<li><a href="#release-notes-0.9-pgjdbc-ng-udt">PGJDBC-NG UDT Generator</a>
+<li><a href="#release-notes-0.8.3-pgjdbc-ng-udt">PGJDBC-NG UDT Generator</a>
 <ul class="sectlevel3">
 <li><a href="#_bug_fixes_2">Bug Fixes</a></li>
 <li><a href="#_deprecations_and_breaking_changes_2">Deprecations and Breaking Changes</a></li>
 <li><a href="#_new_features_and_improvements_2">New Features and Improvements</a></li>
 </ul>
 </li>
-<li><a href="#release-notes-0.9-pgjdbc-ng-spy">PGJDBC-NG Spy</a>
+<li><a href="#release-notes-0.8.3-pgjdbc-ng-spy">PGJDBC-NG Spy</a>
 <ul class="sectlevel3">
 <li><a href="#_bug_fixes_3">Bug Fixes</a></li>
 <li><a href="#_deprecations_and_breaking_changes_3">Deprecations and Breaking Changes</a></li>
@@ -633,27 +633,45 @@ reference documentation on integrating and using PGJDBC-NG.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="release-notes-0.9">0.9</h2>
+<h2 id="release-notes-0.8.3">0.8.3</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><strong>Date of Release:</strong> ❓</p>
 </div>
 <div class="paragraph">
-<p><strong>Scope:</strong> ❓</p>
+<p><strong>Scope:</strong> Bug Fixes</p>
 </div>
 <div class="paragraph">
 <p>For a complete list of all <em>closed</em> issues and pull requests for this release, consult
-the <a href="https://github.com/impossibl/pgjdbc-ng/milestone/2?closed=1">0.9</a> milestone page in the PGJDBC-NG repository
+the <a href="https://github.com/impossibl/pgjdbc-ng/milestone/2?closed=1">0.8.3</a> milestone page in the PGJDBC-NG repository
 on GitHub.</p>
 </div>
 <div class="sect2">
-<h3 id="release-notes-0.9-pgjdbc-ng-driver">PGJDBC-NG Driver</h3>
+<h3 id="release-notes-0.8.3-pgjdbc-ng-driver">PGJDBC-NG Driver</h3>
 <div class="sect3">
 <h4 id="_bug_fixes">Bug Fixes</h4>
 <div class="ulist">
 <ul>
 <li>
-<p>❓</p>
+<p>Intervals are now parsed/formatted correctly according to server&#8217;s or connection&#8217;s <code>IntervalStyle</code></p>
+</li>
+<li>
+<p><code>PGNotificationListener.close</code> will only be called a single time</p>
+</li>
+<li>
+<p>Locale handling has been properly matched to the server and JVM respectfully</p>
+</li>
+<li>
+<p>Windows Locales are looked up in ROOT/ENGLISH locale</p>
+</li>
+<li>
+<p>Connection URL parameters are properly percent-escaped</p>
+</li>
+<li>
+<p>SQLData implementations handle nulls properly</p>
+</li>
+<li>
+<p>Version meta-data is now correct in shaded jar &amp; fat-jar applications</p>
 </li>
 </ul>
 </div>
@@ -663,7 +681,11 @@ on GitHub.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>❓</p>
+<p><code>Interval</code> has been completely overhauled with a Java 9 <code>java.time</code> interface</p>
+</li>
+<li>
+<p>Due to fixes related to locale handling, text passed to the JDBC API must be in the JVM&#8217;s locale and text being
+passed to the server must be in the server&#8217;s locale; this shouldn&#8217;t be an overly impactful.</p>
 </li>
 </ul>
 </div>
@@ -672,6 +694,12 @@ on GitHub.</p>
 <h4 id="_new_features_and_improvements">New Features and Improvements</h4>
 <div class="ulist">
 <ul>
+<li>
+<p>PostgreSQL 12 is supported and part of the testing matrix</p>
+</li>
+<li>
+<p>CockroachDB is supported</p>
+</li>
 <li>
 <p>Batch executions use pipelined requests to increase performance by as much as 70%</p>
 </li>
@@ -683,69 +711,45 @@ on GitHub.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="release-notes-0.9-pgjdbc-ng-udt">PGJDBC-NG UDT Generator</h3>
+<h3 id="release-notes-0.8.3-pgjdbc-ng-udt">PGJDBC-NG UDT Generator</h3>
 <div class="sect3">
 <h4 id="_bug_fixes_2">Bug Fixes</h4>
 <div class="ulist">
 <ul>
 <li>
-<p>❓</p>
+<p>Generated UDT implementations correctly handle nulls</p>
+</li>
+<li>
+<p>Fix issue that caused generated attributes to be in incorrect order</p>
+</li>
+<li>
+<p>Nested UDT&#8217;s now write wit the specific server type instead of generic <code>record</code></p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_deprecations_and_breaking_changes_2">Deprecations and Breaking Changes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>❓</p>
-</li>
-</ul>
-</div>
+
 </div>
 <div class="sect3">
 <h4 id="_new_features_and_improvements_2">New Features and Improvements</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>❓</p>
-</li>
-</ul>
-</div>
+
 </div>
 </div>
 <div class="sect2">
-<h3 id="release-notes-0.9-pgjdbc-ng-spy">PGJDBC-NG Spy</h3>
+<h3 id="release-notes-0.8.3-pgjdbc-ng-spy">PGJDBC-NG Spy</h3>
 <div class="sect3">
 <h4 id="_bug_fixes_3">Bug Fixes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>❓</p>
-</li>
-</ul>
-</div>
+
 </div>
 <div class="sect3">
 <h4 id="_deprecations_and_breaking_changes_3">Deprecations and Breaking Changes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>❓</p>
-</li>
-</ul>
-</div>
+
 </div>
 <div class="sect3">
 <h4 id="_new_features_and_improvements_3">New Features and Improvements</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>❓</p>
-</li>
-</ul>
-</div>
+
 </div>
 </div>
 </div>
@@ -1141,8 +1145,8 @@ JDBC API level tracing.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.9-SNAPSHOT<br>
-Last updated 2019-09-29 05:42:51 UTC
+Version 0.8.3-SNAPSHOT<br>
+Last updated 2019-09-29 07:30:16 UTC
 </div>
 </div>
 </body>
