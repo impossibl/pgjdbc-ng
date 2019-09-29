@@ -57,6 +57,7 @@ tasks {
   )
 
   val downloadArtifacts = register<Task>("downloadArtifacts") {
+    outputs.files(downloadTasks.flatMap { it.get().outputFiles })
     dependsOn(downloadTasks)
   }
 
@@ -77,7 +78,7 @@ tasks {
        ## [User Guide](https://impossibl.github.io/pgjdbc-ng/docs/$version/user-guide)
      """.trimIndent().trim()
     )
-    releaseAssets.from(file("$buildDir/artifacts/").listFiles())
+    releaseAssets.from(downloadArtifacts)
   }
 
 }
@@ -95,6 +96,7 @@ fun centralDownload(group: String, artifact: String, classifier: String? = null)
   }
 
   return tasks.register<Download>("downloadCentral" + "$group-$artifact-${classifier ?: ""}") {
+    outputFiles.add(file(dest))
     src("$base?r=$repo&g=$group&a=$artifact$queryClassifier&v=$version")
     dest(dest)
   }
