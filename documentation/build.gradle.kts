@@ -115,21 +115,13 @@ tasks {
     branch.set("gh-pages")
 
     contents {
-      if (isSnapshot) {
-        from("$buildDir/docs/html5") {
-          into("docs/snapshot")
-        }
-        from ("$buildDir/javadoc") {
-          into("docs/snapshot/javadoc")
-        }
+      from("$buildDir/docs/html5") {
+        into("docs/$version")
       }
-      else {
-        from("$buildDir/docs/html5") {
-          into("docs/$version")
-        }
-        from ("$buildDir/javadoc") {
-          into("docs/$version/javadoc")
-        }
+      from ("$buildDir/javadoc") {
+        into("docs/$version/javadoc")
+      }
+      if (!isSnapshot) {
         from("$buildDir/docs/html5") {
           into("docs/current")
         }

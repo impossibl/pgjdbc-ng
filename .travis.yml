@@ -52,7 +52,6 @@ jobs:
         - ssh-add .travis/github_deploy_key
       script:
         # Workaround for ajoberstar/gradle-git-publish/issues/65, remove when resolved
-        - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} documentation:gitPublishPush || true
         - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} documentation:gitPublishPush
         - ./gradlew --stacktrace -PpostgresVersions=${PGVERSION} -PossrhUsername=$SONATYPE_USER -PossrhPassword=$SONATYPE_PASS publish
 
