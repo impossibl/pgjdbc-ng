@@ -29,6 +29,7 @@
 package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
+import com.impossibl.postgres.datetime.IntervalFormat;
 import com.impossibl.postgres.protocol.RequestExecutor;
 import com.impossibl.postgres.protocol.ServerConnection;
 import com.impossibl.postgres.types.Registry;
@@ -99,6 +100,16 @@ class DecoratorContext extends AbstractContext {
   @Override
   public DateTimeFormat getClientTimeFormat() {
     return base.getClientTimeFormat();
+  }
+
+  @Override
+  public IntervalFormat getServerIntervalFormat() {
+    return base.getServerIntervalFormat();
+  }
+
+  @Override
+  public IntervalFormat getClientIntervalFormat() {
+    return base.getClientIntervalFormat();
   }
 
   @Override

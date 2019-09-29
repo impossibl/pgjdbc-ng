@@ -39,5 +39,6 @@ public class ParameterNames {
   public static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
   public static final String TIME_ZONE = "TimeZone";
   public static final String DATE_STYLE = "DateStyle";
+  public static final String INTERVAL_STYLE = "IntervalStyle";
 
 }
