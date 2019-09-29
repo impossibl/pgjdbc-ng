@@ -6,7 +6,7 @@
 *Scope:* Bug Fixes
 
 For a complete list of all _closed_ issues and pull requests for this release, consult
-the link:{projectrepo}+/milestone/2?closed=1+[0.8.3] milestone page in the PGJDBC-NG repository
+the link:{projectrepo}+/milestone/5?closed=1+[0.8.3] milestone page in the PGJDBC-NG repository
 on GitHub.
 
 
