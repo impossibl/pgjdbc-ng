@@ -117,10 +117,10 @@ tasks {
     contents {
       if (isSnapshot) {
         from("$buildDir/docs/html5") {
-          into("docs/snapshot")
+          into("docs/snapshot/$version")
         }
         from ("$buildDir/javadoc") {
-          into("docs/snapshot/javadoc")
+          into("docs/snapshot/$version/javadoc")
         }
       }
       else {
