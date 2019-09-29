@@ -30,8 +30,11 @@ package com.impossibl.postgres.system;
 
 import com.impossibl.postgres.datetime.DateTimeFormat;
 import com.impossibl.postgres.datetime.ISODateFormat;
+import com.impossibl.postgres.datetime.ISOIntervalFormat;
 import com.impossibl.postgres.datetime.ISOTimeFormat;
 import com.impossibl.postgres.datetime.ISOTimestampFormat;
+import com.impossibl.postgres.datetime.IntervalFormat;
+import com.impossibl.postgres.datetime.PostgresIntervalFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.RequestExecutor;
@@ -183,6 +186,8 @@ public class BasicContext extends AbstractContext {
   private DateTimeFormat serverTimeFormat;
   private DateTimeFormat clientTimestampFormat;
   private DateTimeFormat serverTimestampFormat;
+  private IntervalFormat clientIntervalFormat;
+  private IntervalFormat serverIntervalFormat;
   private NumberFormat clientIntegerFormatter;
   private NumberFormat clientDecimalFormatter;
   private NumberFormat clientCurrencyFormatter;
@@ -202,6 +207,8 @@ public class BasicContext extends AbstractContext {
     this.serverTimeFormat = clientTimeFormat;
     this.clientTimestampFormat = new ISOTimestampFormat();
     this.serverTimestampFormat = clientTimestampFormat;
+    this.clientIntervalFormat = new ISOIntervalFormat();
+    this.serverIntervalFormat = clientIntervalFormat;
     this.serverConnectionListener = new ServerConnectionListener();
     this.serverConnection = ServerConnectionFactory.getDefault().connect(this, address, serverConnectionListener);
     this.utilQueries = new HashMap<>();
@@ -301,6 +308,16 @@ public class BasicContext extends AbstractContext {
   @Override
   public DateTimeFormat getClientTimeFormat() {
     return clientTimeFormat;
+  }
+
+  @Override
+  public IntervalFormat getServerIntervalFormat() {
+    return serverIntervalFormat;
+  }
+
+  @Override
+  public IntervalFormat getClientIntervalFormat() {
+    return clientIntervalFormat;
   }
 
   @Override
@@ -765,6 +782,33 @@ public class BasicContext extends AbstractContext {
             logger.warning("Unknown Timestamp format, reverting to default");
             serverTimestampFormat = new ISOTimestampFormat();
           }
+        }
+        break;
+
+      case ParameterNames.INTERVAL_STYLE:
+
+        try {
+          IntervalStyle intervalStyle = IntervalStyle.valueOf(value.toUpperCase());
+
+          switch (intervalStyle) {
+            case ISO_8601:
+              serverIntervalFormat = new ISOIntervalFormat();
+              break;
+
+            case POSTGRES:
+            case POSTGRES_VERBOSE:
+              serverIntervalFormat = new PostgresIntervalFormat();
+              break;
+
+            case SQL_STANDARD:
+              logger.warning("Unsupported IntervalStyle, reverting to default");
+              serverIntervalFormat = new PostgresIntervalFormat();
+              break;
+          }
+
+        }
+        catch (IllegalArgumentException e) {
+          logger.warning("Unrecognized IntervalStyle encountered");
         }
         break;
 

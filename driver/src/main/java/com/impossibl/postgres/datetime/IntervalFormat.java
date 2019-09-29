@@ -26,60 +26,27 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package com.impossibl.postgres.system;
+package com.impossibl.postgres.datetime;
 
-import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.datetime.IntervalFormat;
-import com.impossibl.postgres.protocol.RequestExecutor;
-import com.impossibl.postgres.protocol.ServerConnection;
-import com.impossibl.postgres.types.Registry;
+import com.impossibl.postgres.api.data.Interval;
 
-import java.nio.charset.Charset;
-import java.text.NumberFormat;
-import java.time.ZoneId;
-import java.util.Map;
-import java.util.TimeZone;
+public interface IntervalFormat {
 
-import io.netty.buffer.ByteBufAllocator;
+  interface Parser {
 
-public interface Context extends Configuration {
+    Interval parse(CharSequence text);
 
-  RequestExecutor getRequestExecutor();
+  }
 
-  ByteBufAllocator getAllocator();
+  Parser getParser();
 
-  Registry getRegistry();
 
-  TimeZone getTimeZone();
+  interface Printer {
 
-  ZoneId getTimeZoneId();
+    String format(Interval value);
 
-  Charset getCharset();
+  }
 
-  ServerInfo getServerInfo();
-
-  ServerConnection.KeyData getKeyData();
-
-  NumberFormat getClientIntegerFormatter();
-  NumberFormat getClientDecimalFormatter();
-
-  NumberFormat getServerCurrencyFormatter();
-  NumberFormat getClientCurrencyFormatter();
-
-  DateTimeFormat getServerDateFormat();
-  DateTimeFormat getClientDateFormat();
-
-  DateTimeFormat getServerTimeFormat();
-  DateTimeFormat getClientTimeFormat();
-
-  DateTimeFormat getServerTimestampFormat();
-  DateTimeFormat getClientTimestampFormat();
-
-  IntervalFormat getServerIntervalFormat();
-  IntervalFormat getClientIntervalFormat();
-
-  Map<String, Class<?>> getCustomTypeMap();
-
-  Context unwrap();
+  Printer getPrinter();
 
 }

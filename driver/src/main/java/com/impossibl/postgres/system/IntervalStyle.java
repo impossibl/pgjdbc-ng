@@ -28,58 +28,17 @@
  */
 package com.impossibl.postgres.system;
 
-import com.impossibl.postgres.datetime.DateTimeFormat;
-import com.impossibl.postgres.datetime.IntervalFormat;
-import com.impossibl.postgres.protocol.RequestExecutor;
-import com.impossibl.postgres.protocol.ServerConnection;
-import com.impossibl.postgres.types.Registry;
+/**
+ * Enumeration for PostgreSQL IntervalStyle
+ *
+ * @author kdubb
+ *
+ */
+public enum IntervalStyle {
 
-import java.nio.charset.Charset;
-import java.text.NumberFormat;
-import java.time.ZoneId;
-import java.util.Map;
-import java.util.TimeZone;
-
-import io.netty.buffer.ByteBufAllocator;
-
-public interface Context extends Configuration {
-
-  RequestExecutor getRequestExecutor();
-
-  ByteBufAllocator getAllocator();
-
-  Registry getRegistry();
-
-  TimeZone getTimeZone();
-
-  ZoneId getTimeZoneId();
-
-  Charset getCharset();
-
-  ServerInfo getServerInfo();
-
-  ServerConnection.KeyData getKeyData();
-
-  NumberFormat getClientIntegerFormatter();
-  NumberFormat getClientDecimalFormatter();
-
-  NumberFormat getServerCurrencyFormatter();
-  NumberFormat getClientCurrencyFormatter();
-
-  DateTimeFormat getServerDateFormat();
-  DateTimeFormat getClientDateFormat();
-
-  DateTimeFormat getServerTimeFormat();
-  DateTimeFormat getClientTimeFormat();
-
-  DateTimeFormat getServerTimestampFormat();
-  DateTimeFormat getClientTimestampFormat();
-
-  IntervalFormat getServerIntervalFormat();
-  IntervalFormat getClientIntervalFormat();
-
-  Map<String, Class<?>> getCustomTypeMap();
-
-  Context unwrap();
+  SQL_STANDARD,
+  POSTGRES,
+  POSTGRES_VERBOSE,
+  ISO_8601;
 
 }

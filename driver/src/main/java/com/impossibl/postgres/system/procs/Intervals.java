@@ -34,13 +34,16 @@ import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.time.Duration;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 import io.netty.buffer.ByteBuf;
 
 public class Intervals extends SimpleProcProvider {
 
   public Intervals() {
-    super(new TxtEncoder(), new TxtDecoder(), null, new BinDecoder(), "interval_");
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "interval_");
   }
 
   static class BinDecoder extends AutoConvertingBinaryDecoder<Interval> {
@@ -61,7 +64,33 @@ public class Intervals extends SimpleProcProvider {
       int days = buffer.readInt();
       int months = buffer.readInt();
 
-      return new Interval(months, days, timeMicros);
+      Period period = Period.of(0, months, days);
+      Duration duration = Duration.of(timeMicros, ChronoUnit.MICROS);
+
+      return Interval.of(period, duration);
+    }
+
+  }
+
+  static class BinEncoder extends AutoConvertingBinaryEncoder<Interval> {
+
+    BinEncoder() {
+      super(16, Interval::parse);
+    }
+
+    @Override
+    public Class<Interval> getDefaultClass() {
+      return Interval.class;
+    }
+
+    @Override
+    protected void encodeNativeValue(Context context, Type type, Interval value, Object sourceContext, ByteBuf buffer) throws IOException {
+      Duration duration = value.getDuration();
+      buffer.writeLong((duration.getSeconds() * 1_000_000L) + (duration.getNano() / 1_000));
+
+      Period period = value.getPeriod();
+      buffer.writeInt(period.getDays());
+      buffer.writeInt((period.getYears() * 12) + period.getMonths());
     }
 
   }
@@ -79,7 +108,7 @@ public class Intervals extends SimpleProcProvider {
 
     @Override
     protected Interval decodeNativeValue(Context context, Type type, Short typeLength, Integer typeModifier, CharSequence buffer, Class<?> targetClass, Object targetContext) throws IOException, ParseException {
-      return new Interval(buffer.toString());
+      return context.getServerIntervalFormat().getParser().parse(buffer);
     }
 
   }
@@ -87,7 +116,7 @@ public class Intervals extends SimpleProcProvider {
   static class TxtEncoder extends AutoConvertingTextEncoder<Interval> {
 
     TxtEncoder() {
-      super((StringConverter<Interval>) Interval::new);
+      super(Interval::parse);
     }
 
     @Override
@@ -97,7 +126,7 @@ public class Intervals extends SimpleProcProvider {
 
     @Override
     protected void encodeNativeValue(Context context, Type type, Interval value, Object sourceContext, StringBuilder buffer) throws IOException {
-      buffer.append(value);
+      buffer.append(context.getServerIntervalFormat().getPrinter().format(value));
     }
 
   }
