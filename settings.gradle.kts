@@ -12,3 +12,4 @@ project(":pgjdbc-ng").projectDir = file("driver")
 
 include(":udt-gen")
 include(":documentation")
+include(":tools")
