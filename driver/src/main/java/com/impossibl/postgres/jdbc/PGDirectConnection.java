@@ -141,6 +141,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
 import static java.sql.ClientInfoStatus.REASON_UNKNOWN;
 import static java.sql.ClientInfoStatus.REASON_UNKNOWN_PROPERTY;
 import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
@@ -155,6 +156,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
+
+import static io.netty.util.ReferenceCountUtil.release;
 
 
 /**
@@ -442,7 +445,6 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   }
 
 
-
   interface QueryFunction {
     void query(long timeout) throws IOException;
   }
@@ -461,7 +463,6 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       return null;
     });
   }
-
 
 
   interface QueryResultFunction<T> {
@@ -962,12 +963,21 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   @Override
   public String getSchema() throws SQLException {
     checkClosed();
-    return null;
+    return executeForString("SHOW search_path");
   }
 
   @Override
   public void setSchema(String schema) throws SQLException {
     checkClosed();
+    if (schema == null) {
+      execute("SET search_path TO DEFAULT");
+    }
+    else {
+
+      schema = escapeLiteral(schema, settings.enabled(STANDARD_CONFORMING_STRINGS));
+
+      release(executeForResultBatch(format("SET SCHEMA '%s'", schema)));
+    }
   }
 
   @Override
@@ -1272,7 +1282,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       String sqlValue = escapeLiteral(value, settings.enabled(STANDARD_CONFORMING_STRINGS));
 
-      execute("SET " + ParameterNames.APPLICATION_NAME + " = '"  + sqlValue + "'");
+      execute("SET " + ParameterNames.APPLICATION_NAME + " = '" + sqlValue + "'");
 
       // Server sends out parameter status, which updates our settings
     }
@@ -1280,7 +1290,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
       String sqlValue = escapeLiteral(value, settings.enabled(STANDARD_CONFORMING_STRINGS));
 
-      execute("SET " + ParameterNames.SESSION_AUTHORIZATION + " = '"  + sqlValue + "'");
+      execute("SET " + ParameterNames.SESSION_AUTHORIZATION + " = '" + sqlValue + "'");
 
       // Server sends out parameter status, which updates our settings
     }
@@ -1556,6 +1566,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
   interface PreparedStatementDescriptionLoader {
     PreparedStatementDescription load() throws IOException, SQLException;
+
   }
 
   PreparedStatementDescription getCachedPreparedStatement(StatementCacheKey key, PreparedStatementDescriptionLoader loader) throws SQLException {

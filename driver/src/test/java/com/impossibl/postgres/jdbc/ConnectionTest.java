@@ -533,4 +533,15 @@ public class ConnectionTest {
 
   }
 
+  @Test
+  public void testSchema() throws Exception {
+
+    con = TestUtil.openDB();
+
+    con.setSchema(null);
+    con.setSchema("public");
+
+    assertEquals(con.getSchema(), "public");
+  }
+
 }
