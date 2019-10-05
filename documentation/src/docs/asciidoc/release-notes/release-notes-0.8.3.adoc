@@ -1,7 +1,7 @@
 [[release-notes-0.8.3]]
 == 0.8.3
 
-*Date of Release:* ❓
+*Date of Release:* 2019-10-04
 
 *Scope:* Bug Fixes
 
