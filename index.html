@@ -46,7 +46,7 @@ title: PGJDBC-NG
       $.getJSON("https://api.github.com/repos/impossibl/pgjdbc-ng/releases")
         .done(data => {      
           for(rel of data) {
-            if (rel.name.startsWith("v")) {
+            if (rel.name.startsWith("v") && !rel.prerelease) {
               let name = rel.name.substring(1);
               $("#doc-versions").append(`
                 <div class="list-group-item flex-column align-items-start">
