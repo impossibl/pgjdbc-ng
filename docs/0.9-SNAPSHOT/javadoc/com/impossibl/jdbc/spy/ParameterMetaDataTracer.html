@@ -362,6 +362,66 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;trace&#8203;(<a href="Trace.html" title="class in com.impossibl.jdbc.spy">Trace</a>&nbsp;trace)</pre>
 </li>
 </ul>
+<a id="getParameterTypeName(java.lang.String,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getParameterTypeName</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterTypeName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;result,
+                                 int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="getParameterTypeName(java.lang.Throwable,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getParameterTypeName</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterTypeName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                                 int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="isNullable(int,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>isNullable</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;isNullable&#8203;(int&nbsp;result,
+                       int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="isNullable(java.lang.Throwable,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>isNullable</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;isNullable&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                       int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="getParameterClassName(java.lang.String,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getParameterClassName</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterClassName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;result,
+                                  int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="getParameterClassName(java.lang.Throwable,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getParameterClassName</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterClassName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                                  int&nbsp;param)</pre>
+</li>
+</ul>
 <a id="getScale(int,int)">
 <!--   -->
 </a>
@@ -400,24 +460,24 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;getParameterCount&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause)</pre>
 </li>
 </ul>
-<a id="getParameterTypeName(java.lang.String,int)">
+<a id="getParameterType(int,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getParameterTypeName</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterTypeName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;result,
-                                 int&nbsp;param)</pre>
+<h4>getParameterType</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterType&#8203;(int&nbsp;result,
+                             int&nbsp;param)</pre>
 </li>
 </ul>
-<a id="getParameterTypeName(java.lang.Throwable,int)">
+<a id="getParameterType(java.lang.Throwable,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getParameterTypeName</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterTypeName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                                 int&nbsp;param)</pre>
+<h4>getParameterType</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getParameterType&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                             int&nbsp;param)</pre>
 </li>
 </ul>
 <a id="unwrap(java.lang.Object,java.lang.Class)">
@@ -442,84 +502,24 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
                        <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang" class="externalLink">Class</a>&lt;T&gt;&nbsp;iface)</pre>
 </li>
 </ul>
-<a id="getPrecision(int,int)">
+<a id="isSigned(boolean,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getPrecision</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getPrecision&#8203;(int&nbsp;result,
-                         int&nbsp;param)</pre>
+<h4>isSigned</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;isSigned&#8203;(boolean&nbsp;result,
+                     int&nbsp;param)</pre>
 </li>
 </ul>
-<a id="getPrecision(java.lang.Throwable,int)">
+<a id="isSigned(java.lang.Throwable,int)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getPrecision</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getPrecision&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                         int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="getParameterClassName(java.lang.String,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getParameterClassName</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterClassName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;result,
-                                  int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="getParameterClassName(java.lang.Throwable,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getParameterClassName</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterClassName&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                                  int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="isNullable(int,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>isNullable</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;isNullable&#8203;(int&nbsp;result,
-                       int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="isNullable(java.lang.Throwable,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>isNullable</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;isNullable&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                       int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="getParameterType(int,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getParameterType</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterType&#8203;(int&nbsp;result,
-                             int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="getParameterType(java.lang.Throwable,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getParameterType</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getParameterType&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                             int&nbsp;param)</pre>
+<h4>isSigned</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;isSigned&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                     int&nbsp;param)</pre>
 </li>
 </ul>
 <a id="getParameterMode(int,int)">
@@ -542,26 +542,6 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
                              int&nbsp;param)</pre>
 </li>
 </ul>
-<a id="isSigned(boolean,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>isSigned</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;isSigned&#8203;(boolean&nbsp;result,
-                     int&nbsp;param)</pre>
-</li>
-</ul>
-<a id="isSigned(java.lang.Throwable,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>isSigned</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;isSigned&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                     int&nbsp;param)</pre>
-</li>
-</ul>
 <a id="isWrapperFor(boolean,java.lang.Class)">
 <!--   -->
 </a>
@@ -575,11 +555,31 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <a id="isWrapperFor(java.lang.Throwable,java.lang.Class)">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>isWrapperFor</h4>
 <pre class="methodSignature">public&nbsp;void&nbsp;isWrapperFor&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
                          <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang" class="externalLink">Class</a>&lt;?&gt;&nbsp;iface)</pre>
+</li>
+</ul>
+<a id="getPrecision(int,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getPrecision</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getPrecision&#8203;(int&nbsp;result,
+                         int&nbsp;param)</pre>
+</li>
+</ul>
+<a id="getPrecision(java.lang.Throwable,int)">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>getPrecision</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getPrecision&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                         int&nbsp;param)</pre>
 </li>
 </ul>
 </li>
