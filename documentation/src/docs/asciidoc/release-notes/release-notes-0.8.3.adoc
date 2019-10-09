@@ -1,0 +1,60 @@
+[[release-notes-0.8.3]]
+== 0.8.3
+
+*Date of Release:* 2019-10-04
+
+*Scope:* Bug Fixes
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/5?closed=1+[0.8.3] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.3-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Intervals are now parsed/formatted correctly according to server's or connection's `IntervalStyle`
+* `PGNotificationListener.close` will only be called a single time
+* Locale handling has been properly matched to the server and JVM respectfully
+* Windows Locales are looked up in ROOT/ENGLISH locale
+* Connection URL parameters are properly percent-escaped
+* SQLData implementations handle nulls properly
+* Version meta-data is now correct in shaded jar & fat-jar applications
+
+==== Deprecations and Breaking Changes
+
+* `Interval` has been completely overhauled with a Java 9 `java.time` interface
+* Due to fixes related to locale handling, text passed to the JDBC API must be in the JVM's locale and text being
+  passed to the server must be in the server's locale; this shouldn't be an overly impactful.
+
+==== New Features and Improvements
+
+* PostgreSQL 12 is supported and part of the testing matrix
+* CockroachDB is supported
+* Batch executions use pipelined requests to increase performance by as much as 70%
+* PostgreSQL COPY FROM/TO support
+
+[[release-notes-0.8.3-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+* Generated UDT implementations correctly handle nulls
+* Fix issue that caused generated attributes to be in incorrect order
+* Nested UDT's now write wit the specific server type instead of generic `record`
+
+==== Deprecations and Breaking Changes
+
+==== New Features and Improvements
+
+
+[[release-notes-0.8.3-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+==== Deprecations and Breaking Changes
+
+==== New Features and Improvements
