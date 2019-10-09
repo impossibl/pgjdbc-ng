@@ -45,13 +45,13 @@ val isSnapshot: Boolean by project
 tasks {
 
   val downloadTasks = listOf(
-     centralDownload("com.impossibl.pgjdbc-ng", "pgjdbc-ng", "all"),
+     centralDownload("com.impossibl.pgjdbc-ng", "pgjdbc-ng-all"),
      centralDownload("com.impossibl.pgjdbc-ng", "pgjdbc-ng", "javadoc"),
      centralDownload("com.impossibl.pgjdbc-ng", "pgjdbc-ng", "sources"),
      centralDownload("com.impossibl.pgjdbc-ng", "spy"),
      centralDownload("com.impossibl.pgjdbc-ng", "spy", "javadoc"),
      centralDownload("com.impossibl.pgjdbc-ng", "spy", "sources"),
-     centralDownload("com.impossibl.pgjdbc-ng.tools", "udt-gen", "all"),
+     centralDownload("com.impossibl.pgjdbc-ng.tools", "udt-gen-all"),
      centralDownload("com.impossibl.pgjdbc-ng.tools", "udt-gen", "javadoc"),
      centralDownload("com.impossibl.pgjdbc-ng.tools", "udt-gen", "sources")
   )
