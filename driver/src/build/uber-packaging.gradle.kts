@@ -16,14 +16,6 @@ apply { from("$rootDir/shared/src/build/uber-packaging.gradle.kts") }
  */
 
 tasks.named<ShadowJar>("uberJar") {
-  relocate("com.xenomachina", "com.impossibl.shadow.com.xenomachina")
-  relocate("com.squareup", "com.impossibl.shadow.com.squareup")
-  relocate("org.jetbrains.kotlin", "com.impossibl.shadow.org.jetbrains.kotlin")
+  relocate("io.netty", "com.impossibl.shadow.io.netty")
   minimize()
-  manifest {
-    from()
-    attributes(mapOf(
-       "Main-Class" to "com.impossibl.postgres.tools.UDTGenerator"
-    ))
-  }
 }
