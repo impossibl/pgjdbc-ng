@@ -538,6 +538,8 @@ public class ConnectionTest {
 
     con = TestUtil.openDB();
 
+    assertEquals(con.getSchema(), "public");
+
     con.setSchema(null);
     con.setSchema("public");
 
