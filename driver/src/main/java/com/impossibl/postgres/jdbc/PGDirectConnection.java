@@ -963,7 +963,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   @Override
   public String getSchema() throws SQLException {
     checkClosed();
-    return executeForString("SHOW search_path");
+    return executeForString("SELECT current_schema()");
   }
 
   @Override
