@@ -99,7 +99,7 @@ tasks {
        "udtdepgroup" to udtPrj.group.toString(),
        "udtdepname" to udtPrj.name,
        "udtdepver" to udtPrj.version,
-       "uberclass" to "all",
+       "ubersuffix" to "all",
        "mavenrepo" to if (isSnapshot) "snapshots" else "releases",
        "maintainers" to loadMaintainers(docsDir),
        "source-highlighter" to "coderay",

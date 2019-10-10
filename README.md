@@ -64,7 +64,7 @@ The driver is built with Gradle. To build & test, execute:
 	./gradlew clean build.
 
 This will produce, in the `driver/build/libs` directory, two JAR files. One with dependencies
-packaged inside (`pgjdbg-nc-<VERSION>-all`) and another without (`pgjdbc-ng-VERSION`).
+packaged inside (`pgjdbg-nc-all-<VERSION>`) and another without (`pgjdbc-ng-VERSION`).
 
 *NOTE:* Building requires a working install of [Docker](https://docs.docker.com/docker) and 
 [Docker Compose](https://docs.docker.com/compose) as the unit tests are executed against a

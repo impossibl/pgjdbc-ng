@@ -70,7 +70,7 @@ If you are using a project that does not support Maven style dependencies or you
 an application server like Glassfish, <<appservers-wildfly>> or Tomcat you can download the dependency embedded
 version of the driver and copy it to the location required by your project or usage.
 
-{maven-central}?r={mavenrepo}&g={driverdepgroup}&a={driverdepname}&c={uberclass}&v={driverdepver}[Download JAR]
+{maven-central}?r={mavenrepo}&g={driverdepgroup}&a={driverdepname}-{ubersuffix}&v={driverdepver}[Download JAR]
 
 
 [[overview-getting-started-connect]]
