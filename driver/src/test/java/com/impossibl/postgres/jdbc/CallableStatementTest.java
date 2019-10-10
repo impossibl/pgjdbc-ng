@@ -191,6 +191,16 @@ public class CallableStatementTest {
     TestUtil.closeDB(con);
   }
 
+  @Test
+  public void testUseAsPreparedStatement() throws Exception {
+    try (CallableStatement stmt = con.prepareCall("SELECT current_schema()")) {
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(rs.getString(1), "public");
+      }
+    }
+  }
+
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 

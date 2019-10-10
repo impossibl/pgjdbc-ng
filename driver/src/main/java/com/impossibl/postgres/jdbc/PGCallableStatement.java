@@ -174,7 +174,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
     ReferenceCountUtil.release(outParameterData);
     outParameterData = null;
 
-    super.execute();
+    boolean res = super.execute();
 
     if (!outParameterSQLTypes.isEmpty()) {
 
@@ -199,6 +199,10 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
       }
 
     }
+    else if (!hasAnyParameterModes()) {
+      // treat as normal PreparedStatement execute
+      return res;
+    }
 
     if (!resultBatches.isEmpty()) {
       resultBatches.get(0).clearRowsAffected();
@@ -213,6 +217,13 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     ReferenceCountUtil.release(outParameterData);
     outParameterData = null;
+  }
+
+  private boolean hasAnyParameterModes() {
+    for (ParameterMode mode : allParameterModes) {
+      if (mode != null) return true;
+    }
+    return false;
   }
 
   private int mapToInParameterIndex(int parameterIdx) {
