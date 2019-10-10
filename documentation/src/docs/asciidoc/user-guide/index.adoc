@@ -6,8 +6,8 @@ include::../maintainers.txt[]
 :vendorname: PostgreSQL
 :toclevels: 3
 :sectnums:
-:driveruberjar: {driverdepname}-{driverdepver}-{uberclass}.jar
-:udtuberjar: {udtdepname}-{udtdepver}-{uberclass}.jar
+:driveruberjar: {driverdepname}-{ubersuffix}-{driverdepver}.jar
+:udtuberjar: {udtdepname}-{ubersuffix}-{udtdepver}.jar
 
 include::overview.adoc[]
 
