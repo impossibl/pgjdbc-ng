@@ -30,6 +30,7 @@ package com.impossibl.postgres.system.procs;
 
 import com.impossibl.postgres.api.data.ACLItem;
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.ConversionException;
 import com.impossibl.postgres.types.Type;
 
 import java.io.IOException;
@@ -61,8 +62,21 @@ public class ACLItems extends SimpleProcProvider {
 
   static class TxtEncoder extends AutoConvertingTextEncoder<ACLItem> {
 
+    private static ACLItem parse(String value) throws ConversionException {
+      try {
+        ACLItem item = ACLItem.parse(value);
+        if (item == null) {
+          throw new ConversionException("Invalid ACLItem");
+        }
+        return item;
+      }
+      catch (ParseException e) {
+        throw new ConversionException(e);
+      }
+    }
+
     TxtEncoder() {
-      super(ACLItem::parse);
+      super(TxtEncoder::parse);
     }
 
     @Override
