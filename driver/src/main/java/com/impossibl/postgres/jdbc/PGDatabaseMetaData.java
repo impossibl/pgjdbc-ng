@@ -1451,7 +1451,7 @@ class PGDatabaseMetaData extends PGMetaData implements DatabaseMetaData {
 
     if (aclItems == null) {
       // Null is shortcut for owner having full privileges
-      ACLItem fullPrivs = new ACLItem(owner, "arwdDxt", owner);
+      ACLItem fullPrivs = new ACLItem(owner, ACLItem.ALL_RIGHTS, owner);
       aclItems = new ACLItem[] {fullPrivs};
     }
 
