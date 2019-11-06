@@ -413,7 +413,7 @@ class ConnectionUtil {
 
       //Assign the database
 
-      spec.setDatabase(urlMatcher.group("database"));
+      spec.setDatabase(URLDecoder.decode(urlMatcher.group("database"), "UTF-8"));
 
       //Assign username/password (if available)
 
