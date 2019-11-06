@@ -95,8 +95,6 @@ public class SharedRegistry {
 
   }
 
-  private static final Map<ProcSharingKey, Procs> sharedProcs = new HashMap<>();
-
   private Version serverVersion;
   private TreeMap<Integer, Type> oidMap;
   private Map<QualifiedName, Type> nameMap;
@@ -108,15 +106,8 @@ public class SharedRegistry {
 
 
   public SharedRegistry(ServerInfo serverInfo, ClassLoader classLoader) {
-
     this.serverVersion = serverInfo.getVersion();
-
-    synchronized (SharedRegistry.class) {
-      this.procs = sharedProcs.computeIfAbsent(
-          new ProcSharingKey(serverInfo, classLoader),
-          key -> new Procs(key.serverInfo, key.classLoader)
-      );
-    }
+    this.procs = new Procs(serverInfo, classLoader);
 
     // Required initial types for bootstrapping
     oidMap = new TreeMap<>();
