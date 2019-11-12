@@ -42,6 +42,7 @@ import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.sql.Connection;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
@@ -49,9 +50,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for PGDataSource
@@ -88,6 +92,33 @@ public class DataSourceTest {
     assertNotNull(con);
     assertTrue(con instanceof PGConnection);
     assertTrue(con.isValid(5));
+  }
+
+  /*
+   * Test getConnection() parameters don't persist in DataSource
+   */
+  @Test
+  public void testGetConnectionDoesntOverride() {
+    String user = Long.toString(new Random().nextLong());
+    String pass = Long.toString(new Random().nextLong());
+    PGDataSource ds = new PGDataSource();
+    ds.setServerName(TestUtil.getServer());
+    ds.setPortNumber(Integer.valueOf(TestUtil.getPort()));
+    ds.setDatabaseName(TestUtil.getDatabase());
+    ds.setUser(user);
+    ds.setPassword(pass);
+    ds.setNetworkTimeout(10000);
+
+    try(Connection con = ds.getConnection(TestUtil.getUser(), TestUtil.getPassword())) {
+      assertThat(con, instanceOf(PGConnection.class));
+    }
+    catch (Exception e) {
+      fail("Couldn't connect with test credentials");
+    }
+
+    // Verify DataSource's (invalid) credentials weren't changed
+    assertEquals(ds.getUser(), user);
+    assertEquals(ds.getPassword(), pass);
   }
 
   /*

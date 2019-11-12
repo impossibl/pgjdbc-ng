@@ -96,6 +96,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
    */
   protected PGDirectConnection createConnection(String username, String password) throws SQLException {
 
+    Settings settings = this.settings.duplicateKnowingAll();
+
     settings.set(CREDENTIALS_USERNAME, username);
     settings.set(CREDENTIALS_PASSWORD, password);
 
