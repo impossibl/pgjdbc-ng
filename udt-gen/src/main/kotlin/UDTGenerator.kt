@@ -134,6 +134,53 @@ class UDTGenerator(
     val enumBldr = TypeSpec.enumBuilder(enumName)
        .addModifiers(Modifier.PUBLIC)
        .addField(
+          FieldSpec.builder(String::class.java, "TYPE_NAME")
+             .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+             .initializer("\$S", sqlTypeName.toString(false))
+             .build()
+       )
+       .addField(
+          FieldSpec.builder(PGAnyType::class.java, "TYPE", Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+             .initializer("\$L",
+                TypeSpec.anonymousClassBuilder("")
+                   .addSuperinterface(ClassName.get(PGAnyType::class.java))
+                   .addMethod(
+                      MethodSpec.methodBuilder("getName")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(String::class.java))
+                         .addCode("return \$T.TYPE_NAME;\n", enumName)
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getVendor")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(String::class.java))
+                         .addCode("return \$S;\n", "UDT Generated")
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getVendorTypeNumber")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(Integer::class.java))
+                         .addCode("return null;\n")
+                         .build()
+                   )
+                   .addMethod(
+                      MethodSpec.methodBuilder("getJavaType")
+                         .addModifiers(Modifier.PUBLIC)
+                         .addAnnotation(ClassName.get(Override::class.java))
+                         .returns(ClassName.get(Class::class.java))
+                         .addCode("return \$T.class;\n", enumName)
+                         .build()
+                   )
+                   .build()
+             )
+             .build()
+       )
+       .addField(
           FieldSpec.builder(String::class.java, "label")
              .addModifiers(Modifier.PRIVATE)
              .build()
@@ -312,7 +359,7 @@ class UDTGenerator(
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, attrTypeName, "TYPE")
 
            typesInfo[attr.typeName] == TypeCategory.Enum ->
-             CodeBlock.of("out.writeString(this.\$L.getLabel());\n", attrPropName)
+             CodeBlock.of("out.writeObject(this.\$L.getLabel(), \$T.\$L);\n", attrPropName, attrTypeName, "TYPE")
 
            attrSqlType.javaType.writerTypeName == "Object" ->
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "STRUCT")
