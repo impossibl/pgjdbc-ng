@@ -43,6 +43,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Types;
 
 import org.junit.After;
@@ -66,10 +67,12 @@ public class ArrayTest {
   public void before() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], str text");
+    TestUtil.createTable(conn, "aggtest" , "id serial PRIMARY KEY, value TEXT NOT NULL");
   }
 
   @After
   public void after() throws SQLException {
+    TestUtil.dropTable(conn, "aggtest");
     TestUtil.dropTable(conn, "arrtest");
     TestUtil.closeDB(conn);
   }
@@ -698,6 +701,25 @@ public class ArrayTest {
     pstmt.executeUpdate();
 
     pstmt.close();
+  }
+
+  @Test
+  public void testArraysOfPsuedoTypes() throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("aggtest", "value", "'some text'"));
+    }
+    try (PreparedStatement stmt = conn.prepareStatement("SELECT array_agg(values) FROM (SELECT * from aggtest) as values")) {
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertEquals(rs.next(), true);
+        Struct[] array = rs.getObject(1, Struct[].class);
+        assertEquals(array.length, 1);
+        Object[] attrs = array[0].getAttributes();
+        assertEquals(attrs.length, 2);
+        assertEquals(attrs[0], 1);
+        assertEquals(attrs[1], "some text");
+      }
+    }
+
   }
 
 }

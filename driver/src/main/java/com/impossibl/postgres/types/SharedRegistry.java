@@ -40,6 +40,7 @@ import static com.impossibl.postgres.system.procs.Procs.DEFAULT_BINARY_DECODER;
 import static com.impossibl.postgres.system.procs.Procs.DEFAULT_BINARY_ENCODER;
 import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_DECODER;
 import static com.impossibl.postgres.system.procs.Procs.DEFAULT_TEXT_ENCODER;
+import static com.impossibl.postgres.types.Type.CATALOG_NAMESPACE;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -136,10 +137,13 @@ public class SharedRegistry {
     oidMap.put(29,  new BaseType(29, "cid",        (short) 4,  (byte) 4, Category.User,    ',', 1012, procs, Binary, Binary));
     oidMap.put(30, new ArrayType(30, "oidvector",  (short)-1,  (byte) 4, Category.Array,   ',', 1013, procs, Binary, Binary, oidMap.get(26)));
 
-    oidMap.put(2205,  new BaseType(2205, "regclass",  (short) 4,  (byte) 4, Category.Numeric,  ',', 2210, procs, Binary, Binary));
-    oidMap.put(2206,  new BaseType(2206, "regtype",   (short) 4,  (byte) 4, Category.Numeric,  ',', 2211, procs, Binary, Binary));
-    oidMap.put(2210, new ArrayType(2210, "_regclass", (short)-1,  (byte) 4, Category.Array,  ',', 0, procs, Binary, Binary, oidMap.get(2205)));
-    oidMap.put(2211, new ArrayType(2211, "_regtype",  (short)-1,  (byte) 4, Category.Array,  ',', 0, procs, Binary, Binary, oidMap.get(2206)));
+    oidMap.put(2205,  new BaseType(2205, "regclass",  (short) 4,  (byte) 4, Category.Numeric, ',', 2210, procs, Binary, Binary));
+    oidMap.put(2206,  new BaseType(2206, "regtype",   (short) 4,  (byte) 4, Category.Numeric, ',', 2211, procs, Binary, Binary));
+    oidMap.put(2210, new ArrayType(2210, "_regclass", (short)-1,  (byte) 4, Category.Array,   ',', 0, procs, Binary, Binary, oidMap.get(2205)));
+    oidMap.put(2211, new ArrayType(2211, "_regtype",  (short)-1,  (byte) 4, Category.Array,   ',', 0, procs, Binary, Binary, oidMap.get(2206)));
+
+    oidMap.put(2249, new BaseType(2249, CATALOG_NAMESPACE, "record",     (short)-1,  (byte) 1, Category.Psuedo,  ',', 2287, "record_", procs, Binary, Binary));
+    oidMap.put(2287, new ArrayType(2287, "_record",   (short)-1,  (byte) 4, Category.Array,   ',', 0, procs, Binary, Binary, oidMap.get(2249)));
 
     nameMap = new HashMap<>();
     oidMap.values().forEach(type -> nameMap.put(type.getQualifiedName(), type));
@@ -149,6 +153,10 @@ public class SharedRegistry {
 
   public Version getServerVersion() {
     return serverVersion;
+  }
+
+  public boolean hasTypeDefined(Integer typeId) {
+    return oidMap.containsKey(typeId);
   }
 
   /**
