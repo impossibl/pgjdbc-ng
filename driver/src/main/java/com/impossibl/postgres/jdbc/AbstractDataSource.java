@@ -37,8 +37,10 @@ import com.impossibl.postgres.types.SharedRegistry;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.DATABASE_NAME;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.DATASOURCE_NAME;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.DS;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.LOCAL_SERVER_NAME;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.LOGIN_TIMEOUT;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.PORT_NUMBER;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.SERVER_ADDRESSES;
 import static com.impossibl.postgres.jdbc.DataSourceSettings.SERVER_NAME;
 import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
 import static com.impossibl.postgres.jdbc.JDBCSettings.REGISTRY_SHARING;
@@ -59,12 +61,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-import static java.util.Collections.singletonList;
-
 import javax.naming.RefAddr;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
 import javax.sql.CommonDataSource;
+
+import io.netty.channel.unix.DomainSocketAddress;
 
 /**
  * Abstract DataSource implementation
@@ -116,10 +118,8 @@ public abstract class AbstractDataSource implements CommonDataSource {
     String url = settings.get(DATABASE_URL);
     if (url != null) {
 
-      // Ensure no overlapping settings are stored
-      settings.unset(SERVER_NAME);
-      settings.unset(PORT_NUMBER);
-      settings.unset(DATABASE_NAME);
+      // Strip DataSource specific settings
+      settings.unsetAll(DS.getAllOwnedSettings());
 
       PGDirectConnection connection = ConnectionUtil.createConnection(url, settings.asProperties(), sharedRegistryFactory);
       if (connection == null) {
@@ -130,15 +130,121 @@ public abstract class AbstractDataSource implements CommonDataSource {
     }
     else {
 
-      // Store the URL given the provided settings
-      url = "jdbc:pgsql://" + settings.get(SERVER_NAME) + ":" + settings.get(PORT_NUMBER) + "/" + settings.get(DATABASE_NAME);
-      settings.set(DATABASE_URL, url);
+      // Generate specifier from settings
+      ConnectionUtil.ConnectionSpecifier connSpec = buildConnectionSpecifier(settings);
 
-      SocketAddress address = new InetSocketAddress(settings.get(SERVER_NAME), settings.get(PORT_NUMBER));
+      // Provide equivalent URL
+      settings.set(DATABASE_URL, connSpec.getURL());
 
-      return ConnectionUtil.createConnection(singletonList(address), settings, sharedRegistryFactory);
+      // Strip DataSource specific settings
+      settings.unsetAll(DS.getAllOwnedSettings());
+
+      return ConnectionUtil.createConnection(connSpec.getAddresses(), settings, sharedRegistryFactory);
     }
 
+  }
+
+  static ConnectionUtil.ConnectionSpecifier  buildConnectionSpecifier(Settings settings) throws SQLException {
+
+    ConnectionUtil.ConnectionSpecifier connSpec = new ConnectionUtil.ConnectionSpecifier();
+
+    String serverAddressesSetting = settings.getStored(SERVER_ADDRESSES);
+    if (serverAddressesSetting != null) {
+      String[] serverAddresses = serverAddressesSetting.split(",");
+      for (String serverAddress : serverAddresses) {
+        connSpec.appendAddress(parseServerAddress(serverAddress.trim()));
+      }
+    }
+    else {
+      if (settings.hasStoredValue(LOCAL_SERVER_NAME)) {
+        connSpec.appendAddress(new DomainSocketAddress(settings.get(LOCAL_SERVER_NAME)));
+      }
+      connSpec.appendAddress(new InetSocketAddress(settings.get(SERVER_NAME), settings.get(PORT_NUMBER)));
+    }
+
+    connSpec.setDatabase(settings.get(DATABASE_NAME));
+
+    return connSpec;
+  }
+
+  static SocketAddress parseServerAddress(String address) throws SQLException {
+    if (address.contains("/")) {
+      // Unix socket path
+
+      return new DomainSocketAddress(address);
+    }
+    else if (address.startsWith("[")) {
+      // IPv6 address
+
+      // Find required closing bracket
+      int closingBracketPos = address.indexOf(']');
+      if (closingBracketPos == -1) {
+        throw new SQLException("Invalid host name in server address list");
+      }
+
+      String host = address.substring(0, closingBracketPos + 1);
+      int port = PORT_NUMBER.getDefault();
+
+      // Look for anything after "[address]"
+      if (address.length() > closingBracketPos + 1) {
+
+        // Must start with a colon for ":port"
+        int colonPos = closingBracketPos + 1;
+        if (address.charAt(colonPos) != ':' || address.length() <= colonPos + 1) {
+          throw new SQLException("Invalid port in server address list");
+        }
+
+        // Parse port
+        try {
+          port = Integer.parseInt(address.substring(colonPos + 1));
+        }
+        catch (Exception e) {
+          throw new SQLException("Invalid port in server address list");
+        }
+      }
+
+      if (host.equals("[]")) {
+        throw new SQLException("Invalid host in server address list");
+      }
+
+      return new InetSocketAddress(host, port);
+    }
+    else {
+      // IPv4 or DNS address
+
+      String host;
+
+      int port = PORT_NUMBER.getDefault();
+
+      // Look for port specifier ":port"
+      int colonPos = address.lastIndexOf(':');
+      if (colonPos != -1) {
+
+        host = address.substring(0, colonPos);
+
+        if (address.length() <= colonPos + 1) {
+          throw new SQLException("Invalid port in server address list");
+        }
+
+        // Parse port
+        try {
+          port = Integer.parseInt(address.substring(colonPos + 1));
+        }
+        catch (Exception e) {
+          throw new SQLException("Invalid port in server address list");
+        }
+
+      }
+      else {
+        host = address;
+      }
+
+      if (host.isEmpty()) {
+        throw new SQLException("Invalid host in server address list");
+      }
+
+      return new InetSocketAddress(host, port);
+    }
   }
 
   /**
@@ -199,7 +305,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     if (refAddr == null)
       return null;
 
-    return (String)refAddr.getContent();
+    return (String) refAddr.getContent();
   }
 
   public abstract String getDescription();

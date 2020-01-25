@@ -70,6 +70,27 @@ public class DataSourceSettings {
   public static final Setting<Integer> PORT_NUMBER = Setting.declare();
 
   @Setting.Info(
+      desc = "Unix socket name for local server connections.",
+      name = "server.local-name",
+      group = "jdbc-ds",
+      alternateNames = {"localServerName"}
+  )
+  public static final Setting<String> LOCAL_SERVER_NAME = Setting.declare();
+
+  @Setting.Info(
+      desc = "Comma separated list of server addresses for which a connection will be attempted in order.\n\n" +
+          "Supports providing DNS, IPv4, IPv6 & Unix socket addresses. DNS & IP addresses are specified in " +
+          "`host[:port]?` format while Unix socket addresses must contain a `/` to valid. Additionally IPv6 host " +
+          "names must be enclosed in `[]`.\n\n" +
+          "NOTE: Specifying a list of addresses takes precedence over `server.name`, `port.number` & " +
+          "`server.local-name' and will cause those settings to be ignored.",
+      name = "server.addresses",
+      group = "jdbc-ds",
+      alternateNames = {"serverAddresses"}
+  )
+  public static final Setting<String> SERVER_ADDRESSES = Setting.declare();
+
+  @Setting.Info(
       desc = "Maximum time to wait for a connection to be established.",
       def = "0", min = 0,
       name = "login.timeout",
