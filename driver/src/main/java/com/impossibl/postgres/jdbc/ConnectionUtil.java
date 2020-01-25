@@ -34,8 +34,11 @@ import com.impossibl.postgres.types.SharedRegistry;
 
 import static com.impossibl.postgres.jdbc.ErrorUtils.makeSQLException;
 import static com.impossibl.postgres.jdbc.JDBCSettings.HOUSEKEEPER;
+import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_URL;
+import static com.impossibl.postgres.system.SystemSettings.PROTO;
+import static com.impossibl.postgres.system.SystemSettings.SYS;
 import static com.impossibl.postgres.utils.guava.Strings.emptyToNull;
 import static com.impossibl.postgres.utils.guava.Strings.nullToEmpty;
 
@@ -224,7 +227,12 @@ class ConnectionUtil {
       }
 
       if (database != null) {
-        url += database;
+        try {
+          url += URLEncoder.encode(database, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e) {
+          url += database;
+        }
       }
 
       String unixPath = getUnixPath();
@@ -338,7 +346,7 @@ class ConnectionUtil {
    * @return Single group of settings
    */
   private static Settings buildSettings(ConnectionSpecifier connSpec, Properties connectInfo) {
-    Settings settings = new Settings();
+    Settings settings = new Settings(JDBC, SYS, PROTO);
 
     //Start by adding all parameters from the URL query string
     settings.setAll(connSpec.getParameters());
@@ -369,11 +377,11 @@ class ConnectionUtil {
 
   /**
    * Parses a URL connection string.
-   * 
+   *
    * Uses the URL_PATTERN to capture a hostname or ip address, port, database
    * name and a list of parameters specified as query name=value pairs. All
    * parts but the database name are optional.
-   * 
+   *
    * @param url
    *          Connection URL to parse
    * @return Connection specifier of parsed URL

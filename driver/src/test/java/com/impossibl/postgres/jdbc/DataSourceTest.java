@@ -33,6 +33,9 @@ import com.impossibl.postgres.system.Setting;
 import com.impossibl.postgres.system.Settings;
 
 import static com.impossibl.postgres.jdbc.DataSourceSettings.DS;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.LOCAL_SERVER_NAME;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.SERVER_ADDRESSES;
+import static com.impossibl.postgres.jdbc.DataSourceSettings.SERVER_NAME;
 import static com.impossibl.postgres.jdbc.JDBCSettings.JDBC;
 import static com.impossibl.postgres.system.SystemSettings.PROTO;
 import static com.impossibl.postgres.system.SystemSettings.SYS;
@@ -41,9 +44,15 @@ import static com.impossibl.postgres.utils.StringTransforms.toLowerCamelCase;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.net.InetSocketAddress;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Random;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+
+import io.netty.channel.unix.DomainSocketAddress;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,7 +118,7 @@ public class DataSourceTest {
     ds.setPassword(pass);
     ds.setNetworkTimeout(10000);
 
-    try(Connection con = ds.getConnection(TestUtil.getUser(), TestUtil.getPassword())) {
+    try (Connection con = ds.getConnection(TestUtil.getUser(), TestUtil.getPassword())) {
       assertThat(con, instanceOf(PGConnection.class));
     }
     catch (Exception e) {
@@ -119,6 +128,58 @@ public class DataSourceTest {
     // Verify DataSource's (invalid) credentials weren't changed
     assertEquals(ds.getUser(), user);
     assertEquals(ds.getPassword(), pass);
+  }
+
+  @Test
+  public void testConnectionSpecifierBuild() throws SQLException {
+    Settings settings = new Settings();
+    settings.set(SERVER_NAME, "example.com");
+
+    // No default for local server
+    ConnectionUtil.ConnectionSpecifier connSpec = PGDataSource.buildConnectionSpecifier(settings);
+    assertEquals(singletonList(new InetSocketAddress("example.com", 5432)), connSpec.getAddresses());
+
+    // Local server name should come first
+    settings.set(LOCAL_SERVER_NAME, "/var/run/pg");
+    connSpec = PGDataSource.buildConnectionSpecifier(settings);
+
+    assertEquals(asList(new DomainSocketAddress("/var/run/pg"), new InetSocketAddress("example.com", 5432)), connSpec.getAddresses());
+
+    // Server addresses overrides other properties
+    settings.set(SERVER_ADDRESSES, "1.2.3.4:2345, example.com");
+    connSpec = PGDataSource.buildConnectionSpecifier(settings);
+
+    assertEquals(asList(new InetSocketAddress("1.2.3.4", 2345), new InetSocketAddress("example.com", 5432)), connSpec.getAddresses());
+  }
+
+  @Test
+  public void testServerAddressParsing() throws SQLException {
+    assertEquals(PGDataSource.parseServerAddress("/tmp"), new DomainSocketAddress("/tmp"));
+    assertEquals(PGDataSource.parseServerAddress("[::1]:2345"), new InetSocketAddress("::1", 2345));
+    assertEquals(PGDataSource.parseServerAddress("[::1]"), new InetSocketAddress("::1", 5432));
+    assertEquals(PGDataSource.parseServerAddress("1.2.3.4:2345"), new InetSocketAddress("1.2.3.4", 2345));
+    assertEquals(PGDataSource.parseServerAddress("1.2.3.4"), new InetSocketAddress("1.2.3.4", 5432));
+
+    assertTrue(parseAddressFails("[]"));
+    assertTrue(parseAddressFails("[::1]:"));
+    assertTrue(parseAddressFails("[]:123"));
+    assertTrue(parseAddressFails("[::1]:abc"));
+    assertTrue(parseAddressFails("[::1]2345"));
+    assertTrue(parseAddressFails("[::1"));
+    assertTrue(parseAddressFails("1.2.3.4:"));
+    assertTrue(parseAddressFails("1.2.3.4:abc"));
+    assertTrue(parseAddressFails(":2345"));
+    assertTrue(parseAddressFails(":"));
+  }
+
+  boolean parseAddressFails(String address) {
+    try {
+      PGDataSource.parseServerAddress(address);
+      return false;
+    }
+    catch (SQLException e) {
+      return true;
+    }
   }
 
   /*

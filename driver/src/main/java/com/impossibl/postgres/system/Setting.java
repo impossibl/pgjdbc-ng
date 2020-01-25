@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.CLASS;
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Completely defined setting that can be transformed to/from text, use alternate
@@ -271,6 +272,15 @@ public class Setting<T> {
      */
     public Map<String, Setting<?>> getAllNamedSettings() {
       return Collections.unmodifiableMap(allNamed);
+    }
+
+    /**
+     * Retrieves a unique set of all settings owned by the group.
+     *
+     * @return Set of all settings.
+     */
+    public Set<Setting<?>> getAllOwnedSettings() {
+      return Collections.unmodifiableSet(all).stream().filter(setting -> setting.group == this).collect(toSet());
     }
 
     /**

@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.system;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -78,12 +79,23 @@ public class Settings {
     }
   }
 
+  /**
+   * Duplicates the bag of settings knowing settings from all groups
+   *
+   * @return Duplicate settings bag
+   */
   public Settings duplicateKnowingAll() {
     Settings copy = new Settings();
     copy.values = new HashMap<>(values);
     return copy;
   }
 
+  /**
+   * Duplicates the bag of settings knowing settings from the specified groups
+   *
+   * @param groups Groups which the new settings bag will consider known.
+   * @return Duplicate settings bag
+   */
   public Settings duplicateKnowing(Setting.Group... groups) {
     Settings copy = new Settings(groups);
     copy.values = new HashMap<>(values);
@@ -292,6 +304,17 @@ public class Settings {
    */
   public void unset(String name) {
     set(name, null);
+  }
+
+  /**
+   * Remove any stored value associated with any of the settings.
+   *
+   * @param settings Settings to remove
+   */
+  public void unsetAll(Collection<Setting<?>> settings) {
+    for (Setting<?> setting : settings) {
+      set(setting, null);
+    }
   }
 
   public Setting<?> mapUnknownSetting(Setting<?> setting) {
