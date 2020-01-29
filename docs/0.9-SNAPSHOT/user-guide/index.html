@@ -1868,6 +1868,65 @@ setPortNumber(<span class="predefined-type">Integer</span>)</code></pre>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="server_local-name"></a><strong>Server Local Name</strong></p>
+</div>
+<div class="paragraph">
+<p>Unix socket name for local server connections.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getServerLocalName()
+setServerLocalName(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.server.local-name</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><a id="server_addresses"></a><strong>Server Addresses</strong></p>
+</div>
+<div class="paragraph">
+<p>Comma separated list of server addresses for which a connection will be attempted in order.</p>
+</div>
+<div class="paragraph">
+<p>Supports providing DNS, IPv4, IPv6 &amp; Unix socket addresses. DNS &amp; IP addresses are specified in <code>host[:port]?</code> format while Unix socket addresses must contain a <code>/</code> to valid. Additionally IPv6 host names must be enclosed in <code>[]</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Specifying a list of addresses takes precedence over <code>server.name</code>, <code>port.number</code> &amp; `server.local-name' and will cause those settings to be ignored.
+</td>
+</tr>
+</table>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="title">DataSource</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java">getServerAddresses()
+setServerAddresses(<span class="predefined-type">String</span>)</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">None</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<div class="title">System</div>
+<p><code>pgjdbc.server.addresses</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
 <p><a id="login_timeout"></a><strong>Login Timeout</strong></p>
 </div>
 <div class="paragraph">
@@ -4484,7 +4543,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2020-01-29 17:01:30 UTC
+Last updated 2020-01-29 18:31:51 UTC
 </div>
 </div>
 </body>
