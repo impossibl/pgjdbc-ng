@@ -457,7 +457,7 @@ public class BasicContext extends AbstractContext {
       // Next, psuedo types
       List<Type> psuedoTypes = new ArrayList<>();
       for (PGTypeTable.Row pgType : pgTypes) {
-        if (pgType.isPsuedo()) {
+        if (pgType.isPsuedo() && !registry.hasTypeDefined(pgType.getOid())) {
           Type type = loadRaw(pgType);
           psuedoTypes.add(type);
         }
