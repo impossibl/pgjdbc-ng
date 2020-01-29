@@ -329,6 +329,19 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
+<a id="addStatementEventListener(javax.sql.StatementEventListener)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>addStatementEventListener</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;addStatementEventListener&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/StatementEventListener.html?is-external=true" title="class or interface in javax.sql" class="externalLink">StatementEventListener</a>&nbsp;listener)</pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#addStatementEventListener(javax.sql.StatementEventListener)" title="class or interface in javax.sql" class="externalLink">addStatementEventListener</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
+</dl>
+</li>
+</ul>
 <a id="addConnectionEventListener(javax.sql.ConnectionEventListener)">
 <!--   -->
 </a>
@@ -358,35 +371,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="getConnection()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getConnection</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html?is-external=true" title="class or interface in java.sql" class="externalLink">Connection</a>&nbsp;getConnection()
-                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#getConnection()" title="class or interface in javax.sql" class="externalLink">getConnection</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="addStatementEventListener(javax.sql.StatementEventListener)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>addStatementEventListener</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;addStatementEventListener&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/StatementEventListener.html?is-external=true" title="class or interface in javax.sql" class="externalLink">StatementEventListener</a>&nbsp;listener)</pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#addStatementEventListener(javax.sql.StatementEventListener)" title="class or interface in javax.sql" class="externalLink">addStatementEventListener</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
-</dl>
-</li>
-</ul>
 <a id="removeStatementEventListener(javax.sql.StatementEventListener)">
 <!--   -->
 </a>
@@ -403,13 +387,29 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 <a id="removeConnectionEventListener(javax.sql.ConnectionEventListener)">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>removeConnectionEventListener</h4>
 <pre class="methodSignature">public&nbsp;void&nbsp;removeConnectionEventListener&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/ConnectionEventListener.html?is-external=true" title="class or interface in javax.sql" class="externalLink">ConnectionEventListener</a>&nbsp;listener)</pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#removeConnectionEventListener(javax.sql.ConnectionEventListener)" title="class or interface in javax.sql" class="externalLink">removeConnectionEventListener</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getConnection()">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>getConnection</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html?is-external=true" title="class or interface in java.sql" class="externalLink">Connection</a>&nbsp;getConnection()
+                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#getConnection()" title="class or interface in javax.sql" class="externalLink">getConnection</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
 </li>
 </ul>
