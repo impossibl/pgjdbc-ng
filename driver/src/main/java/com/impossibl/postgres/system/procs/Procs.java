@@ -43,7 +43,7 @@ import io.netty.buffer.ByteBuf;
 
 public class Procs {
 
-  private static final int MIN_PROC_PROVIDER_SERVICES = 45;
+  private static final int MIN_PROC_PROVIDER_SERVICES = 47;
 
   public static final Type.Codec.Decoder<CharSequence> DEFAULT_TEXT_DECODER = new Unknowns.TxtDecoder();
   public static final Type.Codec.Decoder<ByteBuf> DEFAULT_BINARY_DECODER = new Unknowns.BinDecoder();

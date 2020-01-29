@@ -40,9 +40,7 @@ import io.netty.buffer.ByteBuf;
 public class Int4s extends SimpleProcProvider {
 
   public Int4s() {
-    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(),
-        "int4", "xid", "cid", "regproc", "regtype", "regclass", "regoper", "regnamespace", "regrole"
-    );
+    super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "int4");
   }
 
   private static Integer convertStringInput(Context context, String value) throws ConversionException {
@@ -50,7 +48,7 @@ public class Int4s extends SimpleProcProvider {
       return context.getClientIntegerFormatter().parse(value).intValue();
     }
     catch (ParseException e) {
-      throw new ConversionException("Invalid Long", e);
+      throw new ConversionException("Invalid Integer", e);
     }
   }
 
