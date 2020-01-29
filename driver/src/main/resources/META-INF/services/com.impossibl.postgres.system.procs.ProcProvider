@@ -42,5 +42,6 @@ com.impossibl.postgres.system.procs.TimestampsWithoutTZ
 com.impossibl.postgres.system.procs.TimestampsWithTZ
 com.impossibl.postgres.system.procs.TimesWithoutTZ
 com.impossibl.postgres.system.procs.TimesWithTZ
+com.impossibl.postgres.system.procs.UInt4s
 com.impossibl.postgres.system.procs.UUIDs
 com.impossibl.postgres.system.procs.XMLs

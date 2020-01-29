@@ -46,7 +46,7 @@ public class Oids extends SimpleProcProvider {
     super(new TxtEncoder(), new TxtDecoder(), new BinEncoder(), new BinDecoder(), "oid");
   }
 
-  static class BinDecoder extends Int4s.BinDecoder {
+  static class BinDecoder extends UInt4s.BinDecoder {
 
     @Override
     protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
@@ -74,7 +74,7 @@ public class Oids extends SimpleProcProvider {
 
   }
 
-  static class BinEncoder extends Int4s.BinEncoder {
+  static class BinEncoder extends UInt4s.BinEncoder {
 
     @Override
     protected Integer convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
@@ -91,7 +91,7 @@ public class Oids extends SimpleProcProvider {
     }
   }
 
-  static class TxtDecoder extends Int4s.TxtDecoder {
+  static class TxtDecoder extends UInt4s.TxtDecoder {
 
     @Override
     protected Object convertOutput(Context context, Integer decoded, Class<?> targetClass, Object targetContext) throws IOException {
@@ -119,7 +119,7 @@ public class Oids extends SimpleProcProvider {
 
   }
 
-  static class TxtEncoder extends Int4s.TxtEncoder {
+  static class TxtEncoder extends UInt4s.TxtEncoder {
 
     @Override
     protected Integer convertInput(Context context, Type type, Object source, Object sourceContext) throws ConversionException {
