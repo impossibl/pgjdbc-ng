@@ -152,7 +152,7 @@ class PGPreparedStatement extends PGStatement implements PreparedStatement {
     Type parsedType = parameterTypesParsed[parameterIdx];
 
     Type type = suggestedType;
-    if (suggestedType == null || parsedType.getCategory() != Type.Category.String) {
+    if (suggestedType == null || (parsedType.getCategory() != Type.Category.String && parsedType.getCategory() != Type.Category.Psuedo)) {
       type = parsedType;
     }
 
