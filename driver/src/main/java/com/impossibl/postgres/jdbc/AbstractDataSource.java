@@ -336,6 +336,15 @@ public abstract class AbstractDataSource implements CommonDataSource {
     return Logger.getLogger(Context.class.getPackage().getName());
   }
 
+  // URL, alias for databaseUrl
+
+  public String getUrl() {
+    return settings.get(DATABASE_URL);
+  }
+
+  public void setUrl(String v) {
+    settings.set(DATABASE_URL, v);
+  }
 
   // host, alias for serverName
 
