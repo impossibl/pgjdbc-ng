@@ -1,0 +1,49 @@
+[[release-notes-0.8.4]]
+== 0.8.4
+
+*Date of Release:* 2019-10-04
+
+*Scope:* Bug Fixes
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/5?closed=1+[0.8.4] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.4-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* System ids (oid, xid, cid) are now properly parsed/formatted as unsigned values.
+* DataSource.getConnection no longer overwrites user/password currently set on datasource.
+* Published "uber" jars poms now declare no dependencies.
+
+==== Deprecations and Breaking Changes
+
+==== New Features and Improvements
+
+* DataSource properties & connection URL properties now support the same features; including Unix sockets and fallback addresses.
+* ACL's now support the complete syntax and the `ACLItem` API has been updated to reflect this support.
+* SELECTing psuedo types (eg. record) is now supported.
+
+[[release-notes-0.8.4-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+* Generated enum writes now use the specific type id of the enum (as required in a UDT).
+
+==== Deprecations and Breaking Changes
+
+==== New Features and Improvements
+
+
+[[release-notes-0.8.4-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+==== Deprecations and Breaking Changes
+
+==== New Features and Improvements
