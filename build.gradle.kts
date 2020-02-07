@@ -63,6 +63,7 @@ tasks {
 
   named<GithubReleaseTask>("githubRelease") {
     dependsOn(downloadArtifacts)
+    setAuthorization("token ${project.properties["github.token"]?.toString() ?: ""}")
     setOwner("impossibl")
     setRepo("pgjdbc-ng")
     setTagName("v$version")
