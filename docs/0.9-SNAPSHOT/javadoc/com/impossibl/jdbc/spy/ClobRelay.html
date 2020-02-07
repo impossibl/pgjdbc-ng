@@ -372,17 +372,18 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="free()">
+<a id="position(java.sql.Clob,long)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>free</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;free()
-          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<h4>position</h4>
+<pre class="methodSignature">public&nbsp;long&nbsp;position&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a>&nbsp;searchstr,
+                     long&nbsp;start)
+              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#free()" title="class or interface in java.sql" class="externalLink">free</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#position(java.sql.Clob,long)" title="class or interface in java.sql" class="externalLink">position</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
@@ -405,68 +406,17 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="setCharacterStream(long)">
+<a id="length()">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>setCharacterStream</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/Writer.html?is-external=true" title="class or interface in java.io" class="externalLink">Writer</a>&nbsp;setCharacterStream&#8203;(long&nbsp;pos)
-                          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<h4>length</h4>
+<pre class="methodSignature">public&nbsp;long&nbsp;length()
+            throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#setCharacterStream(long)" title="class or interface in java.sql" class="externalLink">setCharacterStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="position(java.sql.Clob,long)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>position</h4>
-<pre class="methodSignature">public&nbsp;long&nbsp;position&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a>&nbsp;searchstr,
-                     long&nbsp;start)
-              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#position(java.sql.Clob,long)" title="class or interface in java.sql" class="externalLink">position</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="getSubString(long,int)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getSubString</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;getSubString&#8203;(long&nbsp;pos,
-                           int&nbsp;length)
-                    throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getSubString(long,int)" title="class or interface in java.sql" class="externalLink">getSubString</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="position(java.lang.String,long)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>position</h4>
-<pre class="methodSignature">public&nbsp;long&nbsp;position&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;searchstr,
-                     long&nbsp;start)
-              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#position(java.lang.String,long)" title="class or interface in java.sql" class="externalLink">position</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#length()" title="class or interface in java.sql" class="externalLink">length</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
@@ -489,38 +439,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="getCharacterStream()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getCharacterStream</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/Reader.html?is-external=true" title="class or interface in java.io" class="externalLink">Reader</a>&nbsp;getCharacterStream()
-                          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getCharacterStream()" title="class or interface in java.sql" class="externalLink">getCharacterStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="getAsciiStream()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getAsciiStream</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;getAsciiStream()
-                           throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getAsciiStream()" title="class or interface in java.sql" class="externalLink">getAsciiStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
 <a id="setAsciiStream(long)">
 <!--   -->
 </a>
@@ -532,22 +450,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#setAsciiStream(long)" title="class or interface in java.sql" class="externalLink">setAsciiStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="truncate(long)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>truncate</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(long&nbsp;len)
-              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#truncate(long)" title="class or interface in java.sql" class="externalLink">truncate</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
@@ -572,17 +474,115 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="length()">
+<a id="free()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>free</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;free()
+          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#free()" title="class or interface in java.sql" class="externalLink">free</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getAsciiStream()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getAsciiStream</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;getAsciiStream()
+                           throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getAsciiStream()" title="class or interface in java.sql" class="externalLink">getAsciiStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getSubString(long,int)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getSubString</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;getSubString&#8203;(long&nbsp;pos,
+                           int&nbsp;length)
+                    throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getSubString(long,int)" title="class or interface in java.sql" class="externalLink">getSubString</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="truncate(long)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>truncate</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(long&nbsp;len)
+              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#truncate(long)" title="class or interface in java.sql" class="externalLink">truncate</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="setCharacterStream(long)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setCharacterStream</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/Writer.html?is-external=true" title="class or interface in java.io" class="externalLink">Writer</a>&nbsp;setCharacterStream&#8203;(long&nbsp;pos)
+                          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#setCharacterStream(long)" title="class or interface in java.sql" class="externalLink">setCharacterStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="position(java.lang.String,long)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>position</h4>
+<pre class="methodSignature">public&nbsp;long&nbsp;position&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;searchstr,
+                     long&nbsp;start)
+              throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#position(java.lang.String,long)" title="class or interface in java.sql" class="externalLink">position</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getCharacterStream()">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
-<h4>length</h4>
-<pre class="methodSignature">public&nbsp;long&nbsp;length()
-            throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<h4>getCharacterStream</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/io/Reader.html?is-external=true" title="class or interface in java.io" class="externalLink">Reader</a>&nbsp;getCharacterStream()
+                          throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#length()" title="class or interface in java.sql" class="externalLink">length</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true#getCharacterStream()" title="class or interface in java.sql" class="externalLink">getCharacterStream</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Clob.html?is-external=true" title="class or interface in java.sql" class="externalLink">Clob</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>

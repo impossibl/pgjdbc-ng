@@ -373,6 +373,26 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;trace&#8203;(<a href="Trace.html" title="class in com.impossibl.jdbc.spy">Trace</a>&nbsp;trace)</pre>
 </li>
 </ul>
+<a id="setBinaryStream(java.io.OutputStream,long)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;setBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/OutputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">OutputStream</a>&nbsp;result,
+                            long&nbsp;pos)</pre>
+</li>
+</ul>
+<a id="setBinaryStream(java.lang.Throwable,long)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>setBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;setBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                            long&nbsp;pos)</pre>
+</li>
+</ul>
 <a id="free()">
 <!--   -->
 </a>
@@ -391,23 +411,44 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;free&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause)</pre>
 </li>
 </ul>
-<a id="truncate(long)">
+<a id="getBinaryStream(java.io.InputStream,long,long)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>truncate</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(long&nbsp;len)</pre>
+<h4>getBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;result,
+                            long&nbsp;pos,
+                            long&nbsp;length)</pre>
 </li>
 </ul>
-<a id="truncate(java.lang.Throwable,long)">
+<a id="getBinaryStream(java.lang.Throwable,long,long)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>truncate</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                     long&nbsp;len)</pre>
+<h4>getBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                            long&nbsp;pos,
+                            long&nbsp;length)</pre>
+</li>
+</ul>
+<a id="getBinaryStream(java.io.InputStream)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;result)</pre>
+</li>
+</ul>
+<a id="getBinaryStream(java.lang.Throwable)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getBinaryStream</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause)</pre>
 </li>
 </ul>
 <a id="getBytes(byte[],long,int)">
@@ -430,24 +471,6 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;getBytes&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
                      long&nbsp;pos,
                      int&nbsp;length)</pre>
-</li>
-</ul>
-<a id="getBinaryStream(java.io.InputStream)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;result)</pre>
-</li>
-</ul>
-<a id="getBinaryStream(java.lang.Throwable)">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause)</pre>
 </li>
 </ul>
 <a id="position(long,byte[],long)">
@@ -494,28 +517,6 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
                      long&nbsp;start)</pre>
 </li>
 </ul>
-<a id="setBytes(int,long,byte[])">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>setBytes</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;setBytes&#8203;(int&nbsp;result,
-                     long&nbsp;pos,
-                     byte[]&nbsp;bytes)</pre>
-</li>
-</ul>
-<a id="setBytes(java.lang.Throwable,long,byte[])">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>setBytes</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;setBytes&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                     long&nbsp;pos,
-                     byte[]&nbsp;bytes)</pre>
-</li>
-</ul>
 <a id="setBytes(int,long,byte[],int,int)">
 <!--   -->
 </a>
@@ -560,46 +561,45 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
 <pre class="methodSignature">public&nbsp;void&nbsp;length&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause)</pre>
 </li>
 </ul>
-<a id="getBinaryStream(java.io.InputStream,long,long)">
+<a id="setBytes(int,long,byte[])">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">InputStream</a>&nbsp;result,
-                            long&nbsp;pos,
-                            long&nbsp;length)</pre>
+<h4>setBytes</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;setBytes&#8203;(int&nbsp;result,
+                     long&nbsp;pos,
+                     byte[]&nbsp;bytes)</pre>
 </li>
 </ul>
-<a id="getBinaryStream(java.lang.Throwable,long,long)">
+<a id="setBytes(java.lang.Throwable,long,byte[])">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>getBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;getBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                            long&nbsp;pos,
-                            long&nbsp;length)</pre>
+<h4>setBytes</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;setBytes&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                     long&nbsp;pos,
+                     byte[]&nbsp;bytes)</pre>
 </li>
 </ul>
-<a id="setBinaryStream(java.io.OutputStream,long)">
+<a id="truncate(long)">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
-<h4>setBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;setBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/io/OutputStream.html?is-external=true" title="class or interface in java.io" class="externalLink">OutputStream</a>&nbsp;result,
-                            long&nbsp;pos)</pre>
+<h4>truncate</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(long&nbsp;len)</pre>
 </li>
 </ul>
-<a id="setBinaryStream(java.lang.Throwable,long)">
+<a id="truncate(java.lang.Throwable,long)">
 <!--   -->
 </a>
 <ul class="blockListLast">
 <li class="blockList">
-<h4>setBinaryStream</h4>
-<pre class="methodSignature">public&nbsp;void&nbsp;setBinaryStream&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
-                            long&nbsp;pos)</pre>
+<h4>truncate</h4>
+<pre class="methodSignature">public&nbsp;void&nbsp;truncate&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang" class="externalLink">Throwable</a>&nbsp;cause,
+                     long&nbsp;len)</pre>
 </li>
 </ul>
 </li>
