@@ -67,7 +67,7 @@ public class ArrayTest {
   public void before() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], str text");
-    TestUtil.createTable(conn, "aggtest" , "id serial PRIMARY KEY, value TEXT NOT NULL");
+    TestUtil.createTable(conn, "aggtest", "id serial PRIMARY KEY, value TEXT NOT NULL");
   }
 
   @After

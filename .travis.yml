@@ -37,7 +37,7 @@ jobs:
       env: PGVERSION=11
       jdk: openjdk8
       install: skip
-      script: ./gradlew checkstyleMain
+      script: ./gradlew checkstyleMain checkstyleTest
     - stage: deploy
       env: PGVERSION=11
       jdk: openjdk11
