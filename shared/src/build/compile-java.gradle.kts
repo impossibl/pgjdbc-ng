@@ -1,10 +1,5 @@
 
-apply {
-  plugin("java")
-}
-
-
-withConvention(JavaPluginConvention::class) {
+configure<JavaPluginExtension> {
   sourceCompatibility = Versions.javaTarget
   targetCompatibility = Versions.javaTarget
 }
