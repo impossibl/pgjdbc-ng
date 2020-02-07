@@ -1,7 +1,7 @@
 
 plugins {
   id("java-library")
-  id("org.jetbrains.kotlin.jvm") version "1.3.30"
+  id("org.jetbrains.kotlin.jvm") version "1.3.61"
 }
 
 repositories {
