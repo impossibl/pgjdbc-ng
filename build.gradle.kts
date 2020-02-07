@@ -1,5 +1,5 @@
 
-import com.github.breadmoirai.GithubReleaseTask
+import com.github.breadmoirai.githubreleaseplugin.GithubReleaseTask
 import de.undercouch.gradle.tasks.download.Download
 
 plugins {
@@ -63,7 +63,6 @@ tasks {
 
   named<GithubReleaseTask>("githubRelease") {
     dependsOn(downloadArtifacts)
-    setToken(project.properties["github.token"]?.toString() ?: "")
     setOwner("impossibl")
     setRepo("pgjdbc-ng")
     setTagName("v$version")

@@ -39,6 +39,6 @@ object Versions {
   const val gitPublishPlugin = "2.0.0"
   const val aptIdeaPlugin = "0.20"
   const val testLoggerPlugin = "1.6.0"
-  const val githubReleasePlugin = "2.2.4"
+  const val githubReleasePlugin = "2.2.10"
 
 }
