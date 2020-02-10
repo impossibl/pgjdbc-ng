@@ -365,16 +365,22 @@ public class SQLText {
   }
 
   private static int consumeQuotedIdentifier(final String sql, final int start, final CompositeNode parent) throws ParseException {
-    int ndx = start + 1;
+    int ndx = start + 1, adjacentQuoteCount = 0;
     do {
       char c = sql.charAt(ndx);
       if (c == '"') {
-        if (sql.charAt(ndx - 1) == '"') {  // look-behind
+        ++adjacentQuoteCount;
+        if (sql.charAt(ndx - 1) == '"' && (adjacentQuoteCount % 2) == 0) {  // look-behind
           // skip escaped
         }
         else {
-          break;
+          if ((ndx == sql.length() - 1 || sql.charAt(ndx + 1) != '"')) {  // look-ahead
+            break;
+          }
         }
+      }
+      else {
+        adjacentQuoteCount = 0;
       }
 
       if (lookAhead(sql, ndx) == 0) {
