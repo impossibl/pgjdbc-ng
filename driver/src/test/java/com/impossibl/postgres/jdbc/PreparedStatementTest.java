@@ -350,7 +350,9 @@ public class PreparedStatementTest {
 
   @Test
   public void testDoubleQuotes() throws SQLException {
-    String[] testStrings = new String[] {"bare ? question mark", "single ' quote", "doubled '' single quote", "doubled \"\" double quote", "no backslash interpretation here: \\", };
+    String[] testStrings = new String[] {"bare ? question mark", "single ' quote", "doubled '' single quote", "doubled \"\" double quote", "no backslash interpretation here: \\",
+      "\"\"leading_double_quote", "trailing_double_quote\"\"", "\"\"surrounding_double_quotes\"\"", " \"\"surrounding_double_quotes_surrounding_space\"\" ", " \"\"surrounding_double_quotes_leading_space\"\"", "\"\"surrounding_double_quotes_trailing_space\"\" ",
+      "\"\"", "\"\"\"\""};
 
     for (int i = 0; i < testStrings.length; ++i) {
       PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
