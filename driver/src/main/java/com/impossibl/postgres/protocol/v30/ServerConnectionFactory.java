@@ -569,7 +569,15 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       // We have a wildcard
       if (hostname.endsWith(CN.substring(1))) {
         // Avoid IndexOutOfBoundsException because hostname already ends with CN
-        if (!(hostname.substring(0, hostname.length() - CN.length() + 1).contains("."))) {
+
+        /**
+         * NB: the hostname cannot contain a '.' per spec: https://www.postgresql.org/docs/current/libpq-ssl.html
+         *
+         *     "If the certificate's name attribute starts with an asterisk (*),
+         *      the asterisk will be treated as a wildcard, which will match all
+         *      characters except a dot (.)"
+         */
+        if (hostname.substring(0, hostname.length() - CN.length() + 1).contains(".")) {
           throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
         }
       }
