@@ -128,7 +128,7 @@ public class Records extends SimpleProcProvider {
 
     @Override
     public Class<?> getDefaultClass() {
-      return PGStruct.class;
+      return Struct.class;
     }
 
     @Override
@@ -194,7 +194,7 @@ public class Records extends SimpleProcProvider {
 
     @Override
     public Class<?> getDefaultClass() {
-      return PGStruct.class;
+      return Struct.class;
     }
 
     @Override
