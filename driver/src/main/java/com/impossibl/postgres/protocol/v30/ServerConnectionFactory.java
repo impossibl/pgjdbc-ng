@@ -568,8 +568,6 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       // We have a wildcard
       if (hostname.endsWith(CN.substring(1))) {
-        // Avoid IndexOutOfBoundsException because hostname already ends with CN
-
         /**
          * NB: the hostname cannot contain a '.' per spec: https://www.postgresql.org/docs/current/libpq-ssl.html
          *
