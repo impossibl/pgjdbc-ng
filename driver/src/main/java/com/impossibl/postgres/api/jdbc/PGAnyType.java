@@ -33,7 +33,7 @@ import com.impossibl.postgres.system.Version;
 import java.sql.SQLType;
 
 
-public interface PGAnyType extends SQLType  {
+public interface PGAnyType extends SQLType {
 
   String VENDOR_NAME = "PostgreSQL";
 

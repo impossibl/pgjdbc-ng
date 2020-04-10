@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 import java.sql.DriverManager
 import java.util.*
+import javax.tools.Diagnostic
 import kotlin.random.Random
 
 class UDTGeneratorTest {
@@ -31,7 +32,7 @@ class UDTGeneratorTest {
 
   @Test
   fun testCompile() {
-    System.out.println("Generating code from $url")
+    println("Generating code from $url")
 
     DriverManager.getConnection(url, props).use { connection ->
 
@@ -41,7 +42,7 @@ class UDTGeneratorTest {
         connection.createStatement().use { stmt ->
           stmt.execute("CREATE SCHEMA $schemaName")
           stmt.execute("CREATE TYPE $schemaName.title as enum ('mr', 'mrs', 'ms', 'dr')")
-          stmt.execute("CREATE TYPE $schemaName.address as (street text, city text, state char(2), zip char(5))")
+          stmt.execute("CREATE TYPE $schemaName.address as (street varchar, city text, state char(2), zip char(5))")
           stmt.execute("CREATE TYPE $schemaName.v_card as (id int4, name text, title $schemaName.title, addresses $schemaName.address[])")
           stmt.execute("SET SEARCH_PATH = public, $schemaName")
         }
@@ -55,6 +56,7 @@ class UDTGeneratorTest {
         val result = javac()
            .compile(files + JavaFileObjects.forResource("VCardTest.java"))
 
+        assertThat(result.errors(), equalTo(emptyList<Diagnostic<*>>()))
         assertThat(result.status(), equalTo(Compilation.Status.SUCCESS))
 
       }
@@ -69,7 +71,7 @@ class UDTGeneratorTest {
 
   @Test
   fun testGenerate() {
-    System.out.println("Generating code from $url")
+    println("Generating code from $url")
 
     DriverManager.getConnection(url, props).use { connection ->
 
@@ -93,7 +95,7 @@ class UDTGeneratorTest {
            .generate(outDirectory)
 
         val pkgFileNames = File(outDirectory, pkgName.replace('.', '/'))
-           .listFiles()
+           .listFiles()!!
            .map { it.name }
 
         assertThat(pkgFileNames.size, equalTo(3))

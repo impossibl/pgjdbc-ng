@@ -2,6 +2,7 @@ package com.impossibl.postgres.tools
 
 import com.impossibl.postgres.api.jdbc.PGAnyType
 import com.impossibl.postgres.api.jdbc.PGConnection
+import com.impossibl.postgres.api.jdbc.PGType
 import com.impossibl.postgres.types.QualifiedName
 import com.squareup.javapoet.*
 import com.xenomachina.argparser.*
@@ -364,11 +365,14 @@ class UDTGenerator(
            attrSqlType.javaType.writerTypeName == "Object" ->
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "STRUCT")
 
+           attrTypeName.box().isBoxedPrimitive ->
+             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, attrTypeName.primitiveJDBCType)
+
+           PGType.values().any { it.vendorTypeNumber == attrSqlType.vendorTypeNumber } ->
+             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, PGType::class.java, PGType.valueOf(attrSqlType.vendorTypeNumber).name)
+
            else ->
-             if (attrTypeName.box().isBoxedPrimitive)
-               CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, attrTypeName.primitiveJDBCType)
-             else
-               CodeBlock.of("out.write\$L(this.\$L);\n", attrSqlType.javaType.readerTypeName, attrPropName)
+             CodeBlock.of("out.write\$L(this.\$L);\n", attrSqlType.javaType.readerTypeName, attrPropName)
          }
       )
 
