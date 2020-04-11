@@ -132,7 +132,10 @@ if (isSnapshot || isRelease) {
   if (isRelease) {
 
     configure<SigningExtension> {
-      sign(the<PublishingExtension>().publications["maven"])
+      sign(the<PublishingExtension>().publications["std"])
+      if (tasks.findByPath("uberJar") != null) {
+        sign(the<PublishingExtension>().publications["shadow"])
+      }
     }
 
   }
