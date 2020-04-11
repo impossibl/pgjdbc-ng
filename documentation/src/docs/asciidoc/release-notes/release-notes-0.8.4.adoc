@@ -1,7 +1,7 @@
 [[release-notes-0.8.4]]
 == 0.8.4
 
-*Date of Release:* 2019-10-04
+*Date of Release:* 2020-04-11
 
 *Scope:* Bug Fixes
 
