@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import io.netty.util.concurrent.ImmediateEventExecutor;
 
 
 public class ServerConnectionShared {
@@ -108,6 +109,10 @@ public class ServerConnectionShared {
   }
 
   private Future<?> shutdown() {
+
+    if (eventLoopGroup == null) {
+      return ImmediateEventExecutor.INSTANCE.newSucceededFuture(null);
+    }
 
     Future<?> res = eventLoopGroup.shutdownGracefully(10, 100, TimeUnit.MILLISECONDS);
     eventLoopGroup = null;
