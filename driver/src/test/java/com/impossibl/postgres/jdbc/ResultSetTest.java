@@ -242,30 +242,36 @@ public class ResultSetTest {
   public void testFieldLengthMax() throws SQLException {
 
     System.setProperty("pgjdbc.field.length.max", "2");
+    try {
 
-    try (Connection con = TestUtil.openDB()) {
-      try (Statement stmt = con.createStatement()) {
+      try (Connection con = TestUtil.openDB()) {
+        try (Statement stmt = con.createStatement()) {
 
-        try (ResultSet rs = stmt.executeQuery("select * from testint")) {
+          try (ResultSet rs = stmt.executeQuery("select * from testint")) {
 
-          // max should not apply to the following since per the spec
-          // it should apply only to binary and char/varchar columns
-          rs.next();
-          assertEquals("12345", rs.getString(1));
-          // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
-          assertTrue(rs.getBytes(1).length >= 4);
+            // max should not apply to the following since per the spec
+            // it should apply only to binary and char/varchar columns
+            rs.next();
+            assertEquals("12345", rs.getString(1));
+            // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
+            assertTrue(rs.getBytes(1).length >= 4);
+
+          }
+
+          // max should apply to the following since the column is
+          // a varchar column
+          try (ResultSet rs = stmt.executeQuery("select * from teststring")) {
+            rs.next();
+            assertEquals("12", rs.getString(1));
+            assertEquals("12", new String(rs.getBytes(1)));
+          }
 
         }
-
-        // max should apply to the following since the column is
-        // a varchar column
-        try (ResultSet rs = stmt.executeQuery("select * from teststring")) {
-          rs.next();
-          assertEquals("12", rs.getString(1));
-          assertEquals("12", new String(rs.getBytes(1)));
-        }
-
       }
+
+    }
+    finally {
+      System.clearProperty("pgjdbc.field.length.max");
     }
   }
 
@@ -273,19 +279,25 @@ public class ResultSetTest {
   public void testFieldLengthMaxLargerThanFieldLength() throws SQLException {
 
     System.setProperty("pgjdbc.field.length.max", "200");
+    try {
 
-    try (Connection con = TestUtil.openDB()) {
-      try (Statement stmt = con.createStatement()) {
+      try (Connection con = TestUtil.openDB()) {
+        try (Statement stmt = con.createStatement()) {
 
-        // max should apply to the following since the column is
-        // a varchar column
-        try (ResultSet rs = stmt.executeQuery("select * from teststring")) {
-          rs.next();
-          assertEquals("12345", rs.getString(1));
-          assertEquals("12345", new String(rs.getBytes(1)));
+          // max should apply to the following since the column is
+          // a varchar column
+          try (ResultSet rs = stmt.executeQuery("select * from teststring")) {
+            rs.next();
+            assertEquals("12345", rs.getString(1));
+            assertEquals("12345", new String(rs.getBytes(1)));
+          }
+
         }
-
       }
+
+    }
+    finally {
+      System.clearProperty("pgjdbc.field.length.max");
     }
   }
 
