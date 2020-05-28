@@ -41,6 +41,8 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.function.Function;
 
+import static java.lang.Integer.min;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 
@@ -156,7 +158,7 @@ abstract class AutoConvertingBinaryDecoder<N> extends BaseBinaryDecoder implemen
       int length = buffer.readableBytes();
       if (shouldRespectMaxLength()) {
         Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
-        length = maxLength != null ? maxLength : length;
+        length = maxLength != null ? min(maxLength, length) : length;
       }
 
       Object binaryResult = null;
@@ -256,7 +258,7 @@ abstract class AutoConvertingTextDecoder<N> extends BaseTextDecoder implements A
       int length = buffer.length();
       if (shouldRespectMaxLength()) {
         Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
-        length = maxLength != null ? maxLength : length;
+        length = maxLength != null ? min(maxLength, length) : length;
       }
 
       byte[] bytes = buffer.subSequence(0, length).toString().getBytes(context.getCharset());

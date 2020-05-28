@@ -44,6 +44,8 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.lang.Integer.min;
+
 import io.netty.buffer.ByteBuf;
 
 public class Strings extends SimpleProcProvider {
@@ -200,7 +202,7 @@ public class Strings extends SimpleProcProvider {
       CharSequence value = new String(bytes, context.getCharset());
       Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
-        value = value.subSequence(0, maxLength);
+        value = value.subSequence(0, min(maxLength, value.length()));
       }
 
       return value.toString();
@@ -237,7 +239,7 @@ public class Strings extends SimpleProcProvider {
 
       Integer maxLength = context.getSetting(FIELD_LENGTH_MAX);
       if (maxLength != null) {
-        value = value.subSequence(0, maxLength);
+        value = value.subSequence(0, min(maxLength, value.length()));
       }
 
       return value.toString();
