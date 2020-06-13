@@ -41,6 +41,7 @@ public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityCons
   private String column;
   private String datatype;
   private String constraint;
+  private String detail;
 
   public PGSQLIntegrityConstraintViolationException() {
     super();
@@ -122,6 +123,16 @@ public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityCons
   @Override
   public void setConstraint(String constraint) {
     this.constraint = constraint;
+  }
+
+  @Override
+  public String getDetail() {
+    return detail;
+  }
+
+  @Override
+  public void setDetail(String details) {
+    this.detail = details;
   }
 
 }
