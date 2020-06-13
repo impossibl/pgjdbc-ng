@@ -43,6 +43,7 @@ public class PGSQLSimpleException extends SQLException implements PGSQLException
   private String column;
   private String datatype;
   private String constraint;
+  private String detail;
 
   public PGSQLSimpleException() {
     super();
@@ -124,6 +125,16 @@ public class PGSQLSimpleException extends SQLException implements PGSQLException
   @Override
   public void setConstraint(String constraint) {
     this.constraint = constraint;
+  }
+
+  @Override
+  public String getDetail() {
+    return detail;
+  }
+
+  @Override
+  public void setDetail(String details) {
+    this.detail = details;
   }
 
 }

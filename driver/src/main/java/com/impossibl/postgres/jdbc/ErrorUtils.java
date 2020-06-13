@@ -204,6 +204,7 @@ public class ErrorUtils {
     e.setColumn(notice.getColumn());
     e.setDatatype(notice.getDatatype());
     e.setConstraint(notice.getConstraint());
+    e.setDetail(notice.getDetail());
 
     return (SQLException) e;
   }

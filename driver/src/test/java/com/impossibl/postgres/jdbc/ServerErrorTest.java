@@ -105,6 +105,7 @@ public class ServerErrorTest {
       assertEquals("public", sqle.getSchema());
       assertEquals("testerr", sqle.getTable());
       assertEquals("testerr_pk", sqle.getConstraint());
+      assertEquals("Key (id)=(1) already exists.", sqle.getDetail());
       assertNull(sqle.getDatatype());
       assertNull(sqle.getColumn());
     }
@@ -131,6 +132,7 @@ public class ServerErrorTest {
       assertEquals("val", sqle.getColumn());
       assertNull(sqle.getDatatype());
       assertNull(sqle.getConstraint());
+      assertEquals("Failing row contains (1, null).", sqle.getDetail());
     }
 
     stmt.close();
@@ -153,6 +155,7 @@ public class ServerErrorTest {
       assertEquals("public", sqle.getSchema());
       assertEquals("testdom", sqle.getDatatype());
       assertEquals("testdom_check", sqle.getConstraint());
+      assertNull(sqle.getDetail());
     }
 
     stmt.close();
