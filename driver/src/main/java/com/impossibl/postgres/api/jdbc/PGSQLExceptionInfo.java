@@ -55,7 +55,7 @@ public interface PGSQLExceptionInfo {
 
   String getConstraint();
 
-  void setConstraint(String details);
+  void setConstraint(String constraint);
 
   String getDetail();
 
