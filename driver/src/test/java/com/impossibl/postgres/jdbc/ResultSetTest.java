@@ -64,6 +64,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1007,6 +1008,37 @@ public class ResultSetTest {
     }
     finally {
       Locale.setDefault(current);
+    }
+  }
+
+  @Test
+  public void testReadStringNull() throws Exception {
+    try (PreparedStatement pst = con.prepareStatement("INSERT INTO teststring(a) VALUES (?)")) {
+      pst.setString(1, "null");
+      pst.executeUpdate();
+      pst.setString(1, null);
+      pst.executeUpdate();
+    }
+
+    try (Statement st = con.createStatement()) {
+      ResultSet rs = st.executeQuery("SELECT a FROM teststring");
+      assertTrue(rs.next());
+      assertEquals("12345", rs.getString(1));
+      assertTrue(rs.next());
+      assertEquals("null", rs.getString(1));
+      assertTrue(rs.next());
+      assertNull(rs.getString(1));
+    }
+
+    // forced into text mode
+    try (Statement st = con.createStatement()) {
+      ResultSet rs = st.executeQuery("SELECT a FROM teststring; SELECT 1");
+      assertTrue(rs.next());
+      assertEquals("12345", rs.getString(1));
+      assertTrue(rs.next());
+      assertEquals("null", rs.getString(1));
+      assertTrue(rs.next());
+      assertNull(rs.getString(1));
     }
   }
 

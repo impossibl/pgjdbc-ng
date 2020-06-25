@@ -210,10 +210,6 @@ abstract class BaseTextDecoder implements Type.Codec.Decoder<CharSequence> {
 
     targetClass = targetClass != null ? targetClass : getDefaultClass();
 
-    if (buffer.length() == 4 && buffer.toString().equalsIgnoreCase("NULL")) {
-      return null;
-    }
-
     try {
       return decodeValue(context, type, typeLength, typeModifier, buffer, targetClass, targetContext);
     }
