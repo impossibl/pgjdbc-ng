@@ -275,7 +275,7 @@ public class StructTest {
     assertTrue(rs.next());
 
     try {
-      TestStruct ts2 = (TestStruct) rs.getObject(1);
+      @SuppressWarnings("unused") TestStruct ts2 = (TestStruct) rs.getObject(1);
       Assert.fail("Cast should have failed");
     }
     catch (ClassCastException e) {
@@ -286,6 +286,54 @@ public class StructTest {
       st.close();
     }
 
+  }
+
+  @Test
+  public void testTextModeNullHandling() throws SQLException {
+
+    TestStruct ts = new TestStruct(), ts2;
+    ts.str = "null";
+    ts.str2 = null;
+
+    PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_test VALUES (?)");
+    pst.setObject(1, ts);
+    pst.executeUpdate();
+    pst.close();
+
+    Statement st = conn.createStatement();
+    ResultSet rs = st.executeQuery("SELECT * FROM struct_test; SELECT 1;");
+    assertTrue(rs.next());
+    assertNotNull(ts2 = rs.getObject(1, TestStruct.class));
+    assertEquals("null", ts2.str);
+    assertNull(ts2.str2);
+    assertNull(ts2.id);
+    assertNull(ts2.num);
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testNullHandling() throws SQLException {
+
+    TestStruct ts = new TestStruct(), ts2;
+    ts.str = "null";
+    ts.str2 = null;
+
+    PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_test VALUES (?)");
+    pst.setObject(1, ts);
+    pst.executeUpdate();
+    pst.close();
+
+    Statement st = conn.createStatement();
+    ResultSet rs = st.executeQuery("SELECT * FROM struct_test;");
+    assertTrue(rs.next());
+    assertNotNull(ts2 = rs.getObject(1, TestStruct.class));
+    assertEquals("null", ts2.str);
+    assertNull(ts2.str2);
+    assertNull(ts2.id);
+    assertNull(ts2.num);
+    rs.close();
+    st.close();
   }
 
 }

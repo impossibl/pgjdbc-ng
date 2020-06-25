@@ -284,6 +284,7 @@ public class Arrays extends SimpleProcProvider {
       int[] dimensions = new int[0];
       int len = buffer.length();
       StringBuilder elementText = null;
+      boolean quoted = false;
 
       int depth = -1;
       int charIdx;
@@ -305,7 +306,8 @@ public class Arrays extends SimpleProcProvider {
           case '}':
             if (elementText != null) {
               ++dimensions[depth];
-              elementText = addTextElement(elementText, elements);
+              elementText = addTextElement(elementText, quoted, elements);
+              quoted = false;
             }
             if (--depth < 0) {
               break scan;
@@ -318,6 +320,7 @@ public class Arrays extends SimpleProcProvider {
           case '"':
             elementText = new StringBuilder();
             charIdx = readString(buffer, charIdx, elementText);
+            quoted = true;
             break;
 
           case '[':
@@ -337,7 +340,8 @@ public class Arrays extends SimpleProcProvider {
             if (ch == delim) {
               if (elementText != null) {
                 ++dimensions[depth];
-                elementText = addTextElement(elementText, elements);
+                elementText = addTextElement(elementText, quoted, elements);
+                quoted = false;
               }
               break;
             }
@@ -353,9 +357,9 @@ public class Arrays extends SimpleProcProvider {
       return dimensions;
     }
 
-    StringBuilder addTextElement(StringBuilder text, List<CharSequence> elements) {
+    StringBuilder addTextElement(StringBuilder text, boolean quoted, List<CharSequence> elements) {
       String textStr = text.toString();
-      if (textStr.equalsIgnoreCase("NULL")) {
+      if (!quoted && textStr.equalsIgnoreCase("NULL")) {
         elements.add(null);
       }
       else {

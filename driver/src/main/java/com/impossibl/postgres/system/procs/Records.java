@@ -265,13 +265,7 @@ public class Records extends SimpleProcProvider {
         attributes.add(null);
       }
       else {
-        String textStr = text.toString();
-        if (textStr.equalsIgnoreCase("NULL")) {
-          attributes.add(null);
-        }
-        else {
-          attributes.add(textStr);
-        }
+        attributes.add(text.toString());
       }
       return null;
     }

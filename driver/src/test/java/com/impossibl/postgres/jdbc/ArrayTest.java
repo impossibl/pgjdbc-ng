@@ -113,6 +113,20 @@ public class ArrayTest {
   }
 
   @Test
+  public void testTextModeGetNull() throws SQLException {
+    Statement stmt = conn.createStatement();
+
+    ResultSet rs = stmt.executeQuery("SELECT null; SELECT 1");
+    assertTrue(rs.next());
+    assertNull(rs.getArray(1));
+    assertNull(rs.getObject(1));
+    assertArrayEquals(null, rs.getObject(1, Integer[].class));
+
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
   public void testSendRecvMultiple() throws SQLException {
 
     PreparedStatement ps = conn.prepareStatement("SELECT ?::int[], ?::real[], ?::varchar[]");
@@ -357,6 +371,81 @@ public class ArrayTest {
     arr.free();
     rs.close();
     stmt.close();
+  }
+
+  @Test
+  public void testNullValuesTextMode() throws SQLException {
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,3]; SELECT 1");
+    assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Integer[] i = (Integer[]) arr.getArray();
+    assertEquals(3, i.length);
+    assertEquals(1, i[0].intValue());
+    assertNull(i[1]);
+    assertEquals(3, i[2].intValue());
+    arr.free();
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testStringNullValues() throws SQLException {
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT ARRAY['null',NULL,'null',NULL,'null']");
+      assertTrue(rs.next());
+      Array arr = rs.getArray(1);
+      String[] i = (String[]) arr.getArray();
+      assertEquals(5, i.length);
+      assertEquals("null", i[0]);
+      assertEquals(null, i[1]);
+      assertEquals("null", i[2]);
+      assertEquals(null, i[3]);
+      assertEquals("null", i[4]);
+      arr.free();
+      rs.close();
+    }
+
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT ARRAY[NULL,'null',NULL,'null',NULL]");
+      assertTrue(rs.next());
+      Array arr = rs.getArray(1);
+      String[] i = (String[]) arr.getArray();
+      assertEquals(5, i.length);
+      assertEquals(null, i[0]);
+      assertEquals("null", i[1]);
+      assertEquals(null, i[2]);
+      assertEquals("null", i[3]);
+      assertEquals(null, i[4]);
+      arr.free();
+      rs.close();
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT ARRAY['null']");
+      assertTrue(rs.next());
+      Array arr = rs.getArray(1);
+      String[] i = (String[]) arr.getArray();
+      assertEquals(1, i.length);
+      assertEquals("null", i[0]);
+      arr.free();
+      rs.close();
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      ResultSet rs = stmt.executeQuery("SELECT ARRAY[null]::varchar[]");
+      assertTrue(rs.next());
+      Array arr = rs.getArray(1);
+      String[] i = (String[]) arr.getArray();
+      assertEquals(1, i.length);
+      assertEquals(null, i[0]);
+      arr.free();
+      rs.close();
+    }
+
   }
 
   @Test
