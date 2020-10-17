@@ -124,8 +124,8 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Struct;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -133,6 +133,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
@@ -178,11 +179,11 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private static class Cleanup implements CleanupRunnable {
 
     ServerConnection serverConnection;
-    List<WeakReference<PGStatement>> statements;
+    Collection<WeakReference<PGStatement>> statements;
     StackTraceElement[] allocationStackTrace;
     String connectionInfo;
 
-    private Cleanup(ServerConnection serverConnection, List<WeakReference<PGStatement>> statements, String connectionInfo) {
+    private Cleanup(ServerConnection serverConnection, Collection<WeakReference<PGStatement>> statements, String connectionInfo) {
       this.serverConnection = serverConnection;
       this.statements = statements;
       this.allocationStackTrace = new Exception().getStackTrace();
@@ -217,7 +218,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   boolean autoCommit = true;
   private int networkTimeout;
   private SQLWarning warningChain;
-  private List<WeakReference<PGStatement>> activeStatements;
+  private Collection<WeakReference<PGStatement>> activeStatements;
   private Map<StatementCacheKey, StatementDescription> descriptionCache;
   private Map<StatementCacheKey, PreparedStatementDescription> preparedStatementCache;
   private int preparedStatementCacheThreshold;
@@ -234,7 +235,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
 
     this.strict = getSetting(STRICT_MODE);
     this.networkTimeout = getSetting(DEFAULT_NETWORK_TIMEOUT);
-    this.activeStatements = new ArrayList<>();
+    this.activeStatements = new ConcurrentLinkedQueue<>();
     this.notificationListeners = new ConcurrentHashMap<>();
 
     final int descriptionCacheSize = getSetting(DESCRIPTION_CACHE_SIZE);
@@ -394,7 +395,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    *
    * @param statements Statements to close
    */
-  private static void closeStatements(List<WeakReference<PGStatement>> statements) {
+  private static void closeStatements(Collection<WeakReference<PGStatement>> statements) {
 
     for (WeakReference<PGStatement> statementRef : statements) {
 
