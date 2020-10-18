@@ -48,10 +48,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static java.lang.Long.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -74,10 +75,10 @@ abstract class PGStatement implements Statement {
 
     PGDirectConnection connection;
     String name;
-    List<WeakReference<PGResultSet>> resultSets;
+    Collection<WeakReference<PGResultSet>> resultSets;
     StackTraceElement[] allocationStackTrace;
 
-    private Cleanup(PGDirectConnection connection, String name, List<WeakReference<PGResultSet>> resultSets) {
+    private Cleanup(PGDirectConnection connection, String name, Collection<WeakReference<PGResultSet>> resultSets) {
       this.connection = connection;
       this.name = name;
       this.resultSets = resultSets;
@@ -129,7 +130,7 @@ abstract class PGStatement implements Statement {
   Query query;
   List<ResultBatch> resultBatches;
   boolean autoClose;
-  List<WeakReference<PGResultSet>> activeResultSets;
+  Collection<WeakReference<PGResultSet>> activeResultSets;
   PGResultSet generatedKeysResultSet;
   SQLWarning warningChain;
   int queryTimeout;
@@ -148,7 +149,7 @@ abstract class PGStatement implements Statement {
     this.name = name;
     this.processEscapes = true;
     this.resultFields = resultFields;
-    this.activeResultSets = new ArrayList<>();
+    this.activeResultSets = new ConcurrentLinkedQueue<>();
     this.generatedKeysResultSet = null;
     this.fetchSize = connection.getDefaultFetchSize();
 
@@ -199,7 +200,7 @@ abstract class PGStatement implements Statement {
    * Closes the given list of result-sets
    *
    */
-  private static void closeResultSets(List<WeakReference<PGResultSet>> resultSets) {
+  private static void closeResultSets(Collection<WeakReference<PGResultSet>> resultSets) {
 
     for (WeakReference<PGResultSet> resultSetRef : resultSets) {
 
