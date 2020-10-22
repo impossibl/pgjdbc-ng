@@ -1,0 +1,61 @@
+[[release-notes-0.8.5]]
+== 0.8.5
+
+*Date of Release:* 2020-10-22
+
+*Scope:* Bug Fixes
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/7?closed=1+[0.8.5] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.5-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Updated Netty to 4.1.53 (previous version contained critical vulnerabilities).
+* Concurrent data structures are now used for cleanup collections to fix concurrency issue during cleanup.
+* Null string values in scalars, records & arrays are now correctly handled.
+* `PGDriver.cleanup` is now safe to be called more than once.
+* `Statement.setMaxFieldSize` and `pgjdbc.field.length.max` now work as documented.
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+* Integrity violation exceptions now include PostgreSQL's DETAIL field.
+
+[[release-notes-0.8.5-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
+
+[[release-notes-0.8.5-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
