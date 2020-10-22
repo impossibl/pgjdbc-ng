@@ -1631,6 +1631,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         public void handleError(Throwable cause, List<Notice> notices) {
           warningChain = chainWarnings(warningChain, makeSQLWarningChain(notices));
           errorRef.set(cause);
+          latch.countDown();
         }
 
         @Override
@@ -1678,6 +1679,7 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
         public void handleError(Throwable cause, List<Notice> notices) {
           warningChain = chainWarnings(warningChain, makeSQLWarningChain(notices));
           errorRef.set(cause);
+          latch.countDown();
         }
 
         @Override
