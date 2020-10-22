@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
+import com.impossibl.postgres.jdbc.PGSQLSimpleException;
 import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
@@ -40,6 +41,7 @@ import static com.impossibl.postgres.protocol.TransactionStatus.Active;
 import static com.impossibl.postgres.protocol.TransactionStatus.Failed;
 import static com.impossibl.postgres.protocol.TransactionStatus.Idle;
 import static com.impossibl.postgres.protocol.v30.ProtocolHandlers.SYNC;
+import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_MESSAGE_SIZE_MAX;
 import static com.impossibl.postgres.utils.ByteBufs.readCString;
 
 import java.io.IOException;
@@ -56,6 +58,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.ReferenceCountUtil;
 
 
@@ -169,6 +172,14 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+
+    if (cause instanceof TooLongFrameException) {
+      cause = new PGSQLSimpleException(
+          "Message Length Exceeds Allowed Maximum (system setting '" + PROTOCOL_MESSAGE_SIZE_MAX.getName() + "')",
+          "54006",
+          cause
+      );
+    }
 
     // Dispatch to current request handler (if any)
 
