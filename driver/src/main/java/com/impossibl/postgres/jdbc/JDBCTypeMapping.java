@@ -367,6 +367,7 @@ class JDBCTypeMapping {
           throw makeSQLException(e);
         }
       case REF_CURSOR:
+        return reg.loadBaseType("refcursor");
       case REF:
       case DATALINK:
       case NCHAR:

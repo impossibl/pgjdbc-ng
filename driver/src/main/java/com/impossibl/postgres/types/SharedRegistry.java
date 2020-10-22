@@ -137,6 +137,8 @@ public class SharedRegistry {
     oidMap.put(29,  new BaseType(29, "cid",        (short) 4,  (byte) 4, Category.User,    ',', 1012, procs, Binary, Binary));
     oidMap.put(30, new ArrayType(30, "oidvector",  (short)-1,  (byte) 4, Category.Array,   ',', 1013, procs, Binary, Binary, oidMap.get(26)));
 
+    oidMap.put(1790, new BaseType(1790, "refcursor", CATALOG_NAMESPACE, (short) -1, (byte) 4, Category.User, ',', 2201, "refcursor", procs, Binary, Binary));
+
     oidMap.put(2205,  new BaseType(2205, "regclass",  (short) 4,  (byte) 4, Category.Numeric, ',', 2210, procs, Binary, Binary));
     oidMap.put(2206,  new BaseType(2206, "regtype",   (short) 4,  (byte) 4, Category.Numeric, ',', 2211, procs, Binary, Binary));
     oidMap.put(2210, new ArrayType(2210, "_regclass", (short)-1,  (byte) 4, Category.Array,   ',', 0, procs, Binary, Binary, oidMap.get(2205)));
@@ -319,6 +321,11 @@ public class SharedRegistry {
 
   private void updateType(Type type) {
     if (type == null) return;
+
+    // Disallow updates for specialized types
+    if (type.getOid() == 1790) {
+      return;
+    }
 
     oidMap.put(type.getId(), type);
     nameMap.put(type.getQualifiedName(), type);

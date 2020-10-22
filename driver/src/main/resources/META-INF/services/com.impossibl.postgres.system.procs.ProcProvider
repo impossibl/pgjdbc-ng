@@ -34,6 +34,7 @@ com.impossibl.postgres.system.procs.Points
 com.impossibl.postgres.system.procs.Polygons
 com.impossibl.postgres.system.procs.Ranges
 com.impossibl.postgres.system.procs.Records
+com.impossibl.postgres.system.procs.RefCursors
 com.impossibl.postgres.system.procs.Strings
 com.impossibl.postgres.system.procs.Tids
 com.impossibl.postgres.system.procs.TimeMods
