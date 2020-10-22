@@ -60,7 +60,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import io.netty.buffer.ByteBuf;
 
 
-abstract class PGStatement implements Statement {
+public abstract class PGStatement implements Statement {
 
   static final String CACHED_STATEMENT_PREFIX = "cached-";
   static final String NO_CACHE_STATEMENT_PREFIX = "nocache-";
@@ -387,7 +387,7 @@ abstract class PGStatement implements Statement {
 
   }
 
-  PGResultSet createResultSet(ResultField[] resultFields, RowDataSet results, boolean releaseResults, Map<String, Class<?>> typeMap) throws SQLException {
+  public PGResultSet createResultSet(ResultField[] resultFields, RowDataSet results, boolean releaseResults, Map<String, Class<?>> typeMap) throws SQLException {
 
     PGResultSet resultSet = new PGResultSet(this, resultFields, results, releaseResults, typeMap);
     activeResultSets.add(new WeakReference<>(resultSet));

@@ -212,6 +212,14 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
+  public void query(String portalName, int maxRows, ExtendedQueryHandler handler) throws IOException {
+    if (sqlTrace != null) {
+      sqlTrace.query(portalName);
+    }
+    submit(new ExecutePortalRequest(portalName, maxRows, handler));
+  }
+
+  @Override
   public void prepare(String statementName, String sql, TypeRef[] parameterTypes, RequestExecutor.PrepareHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.prepare(statementName, sql);

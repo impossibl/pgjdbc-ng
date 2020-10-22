@@ -43,6 +43,7 @@ import static com.impossibl.postgres.utils.guava.ByteStreams.toByteArray;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1040,6 +1041,45 @@ public class ResultSetTest {
       assertTrue(rs.next());
       assertNull(rs.getString(1));
     }
+  }
+
+  @Test
+  public void testRefCursor() throws Exception {
+
+    // We must be inside a transaction for cursors to work.
+    con.setAutoCommit(false);
+
+    try (Statement statement = con.createStatement()) {
+      statement.execute(
+          "CREATE OR REPLACE FUNCTION getUsers(acurs OUT refcursor, bcurs OUT refcursor) "
+              + " AS $$ "
+              + " BEGIN "
+              + "     OPEN acurs FOR SELECT * FROM pg_user WHERE usename = 'test'; "
+              + "     OPEN bcurs FOR SELECT * FROM pg_user WHERE usename = 'test'; "
+              + " END; "
+              + " $$ "
+              + " LANGUAGE plpgsql"
+      );
+    }
+
+    try (CallableStatement statement = con.prepareCall("{call getUsers(?, ?)}")) {
+      statement.registerOutParameter(1, Types.REF_CURSOR);
+      statement.registerOutParameter(2, Types.REF_CURSOR);
+      statement.execute();
+
+      try (ResultSet resultSet = (ResultSet) statement.getObject(1)) {
+        assertTrue(resultSet.next());
+        assertEquals(resultSet.getString("usename"), "test");
+        assertEquals(resultSet.getString("passwd"), "********");
+      }
+
+      try (ResultSet resultSet = (ResultSet) statement.getObject(2)) {
+        assertTrue(resultSet.next());
+        assertEquals(resultSet.getString("usename"), "test");
+        assertEquals(resultSet.getString("passwd"), "********");
+      }
+    }
+
   }
 
 }

@@ -158,6 +158,40 @@ public interface RequestExecutor {
              FieldFormatRef[] resultFieldFormats, int maxRows, ExtendedQueryHandler handler) throws IOException;
 
 
+  /**
+   * Uses the "extended" query protocol to query the rows associated with a portal that was prepared by the server
+   * and returned as the result of a previous query or call.
+   *
+   * The execution will only produce a single
+   * {@link ExtendedQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
+   * {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   * or
+   * {@link ExtendedQueryHandler#handleError(Throwable, List)}
+   * callback, followed by a final
+   * {@link ExtendedQueryHandler#handleReady(TransactionStatus)}.
+   *
+   * Setting {@code maxRows} to anything greater than zero enables suspend/resume
+   * functionality via portals. Results are delivered in groups of {@code maxRows} via the
+   * {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   * callback.
+   * After the first group is received the
+   * {@link #resume(String, int, ResumeHandler)}
+   * request can be used to receive the next group of rows.
+   *
+   * @param portalName Name of the portal to query.
+   * @param maxRows The number of results to receive at a time, or zero to receive all results at once. Anything
+   *                other than zero instantiates a portal.
+   * @param handler Query handler to process results. Will produce a single
+   *                {@link ExtendedQueryHandler#handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)},
+   *                {@link ExtendedQueryHandler#handleSuspend(TypeRef[], ResultField[], RowDataSet, List)}
+   *                or
+   *                {@link ExtendedQueryHandler#handleError(Throwable, List)}
+   *                callback.
+   * @throws IOException If an error occurs submitting the request.
+   */
+  void query(String portalName, int maxRows, ExtendedQueryHandler handler) throws IOException;
+
+
   /*****
    * Prepare. Prepares a named query for execution.
    *****/
