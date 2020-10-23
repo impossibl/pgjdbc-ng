@@ -80,8 +80,11 @@ public interface ProtocolHandler {
     void authenticateMD5(byte[] salt, ProtocolChannel channel) throws IOException;
     void authenticateSCM(ProtocolChannel channel) throws IOException;
     void authenticateGSS(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateGSSContinue(ByteBuf data, ProtocolChannel channel) throws IOException;
     void authenticateSSPI(ByteBuf data, ProtocolChannel channel) throws IOException;
-    void authenticateContinue(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateSASL(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateSASLContinue(ByteBuf data, ProtocolChannel channel) throws IOException;
+    void authenticateSASLFinal(ByteBuf data, ProtocolChannel channel) throws IOException;
 
   }
 

@@ -479,13 +479,31 @@ public class MessageDispatchHandler extends ChannelDuplexHandler {
       case 8:
 
         // GSS Continue
-        handler.authenticateContinue(buffer, protocolChannel);
+        handler.authenticateGSSContinue(buffer, protocolChannel);
         return ProtocolHandler.Action.Resume;
 
       case 9:
 
         // SSPI
         handler.authenticateSSPI(buffer, protocolChannel);
+        return ProtocolHandler.Action.Resume;
+
+      case 10:
+
+        // SASL
+        handler.authenticateSASL(buffer, protocolChannel);
+        return ProtocolHandler.Action.Resume;
+
+      case 11:
+
+        // SASL Continue
+        handler.authenticateSASLContinue(buffer, protocolChannel);
+        return ProtocolHandler.Action.Resume;
+
+      case 12:
+
+        // SASL Final
+        handler.authenticateSASLFinal(buffer, protocolChannel);
         return ProtocolHandler.Action.Resume;
 
       default:

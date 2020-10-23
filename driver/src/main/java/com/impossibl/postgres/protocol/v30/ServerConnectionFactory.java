@@ -48,6 +48,7 @@ import com.impossibl.postgres.system.ParameterNames;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.SystemSettings;
 import com.impossibl.postgres.system.Version;
+import com.impossibl.postgres.utils.ByteBufs;
 import com.impossibl.postgres.utils.MD5Authentication;
 
 import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
@@ -91,12 +92,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
+import com.ongres.scram.client.ScramClient;
+import com.ongres.scram.client.ScramSession;
+import com.ongres.scram.common.stringprep.StringPreparations;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -469,13 +474,66 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       }
 
       @Override
-      public ByteBuf authenticateSSPI(ByteBuf data) {
+      public ByteBuf authenticateGSSContinue(ByteBuf data) {
         throw new IllegalStateException("Unsupported Authentication Method");
       }
 
       @Override
-      public ByteBuf authenticateContinue(ByteBuf data) {
+      public ByteBuf authenticateSSPI(ByteBuf data) {
         throw new IllegalStateException("Unsupported Authentication Method");
+      }
+
+      private ScramSession scramSession;
+      private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
+
+      @Override
+      public ByteBuf authenticateSASL(List<String> mechanisms) throws IOException {
+
+        ScramClient scramClient;
+        try {
+          scramClient =
+              ScramClient
+                  .channelBinding(ScramClient.ChannelBinding.NO)
+                  .stringPreparation(StringPreparations.SASL_PREPARATION)
+                  .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[0]))
+                  .setup();
+        }
+        catch (IllegalArgumentException e) {
+          throw new IOException("No supported SASL mechanisms available");
+        }
+
+        scramSession = scramClient.scramSession("*");
+
+        ByteBuf response = channel.alloc().buffer();
+
+        ByteBufs.writeCString(response, scramClient.getScramMechanism().getName(), UTF_8);
+
+        byte[] clientFirstMessage = scramSession.clientFirstMessage().getBytes(UTF_8);
+        response.writeInt(clientFirstMessage.length);
+        response.writeBytes(clientFirstMessage);
+
+        return response;
+      }
+
+      @Override
+      public ByteBuf authenticateSASLContinue(String serverFirstMessage) throws IOException {
+        String password = config.getSetting(CREDENTIALS_PASSWORD);
+
+        ScramSession.ServerFirstProcessor scramServerFirstProcessor =
+            scramSession.receiveServerFirstMessage(serverFirstMessage);
+
+        scramClientFinalProcessor = scramServerFirstProcessor.clientFinalProcessor(password);
+
+        byte[] clientFinalMessage = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
+
+        ByteBuf response = channel.alloc().buffer(clientFinalMessage.length);
+        response.writeBytes(clientFinalMessage);
+        return response;
+      }
+
+      @Override
+      public void authenticateSASLFinal(String serverFinalMessage) throws IOException {
+        scramClientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
       }
 
       @Override
