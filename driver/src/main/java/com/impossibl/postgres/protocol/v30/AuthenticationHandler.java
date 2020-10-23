@@ -1,0 +1,204 @@
+/**
+ * Copyright (c) 2013, impossibl.com
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of impossibl.com nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004-2011, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
+package com.impossibl.postgres.protocol.v30;
+
+import com.impossibl.postgres.protocol.sasl.scram.client.ScramClient;
+import com.impossibl.postgres.protocol.sasl.scram.client.ScramSession;
+import com.impossibl.postgres.protocol.sasl.scram.gssapi.Gs2CbindFlag;
+import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparations;
+import com.impossibl.postgres.system.Configuration;
+import com.impossibl.postgres.utils.ByteBufs;
+import com.impossibl.postgres.utils.MD5Authentication;
+
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
+import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.cert.X509Certificate;
+import java.util.List;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.handler.ssl.SslHandler;
+
+abstract class AuthenticationHandler implements StartupRequest.CompletionHandler {
+
+  private final Configuration config;
+  private final Channel channel;
+  private ScramSession scramSession;
+  private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
+
+  AuthenticationHandler(Configuration config, Channel channel) {
+    this.config = config;
+    this.channel = channel;
+  }
+
+  @Override
+  public String authenticateClear() {
+    return config.getSetting(CREDENTIALS_PASSWORD);
+  }
+
+  @Override
+  public String authenticateMD5(byte[] salt) {
+
+    String username = config.getSetting(CREDENTIALS_USERNAME);
+    String password = config.getSetting(CREDENTIALS_PASSWORD);
+
+    return MD5Authentication.encode(password, username, salt);
+  }
+
+  @Override
+  public void authenticateKerberos() {
+    throw new IllegalStateException("Unsupported Authentication Method");
+  }
+
+  @Override
+  public byte authenticateSCM() {
+    throw new IllegalStateException("Unsupported Authentication Method");
+  }
+
+  @Override
+  public ByteBuf authenticateGSS(ByteBuf data) {
+    throw new IllegalStateException("Unsupported Authentication Method");
+  }
+
+  @Override
+  public ByteBuf authenticateGSSContinue(ByteBuf data) {
+    throw new IllegalStateException("Unsupported Authentication Method");
+  }
+
+  @Override
+  public ByteBuf authenticateSSPI(ByteBuf data) {
+    throw new IllegalStateException("Unsupported Authentication Method");
+  }
+
+  @Override
+  public ByteBuf authenticateSASL(List<String> mechanisms) throws IOException {
+    SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
+    boolean clientSupportsChannelBinding = sslHandler != null &&
+        sslHandler.engine().getSession().getPeerCertificates() != null &&
+        sslHandler.engine().getSession().getPeerCertificates().length > 0;
+
+    ScramClient scramClient;
+    try {
+      scramClient =
+          ScramClient
+              .channelBinding(
+                  clientSupportsChannelBinding ?
+                      ScramClient.ChannelBinding.IF_SERVER_SUPPORTS_IT :
+                      ScramClient.ChannelBinding.NO
+              )
+              .stringPreparation(StringPreparations.SASL_PREPARATION)
+              .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[0]))
+              .setup();
+    }
+    catch (IllegalArgumentException e) {
+      throw new IOException("No supported SASL mechanisms available");
+    }
+
+    scramSession = scramClient.scramSession("");
+
+    Gs2CbindFlag channelBindingFlag;
+    String channelBindingName = null;
+    if (scramClient.getScramMechanism().supportsChannelBinding()) {
+      channelBindingFlag = Gs2CbindFlag.CHANNEL_BINDING_REQUIRED;
+      channelBindingName = "tls-server-end-point";
+    }
+    else if (clientSupportsChannelBinding) {
+      channelBindingFlag = Gs2CbindFlag.CLIENT_YES_SERVER_NOT;
+    }
+    else {
+      channelBindingFlag = Gs2CbindFlag.CLIENT_NOT;
+    }
+
+    ByteBuf response = channel.alloc().buffer();
+
+    ByteBufs.writeCString(response, scramClient.getScramMechanism().getName(), UTF_8);
+
+    byte[] clientFirstMessageData = scramSession.clientFirstMessage(channelBindingFlag, channelBindingName, null).getBytes(UTF_8);
+    response.writeInt(clientFirstMessageData.length);
+    response.writeBytes(clientFirstMessageData);
+
+    return response;
+  }
+
+  @Override
+  public ByteBuf authenticateSASLContinue(String serverFirstMessage) throws IOException {
+    String password = config.getSetting(CREDENTIALS_PASSWORD);
+
+    ScramSession.ServerFirstProcessor scramServerFirstProcessor =
+        scramSession.receiveServerFirstMessage(serverFirstMessage);
+
+    scramClientFinalProcessor = scramServerFirstProcessor.clientFinalProcessor(password);
+
+    byte[] clientFinalMessageData;
+    if (scramSession.getScramMechanism().supportsChannelBinding()) {
+      try {
+        // Retrieve certificate for generating 'tls-server-end-point' channel binding data
+        SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
+        X509Certificate[] peerCerts = (X509Certificate[]) sslHandler.engine().getSession().getPeerCertificates();
+        X509Certificate peerCert = peerCerts[0];
+
+        // Generate channel binding data via SHA-256 of certificate
+        byte[] certificateDigest = MessageDigest.getInstance("SHA-256").digest(peerCert.getEncoded());
+
+        // Generate final client message bound to channel
+        String clientFinalMessage = scramClientFinalProcessor.clientFinalMessage(certificateDigest);
+        clientFinalMessageData = clientFinalMessage.getBytes(UTF_8);
+      }
+      catch (Exception e) {
+        throw new IOException("Failed to initialize SCRAM channel binding", e);
+      }
+    }
+    else {
+      // Generate final client message without channel binding
+      clientFinalMessageData = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
+    }
+
+    ByteBuf response = channel.alloc().buffer(clientFinalMessageData.length);
+    response.writeBytes(clientFinalMessageData);
+    return response;
+  }
+
+  @Override
+  public void authenticateSASLFinal(String serverFinalMessage) throws IOException {
+    scramClientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
+  }
+
+}

@@ -31,10 +31,6 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
-import com.impossibl.postgres.protocol.sasl.scram.client.ScramClient;
-import com.impossibl.postgres.protocol.sasl.scram.client.ScramSession;
-import com.impossibl.postgres.protocol.sasl.scram.gssapi.Gs2CbindFlag;
-import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparations;
 import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -52,13 +48,10 @@ import com.impossibl.postgres.system.ParameterNames;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.SystemSettings;
 import com.impossibl.postgres.system.Version;
-import com.impossibl.postgres.utils.ByteBufs;
-import com.impossibl.postgres.utils.MD5Authentication;
 
 import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
 import static com.impossibl.postgres.protocol.v30.HostNameVerifier.verifyHostName;
 import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
-import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
 import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 import static com.impossibl.postgres.system.SystemSettings.PROTOCOL_BUFFER_POOLING;
@@ -88,8 +81,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
-import java.security.MessageDigest;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +89,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.net.ssl.SSLEngine;
@@ -132,8 +122,6 @@ import io.netty.handler.ssl.SslHandler;
 
 
 public class ServerConnectionFactory implements com.impossibl.postgres.protocol.ServerConnectionFactory {
-
-  private static final Logger logger = Logger.getLogger(ServerConnectionFactory.class.getName());
 
   private static final long DEFAULT_STARTUP_TIMEOUT = 60;
   private static final long DEFAULT_SSL_TIMEOUT = 60;
@@ -446,142 +434,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     AtomicReference<Throwable> startupError = new AtomicReference<>();
     CountDownLatch startupCompleted = new CountDownLatch(1);
 
-    StartupRequest startupRequest = new StartupRequest(protocolVersion, params, new StartupRequest.CompletionHandler() {
-
-      private ScramSession scramSession;
-      private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
-
-      @Override
-      public String authenticateClear() {
-        return config.getSetting(CREDENTIALS_PASSWORD);
-      }
-
-      @Override
-      public String authenticateMD5(byte[] salt) {
-
-        String username = config.getSetting(CREDENTIALS_USERNAME);
-        String password = config.getSetting(CREDENTIALS_PASSWORD);
-
-        return MD5Authentication.encode(password, username, salt);
-      }
-
-      @Override
-      public void authenticateKerberos() {
-        throw new IllegalStateException("Unsupported Authentication Method");
-      }
-
-      @Override
-      public byte authenticateSCM() {
-        throw new IllegalStateException("Unsupported Authentication Method");
-      }
-
-      @Override
-      public ByteBuf authenticateGSS(ByteBuf data) {
-        throw new IllegalStateException("Unsupported Authentication Method");
-      }
-
-      @Override
-      public ByteBuf authenticateGSSContinue(ByteBuf data) {
-        throw new IllegalStateException("Unsupported Authentication Method");
-      }
-
-      @Override
-      public ByteBuf authenticateSSPI(ByteBuf data) {
-        throw new IllegalStateException("Unsupported Authentication Method");
-      }
-
-      @Override
-      public ByteBuf authenticateSASL(List<String> mechanisms) throws IOException {
-        SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
-        boolean clientSupportsChannelBinding = sslHandler != null &&
-            sslHandler.engine().getSession().getPeerCertificates() != null &&
-            sslHandler.engine().getSession().getPeerCertificates().length > 0;
-
-        ScramClient scramClient;
-        try {
-          scramClient =
-              ScramClient
-                  .channelBinding(
-                      clientSupportsChannelBinding ?
-                          ScramClient.ChannelBinding.IF_SERVER_SUPPORTS_IT :
-                          ScramClient.ChannelBinding.NO
-                  )
-                  .stringPreparation(StringPreparations.SASL_PREPARATION)
-                  .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[0]))
-                  .setup();
-        }
-        catch (IllegalArgumentException e) {
-          throw new IOException("No supported SASL mechanisms available");
-        }
-
-        scramSession = scramClient.scramSession("");
-
-        Gs2CbindFlag channelBindingFlag;
-        String channelBindingName = null;
-        if (scramClient.getScramMechanism().supportsChannelBinding()) {
-          channelBindingFlag = Gs2CbindFlag.CHANNEL_BINDING_REQUIRED;
-          channelBindingName = "tls-server-end-point";
-        }
-        else if (clientSupportsChannelBinding) {
-          channelBindingFlag = Gs2CbindFlag.CLIENT_YES_SERVER_NOT;
-        }
-        else {
-          channelBindingFlag = Gs2CbindFlag.CLIENT_NOT;
-        }
-
-        ByteBuf response = channel.alloc().buffer();
-
-        ByteBufs.writeCString(response, scramClient.getScramMechanism().getName(), UTF_8);
-
-        byte[] clientFirstMessageData = scramSession.clientFirstMessage(channelBindingFlag, channelBindingName, null).getBytes(UTF_8);
-        response.writeInt(clientFirstMessageData.length);
-        response.writeBytes(clientFirstMessageData);
-
-        return response;
-      }
-
-      @Override
-      public ByteBuf authenticateSASLContinue(String serverFirstMessage) throws IOException {
-        String password = config.getSetting(CREDENTIALS_PASSWORD);
-
-        ScramSession.ServerFirstProcessor scramServerFirstProcessor =
-            scramSession.receiveServerFirstMessage(serverFirstMessage);
-
-        scramClientFinalProcessor = scramServerFirstProcessor.clientFinalProcessor(password);
-
-        byte[] clientFinalMessageData;
-        if (scramSession.getScramMechanism().supportsChannelBinding()) {
-          try {
-            // Retrieve certificate for generating 'tls-server-end-point' channel binding data
-            SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
-            X509Certificate[] peerCerts = (X509Certificate[]) sslHandler.engine().getSession().getPeerCertificates();
-            X509Certificate peerCert = peerCerts[0];
-
-            // Generate channel binding data via SHA-256 of certificate
-            byte[] certificateDigest = MessageDigest.getInstance("SHA-256").digest(peerCert.getEncoded());
-
-            // Generate final client message bound to channel
-            String clientFinalMessage = scramClientFinalProcessor.clientFinalMessage(certificateDigest);
-            clientFinalMessageData = clientFinalMessage.getBytes(UTF_8);
-          }
-          catch (Exception e) {
-            throw new IOException("Failed to initialize SCRAM channel binding", e);
-          }
-        }
-        else {
-          // Generate final client message without channel binding
-          clientFinalMessageData = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
-        }
-
-        ByteBuf response = channel.alloc().buffer(clientFinalMessageData.length);
-        response.writeBytes(clientFinalMessageData);
-        return response;
-      }
-
-      @Override
-      public void authenticateSASLFinal(String serverFinalMessage) throws IOException {
-        scramClientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
-      }
+    StartupRequest startupRequest = new StartupRequest(protocolVersion, params, new AuthenticationHandler(config, channel) {
 
       @Override
       public void handleNegotiate(Version maxProtocolVersion, List<String> unrecognizedParameters) {
