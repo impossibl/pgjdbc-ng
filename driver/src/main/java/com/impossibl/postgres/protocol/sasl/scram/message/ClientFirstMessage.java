@@ -67,7 +67,7 @@ public class ClientFirstMessage implements StringWritable {
      */
     public ClientFirstMessage(Gs2Header gs2Header, String user, String nonce) throws IllegalArgumentException {
         this.gs2Header = checkNotNull(gs2Header, "gs2Header");
-        this.user = checkNotEmpty(user, "user");
+        this.user = checkNotNull(user, "user");
         this.nonce = checkNotEmpty(nonce, "nonce");
     }
 

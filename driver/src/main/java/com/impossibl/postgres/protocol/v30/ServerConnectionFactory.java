@@ -514,7 +514,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
           throw new IOException("No supported SASL mechanisms available");
         }
 
-        scramSession = scramClient.scramSession(config.getSetting(CREDENTIALS_USERNAME));
+        scramSession = scramClient.scramSession("");
 
         Gs2CbindFlag channelBindingFlag;
         String channelBindingName = null;

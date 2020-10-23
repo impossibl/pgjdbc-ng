@@ -38,9 +38,6 @@ public class AbstractCharAttributeValue extends AbstractStringWritable implement
 
     public AbstractCharAttributeValue(CharAttribute charAttribute, String value) throws IllegalArgumentException {
         this.charAttribute = checkNotNull(charAttribute, "attribute");
-        if(null != value && value.isEmpty()) {
-            throw new IllegalArgumentException("Value should be either null or non-empty");
-        }
         this.value = value;
     }
 
