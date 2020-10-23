@@ -27,13 +27,13 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
-          java-version: ${{ maxtrix.jdk }}
+          java-version: ${{ matrix.jdk }}
       - name: Setup PostgreSQL SSL Permissions
         run: |
           chmod 0400 ./driver/src/test/resources/certdir/server/server.key
           sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
       - name: Build & Test
-        run: ./gradlew -PpostgresVersions=${{ maxtrix.pg }} test -x checkstyleMain -x checkstyleTest
+        run: ./gradlew -PpostgresVersions=${{ matrix.pg }} test -x checkstyleMain -x checkstyleTest
 
   deploy:
     runs-on: ubuntu-latest
