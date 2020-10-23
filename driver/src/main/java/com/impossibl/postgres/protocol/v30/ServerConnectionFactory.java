@@ -33,6 +33,7 @@ import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.sasl.scram.client.ScramClient;
 import com.impossibl.postgres.protocol.sasl.scram.client.ScramSession;
+import com.impossibl.postgres.protocol.sasl.scram.gssapi.Gs2CbindFlag;
 import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparations;
 import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
@@ -87,6 +88,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -489,12 +492,20 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       @Override
       public ByteBuf authenticateSASL(List<String> mechanisms) throws IOException {
+        SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
+        boolean clientSupportsChannelBinding = sslHandler != null &&
+            sslHandler.engine().getSession().getPeerCertificates() != null &&
+            sslHandler.engine().getSession().getPeerCertificates().length > 0;
 
         ScramClient scramClient;
         try {
           scramClient =
               ScramClient
-                  .channelBinding(ScramClient.ChannelBinding.NO)
+                  .channelBinding(
+                      clientSupportsChannelBinding ?
+                          ScramClient.ChannelBinding.IF_SERVER_SUPPORTS_IT :
+                          ScramClient.ChannelBinding.NO
+                  )
                   .stringPreparation(StringPreparations.SASL_PREPARATION)
                   .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[0]))
                   .setup();
@@ -503,15 +514,28 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
           throw new IOException("No supported SASL mechanisms available");
         }
 
-        scramSession = scramClient.scramSession("*");
+        scramSession = scramClient.scramSession(config.getSetting(CREDENTIALS_USERNAME));
+
+        Gs2CbindFlag channelBindingFlag;
+        String channelBindingName = null;
+        if (scramClient.getScramMechanism().supportsChannelBinding()) {
+          channelBindingFlag = Gs2CbindFlag.CHANNEL_BINDING_REQUIRED;
+          channelBindingName = "tls-server-end-point";
+        }
+        else if (clientSupportsChannelBinding) {
+          channelBindingFlag = Gs2CbindFlag.CLIENT_YES_SERVER_NOT;
+        }
+        else {
+          channelBindingFlag = Gs2CbindFlag.CLIENT_NOT;
+        }
 
         ByteBuf response = channel.alloc().buffer();
 
         ByteBufs.writeCString(response, scramClient.getScramMechanism().getName(), UTF_8);
 
-        byte[] clientFirstMessage = scramSession.clientFirstMessage().getBytes(UTF_8);
-        response.writeInt(clientFirstMessage.length);
-        response.writeBytes(clientFirstMessage);
+        byte[] clientFirstMessageData = scramSession.clientFirstMessage(channelBindingFlag, channelBindingName, null).getBytes(UTF_8);
+        response.writeInt(clientFirstMessageData.length);
+        response.writeBytes(clientFirstMessageData);
 
         return response;
       }
@@ -525,10 +549,32 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
         scramClientFinalProcessor = scramServerFirstProcessor.clientFinalProcessor(password);
 
-        byte[] clientFinalMessage = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
+        byte[] clientFinalMessageData;
+        if (scramSession.getScramMechanism().supportsChannelBinding()) {
+          try {
+            // Retrieve certificate for generating 'tls-server-end-point' channel binding data
+            SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
+            X509Certificate[] peerCerts = (X509Certificate[]) sslHandler.engine().getSession().getPeerCertificates();
+            X509Certificate peerCert = peerCerts[0];
 
-        ByteBuf response = channel.alloc().buffer(clientFinalMessage.length);
-        response.writeBytes(clientFinalMessage);
+            // Generate channel binding data via SHA-256 of certificate
+            byte[] certificateDigest = MessageDigest.getInstance("SHA-256").digest(peerCert.getEncoded());
+
+            // Generate final client message bound to channel
+            String clientFinalMessage = scramClientFinalProcessor.clientFinalMessage(certificateDigest);
+            clientFinalMessageData = clientFinalMessage.getBytes(UTF_8);
+          }
+          catch (Exception e) {
+            throw new IOException("Failed to initialize SCRAM channel binding", e);
+          }
+        }
+        else {
+          // Generate final client message without channel binding
+          clientFinalMessageData = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
+        }
+
+        ByteBuf response = channel.alloc().buffer(clientFinalMessageData.length);
+        response.writeBytes(clientFinalMessageData);
         return response;
       }
 

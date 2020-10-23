@@ -580,4 +580,36 @@ public class ConnectionTest {
 
   }
 
+  @Test
+  public void testScramSha256Plus() throws Exception {
+
+    con = TestUtil.openDB();
+
+    String role = "test" + Math.abs(new Random().nextInt());
+
+    try (Statement statement = con.createStatement()) {
+      statement.execute("CREATE ROLE " + role + " WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:Fgh8JU2AlRjBHUsIU/GgtQ==$XiT346dvVvPmnmTWeW0djrcMYBGuiQDh8QYbBJaBm/I=:CY9vUvDF8v6FIR8Zwircvd82YV58J5AwWiMWwfssuwg='");
+    }
+
+    try {
+
+      Properties props = new Properties();
+      props.setProperty("user", role);
+      props.setProperty("password", "test");
+
+      try (Connection roleCon = DriverManager.getConnection(TestUtil.getURL("sslMode", "require"), props)) {
+        try (Statement statement = roleCon.createStatement()) {
+          assertTrue(statement.execute("SELECT 1"));
+        }
+      }
+
+    }
+    finally {
+      try (Statement statement = con.createStatement()) {
+        statement.execute("DROP ROLE " + role);
+      }
+    }
+
+  }
+
 }
