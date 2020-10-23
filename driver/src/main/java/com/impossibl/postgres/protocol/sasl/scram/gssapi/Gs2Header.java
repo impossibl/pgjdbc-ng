@@ -59,7 +59,7 @@ public class Gs2Header extends AbstractStringWritable {
    */
   public Gs2Header(Gs2CbindFlag cbindFlag, String cbName, String authzid) throws IllegalArgumentException {
     checkNotNull(cbindFlag, "cbindFlag");
-    if (cbindFlag == Gs2CbindFlag.CHANNEL_BINDING_REQUIRED ^ cbName != null) {
+    if (cbindFlag == Gs2CbindFlag.ENABLED ^ cbName != null) {
       throw new IllegalArgumentException("Specify channel binding flag and value together, or none");
     }
     // TODO: cbName is not being properly validated

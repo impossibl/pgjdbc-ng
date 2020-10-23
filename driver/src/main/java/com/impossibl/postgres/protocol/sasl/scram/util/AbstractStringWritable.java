@@ -28,7 +28,7 @@ package com.impossibl.postgres.protocol.sasl.scram.util;
  * Basic implementation of the StringWritable interface, that overrides the toString() method.
  */
 public abstract class AbstractStringWritable implements StringWritable {
-    public String toString() {
-        return writeTo(new StringBuffer()).toString();
-    }
+  public String toString() {
+    return writeTo(new StringBuffer()).toString();
+  }
 }

@@ -32,6 +32,7 @@ import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.gt0;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,14 +55,14 @@ import javax.crypto.spec.SecretKeySpec;
  *      SASL SCRAM Family Mechanisms</a>
  */
 public enum ScramMechanisms implements ScramMechanism {
-  SCRAM_SHA_1("SHA-1", "SHA-1", 160, "HmacSHA1", false, 1),
-  SCRAM_SHA_1_PLUS("SHA-1", "SHA-1", 160, "HmacSHA1", true, 1),
-  SCRAM_SHA_256("SHA-256", "SHA-256", 256, "HmacSHA256", false, 10),
-  SCRAM_SHA_256_PLUS("SHA-256", "SHA-256", 256, "HmacSHA256", true, 10);
+  SCRAM_SHA_1("SHA-1", "SHA-1", 160, "HmacSHA1", false),
+  SCRAM_SHA_1_PLUS("SHA-1", "SHA-1", 160, "HmacSHA1", true),
+  SCRAM_SHA_256("SHA-256", "SHA-256", 256, "HmacSHA256", false),
+  SCRAM_SHA_256_PLUS("SHA-256", "SHA-256", 256, "HmacSHA256", true);
 
-  private static final String SCRAM_MECHANISM_NAME_PREFIX = "SCRAM-";
+  private static final String NAME_PREFIX = "SCRAM-";
   private static final String CHANNEL_BINDING_SUFFIX = "-PLUS";
-  private static final String PBKDF2_PREFIX_ALGORITHM_NAME = "PBKDF2With";
+  private static final String PBKDF2_ALGORITHM_PREFIX = "PBKDF2With";
   private static final Map<String, ScramMechanisms> BY_NAME_MAPPING = valuesAsMap();
 
   private final String mechanismName;
@@ -69,21 +70,14 @@ public enum ScramMechanisms implements ScramMechanism {
   private final int keyLength;
   private final String hmacAlgorithmName;
   private final boolean channelBinding;
-  private final int priority;
 
-  ScramMechanisms(
-      String name, String hashAlgorithmName, int keyLength, String hmacAlgorithmName, boolean channelBinding,
-      int priority
-  ) {
-    this.mechanismName = SCRAM_MECHANISM_NAME_PREFIX
-        + checkNotNull(name, "name")
-        + (channelBinding ? CHANNEL_BINDING_SUFFIX : "")
-    ;
+  ScramMechanisms(String name, String hashAlgorithmName, int keyLength,
+                  String hmacAlgorithmName, boolean channelBinding) {
+    this.mechanismName = NAME_PREFIX + checkNotNull(name, "name") + (channelBinding ? CHANNEL_BINDING_SUFFIX : "");
     this.hashAlgorithmName = checkNotNull(hashAlgorithmName, "hashAlgorithmName");
     this.keyLength = gt0(keyLength, "keyLength");
     this.hmacAlgorithmName = checkNotNull(hmacAlgorithmName, "hmacAlgorithmName");
     this.channelBinding = channelBinding;
-    this.priority = gt0(priority, "priority");
   }
 
   /**
@@ -114,7 +108,7 @@ public enum ScramMechanisms implements ScramMechanism {
   }
 
   @Override
-  public boolean supportsChannelBinding() {
+  public boolean requiresChannelBinding() {
     return channelBinding;
   }
 
@@ -144,20 +138,20 @@ public enum ScramMechanisms implements ScramMechanism {
   }
 
   @Override
-  public byte[] saltedPassword(StringPreparation stringPreparation, String password, byte[] salt,
-                               int iterations) {
+  public byte[] saltedPassword(StringPreparation stringPreparation, String password, byte[] salt, int iterations) {
+    String keyFactoryAlgorithmName = PBKDF2_ALGORITHM_PREFIX + hmacAlgorithmName;
     char[] normalizedString = stringPreparation.normalize(password).toCharArray();
     try {
       return CryptoUtil.hi(
-          SecretKeyFactory.getInstance(PBKDF2_PREFIX_ALGORITHM_NAME + hmacAlgorithmName),
+          SecretKeyFactory.getInstance(keyFactoryAlgorithmName),
           algorithmKeyLength(),
           normalizedString,
           salt,
-          iterations);
+          iterations
+      );
     }
     catch (NoSuchAlgorithmException e) {
-      // Shouldn't happen in Java 8+
-      throw new RuntimeException(e);
+      throw new RuntimeException("PBKDF Algorithm " + keyFactoryAlgorithmName + " not present in current JVM");
     }
   }
 
@@ -170,35 +164,6 @@ public enum ScramMechanisms implements ScramMechanism {
     checkNotNull(name, "name");
 
     return BY_NAME_MAPPING.get(name);
-  }
-
-  /**
-   * This class classifies SCRAM mechanisms by two properties: whether they support channel binding;
-   * and a priority, which is higher for safer algorithms (like SHA-256 vs SHA-1).
-   *
-   * Given a list of SCRAM mechanisms supported by the peer, pick one that matches the channel binding requirements
-   * and has the highest priority.
-   *
-   * @param channelBinding The type of matching mechanism searched for
-   * @param peerMechanisms The mechanisms supported by the other peer
-   * @return The selected mechanism, or null if no mechanism matched
-   */
-  public static ScramMechanism selectMatchingMechanism(boolean channelBinding, String... peerMechanisms) {
-    ScramMechanisms selectedScramMechanisms = null;
-    for (String peerMechanism : peerMechanisms) {
-      ScramMechanisms matchedScramMechanisms = BY_NAME_MAPPING.get(peerMechanism);
-      if (matchedScramMechanisms != null) {
-        for (ScramMechanisms candidateScramMechanisms : ScramMechanisms.values()) {
-          if (channelBinding == candidateScramMechanisms.channelBinding
-              && candidateScramMechanisms.mechanismName.equals(matchedScramMechanisms.mechanismName)
-              && (selectedScramMechanisms == null
-              || selectedScramMechanisms.priority < candidateScramMechanisms.priority)) {
-            selectedScramMechanisms = candidateScramMechanisms;
-          }
-        }
-      }
-    }
-    return selectedScramMechanisms;
   }
 
   private static Map<String, ScramMechanisms> valuesAsMap() {

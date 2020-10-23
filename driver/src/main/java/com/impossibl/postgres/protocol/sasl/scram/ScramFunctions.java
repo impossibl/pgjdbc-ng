@@ -52,10 +52,8 @@ public class ScramFunctions {
    * @param iteration The number of iterations
    * @return The salted password
    */
-  public static byte[] saltedPassword(
-      ScramMechanism scramMechanism, StringPreparation stringPreparation, String password, byte[] salt,
-      int iteration
-  ) {
+  public static byte[] saltedPassword(ScramMechanism scramMechanism, StringPreparation stringPreparation,
+                                      String password, byte[] salt, int iteration) {
     return scramMechanism.saltedPassword(stringPreparation, password, salt, iteration);
   }
 
@@ -100,10 +98,8 @@ public class ScramFunctions {
    * @param iteration The number of iterations
    * @return The client key
    */
-  public static byte[] clientKey(
-      ScramMechanism scramMechanism, StringPreparation stringPreparation, String password, byte[] salt,
-      int iteration
-  ) {
+  public static byte[] clientKey(ScramMechanism scramMechanism, StringPreparation stringPreparation,
+                                 String password, byte[] salt, int iteration) {
     return clientKey(scramMechanism, saltedPassword(scramMechanism, stringPreparation, password, salt, iteration));
   }
 
@@ -137,10 +133,8 @@ public class ScramFunctions {
    * @param iteration The number of iterations
    * @return The server key
    */
-  public static byte[] serverKey(
-      ScramMechanism scramMechanism, StringPreparation stringPreparation, String password, byte[] salt,
-      int iteration
-  ) {
+  public static byte[] serverKey(ScramMechanism scramMechanism, StringPreparation stringPreparation,
+                                 String password, byte[] salt, int iteration) {
     return serverKey(scramMechanism, saltedPassword(scramMechanism, stringPreparation, password, salt, iteration));
   }
 
@@ -224,9 +218,8 @@ public class ScramFunctions {
    * @param authMessage The auth message
    * @return True if the client proof is correct
    */
-  public static boolean verifyClientProof(
-      ScramMechanism scramMechanism, byte[] clientProof, byte[] storedKey, String authMessage
-  ) {
+  public static boolean verifyClientProof(ScramMechanism scramMechanism, byte[] clientProof,
+                                          byte[] storedKey, String authMessage) {
     byte[] clientSignature = clientSignature(scramMechanism, storedKey, authMessage);
     byte[] clientKey = CryptoUtil.xor(clientSignature, clientProof);
     byte[] computedStoredKey = hash(scramMechanism, clientKey);
@@ -242,9 +235,8 @@ public class ScramFunctions {
    * @param serverSignature The provided server signature
    * @return True if the server signature is correct
    */
-  public static boolean verifyServerSignature(
-      ScramMechanism scramMechanism, byte[] serverKey, String authMessage, byte[] serverSignature
-  ) {
+  public static boolean verifyServerSignature(ScramMechanism scramMechanism, byte[] serverKey,
+                                              String authMessage, byte[] serverSignature) {
     return Arrays.equals(serverSignature(scramMechanism, serverKey, authMessage), serverSignature);
   }
 }

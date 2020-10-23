@@ -35,9 +35,9 @@
  */
 package com.impossibl.postgres.protocol.v30;
 
-import com.impossibl.postgres.protocol.sasl.scram.client.ScramClient;
 import com.impossibl.postgres.protocol.sasl.scram.client.ScramSession;
-import com.impossibl.postgres.protocol.sasl.scram.gssapi.Gs2CbindFlag;
+import com.impossibl.postgres.protocol.sasl.scram.client.ScramSessionFactory;
+import com.impossibl.postgres.protocol.sasl.scram.exception.ScramException;
 import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparations;
 import com.impossibl.postgres.system.Configuration;
 import com.impossibl.postgres.utils.ByteBufs;
@@ -45,6 +45,7 @@ import com.impossibl.postgres.utils.MD5Authentication;
 
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
+import static com.impossibl.postgres.system.SystemSettings.SSL_MODE;
 
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -59,10 +60,11 @@ import io.netty.handler.ssl.SslHandler;
 
 abstract class AuthenticationHandler implements StartupRequest.CompletionHandler {
 
+  private static final String SCRAM_CHANNEL_BIND_METHOD = "tls-server-end-point";
+
   private final Configuration config;
   private final Channel channel;
   private ScramSession scramSession;
-  private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
 
   AuthenticationHandler(Configuration config, Channel channel) {
     this.config = config;
@@ -115,43 +117,27 @@ abstract class AuthenticationHandler implements StartupRequest.CompletionHandler
         sslHandler.engine().getSession().getPeerCertificates() != null &&
         sslHandler.engine().getSession().getPeerCertificates().length > 0;
 
-    ScramClient scramClient;
+    ScramSessionFactory scramSessionFactory;
     try {
-      scramClient =
-          ScramClient
-              .channelBinding(
-                  clientSupportsChannelBinding ?
-                      ScramClient.ChannelBinding.IF_SERVER_SUPPORTS_IT :
-                      ScramClient.ChannelBinding.NO
-              )
+      scramSessionFactory =
+          ScramSessionFactory.builder()
+              .serverAdvertisedMechanisms(mechanisms)
+              .channelBindMethod(clientSupportsChannelBinding ? SCRAM_CHANNEL_BIND_METHOD : null)
               .stringPreparation(StringPreparations.SASL_PREPARATION)
-              .selectMechanismBasedOnServerAdvertised(mechanisms.toArray(new String[0]))
-              .setup();
+              .preferChannelBindingMechanism(config.getSetting(SSL_MODE).isRequired())
+              .build();
     }
     catch (IllegalArgumentException e) {
       throw new IOException("No supported SASL mechanisms available");
     }
 
-    scramSession = scramClient.scramSession("");
-
-    Gs2CbindFlag channelBindingFlag;
-    String channelBindingName = null;
-    if (scramClient.getScramMechanism().supportsChannelBinding()) {
-      channelBindingFlag = Gs2CbindFlag.CHANNEL_BINDING_REQUIRED;
-      channelBindingName = "tls-server-end-point";
-    }
-    else if (clientSupportsChannelBinding) {
-      channelBindingFlag = Gs2CbindFlag.CLIENT_YES_SERVER_NOT;
-    }
-    else {
-      channelBindingFlag = Gs2CbindFlag.CLIENT_NOT;
-    }
+    scramSession = scramSessionFactory.start("");
 
     ByteBuf response = channel.alloc().buffer();
 
-    ByteBufs.writeCString(response, scramClient.getScramMechanism().getName(), UTF_8);
+    ByteBufs.writeCString(response, scramSession.getScramMechanismName(), UTF_8);
 
-    byte[] clientFirstMessageData = scramSession.clientFirstMessage(channelBindingFlag, channelBindingName, null).getBytes(UTF_8);
+    byte[] clientFirstMessageData = scramSession.clientFirstMessage(null);
     response.writeInt(clientFirstMessageData.length);
     response.writeBytes(clientFirstMessageData);
 
@@ -160,15 +146,13 @@ abstract class AuthenticationHandler implements StartupRequest.CompletionHandler
 
   @Override
   public ByteBuf authenticateSASLContinue(String serverFirstMessage) throws IOException {
-    String password = config.getSetting(CREDENTIALS_PASSWORD);
 
-    ScramSession.ServerFirstProcessor scramServerFirstProcessor =
-        scramSession.receiveServerFirstMessage(serverFirstMessage);
+    byte[] channelBindData;
+    if (scramSession.requiresChannelBindData()) {
+      if (!SCRAM_CHANNEL_BIND_METHOD.equals(scramSession.getChannelBindMethod())) {
+        throw new ScramException("Unsupported channel-bind method");
+      }
 
-    scramClientFinalProcessor = scramServerFirstProcessor.clientFinalProcessor(password);
-
-    byte[] clientFinalMessageData;
-    if (scramSession.getScramMechanism().supportsChannelBinding()) {
       try {
         // Retrieve certificate for generating 'tls-server-end-point' channel binding data
         SslHandler sslHandler = (SslHandler) channel.pipeline().get("ssl");
@@ -176,29 +160,28 @@ abstract class AuthenticationHandler implements StartupRequest.CompletionHandler
         X509Certificate peerCert = peerCerts[0];
 
         // Generate channel binding data via SHA-256 of certificate
-        byte[] certificateDigest = MessageDigest.getInstance("SHA-256").digest(peerCert.getEncoded());
-
-        // Generate final client message bound to channel
-        String clientFinalMessage = scramClientFinalProcessor.clientFinalMessage(certificateDigest);
-        clientFinalMessageData = clientFinalMessage.getBytes(UTF_8);
+        channelBindData = MessageDigest.getInstance("SHA-256").digest(peerCert.getEncoded());
       }
       catch (Exception e) {
-        throw new IOException("Failed to initialize SCRAM channel binding", e);
+        throw new ScramException("Failed to generate channel-bind data", e);
       }
     }
     else {
-      // Generate final client message without channel binding
-      clientFinalMessageData = scramClientFinalProcessor.clientFinalMessage().getBytes(UTF_8);
+      channelBindData = null;
     }
 
-    ByteBuf response = channel.alloc().buffer(clientFinalMessageData.length);
-    response.writeBytes(clientFinalMessageData);
+    String password = config.getSetting(CREDENTIALS_PASSWORD);
+
+    byte[] clientFinalMessage = scramSession.receiveServerFirstMessage(serverFirstMessage, channelBindData, password);
+
+    ByteBuf response = channel.alloc().buffer(clientFinalMessage.length);
+    response.writeBytes(clientFinalMessage);
     return response;
   }
 
   @Override
   public void authenticateSASLFinal(String serverFinalMessage) throws IOException {
-    scramClientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
+    scramSession.receiveServerFinalMessage(serverFinalMessage);
   }
 
 }
