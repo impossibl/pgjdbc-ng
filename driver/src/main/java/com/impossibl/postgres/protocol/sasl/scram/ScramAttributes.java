@@ -27,8 +27,6 @@ package com.impossibl.postgres.protocol.sasl.scram;
 import com.impossibl.postgres.protocol.sasl.scram.exception.ScramParseException;
 import com.impossibl.postgres.protocol.sasl.scram.util.CharAttribute;
 
-import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkNotNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -126,7 +124,7 @@ public enum ScramAttributes implements CharAttribute {
   private final char attributeChar;
 
   ScramAttributes(char attributeChar) {
-    this.attributeChar = checkNotNull(attributeChar, "attributeChar");
+    this.attributeChar = attributeChar;
   }
 
   @Override
@@ -134,7 +132,7 @@ public enum ScramAttributes implements CharAttribute {
     return attributeChar;
   }
 
-  private static final Map<Character, ScramAttributes> REVERSE_MAPPING = new HashMap<Character, ScramAttributes>();
+  private static final Map<Character, ScramAttributes> REVERSE_MAPPING = new HashMap<>();
 
   static {
     for (ScramAttributes scramAttribute : values()) {

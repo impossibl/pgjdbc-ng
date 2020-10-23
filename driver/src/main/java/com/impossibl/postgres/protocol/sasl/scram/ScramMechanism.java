@@ -66,15 +66,14 @@ public interface ScramMechanism {
   int algorithmKeyLength();
 
   /**
-   * Whether this mechanism supports channel binding
+   * Whether this mechanism requires channel binding
    * @return True if it supports channel binding, false otherwise
    */
-  boolean supportsChannelBinding();
+  boolean requiresChannelBinding();
 
   /**
    * Compute the salted password
    * @return The salted password
    */
-  byte[] saltedPassword(StringPreparation stringPreparation, String password,
-                        byte[] salt, int iteration);
+  byte[] saltedPassword(StringPreparation stringPreparation, String password, byte[] salt, int iteration);
 }

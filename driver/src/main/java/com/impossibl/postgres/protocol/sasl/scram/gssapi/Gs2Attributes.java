@@ -37,17 +37,17 @@ public enum Gs2Attributes implements CharAttribute {
   /**
    * Channel binding attribute. Client doesn't support channel binding.
    */
-  CLIENT_NOT(Gs2CbindFlag.CLIENT_NOT.getChar()),
+  CLIENT_NOT(Gs2CbindFlag.DISABLED.getChar()),
 
   /**
    * Channel binding attribute. Client does support channel binding but thinks the server does not.
    */
-  CLIENT_YES_SERVER_NOT(Gs2CbindFlag.CLIENT_YES_SERVER_NOT.getChar()),
+  CLIENT_YES_SERVER_NOT(Gs2CbindFlag.NO_SERVER_SUPPORT.getChar()),
 
   /**
    * Channel binding attribute. Client requires channel binding. The selected channel binding follows "p=".
    */
-  CHANNEL_BINDING_REQUIRED(Gs2CbindFlag.CHANNEL_BINDING_REQUIRED.getChar()),
+  CHANNEL_BINDING_REQUIRED(Gs2CbindFlag.ENABLED.getChar()),
 
   /**
    * SCRAM attribute. This attribute specifies an authorization identity.

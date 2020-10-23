@@ -48,8 +48,7 @@ public class ScramAttributeValue extends AbstractCharAttributeValue {
    * @return The parsed class
    * @throws ScramParseException If the argument is empty or an invalid Attribute-Value
    */
-  public static ScramAttributeValue parse(String value)
-      throws ScramParseException {
+  public static ScramAttributeValue parse(String value) throws ScramParseException {
     if (null == value || value.length() < 3 || value.charAt(1) != '=') {
       throw new ScramParseException("Invalid ScramAttributeValue '" + value + "'");
     }

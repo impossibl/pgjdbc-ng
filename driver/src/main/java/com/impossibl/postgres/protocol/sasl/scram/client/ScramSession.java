@@ -27,6 +27,7 @@ package com.impossibl.postgres.protocol.sasl.scram.client;
 import com.impossibl.postgres.jdbc.xa.Base64;
 import com.impossibl.postgres.protocol.sasl.scram.ScramFunctions;
 import com.impossibl.postgres.protocol.sasl.scram.ScramMechanism;
+import com.impossibl.postgres.protocol.sasl.scram.exception.ScramException;
 import com.impossibl.postgres.protocol.sasl.scram.exception.ScramInvalidServerSignatureException;
 import com.impossibl.postgres.protocol.sasl.scram.exception.ScramParseException;
 import com.impossibl.postgres.protocol.sasl.scram.exception.ScramServerErrorException;
@@ -40,6 +41,8 @@ import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparation;
 import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkNotEmpty;
 import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkNotNull;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 
 /**
  * A class that represents a SCRAM client. Use this class to perform a SCRAM negotiation with a SCRAM server.
@@ -48,58 +51,149 @@ import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.chec
  */
 public class ScramSession {
   private final ScramMechanism scramMechanism;
+  private final String channelBindMethod;
+  private final boolean serverSupportsChannelBinding;
   private final StringPreparation stringPreparation;
   private final String user;
   private final String nonce;
   private ClientFirstMessage clientFirstMessage;
+  private ClientFinalProcessor clientFinalProcessor;
   private String serverFirstMessageString;
 
   /**
-   * Constructs a SCRAM client, to perform an authentication for a given user.
-   * This class can be instantiated directly,
-   * but it is recommended that a {@link ScramClient} is used instead.
+   * Constructs a SCRAM session, to perform a specific authentication flow. Use {@link ScramSessionFactory#start(String)} to
+   * instantiate a ScramSession.
+   *
    * @param scramMechanism The SCRAM mechanism that will be using this client
-   * @param stringPreparation
-   * @param user
-   * @param nonce
+   * @param channelBindMethod Name of the selected channel-bind method
+   * @param serverSupportsChannelBinding Whether the server reported supporting channel binding
+   * @param stringPreparation String preparation implementation
+   * @param user The user's name
+   * @param nonce Randomly generated nonce
    */
-  public ScramSession(ScramMechanism scramMechanism, StringPreparation stringPreparation, String user, String nonce) {
+  ScramSession(ScramMechanism scramMechanism, String channelBindMethod, boolean serverSupportsChannelBinding,
+               StringPreparation stringPreparation, String user, String nonce) {
     this.scramMechanism = checkNotNull(scramMechanism, "scramMechanism");
+    this.channelBindMethod = channelBindMethod;
+    this.serverSupportsChannelBinding = serverSupportsChannelBinding;
     this.stringPreparation = checkNotNull(stringPreparation, "stringPreparation");
     this.user = checkNotNull(user, "user");
     this.nonce = checkNotEmpty(nonce, "nonce");
   }
 
-  private String setAndReturnClientFirstMessage(ClientFirstMessage clientFirstMessage) {
-    this.clientFirstMessage = clientFirstMessage;
-
-    return clientFirstMessage.toString();
+  /**
+   * Name of the session's selected SCRAM mechanism.
+   */
+  public String getScramMechanismName() {
+    return scramMechanism.getName();
   }
 
   /**
-   * Returns the text representation of a SCRAM client-first-message, with the GSS-API header values indicated.
-   * @param gs2CbindFlag The channel binding flag
-   * @param cbindName The channel binding algorithm name, if channel binding is supported, or null
-   * @param authzid The optional
+   * Returns the text representation of a SCRAM client-first-message
+   * @param authzid Optional authzid (may be null)
    * @return The message
    */
-  public String clientFirstMessage(Gs2CbindFlag gs2CbindFlag, String cbindName, String authzid) {
-    return setAndReturnClientFirstMessage(new ClientFirstMessage(gs2CbindFlag, authzid, cbindName, user, nonce));
+  public byte[] clientFirstMessage(String authzid) {
+
+    Gs2CbindFlag gs2CbindFlag;
+    if (channelBindMethod != null) {
+      if (scramMechanism.requiresChannelBinding()) {
+        gs2CbindFlag = Gs2CbindFlag.ENABLED;
+      }
+      else {
+        gs2CbindFlag = serverSupportsChannelBinding ? Gs2CbindFlag.DISABLED : Gs2CbindFlag.NO_SERVER_SUPPORT;
+      }
+    }
+    else {
+      gs2CbindFlag = Gs2CbindFlag.DISABLED;
+    }
+
+    String channelBindMethod = gs2CbindFlag == Gs2CbindFlag.ENABLED ? this.channelBindMethod : null;
+
+    this.clientFirstMessage = new ClientFirstMessage(gs2CbindFlag, authzid, channelBindMethod, user, nonce);
+
+    return clientFirstMessage.toString().getBytes(UTF_8);
   }
 
   /**
-   * Returns the text representation of a SCRAM client-first-message, with no channel binding nor authzid.
-   * @return The message
+   * Definitive answer to whether the client should be providing channel-bind
+   * data to the {@link #receiveServerFirstMessage} method call.
+   * @return True if the client should provide channel-bind data.
    */
-  public String clientFirstMessage() {
-    return setAndReturnClientFirstMessage(new ClientFirstMessage(user, nonce));
+  public boolean requiresChannelBindData() {
+    return scramMechanism.requiresChannelBinding();
+  }
+
+  /**
+   * Selected method the client should use to generate channel-bind data
+   * @return Name of channel-bind method
+   */
+  public String getChannelBindMethod() {
+    return channelBindMethod;
+  }
+
+  /**
+   * Generates a client-final-message from the received server-first-message, channel-bind data (if any),
+   * and the user's password. A matching {@link ClientFinalProcessor} is stored internally for a later call to
+   * {@link #receiveServerFinalMessage(String)} to complete the authentication.
+   *
+   * @param serverFirstMessage The message
+   * @param channelBindData Optional channel-bind data (my be null)
+   * @param password The user's password
+   * @return The generated client-final-message.
+   * @throws ScramParseException If the message is not a valid server-first-message
+   */
+  public byte[] receiveServerFirstMessage(String serverFirstMessage, byte[] channelBindData, String password) throws ScramException {
+    if (requiresChannelBindData() && channelBindData == null) {
+      throw new ScramException("Missing required channel-bind data");
+    }
+
+    clientFinalProcessor =
+        new ServerFirstProcessor(checkNotEmpty(serverFirstMessage, "serverFirstMessage"))
+            .clientFinalProcessor(password);
+    return clientFinalProcessor.clientFinalMessage(channelBindData).getBytes(UTF_8);
+  }
+
+  /**
+   * Generates a client-final-message from the received server-first-message, channel-bind data (if any),
+   * and the clientKey and storedKey which, if available, provide an optimized path versus providing the original
+   * user's passwordthe user's password. A matching {@link ClientFinalProcessor} is stored internally for a later call
+   * to {@link #receiveServerFinalMessage(String)} to complete the authentication.
+   *
+   * @param serverFirstMessage The message
+   * @param channelBindData Optional channel-bind data (my be null)
+   * @param clientKey The client key, as per the SCRAM algorithm.
+   *                  It can be generated with:
+   *                  {@link ScramFunctions#clientKey(ScramMechanism, StringPreparation, String, byte[], int)}
+   * @param storedKey The stored key, as per the SCRAM algorithm.
+   *                  It can be generated from the client key with:
+   *                  {@link ScramFunctions#storedKey(ScramMechanism, byte[])}
+   * @return The generated client-final-message.
+   * @throws ScramParseException If the message is not a valid server-first-message
+   */
+  public byte[] receiveServerFirstMessage(String serverFirstMessage, byte[] channelBindData,
+                                          byte[] clientKey, byte[] storedKey) throws ScramException {
+    if (requiresChannelBindData() && channelBindData == null) {
+      throw new ScramException("Missing required channel-bind data");
+    }
+
+    clientFinalProcessor =
+        new ServerFirstProcessor(checkNotEmpty(serverFirstMessage, "serverFirstMessage"))
+            .clientFinalProcessor(clientKey, storedKey);
+    return clientFinalProcessor.clientFinalMessage(channelBindData).getBytes(UTF_8);
+  }
+
+  public void receiveServerFinalMessage(String serverFinalMessage) throws ScramException {
+    if (clientFinalProcessor == null) {
+      throw new IllegalStateException("No ClientFinalProcessor selected. Ensure receiveServerFirstMessage has been called.");
+    }
+    clientFinalProcessor.receiveServerFinalMessage(serverFinalMessage);
   }
 
   /**
    * Process a received server-first-message.
-   * Generate by calling {@link #receiveServerFirstMessage(String)}.
    */
-  public class ServerFirstProcessor {
+  private class ServerFirstProcessor {
     private final ServerFirstMessage serverFirstMessage;
 
     private ServerFirstProcessor(String receivedServerFirstMessage) throws ScramParseException {
@@ -155,12 +249,10 @@ public class ScramSession {
   }
 
   /**
-   * Processor that allows to generate the client-final-message,
-   * as well as process the server-final-message and verify server's signature.
-   * Generate the processor by calling either {@link ServerFirstProcessor#clientFinalProcessor(String)}
-   * or {@link ServerFirstProcessor#clientFinalProcessor(byte[], byte[])}.
+   * Processor that allows to generate the client-final-message, as well as process the
+   * server-final-message and verify server's signature.
    */
-  public class ClientFinalProcessor {
+  private class ClientFinalProcessor {
     private final String nonce;
     private final byte[] clientKey;
     private final byte[] storedKey;
@@ -214,7 +306,7 @@ public class ScramSession {
 
     /**
      * Generates the SCRAM representation of the client-final-message, including the given channel-binding data.
-     * @param cbindData The bytes of the channel-binding data
+     * @param cbindData Optional channel-binding data
      * @return The message
      * @throws IllegalArgumentException If the channel binding data is null
      */
@@ -234,14 +326,6 @@ public class ScramSession {
       );
 
       return clientFinalMessage.toString();
-    }
-
-    /**
-     * Generates the SCRAM representation of the client-final-message.
-     * @return The message
-     */
-    public String clientFinalMessage() {
-      return clientFinalMessage(null);
     }
 
     /**
@@ -269,19 +353,4 @@ public class ScramSession {
     }
   }
 
-  public ScramMechanism getScramMechanism() {
-    return scramMechanism;
-  }
-
-  /**
-   * Constructs a handler for the server-first-message, from its String representation.
-   * @param serverFirstMessage The message
-   * @return The handler
-   * @throws ScramParseException If the message is not a valid server-first-message
-   * @throws IllegalArgumentException If the message is null or empty
-   */
-  public ServerFirstProcessor receiveServerFirstMessage(String serverFirstMessage)
-      throws ScramParseException, IllegalArgumentException {
-    return new ServerFirstProcessor(checkNotEmpty(serverFirstMessage, "serverFirstMessage"));
-  }
 }

@@ -37,17 +37,17 @@ public enum Gs2CbindFlag implements CharAttribute {
   /**
    * Client doesn't support channel binding.
    */
-  CLIENT_NOT('n'),
+  DISABLED('n'),
 
   /**
    * Client does support channel binding but thinks the server does not.
    */
-  CLIENT_YES_SERVER_NOT('y'),
+  NO_SERVER_SUPPORT('y'),
 
   /**
    * Client requires channel binding. The selected channel binding follows "p=".
    */
-  CHANNEL_BINDING_REQUIRED('p');
+  ENABLED('p');
 
   private final char flag;
 
@@ -63,11 +63,11 @@ public enum Gs2CbindFlag implements CharAttribute {
   public static Gs2CbindFlag byChar(char c) {
     switch (c) {
       case 'n':
-        return CLIENT_NOT;
+        return DISABLED;
       case 'y':
-        return CLIENT_YES_SERVER_NOT;
+        return NO_SERVER_SUPPORT;
       case 'p':
-        return CHANNEL_BINDING_REQUIRED;
+        return ENABLED;
     }
 
     throw new IllegalArgumentException("Invalid Gs2CbindFlag character '" + c + "'");

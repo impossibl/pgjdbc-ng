@@ -28,26 +28,27 @@ import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.chec
 
 
 public class UsAsciiUtils {
-    /**
-     * Removes non-printable characters from the US-ASCII String.
-     * @param value The original String
-     * @return The possibly modified String, without non-printable US-ASCII characters.
-     * @throws IllegalArgumentException If the String is null or contains non US-ASCII characters.
-     */
-    public static String toPrintable(String value) throws IllegalArgumentException {
-        checkNotNull(value, "value");
+  /**
+   * Removes non-printable characters from the US-ASCII String.
+   * @param value The original String
+   * @return The possibly modified String, without non-printable US-ASCII characters.
+   * @throws IllegalArgumentException If the String is null or contains non US-ASCII characters.
+   */
+  public static String toPrintable(String value) throws IllegalArgumentException {
+    checkNotNull(value, "value");
 
-        char[] printable = new char[value.length()];
-        int i = 0;
-        for(char chr : value.toCharArray()) {
-            int c = (int) chr;
-            if (c < 0 || c >= 127) {
-                throw new IllegalArgumentException("value contains character '" + chr + "' which is non US-ASCII");
-            } else if (c > 32) {
-                printable[i++] = chr;
-            }
-        }
-
-        return i == value.length() ? value : new String(printable, 0, i);
+    char[] printable = new char[value.length()];
+    int i = 0;
+    for (char chr : value.toCharArray()) {
+      int c = (int) chr;
+      if (c < 0 || c >= 127) {
+        throw new IllegalArgumentException("value contains character '" + chr + "' which is non US-ASCII");
+      }
+      else if (c > 32) {
+        printable[i++] = chr;
+      }
     }
+
+    return i == value.length() ? value : new String(printable, 0, i);
+  }
 }
