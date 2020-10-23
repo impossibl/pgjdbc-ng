@@ -39,6 +39,7 @@ import static com.impossibl.postgres.jdbc.JDBCSettings.CI_APPLICATION_NAME;
 import static com.impossibl.postgres.jdbc.JDBCSettings.CI_CLIENT_USER;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,6 +48,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.Executor;
 
@@ -544,6 +546,38 @@ public class ConnectionTest {
     con.setSchema("public");
 
     assertEquals(con.getSchema(), "public");
+  }
+
+  @Test
+  public void testScramSha256() throws Exception {
+
+    con = TestUtil.openDB();
+
+    String role = "test" + Math.abs(new Random().nextInt());
+
+    try (Statement statement = con.createStatement()) {
+      statement.execute("CREATE ROLE " + role + " WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:Fgh8JU2AlRjBHUsIU/GgtQ==$XiT346dvVvPmnmTWeW0djrcMYBGuiQDh8QYbBJaBm/I=:CY9vUvDF8v6FIR8Zwircvd82YV58J5AwWiMWwfssuwg='");
+    }
+
+    try {
+
+      Properties props = new Properties();
+      props.setProperty("user", role);
+      props.setProperty("password", "test");
+
+      try (Connection roleCon = DriverManager.getConnection(TestUtil.getURL(), props)) {
+        try (Statement statement = roleCon.createStatement()) {
+          assertTrue(statement.execute("SELECT 1"));
+        }
+      }
+
+    }
+    finally {
+      try (Statement statement = con.createStatement()) {
+        statement.execute("DROP ROLE " + role);
+      }
+    }
+
   }
 
 }

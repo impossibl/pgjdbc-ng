@@ -12,6 +12,7 @@ object Versions {
    * Required Libraries
    */
   const val netty = "4.1.53.Final"
+  const val scram = "2.1"
 
   /**
    * Tooling Libraries

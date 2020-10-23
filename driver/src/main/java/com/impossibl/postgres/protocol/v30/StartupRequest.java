@@ -38,6 +38,7 @@ import com.impossibl.postgres.protocol.v30.ProtocolHandler.ParameterStatus;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.ReadyForQuery;
 import com.impossibl.postgres.system.NoticeException;
 import com.impossibl.postgres.system.Version;
+import com.impossibl.postgres.utils.ByteBufs;
 
 import static com.impossibl.postgres.utils.guava.Preconditions.checkArgument;
 
@@ -46,6 +47,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.netty.buffer.ByteBuf;
 
@@ -58,8 +61,11 @@ public class StartupRequest implements ServerRequest {
     void authenticateKerberos() throws IOException;
     byte authenticateSCM() throws IOException;
     ByteBuf authenticateGSS(ByteBuf data) throws IOException;
+    ByteBuf authenticateGSSContinue(ByteBuf data) throws IOException;
     ByteBuf authenticateSSPI(ByteBuf data) throws IOException;
-    ByteBuf authenticateContinue(ByteBuf data) throws IOException;
+    ByteBuf authenticateSASL(List<String> mechanisms) throws IOException;
+    ByteBuf authenticateSASLContinue(String serverFirstMessage) throws IOException;
+    void authenticateSASLFinal(String serverFinalMessage) throws IOException;
 
     void handleNegotiate(Version maxProtocolVersion, List<String> unrecognizedParameters) throws IOException;
 
@@ -156,38 +162,88 @@ public class StartupRequest implements ServerRequest {
 
     @Override
     public void authenticateGSS(ByteBuf data, ProtocolChannel channel) throws IOException {
+      ByteBuf response = handler.authenticateGSS(data);
+      try {
+        channel
+            .writePassword(response)
+            .flush();
+      }
+      finally {
+        response.release();
+      }
+    }
 
-      data = handler.authenticateGSS(data);
-
-      channel
-          .writePassword(data)
-          .flush();
-
-      data.release();
+    @Override
+    public void authenticateGSSContinue(ByteBuf data, ProtocolChannel channel) throws IOException {
+      ByteBuf response = handler.authenticateGSSContinue(data);
+      try {
+        channel
+            .writePassword(response)
+            .flush();
+      }
+      finally {
+        response.release();
+      }
     }
 
     @Override
     public void authenticateSSPI(ByteBuf data, ProtocolChannel channel) throws IOException {
-
-      data = handler.authenticateSSPI(data);
-
-      channel
-          .writePassword(data)
-          .flush();
-
-      data.release();
+      ByteBuf response  = handler.authenticateSSPI(data);
+      try {
+        channel
+            .writePassword(response)
+            .flush();
+      }
+      finally {
+        response.release();
+      }
     }
 
     @Override
-    public void authenticateContinue(ByteBuf data, ProtocolChannel channel) throws IOException {
+    public void authenticateSASL(ByteBuf data, ProtocolChannel channel) throws IOException {
 
-      data = handler.authenticateContinue(data);
+      List<String> mechanisms = new ArrayList<>();
+      while (true) {
+        String mechanism = ByteBufs.readCString(data, UTF_8);
+        if (mechanism.isEmpty()) {
+          break;
+        }
+        mechanisms.add(mechanism);
+      }
 
-      channel
-          .writePassword(data)
-          .flush();
+      ByteBuf response = handler.authenticateSASL(mechanisms);
+      try {
+        channel
+            .writePassword(response)
+            .flush();
+      }
+      finally {
+        response.release();
+      }
+    }
 
-      data.release();
+    @Override
+    public void authenticateSASLContinue(ByteBuf data, ProtocolChannel channel) throws IOException {
+
+      String serverFirstMessage = data.readCharSequence(data.readableBytes(), UTF_8).toString();
+
+      ByteBuf response = handler.authenticateSASLContinue(serverFirstMessage);
+      try {
+        channel
+            .writePassword(response)
+            .flush();
+      }
+      finally {
+        response.release();
+      }
+    }
+
+    @Override
+    public void authenticateSASLFinal(ByteBuf data, ProtocolChannel channel) throws IOException {
+
+      String serverFinalMessage = data.readCharSequence(data.readableBytes(), UTF_8).toString();
+
+      handler.authenticateSASLFinal(serverFinalMessage);
     }
 
     @Override
