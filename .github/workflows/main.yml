@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Run Checks
+        run: ./gradlew checkstyleMain checkstyleTest
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pg: [10, 11, 12, 13]
+        jdk: [8, 11]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: ${{ maxtrix.jdk }}
+      - name: Setup PostgreSQL SSL Permissions
+        run: |
+          chmod 0400 ./driver/src/test/resources/certdir/server/server.key
+          sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
+      - name: Build & Test
+        run: ./gradlew -PpostgresVersions=${{ maxtrix.pg }} test -x checkstyleMain -x checkstyleTest
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Publish Maven Artifacts
+        run: ./gradlew -PpostgresVersions=12 documentation:gitPublishPush
+      - name: Publish Documentation
+        run: ./gradlew -PpostgresVersions=12 -PossrhUsername=${{ossrh.username }}  -PossrhPassword=${{ ossrh.password }} publish
