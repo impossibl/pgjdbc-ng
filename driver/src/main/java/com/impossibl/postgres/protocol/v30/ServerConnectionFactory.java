@@ -85,11 +85,17 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.ref.WeakReference;
+import java.net.IDN;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +104,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import javax.naming.InvalidNameException;
@@ -138,8 +145,13 @@ import io.netty.handler.ssl.SslHandler;
 
 public class ServerConnectionFactory implements com.impossibl.postgres.protocol.ServerConnectionFactory {
 
+  private static final Logger logger = Logger.getLogger(ServerConnectionFactory.class.getName());
+
   private static final long DEFAULT_STARTUP_TIMEOUT = 60;
   private static final long DEFAULT_SSL_TIMEOUT = 60;
+
+  private static final int SAN_TYPE_DNS_NAME = 2;
+  private static final int SAN_TYPE_IP_ADDRESS = 7;
 
   static class CreatedChannel {
     ServerConnectionShared.Ref sharedRef;
@@ -535,60 +547,153 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return new ServerConnection(config, channel, serverInfo, protocolVersion, startupKeyData.get(), sharedRef);
   }
 
-  private void verifyHostname(String hostname, SSLSession session) throws SSLPeerUnverifiedException {
+  private void verifyHostname(String hostName, SSLSession sslSession) throws SSLPeerUnverifiedException, CertificateParsingException {
 
-    X509Certificate[] peerCerts = (X509Certificate[]) session.getPeerCertificates();
+    // Load the server certificate from list
+
+    X509Certificate[] peerCerts = (X509Certificate[]) sslSession.getPeerCertificates();
     if (peerCerts == null || peerCerts.length == 0) {
-      throw new SSLPeerUnverifiedException("No peer certificates");
+      throw new SSLPeerUnverifiedException("No peer certificates for hostname verification");
+    }
+    X509Certificate serverCert = peerCerts[0];
+
+
+    // Canonicalize hostName for comparisons
+
+    String canonicalHostName;
+    if (hostName.startsWith("[") && hostName.endsWith("]")) {
+      // IPv6 address like [2001:db8:0:1:1:1:1:1]
+      canonicalHostName = hostName.substring(1, hostName.length() - 1);
+    }
+    else {
+      try {
+        canonicalHostName = IDN.toASCII(hostName);
+      }
+      catch (IllegalArgumentException e) {
+        String failMessage = format("Hostname '%s' is invalid", hostName);
+        throw new SSLPeerUnverifiedException(failMessage);
+      }
     }
 
-    // Extract the common name
-    X509Certificate serverCert = peerCerts[0];
-    LdapName DN;
+    logger.log(
+        Level.FINE,
+        "Translated hostname {0} to canonical hostname {1}",
+        new Object[] {hostName, canonicalHostName}
+    );
+
+
+    // Check the certificate's subject alternate names against canonical hostname
+
+    Collection<List<?>> subjectAltNameEntries = serverCert.getSubjectAlternativeNames();
+    if (subjectAltNameEntries == null) {
+      subjectAltNameEntries = Collections.emptyList();
+    }
+
+    boolean subjectAltNamesContainsDNSName = false;
+
+    for (List<?> subjectAltNameEntry : subjectAltNameEntries) {
+      if (subjectAltNameEntry.size() != 2) {
+        continue;
+      }
+
+      Integer subjectAltNameType = (Integer) subjectAltNameEntry.get(0);
+      if (subjectAltNameType != SAN_TYPE_IP_ADDRESS && subjectAltNameType != SAN_TYPE_DNS_NAME) {
+        continue;
+      }
+
+      String subjectAltNameValue = (String) subjectAltNameEntry.get(1);
+      if (subjectAltNameType == SAN_TYPE_IP_ADDRESS &&
+          subjectAltNameValue != null &&
+          subjectAltNameValue.startsWith("*")) {
+        // Disallow wildcards for IP address
+        continue;
+      }
+
+      subjectAltNamesContainsDNSName |= subjectAltNameType == SAN_TYPE_DNS_NAME;
+
+      if (matchHostName(canonicalHostName, subjectAltNameValue)) {
+        logger.log(Level.FINE, "Matched Subject Alternate Name to '{0}'", hostName);
+        return;
+      }
+    }
+
+    if (subjectAltNamesContainsDNSName) {
+      // According to RFC2818, section 3.1
+      logger.log(
+          Level.SEVERE,
+          "Aborting host name verification due to mismatching DNS Subject Alternate Name",
+          hostName
+      );
+
+      String failMessage = format("Failed to match hostname '%s' against DNS Subject Alternate Name", hostName);
+      throw new SSLPeerUnverifiedException(failMessage);
+    }
+
+
+    // Attempt to extract and match against a common name of the certificate's subject
+
+    LdapName subject;
     try {
-      DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
+      subject = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
     }
     catch (InvalidNameException e) {
-      throw new SSLPeerUnverifiedException("Invalid name in certificate");
+      throw new SSLPeerUnverifiedException("Certificate contains invalid subject");
     }
 
-    String CN = null;
-    for (Rdn rdn : DN.getRdns()) {
+    List<String> commonNames = new ArrayList<>(1);
+    for (Rdn rdn : subject.getRdns()) {
       if ("CN".equals(rdn.getType())) {
-        // Multiple AVAs are not treated
-        CN = (String) rdn.getValue();
+        commonNames.add((String) rdn.getValue());
         break;
       }
     }
 
-    if (CN == null) {
-      throw new SSLPeerUnverifiedException("Common name not found");
+    if (commonNames.isEmpty()) {
+      throw new SSLPeerUnverifiedException("Certificate subject missing common name");
     }
-    else if (CN.startsWith("*")) {
+    else if (commonNames.size() > 1) {
+      // According to RFC2818, section 3.1, the most specific common name must be used, sort accordingly.
+      commonNames.sort(specificHostNameComparator);
+    }
 
-      // We have a wildcard
-      if (hostname.endsWith(CN.substring(1))) {
-        /**
-         * NB: the hostname cannot contain a '.' per spec: https://www.postgresql.org/docs/current/libpq-ssl.html
-         *
-         *     "If the certificate's name attribute starts with an asterisk (*),
-         *      the asterisk will be treated as a wildcard, which will match all
-         *      characters except a dot (.)"
-         */
-        if (hostname.substring(0, hostname.length() - CN.length() + 1).contains(".")) {
-          throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-        }
-      }
-      else {
-        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-      }
+    String commonName = commonNames.get(commonNames.size() - 1);
 
+    if (!matchHostName(canonicalHostName, commonName)) {
+      String failMessage = format("Hostname '%s' could not be verified", hostName);
+      throw new SSLPeerUnverifiedException(failMessage);
     }
-    else {
-      if (!CN.equals(hostname)) {
-        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-      }
+  }
+
+  public boolean matchHostName(String hostName, String patternName) {
+    if (hostName == null || patternName == null) {
+      return false;
     }
+
+    int lastStar = patternName.lastIndexOf('*');
+    if (lastStar == -1) {
+      return hostName.equalsIgnoreCase(patternName);
+    }
+
+    // The wildcard must be at the beginning of the pattern name, the pattern
+    // name is a multi-segment pattern, and the hostname is at least as long
+    // as the non-wildcard portion of the pattern
+    if (lastStar > 0 ||
+        patternName.indexOf('.') == -1 ||
+        hostName.length() < patternName.length() - 1) {
+      return false;
+    }
+
+    // Find start of comparison range in host name based on wildcard portion of
+    // pattern name. Give the example (pattern-name=*.b.a) == (host-name=c.b.a)
+    // we must compare only the "b.a".
+    int nonWildcardComparisonOffset = hostName.length() - patternName.length() + 1;
+
+    // Fail If wildcard covers more than one domain segment
+    if (hostName.lastIndexOf('.', nonWildcardComparisonOffset - 1) >= 0) {
+      return false;
+    }
+
+    return hostName.regionMatches(true, nonWildcardComparisonOffset, patternName, 1, patternName.length() - 1);
   }
 
   private static IOException translateConnectionException(Exception e) {
@@ -638,7 +743,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     private static final Logger logger = Logger.getLogger(ServerConnection.class.getName());
 
-    private WeakReference<ServerConnection.Listener> listener;
+    private final WeakReference<ServerConnection.Listener> listener;
 
     DefaultHandler(ServerConnection.Listener listener) {
       this.listener = new WeakReference<>(listener);
@@ -742,5 +847,46 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     }
 
   }
+
+  static Comparator<String> specificHostNameComparator = new Comparator<String>() {
+    private int countChars(String value, char ch) {
+      int count = 0;
+      int pos = -1;
+      while (true) {
+        pos = value.indexOf(ch, pos + 1);
+        if (pos == -1) {
+          break;
+        }
+        count++;
+      }
+      return count;
+    }
+
+    @Override
+    public int compare(String o1, String o2) {
+      // More segments is more specific, e.g. d.c.b.a is more specific than c.b.a
+      int d1 = countChars(o1, '.');
+      int d2 = countChars(o2, '.');
+      if (d1 != d2) {
+        return d1 > d2 ? 1 : -1;
+      }
+
+      // Less wildcards is more specific, e.g. *.c.b.a is more specific than *.*.b.a
+      int s1 = countChars(o1, '*');
+      int s2 = countChars(o2, '*');
+      if (s1 != s2) {
+        return s1 < s2 ? 1 : -1;
+      }
+
+      // Finally, we choose the longer name
+      int l1 = o1.length();
+      int l2 = o2.length();
+      if (l1 != l2) {
+        return l1 > l2 ? 1 : -1;
+      }
+
+      return 0;
+    }
+  };
 
 }
