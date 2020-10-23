@@ -45,4 +45,4 @@ jobs:
       - name: Publish Maven Artifacts
         run: ./gradlew -PpostgresVersions=12 documentation:gitPublishPush
       - name: Publish Documentation
-        run: ./gradlew -PpostgresVersions=12 -PossrhUsername=${{ossrh.username }}  -PossrhPassword=${{ ossrh.password }} publish
+        run: ./gradlew -PpostgresVersions=12 -PossrhUsername=${{ secrets.OSSRH_USERNAME }}  -PossrhPassword=${{ secrets.OSSRH_PASSWORD }} publish
