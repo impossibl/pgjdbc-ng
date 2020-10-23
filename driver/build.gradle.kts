@@ -13,7 +13,6 @@ dependencies {
   annotationProcessor(project(":settings-gen"))
 
   compile(project(":spy"))
-  compile("com.ongres.scram:client:${Versions.scram}")
   compile("io.netty:netty-common:${Versions.netty}")
   compile("io.netty:netty-buffer:${Versions.netty}")
   compile("io.netty:netty-transport:${Versions.netty}")
