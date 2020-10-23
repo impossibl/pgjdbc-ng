@@ -66,7 +66,7 @@ public class ScramSession {
   public ScramSession(ScramMechanism scramMechanism, StringPreparation stringPreparation, String user, String nonce) {
     this.scramMechanism = checkNotNull(scramMechanism, "scramMechanism");
     this.stringPreparation = checkNotNull(stringPreparation, "stringPreparation");
-    this.user = checkNotEmpty(user, "user");
+    this.user = checkNotNull(user, "user");
     this.nonce = checkNotEmpty(nonce, "nonce");
   }
 

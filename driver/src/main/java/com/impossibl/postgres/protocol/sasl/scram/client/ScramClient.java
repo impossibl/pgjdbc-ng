@@ -31,7 +31,6 @@ import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparation;
 import com.impossibl.postgres.protocol.sasl.scram.util.CryptoUtil;
 
 import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkArgument;
-import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkNotEmpty;
 import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.checkNotNull;
 import static com.impossibl.postgres.protocol.sasl.scram.util.Preconditions.gt0;
 
@@ -392,6 +391,6 @@ public class ScramClient {
    * @return The ScramSession instance
    */
   public ScramSession scramSession(String user) {
-    return new ScramSession(scramMechanism, stringPreparation, checkNotEmpty(user, "user"), nonceSupplier.get());
+    return new ScramSession(scramMechanism, stringPreparation, checkNotNull(user, "user"), nonceSupplier.get());
   }
 }
