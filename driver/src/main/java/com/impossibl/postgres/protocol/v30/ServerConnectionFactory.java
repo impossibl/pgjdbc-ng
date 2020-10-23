@@ -31,6 +31,9 @@ package com.impossibl.postgres.protocol.v30;
 import com.impossibl.postgres.protocol.CopyFormat;
 import com.impossibl.postgres.protocol.FieldFormat;
 import com.impossibl.postgres.protocol.Notice;
+import com.impossibl.postgres.protocol.sasl.scram.client.ScramClient;
+import com.impossibl.postgres.protocol.sasl.scram.client.ScramSession;
+import com.impossibl.postgres.protocol.sasl.scram.stringprep.StringPreparations;
 import com.impossibl.postgres.protocol.ssl.SSLEngineFactory;
 import com.impossibl.postgres.protocol.ssl.SSLMode;
 import com.impossibl.postgres.protocol.v30.ProtocolHandler.CommandError;
@@ -99,9 +102,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
-import com.ongres.scram.client.ScramClient;
-import com.ongres.scram.client.ScramSession;
-import com.ongres.scram.common.stringprep.StringPreparations;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -444,6 +444,10 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     CountDownLatch startupCompleted = new CountDownLatch(1);
 
     StartupRequest startupRequest = new StartupRequest(protocolVersion, params, new StartupRequest.CompletionHandler() {
+
+      private ScramSession scramSession;
+      private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
+
       @Override
       public String authenticateClear() {
         return config.getSetting(CREDENTIALS_PASSWORD);
@@ -482,9 +486,6 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
       public ByteBuf authenticateSSPI(ByteBuf data) {
         throw new IllegalStateException("Unsupported Authentication Method");
       }
-
-      private ScramSession scramSession;
-      private ScramSession.ClientFinalProcessor scramClientFinalProcessor;
 
       @Override
       public ByteBuf authenticateSASL(List<String> mechanisms) throws IOException {
