@@ -1,4 +1,4 @@
-[![](https://img.shields.io/travis/impossibl/pgjdbc-ng/develop.svg?style=flat)](https://travis-ci.org/impossibl/pgjdbc-ng/branches)
+[![CI](https://github.com/impossibl/pgjdbc-ng/workflows/CI/badge.svg)](https://github.com/impossibl/pgjdbc-ng/actions)
 [![](https://img.shields.io/github/release/impossibl/pgjdbc-ng.svg?style=flat)](https://github.com/impossibl/pgjdbc-ng/releases/latest)
 
 ### General
