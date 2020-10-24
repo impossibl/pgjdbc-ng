@@ -45,6 +45,8 @@ jobs:
         with:
           java-version: 11
       - name: Publish Maven Artifacts
-        run: ./gradlew -PpostgresVersions=12 documentation:gitPublishPush
-      - name: Publish Documentation
         run: ./gradlew -PpostgresVersions=12 -PossrhUsername=${{ secrets.OSSRH_USERNAME }}  -PossrhPassword=${{ secrets.OSSRH_PASSWORD }} publish
+      - name: Publish Documentation
+        env:
+          GRGIT_USER: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew -PpostgresVersions=12 documentation:gitPublishPush
