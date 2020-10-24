@@ -49,4 +49,4 @@ jobs:
       - name: Publish Documentation
         env:
           GRGIT_USER: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew -PpostgresVersions=12 documentation:gitPublishPush
+        run: ./gradlew -PpostgresVersions=12 -PdocsRepoUri='https://github.com/impossibl/pgjdbc-ng.git' documentation:gitPublishPush
