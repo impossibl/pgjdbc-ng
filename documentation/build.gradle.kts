@@ -5,6 +5,8 @@ plugins {
 
 val isSnapshot: Boolean by project
 
+val docsRepoUri = project.properties.getOrDefault("docsRepoUri", "git@github.com:impossibl/pgjdbc-ng.git").toString()
+
 val javadocs = configurations.create("javadocs")
 val docs = configurations.create("docs")
 
@@ -111,7 +113,7 @@ tasks {
 
   gitPublish {
 
-    repoUri.set("git@github.com:impossibl/pgjdbc-ng.git")
+    repoUri.set(docsRepoUri)
     branch.set("gh-pages")
 
     contents {
