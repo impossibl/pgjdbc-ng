@@ -19,6 +19,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    needs: [check]
     strategy:
       matrix:
         pg: [10, 11, 12, 13]
@@ -36,6 +37,7 @@ jobs:
         run: ./gradlew -PpostgresVersions=${{ matrix.pg }} test -x checkstyleMain -x checkstyleTest
 
   deploy:
+    needs: [check, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
