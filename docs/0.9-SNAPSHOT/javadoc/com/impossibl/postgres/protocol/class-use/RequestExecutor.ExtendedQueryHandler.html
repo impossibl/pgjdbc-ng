@@ -13,8 +13,7 @@
 <!--[if IE]>
 <script type="text/javascript" src="../../../../../jquery/jszip-utils/dist/jszip-utils-ie.min.js"></script>
 <![endif]-->
-<script type="text/javascript" src="../../../../../jquery/jquery-3.3.1.js"></script>
-<script type="text/javascript" src="../../../../../jquery/jquery-migrate-3.0.1.js"></script>
+<script type="text/javascript" src="../../../../../jquery/jquery-3.5.1.js"></script>
 <script type="text/javascript" src="../../../../../jquery/jquery-ui.js"></script>
 </head>
 <body>
@@ -144,6 +143,16 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </tr>
 <tbody>
 <tr class="altColor">
+<td class="colFirst"><code>void</code></td>
+<th class="colSecond" scope="row"><span class="typeNameLabel">RequestExecutor.</span><code><span class="memberNameLink"><a href="../RequestExecutor.html#query(java.lang.String,int,com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler)">query</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,
+     int&nbsp;maxRows,
+     <a href="../RequestExecutor.ExtendedQueryHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.ExtendedQueryHandler</a>&nbsp;handler)</code></th>
+<td class="colLast">
+<div class="block">Uses the "extended" query protocol to query the rows associated with a portal that was prepared by the server
+ and returned as the result of a previous query or call.</div>
+</td>
+</tr>
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">RequestExecutor.</span><code><span class="memberNameLink"><a href="../RequestExecutor.html#query(java.lang.String,java.lang.String,com.impossibl.postgres.protocol.FieldFormatRef%5B%5D,io.netty.buffer.ByteBuf%5B%5D,com.impossibl.postgres.protocol.FieldFormatRef%5B%5D,int,com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler)">query</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;sql,
      <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,

@@ -13,8 +13,7 @@
 <!--[if IE]>
 <script type="text/javascript" src="../../../../jquery/jszip-utils/dist/jszip-utils-ie.min.js"></script>
 <![endif]-->
-<script type="text/javascript" src="../../../../jquery/jquery-3.3.1.js"></script>
-<script type="text/javascript" src="../../../../jquery/jquery-migrate-3.0.1.js"></script>
+<script type="text/javascript" src="../../../../jquery/jquery-3.5.1.js"></script>
 <script type="text/javascript" src="../../../../jquery/jquery-ui.js"></script>
 </head>
 <body>
@@ -27,7 +26,7 @@
     catch(err) {
     }
 //-->
-var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6};
+var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6,"i11":6};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],4:["t3","Abstract Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -323,13 +322,23 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </tr>
 <tr id="i8" class="altColor">
 <td class="colFirst"><code>void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#query(java.lang.String,int,com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler)">query</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,
+     int&nbsp;maxRows,
+     <a href="RequestExecutor.ExtendedQueryHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.ExtendedQueryHandler</a>&nbsp;handler)</code></th>
+<td class="colLast">
+<div class="block">Uses the "extended" query protocol to query the rows associated with a portal that was prepared by the server
+ and returned as the result of a previous query or call.</div>
+</td>
+</tr>
+<tr id="i9" class="rowColor">
+<td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#query(java.lang.String,com.impossibl.postgres.protocol.RequestExecutor.QueryHandler)">query</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;sql,
      <a href="RequestExecutor.QueryHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.QueryHandler</a>&nbsp;handler)</code></th>
 <td class="colLast">
 <div class="block">Uses the "simple" query protocol to execute the given query.</div>
 </td>
 </tr>
-<tr id="i9" class="rowColor">
+<tr id="i10" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#query(java.lang.String,java.lang.String,com.impossibl.postgres.protocol.FieldFormatRef%5B%5D,io.netty.buffer.ByteBuf%5B%5D,com.impossibl.postgres.protocol.FieldFormatRef%5B%5D,int,com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler)">query</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;sql,
      <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,
@@ -342,7 +351,7 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <div class="block">Uses the "extended" query protocol to execute the given query.</div>
 </td>
 </tr>
-<tr id="i10" class="altColor">
+<tr id="i11" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#resume(java.lang.String,int,com.impossibl.postgres.protocol.RequestExecutor.ResumeHandler)">resume</a></span>&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,
       int&nbsp;maxRows,
@@ -456,6 +465,50 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <dd><code>resultFieldFormats</code> - Desired formats of the result fields. Passing an empty array will request all binary
                            format parameters. Passing any number of formats less than the number of result
                            fields will cause the last format provided to be repeated.</dd>
+<dd><code>maxRows</code> - The number of results to receive at a time, or zero to receive all results at once. Anything
+                other than zero instantiates a portal.</dd>
+<dd><code>handler</code> - Query handler to process results. Will produce a single
+                <a href="RequestExecutor.QueryHandler.html#handleComplete(java.lang.String,java.lang.Long,java.lang.Long,com.impossibl.postgres.protocol.TypeRef%5B%5D,com.impossibl.postgres.protocol.ResultField%5B%5D,com.impossibl.postgres.protocol.RowDataSet,java.util.List)"><code>RequestExecutor.QueryHandler.handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)</code></a>,
+                <a href="RequestExecutor.ExtendedQueryHandler.html#handleSuspend(com.impossibl.postgres.protocol.TypeRef%5B%5D,com.impossibl.postgres.protocol.ResultField%5B%5D,com.impossibl.postgres.protocol.RowDataSet,java.util.List)"><code>RequestExecutor.ExtendedQueryHandler.handleSuspend(TypeRef[], ResultField[], RowDataSet, List)</code></a>
+                or
+                <a href="RequestExecutor.ErrorHandler.html#handleError(java.lang.Throwable,java.util.List)"><code>RequestExecutor.ErrorHandler.handleError(Throwable, List)</code></a>
+                callback.</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io" class="externalLink">IOException</a></code> - If an error occurs submitting the request.</dd>
+</dl>
+</li>
+</ul>
+<a id="query(java.lang.String,int,com.impossibl.postgres.protocol.RequestExecutor.ExtendedQueryHandler)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>query</h4>
+<pre class="methodSignature">void&nbsp;query&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;portalName,
+           int&nbsp;maxRows,
+           <a href="RequestExecutor.ExtendedQueryHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.ExtendedQueryHandler</a>&nbsp;handler)
+    throws <a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io" class="externalLink">IOException</a></pre>
+<div class="block">Uses the "extended" query protocol to query the rows associated with a portal that was prepared by the server
+ and returned as the result of a previous query or call.
+
+ The execution will only produce a single
+ <a href="RequestExecutor.QueryHandler.html#handleComplete(java.lang.String,java.lang.Long,java.lang.Long,com.impossibl.postgres.protocol.TypeRef%5B%5D,com.impossibl.postgres.protocol.ResultField%5B%5D,com.impossibl.postgres.protocol.RowDataSet,java.util.List)"><code>RequestExecutor.QueryHandler.handleComplete(String, Long, Long, TypeRef[], ResultField[], RowDataSet, List)</code></a>,
+ <a href="RequestExecutor.ExtendedQueryHandler.html#handleSuspend(com.impossibl.postgres.protocol.TypeRef%5B%5D,com.impossibl.postgres.protocol.ResultField%5B%5D,com.impossibl.postgres.protocol.RowDataSet,java.util.List)"><code>RequestExecutor.ExtendedQueryHandler.handleSuspend(TypeRef[], ResultField[], RowDataSet, List)</code></a>
+ or
+ <a href="RequestExecutor.ErrorHandler.html#handleError(java.lang.Throwable,java.util.List)"><code>RequestExecutor.ErrorHandler.handleError(Throwable, List)</code></a>
+ callback, followed by a final
+ <a href="RequestExecutor.SynchronizedHandler.html#handleReady(com.impossibl.postgres.protocol.TransactionStatus)"><code>RequestExecutor.SynchronizedHandler.handleReady(TransactionStatus)</code></a>.
+
+ Setting <code>maxRows</code> to anything greater than zero enables suspend/resume
+ functionality via portals. Results are delivered in groups of <code>maxRows</code> via the
+ <a href="RequestExecutor.ExtendedQueryHandler.html#handleSuspend(com.impossibl.postgres.protocol.TypeRef%5B%5D,com.impossibl.postgres.protocol.ResultField%5B%5D,com.impossibl.postgres.protocol.RowDataSet,java.util.List)"><code>RequestExecutor.ExtendedQueryHandler.handleSuspend(TypeRef[], ResultField[], RowDataSet, List)</code></a>
+ callback.
+ After the first group is received the
+ <a href="#resume(java.lang.String,int,com.impossibl.postgres.protocol.RequestExecutor.ResumeHandler)"><code>resume(String, int, ResumeHandler)</code></a>
+ request can be used to receive the next group of rows.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>portalName</code> - Name of the portal to query.</dd>
 <dd><code>maxRows</code> - The number of results to receive at a time, or zero to receive all results at once. Anything
                 other than zero instantiates a portal.</dd>
 <dd><code>handler</code> - Query handler to process results. Will produce a single
