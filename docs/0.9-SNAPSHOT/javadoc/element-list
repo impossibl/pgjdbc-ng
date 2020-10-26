@@ -5,6 +5,14 @@ com.impossibl.postgres.datetime
 com.impossibl.postgres.jdbc
 com.impossibl.postgres.jdbc.xa
 com.impossibl.postgres.protocol
+com.impossibl.postgres.protocol.sasl
+com.impossibl.postgres.protocol.sasl.scram
+com.impossibl.postgres.protocol.sasl.scram.client
+com.impossibl.postgres.protocol.sasl.scram.exception
+com.impossibl.postgres.protocol.sasl.scram.gssapi
+com.impossibl.postgres.protocol.sasl.scram.message
+com.impossibl.postgres.protocol.sasl.scram.stringprep
+com.impossibl.postgres.protocol.sasl.scram.util
 com.impossibl.postgres.protocol.ssl
 com.impossibl.postgres.protocol.v30
 com.impossibl.postgres.system
