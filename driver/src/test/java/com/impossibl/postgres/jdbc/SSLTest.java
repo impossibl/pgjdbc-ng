@@ -212,7 +212,7 @@ public class SSLTest {
     String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
     String ANY = ".*";
     String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
-    String HOSTNAME = "Connection Error: SSL Error: The hostname .* could not be verified";
+    String HOSTNAME = "Connection Error: SSL Error: Hostname .* could not be verified";
 
     defaultexpected = new TreeMap<>();
     defaultexpected.put("disableGG", new Object[] {null, Boolean.FALSE});

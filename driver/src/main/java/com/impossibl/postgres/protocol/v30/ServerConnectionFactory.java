@@ -26,13 +26,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004-2011, PostgreSQL Global Development Group
- *
- *
- *-------------------------------------------------------------------------
- */
 package com.impossibl.postgres.protocol.v30;
 
 import com.impossibl.postgres.protocol.CopyFormat;
@@ -58,6 +51,7 @@ import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.utils.MD5Authentication;
 
 import static com.impossibl.postgres.protocol.ServerConnection.KeyData;
+import static com.impossibl.postgres.protocol.v30.HostNameVerifier.verifyHostName;
 import static com.impossibl.postgres.system.SystemSettings.APPLICATION_NAME;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_PASSWORD;
 import static com.impossibl.postgres.system.SystemSettings.CREDENTIALS_USERNAME;
@@ -89,7 +83,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,15 +93,9 @@ import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.security.auth.x500.X500Principal;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -137,6 +124,8 @@ import io.netty.handler.ssl.SslHandler;
 
 
 public class ServerConnectionFactory implements com.impossibl.postgres.protocol.ServerConnectionFactory {
+
+  private static final Logger logger = Logger.getLogger(ServerConnectionFactory.class.getName());
 
   private static final long DEFAULT_STARTUP_TIMEOUT = 60;
   private static final long DEFAULT_SSL_TIMEOUT = 60;
@@ -227,7 +216,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
               hostname = "";
             }
 
-            verifyHostname(hostname, sslHandler.engine().getSession());
+            verifyHostName(hostname, sslHandler.engine().getSession());
           }
 
         }
@@ -337,18 +326,18 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     Writer protocolTraceWriter = createProtocolTracer(config);
 
     Bootstrap bootstrap = new Bootstrap()
-            .group(sharedRef.get().getEventLoopGroup())
-            .channel(channelType)
-            .handler(new ChannelInitializer<SocketChannel>() {
-              @Override
-              protected void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(
-                    new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
-                    new MessageDispatchHandler(clientEncoding, protocolTraceWriter)
-                );
-              }
-            })
-            .option(ChannelOption.TCP_NODELAY, true);
+        .group(sharedRef.get().getEventLoopGroup())
+        .channel(channelType)
+        .handler(new ChannelInitializer<SocketChannel>() {
+          @Override
+          protected void initChannel(SocketChannel ch) {
+            ch.pipeline().addLast(
+                new LengthFieldBasedFrameDecoder(maxMessageSize, 1, 4, -4, 0),
+                new MessageDispatchHandler(clientEncoding, protocolTraceWriter)
+            );
+          }
+        })
+        .option(ChannelOption.TCP_NODELAY, true);
 
     configureChannelOptions(config, bootstrap);
 
@@ -535,62 +524,6 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
     return new ServerConnection(config, channel, serverInfo, protocolVersion, startupKeyData.get(), sharedRef);
   }
 
-  private void verifyHostname(String hostname, SSLSession session) throws SSLPeerUnverifiedException {
-
-    X509Certificate[] peerCerts = (X509Certificate[]) session.getPeerCertificates();
-    if (peerCerts == null || peerCerts.length == 0) {
-      throw new SSLPeerUnverifiedException("No peer certificates");
-    }
-
-    // Extract the common name
-    X509Certificate serverCert = peerCerts[0];
-    LdapName DN;
-    try {
-      DN = new LdapName(serverCert.getSubjectX500Principal().getName(X500Principal.RFC2253));
-    }
-    catch (InvalidNameException e) {
-      throw new SSLPeerUnverifiedException("Invalid name in certificate");
-    }
-
-    String CN = null;
-    for (Rdn rdn : DN.getRdns()) {
-      if ("CN".equals(rdn.getType())) {
-        // Multiple AVAs are not treated
-        CN = (String) rdn.getValue();
-        break;
-      }
-    }
-
-    if (CN == null) {
-      throw new SSLPeerUnverifiedException("Common name not found");
-    }
-    else if (CN.startsWith("*")) {
-
-      // We have a wildcard
-      if (hostname.endsWith(CN.substring(1))) {
-        /**
-         * NB: the hostname cannot contain a '.' per spec: https://www.postgresql.org/docs/current/libpq-ssl.html
-         *
-         *     "If the certificate's name attribute starts with an asterisk (*),
-         *      the asterisk will be treated as a wildcard, which will match all
-         *      characters except a dot (.)"
-         */
-        if (hostname.substring(0, hostname.length() - CN.length() + 1).contains(".")) {
-          throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-        }
-      }
-      else {
-        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-      }
-
-    }
-    else {
-      if (!CN.equals(hostname)) {
-        throw new SSLPeerUnverifiedException("The hostname " + hostname + " could not be verified");
-      }
-    }
-  }
-
   private static IOException translateConnectionException(Exception e) {
 
     IOException io;
@@ -638,7 +571,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     private static final Logger logger = Logger.getLogger(ServerConnection.class.getName());
 
-    private WeakReference<ServerConnection.Listener> listener;
+    private final WeakReference<ServerConnection.Listener> listener;
 
     DefaultHandler(ServerConnection.Listener listener) {
       this.listener = new WeakReference<>(listener);
