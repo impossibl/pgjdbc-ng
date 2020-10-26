@@ -38,6 +38,7 @@ jobs:
 
   deploy:
     needs: [check, build]
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
