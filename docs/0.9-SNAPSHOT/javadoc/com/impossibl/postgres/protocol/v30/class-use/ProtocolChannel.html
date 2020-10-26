@@ -134,14 +134,14 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </tr>
 <tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
-<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateGSS(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateGSS</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
-               <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
+<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateContinue(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateContinue</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
+                    <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
 <tr class="altColor">
 <td class="colFirst"><code>void</code></td>
-<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateGSSContinue(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateGSSContinue</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
-                       <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
+<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateGSS(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateGSS</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
+               <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
 <tr class="rowColor">
@@ -157,89 +157,71 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 </tr>
 <tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
-<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateSASL(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateSASL</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
-                <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr class="altColor">
-<td class="colFirst"><code>void</code></td>
-<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateSASLContinue(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateSASLContinue</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
-                        <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr class="rowColor">
-<td class="colFirst"><code>void</code></td>
-<th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateSASLFinal(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateSASLFinal</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
-                     <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
-<td class="colLast">&nbsp;</td>
-</tr>
-<tr class="altColor">
-<td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateSCM(com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateSCM</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">ProtocolHandler.Authentication.</span><code><span class="memberNameLink"><a href="../ProtocolHandler.Authentication.html#authenticateSSPI(io.netty.buffer.ByteBuf,com.impossibl.postgres.protocol.v30.ProtocolChannel)">authenticateSSPI</a></span>&#8203;(io.netty.buffer.ByteBuf&nbsp;data,
                 <a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">CloseRequest.</span><code><span class="memberNameLink"><a href="../CloseRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">CopyInRequest.</span><code><span class="memberNameLink"><a href="../CopyInRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">CopyOutRequest.</span><code><span class="memberNameLink"><a href="../CopyOutRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">ExecuteStatementRequest.</span><code><span class="memberNameLink"><a href="../ExecuteStatementRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">FunctionCallRequest.</span><code><span class="memberNameLink"><a href="../FunctionCallRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">LazyExecuteRequest.</span><code><span class="memberNameLink"><a href="../LazyExecuteRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">LazyQueryRequest.</span><code><span class="memberNameLink"><a href="../LazyQueryRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">PrepareRequest.</span><code><span class="memberNameLink"><a href="../PrepareRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">QueryRequest.</span><code><span class="memberNameLink"><a href="../QueryRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">ResumePortalRequest.</span><code><span class="memberNameLink"><a href="../ResumePortalRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">ServerRequest.</span><code><span class="memberNameLink"><a href="../ServerRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>void</code></td>
 <th class="colSecond" scope="row"><span class="typeNameLabel">StartupRequest.</span><code><span class="memberNameLink"><a href="../StartupRequest.html#execute(com.impossibl.postgres.protocol.v30.ProtocolChannel)">execute</a></span>&#8203;(<a href="../ProtocolChannel.html" title="class in com.impossibl.postgres.protocol.v30">ProtocolChannel</a>&nbsp;channel)</code></th>
 <td class="colLast">&nbsp;</td>
