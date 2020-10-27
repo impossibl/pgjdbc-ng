@@ -196,6 +196,11 @@ class ServerConnection implements com.impossibl.postgres.protocol.ServerConnecti
   }
 
   @Override
+  public void sync(SynchronizedHandler handler) throws IOException {
+    submit(new SynchronizeRequest(handler));
+  }
+
+  @Override
   public void query(String sql, QueryHandler handler) throws IOException {
     if (sqlTrace != null) {
       sqlTrace.query(sql);

@@ -38,6 +38,7 @@ import com.impossibl.postgres.protocol.FieldFormatRef;
 import com.impossibl.postgres.protocol.Notice;
 import com.impossibl.postgres.protocol.RequestExecutor.CopyFromHandler;
 import com.impossibl.postgres.protocol.RequestExecutor.CopyToHandler;
+import com.impossibl.postgres.protocol.RequestExecutorHandlers;
 import com.impossibl.postgres.protocol.ResultBatch;
 import com.impossibl.postgres.protocol.ResultField;
 import com.impossibl.postgres.protocol.RowData;
@@ -726,16 +727,16 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
       throw new SQLException("Timeout is less than 0");
 
     boolean result;
-    int origNetworkTimeout = networkTimeout;
     try {
-      networkTimeout = (int) SECONDS.toMillis(timeout);
-      execute("SELECT '1'::char");
+      RequestExecutorHandlers.SynchronizedResult syncResult = new RequestExecutorHandlers.SynchronizedResult();
+      getServerConnection().getRequestExecutor().sync(syncResult);
+      syncResult.await(timeout, SECONDS);
+
       result = true;
     }
     catch (Exception se) {
       result = false;
     }
-    networkTimeout = origNetworkTimeout;
 
     return result;
   }

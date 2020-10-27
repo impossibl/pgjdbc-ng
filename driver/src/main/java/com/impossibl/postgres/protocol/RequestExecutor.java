@@ -56,6 +56,16 @@ public interface RequestExecutor {
 
   }
 
+  /**
+   * Issues an isolated synchronization message. Useful to
+   * determine connection status without side effects.
+   *
+   * @param handler Simple handler to receive status.
+   * @throws IOException If an error occurs submitting the request.
+   */
+  void sync(SynchronizedHandler handler) throws IOException;
+
+
   /*****
    * Query requests. Directly execute unparsed SQL text.
    */
