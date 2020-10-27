@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
-import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Setting;
 import com.impossibl.postgres.system.Settings;
 import com.impossibl.postgres.types.SharedRegistry;
@@ -56,9 +55,6 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import javax.naming.RefAddr;
@@ -76,13 +72,10 @@ public abstract class AbstractDataSource implements CommonDataSource {
 
   protected Settings settings = new Settings(DS, JDBC, SYS, PROTO);
 
-  private Map<ServerConnectionInfo, SharedRegistry> sharedRegistries;
-
   /**
    * Constructor
    */
   protected AbstractDataSource() {
-    this.sharedRegistries = new ConcurrentHashMap<>();
   }
 
   /**
@@ -103,17 +96,7 @@ public abstract class AbstractDataSource implements CommonDataSource {
     settings.set(CREDENTIALS_USERNAME, username);
     settings.set(CREDENTIALS_PASSWORD, password);
 
-    SharedRegistry.Factory sharedRegistryFactory;
-    if (!settings.enabled(REGISTRY_SHARING)) {
-
-      sharedRegistryFactory =
-          connInfo -> new SharedRegistry(connInfo.getServerInfo(), PGDataSource.class.getClassLoader());
-    }
-    else {
-
-      sharedRegistryFactory =
-          connInfo -> sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDataSource.class.getClassLoader()));
-    }
+    SharedRegistry.Factory sharedRegistryFactory = SharedRegistry.getFactory(settings.get(REGISTRY_SHARING));
 
     String url = settings.get(DATABASE_URL);
     if (url != null) {
@@ -311,28 +294,28 @@ public abstract class AbstractDataSource implements CommonDataSource {
   public abstract String getDescription();
 
   @Override
-  public int getLoginTimeout() throws SQLException {
+  public int getLoginTimeout() {
     return settings.get(LOGIN_TIMEOUT);
   }
 
   @Override
-  public void setLoginTimeout(int seconds) throws SQLException {
+  public void setLoginTimeout(int seconds) {
     settings.set(LOGIN_TIMEOUT, seconds);
   }
 
   @Override
-  public PrintWriter getLogWriter() throws SQLException {
+  public PrintWriter getLogWriter() {
     // Not supported
     return null;
   }
 
   @Override
-  public void setLogWriter(PrintWriter out) throws SQLException {
+  public void setLogWriter(PrintWriter out) {
     // Not supported
   }
 
   @Override
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+  public Logger getParentLogger() {
     return Logger.getLogger(Context.class.getPackage().getName());
   }
 
