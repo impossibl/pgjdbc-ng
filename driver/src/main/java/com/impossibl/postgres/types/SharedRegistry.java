@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.types;
 
+import com.impossibl.postgres.jdbc.PGDriver;
 import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.ServerInfo;
 import com.impossibl.postgres.system.Version;
@@ -69,11 +70,11 @@ public class SharedRegistry {
 
   }
 
-  private static Logger logger = Logger.getLogger(SharedRegistry.class.getName());
+  private static final Logger logger = Logger.getLogger(SharedRegistry.class.getName());
 
   private static class ProcSharingKey {
-    private ServerInfo serverInfo;
-    private ClassLoader classLoader;
+    private final ServerInfo serverInfo;
+    private final ClassLoader classLoader;
 
     ProcSharingKey(ServerInfo serverInfo, ClassLoader classLoader) {
       this.serverInfo = serverInfo;
@@ -96,27 +97,44 @@ public class SharedRegistry {
 
   }
 
+  private static final Map<ServerConnectionInfo, SharedRegistry> sharedRegistries = new HashMap<>();
   private static final Map<ProcSharingKey, Procs> sharedProcs = new HashMap<>();
 
-  private Version serverVersion;
-  private TreeMap<Integer, Type> oidMap;
-  private Map<QualifiedName, Type> nameMap;
-  private TreeMap<Integer, Type> relIdMap;
-  private Procs procs;
+  private final Version serverVersion;
+  private final TreeMap<Integer, Type> oidMap;
+  private final Map<QualifiedName, Type> nameMap;
+  private final TreeMap<Integer, Type> relIdMap;
+  private final Procs procs;
 
   private boolean seeded = false;
-  private ReadWriteLock lock = new ReentrantReadWriteLock();
+  private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
+  public static SharedRegistry.Factory getFactory(boolean shared) {
+    if (shared) {
+      return
+          connInfo -> {
+            synchronized (sharedRegistries) {
+              return sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDriver.class.getClassLoader(), true));
+            }
+          };
+    }
+    else {
+      return connInfo -> new SharedRegistry(connInfo.getServerInfo(), Thread.currentThread().getContextClassLoader(), false);
+    }
+  }
 
-  public SharedRegistry(ServerInfo serverInfo, ClassLoader classLoader) {
+  private SharedRegistry(ServerInfo serverInfo, ClassLoader classLoader, boolean shareProcs) {
 
     this.serverVersion = serverInfo.getVersion();
 
-    synchronized (SharedRegistry.class) {
-      this.procs = sharedProcs.computeIfAbsent(
-          new ProcSharingKey(serverInfo, classLoader),
-          key -> new Procs(key.serverInfo, key.classLoader)
-      );
+    if (shareProcs) {
+      synchronized (sharedProcs) {
+        ProcSharingKey procSharingKey = new ProcSharingKey(serverInfo, classLoader);
+        this.procs = sharedProcs.computeIfAbsent(procSharingKey, key -> new Procs(key.serverInfo, key.classLoader));
+      }
+    }
+    else {
+      this.procs = new Procs(serverInfo, classLoader);
     }
 
     // Required initial types for bootstrapping

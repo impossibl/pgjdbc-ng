@@ -29,7 +29,6 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.v30.ServerConnectionShared;
-import com.impossibl.postgres.system.ServerConnectionInfo;
 import com.impossibl.postgres.system.Version;
 import com.impossibl.postgres.types.SharedRegistry;
 
@@ -44,9 +43,6 @@ import java.sql.DriverAction;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -97,24 +93,13 @@ public class PGDriver implements Driver, DriverAction {
 
   }
 
-  private Map<ServerConnectionInfo, SharedRegistry> sharedRegistries = new HashMap<>();
-
-  public PGDriver() throws SQLException {
+  public PGDriver() {
   }
 
   @Override
   public Connection connect(String url, Properties info) throws SQLException {
 
-    SharedRegistry.Factory sharedRegistryFactory;
-    if (REGISTRY_SHARING.get(info)) {
-      sharedRegistryFactory =
-          connInfo ->
-              sharedRegistries.computeIfAbsent(connInfo, key -> new SharedRegistry(key.getServerInfo(), PGDriver.class.getClassLoader()));
-    }
-    else {
-      sharedRegistryFactory =
-          connInfo -> new SharedRegistry(connInfo.getServerInfo(), Thread.currentThread().getContextClassLoader());
-    }
+    SharedRegistry.Factory sharedRegistryFactory = SharedRegistry.getFactory(REGISTRY_SHARING.get(info));
 
     PGDirectConnection conn = ConnectionUtil.createConnection(url, info, sharedRegistryFactory);
     if (conn == null) return null;
@@ -123,12 +108,12 @@ public class PGDriver implements Driver, DriverAction {
   }
 
   @Override
-  public boolean acceptsURL(String url) throws SQLException {
+  public boolean acceptsURL(String url) {
     return ConnectionUtil.parseURL(url) != null;
   }
 
   @Override
-  public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+  public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
 
     return Stream.concat(JDBC.getAllSettings().stream(), Stream.concat(SYS.getAllSettings().stream(), PROTO.getAllSettings().stream()))
         .map(setting -> {
@@ -155,7 +140,7 @@ public class PGDriver implements Driver, DriverAction {
   }
 
   @Override
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+  public Logger getParentLogger() {
     return Logger.getLogger("com.impossibl.postgres");
   }
 
