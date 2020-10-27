@@ -333,12 +333,7 @@ implements <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.ht
 <ul class="blockListLast">
 <li class="blockList">
 <h4>PGDriver</h4>
-<pre>public&nbsp;PGDriver()
-         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
+<pre>public&nbsp;PGDriver()</pre>
 </li>
 </ul>
 </li>
@@ -374,13 +369,10 @@ implements <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.ht
 <ul class="blockList">
 <li class="blockList">
 <h4>acceptsURL</h4>
-<pre class="methodSignature">public&nbsp;boolean&nbsp;acceptsURL&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;url)
-                   throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<pre class="methodSignature">public&nbsp;boolean&nbsp;acceptsURL&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;url)</pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true#acceptsURL(java.lang.String)" title="class or interface in java.sql" class="externalLink">acceptsURL</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true" title="class or interface in java.sql" class="externalLink">Driver</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -391,13 +383,10 @@ implements <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.ht
 <li class="blockList">
 <h4>getPropertyInfo</h4>
 <pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/DriverPropertyInfo.html?is-external=true" title="class or interface in java.sql" class="externalLink">DriverPropertyInfo</a>[]&nbsp;getPropertyInfo&#8203;(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;url,
-                                            <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html?is-external=true" title="class or interface in java.util" class="externalLink">Properties</a>&nbsp;info)
-                                     throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+                                            <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html?is-external=true" title="class or interface in java.util" class="externalLink">Properties</a>&nbsp;info)</pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true#getPropertyInfo(java.lang.String,java.util.Properties)" title="class or interface in java.sql" class="externalLink">getPropertyInfo</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true" title="class or interface in java.sql" class="externalLink">Driver</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -446,13 +435,10 @@ implements <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.ht
 <ul class="blockList">
 <li class="blockList">
 <h4>getParentLogger</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/util/logging/Logger.html?is-external=true" title="class or interface in java.util.logging" class="externalLink">Logger</a>&nbsp;getParentLogger()
-                       throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></pre>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/util/logging/Logger.html?is-external=true" title="class or interface in java.util.logging" class="externalLink">Logger</a>&nbsp;getParentLogger()</pre>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true#getParentLogger()" title="class or interface in java.sql" class="externalLink">getParentLogger</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Driver.html?is-external=true" title="class or interface in java.sql" class="externalLink">Driver</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLFeatureNotSupportedException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLFeatureNotSupportedException</a></code></dd>
 </dl>
 </li>
 </ul>
