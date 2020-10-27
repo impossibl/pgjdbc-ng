@@ -1,0 +1,65 @@
+[[release-notes-0.8.6]]
+== 0.8.6
+
+*Date of Release:* ❓
+
+*Scope:* Authentication & Result Set Enhancements
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/8?closed=1+[0.8.6] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.6-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Copy in/out errors no longer hang driver.
+* Errors related to `protocol.message.size.max` now have better messages.
+* Fixed synchronization issues when sharing registry information.
+* `Connection.isValue(int)` no longer has any transactional side effects.
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+* PostgreSQL 13 added to validation matrix.
+* Support for `SCRAM-SHA-256` & `SCRAM-SHA-256-PLUS` authentication methods.
+* More compliant host name verification supporting "Subject Alternate Names" and multiple common names.
+* Returning clauses can now be added manually to support PostgreSQL's complex syntax.
+* Result sets can now be returned (e.g. from functions) and fetched using `ResultSet.getObject`.
+
+[[release-notes-0.8.6-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
+
+[[release-notes-0.8.6-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
