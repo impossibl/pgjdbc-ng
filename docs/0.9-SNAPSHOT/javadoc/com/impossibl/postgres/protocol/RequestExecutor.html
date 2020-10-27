@@ -26,7 +26,7 @@
     catch(err) {
     }
 //-->
-var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6,"i11":6};
+var data = {"i0":6,"i1":6,"i2":6,"i3":6,"i4":6,"i5":6,"i6":6,"i7":6,"i8":6,"i9":6,"i10":6,"i11":6,"i12":6};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],4:["t3","Abstract Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -364,6 +364,13 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
  request.</div>
 </td>
 </tr>
+<tr id="i12" class="altColor">
+<td class="colFirst"><code>void</code></td>
+<th class="colSecond" scope="row"><code><span class="memberNameLink"><a href="#sync(com.impossibl.postgres.protocol.RequestExecutor.SynchronizedHandler)">sync</a></span>&#8203;(<a href="RequestExecutor.SynchronizedHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.SynchronizedHandler</a>&nbsp;handler)</code></th>
+<td class="colLast">
+<div class="block">Issues an isolated synchronization message.</div>
+</td>
+</tr>
 </table>
 </li>
 </ul>
@@ -381,6 +388,24 @@ $('.navPadding').css('padding-top', $('.fixedNav').css("height"));
 <!--   -->
 </a>
 <h3>Method Detail</h3>
+<a id="sync(com.impossibl.postgres.protocol.RequestExecutor.SynchronizedHandler)">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>sync</h4>
+<pre class="methodSignature">void&nbsp;sync&#8203;(<a href="RequestExecutor.SynchronizedHandler.html" title="interface in com.impossibl.postgres.protocol">RequestExecutor.SynchronizedHandler</a>&nbsp;handler)
+   throws <a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io" class="externalLink">IOException</a></pre>
+<div class="block">Issues an isolated synchronization message. Useful to
+ determine connection status without side effects.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>handler</code> - Simple handler to receive status.</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/io/IOException.html?is-external=true" title="class or interface in java.io" class="externalLink">IOException</a></code> - If an error occurs submitting the request.</dd>
+</dl>
+</li>
+</ul>
 <a id="query(java.lang.String,com.impossibl.postgres.protocol.RequestExecutor.QueryHandler)">
 <!--   -->
 </a>
