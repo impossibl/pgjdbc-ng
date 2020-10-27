@@ -35,6 +35,8 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.protocol.TransactionStatus;
+
 import static com.impossibl.postgres.jdbc.JDBCSettings.CI_APPLICATION_NAME;
 import static com.impossibl.postgres.jdbc.JDBCSettings.CI_CLIENT_USER;
 
@@ -511,6 +513,30 @@ public class ConnectionTest {
 
     assertTrue(System.currentTimeMillis() - start < 30000);
     assertTrue(con.isClosed());
+  }
+
+  @Test
+  public void testIsValidTransactionSideEffect() throws Exception {
+
+    try (PGDirectConnection con = TestUtil.openDB().unwrap(PGDirectConnection.class)) {
+
+      con.setAutoCommit(true);
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Idle);
+      assertTrue(con.isValid(5));
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Idle);
+
+      con.setAutoCommit(false);
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Idle);
+      assertTrue(con.isValid(5));
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Idle);
+
+      con.execute("BEGIN");
+
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Active);
+      assertTrue(con.isValid(5));
+      assertEquals(con.getTransactionStatus(), TransactionStatus.Active);
+
+    }
   }
 
   @Test
