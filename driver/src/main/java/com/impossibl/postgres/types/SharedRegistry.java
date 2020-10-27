@@ -48,9 +48,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
@@ -104,7 +104,7 @@ public class SharedRegistry {
   private TreeMap<Integer, Type> relIdMap;
   private Procs procs;
 
-  private AtomicBoolean seeded = new AtomicBoolean(false);
+  private boolean seeded = false;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
 
 
@@ -294,13 +294,25 @@ public class SharedRegistry {
 
   public boolean seed(Seeder seeder) throws IOException {
 
-    if (seeded.getAndSet(true)) {
-      return false;
+    lock.writeLock().lock();
+    try {
+
+      if (seeded) {
+        return false;
+      }
+
+      logger.log(Level.FINE, "Seeding shared registry");
+
+      seeded = true;
+
+      seeder.seed(this);
+
+      return true;
+
     }
-
-    seeder.seed(this);
-
-    return true;
+    finally {
+      lock.writeLock().unlock();
+    }
   }
 
   public void addTypes(Collection<Type> types) {
