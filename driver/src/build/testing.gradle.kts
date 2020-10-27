@@ -17,7 +17,7 @@ buildscript {
 apply { type(DockerComposePlugin::class) }
 
 
-val defaultPostgresVersions by extra("12, 11, 10, 9.6, 9.5, 9.4")
+val defaultPostgresVersions by extra("13, 12, 11, 10, 9.6, 9.5")
 
 
 val testTask = tasks.named<Test>("test") {
