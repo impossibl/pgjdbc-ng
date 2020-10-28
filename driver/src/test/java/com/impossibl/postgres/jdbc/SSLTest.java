@@ -139,7 +139,7 @@ public class SSLTest {
       else {
         StringWriter trace = new StringWriter();
         ex.printStackTrace(new PrintWriter(trace));
-        assertTrue("Unexpected Exception Message: " + ex.getMessage() + "\nfrom\n" + trace.toString(), ex.getMessage().matches(exmsg));
+        assertTrue("Unexpected Exception Message: " + ex.getMessage() + "\nexpected: " + exmsg + "\nfrom\n" + trace.toString(), ex.getMessage().matches(exmsg));
       }
     }
   }
@@ -209,7 +209,7 @@ public class SSLTest {
   static {
     String PG_HBA_ON = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
     String PG_HBA_OFF = "Connection Error: no pg_hba.conf entry for host .*, user .*, database .*, SSL off(?s-d:.*)";
-    String BROKEN = "Connection Error: SSL Error: Received fatal alert: unknown_ca";
+    String BROKEN = "Connection Error: (Channel Closed|SSL Error: Received fatal alert: unknown_ca)";
     String ANY = ".*";
     String VALIDATOR = "Connection Error: SSL Error: PKIX path (building|validation) failed:.*";
     String HOSTNAME = "Connection Error: SSL Error: Hostname .* could not be verified";
