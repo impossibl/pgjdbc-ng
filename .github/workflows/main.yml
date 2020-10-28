@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ develop ]
+    branches:
+    - develop
+    - rel/v*
   pull_request:
     branches: [ develop ]
 
@@ -38,7 +40,7 @@ jobs:
 
   deploy:
     needs: [check, build]
-    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/rel/')
+    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/rel/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
