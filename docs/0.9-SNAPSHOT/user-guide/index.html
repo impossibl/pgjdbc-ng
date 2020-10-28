@@ -574,129 +574,134 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_xa_datasource">4.3. XA DataSource</a></li>
 </ul>
 </li>
-<li><a href="#connection-ssl">5. SSL Connections</a>
+<li><a href="#auth-methods">5. Authentication Methods</a>
 <ul class="sectlevel2">
-<li><a href="#_mode">5.1. Mode</a>
-<ul class="sectlevel3">
-<li><a href="#_recommended">5.1.1. Recommended</a></li>
-<li><a href="#_related_settings">5.1.2. Related Settings</a></li>
+<li><a href="#_password">5.1. PASSWORD</a></li>
 </ul>
 </li>
-<li><a href="#_client_certificate">5.2. Client Certificate</a></li>
-</ul>
-</li>
-<li><a href="#connection-settings">6. Connection Settings</a>
+<li><a href="#connection-ssl">6. SSL Connections</a>
 <ul class="sectlevel2">
-<li><a href="#_jdbc_settings">6.1. JDBC Settings</a></li>
-<li><a href="#_jdbc_datasource_settings">6.2. JDBC DataSource Settings</a></li>
-<li><a href="#_system_settings">6.3. System Settings</a></li>
-<li><a href="#_protocol_settings">6.4. Protocol Settings</a></li>
+<li><a href="#_mode">6.1. Mode</a>
+<ul class="sectlevel3">
+<li><a href="#_recommended">6.1.1. Recommended</a></li>
+<li><a href="#_related_settings">6.1.2. Related Settings</a></li>
 </ul>
 </li>
-<li><a href="#jdbc">7. JDBC 4.2</a>
+<li><a href="#_client_certificate">6.2. Client Certificate</a></li>
+</ul>
+</li>
+<li><a href="#connection-settings">7. Connection Settings</a>
 <ul class="sectlevel2">
-<li><a href="#jdbc-extended-types">7.1. Using Specific PostgreSQL Types</a>
-<ul class="sectlevel3">
-<li><a href="#_pgtype">7.1.1. PGType</a></li>
-<li><a href="#_resolving_custom_types">7.1.2. Resolving Custom Types</a></li>
+<li><a href="#_jdbc_settings">7.1. JDBC Settings</a></li>
+<li><a href="#_jdbc_datasource_settings">7.2. JDBC DataSource Settings</a></li>
+<li><a href="#_system_settings">7.3. System Settings</a></li>
+<li><a href="#_protocol_settings">7.4. Protocol Settings</a></li>
 </ul>
 </li>
-<li><a href="#jdbc-user-types">7.2. User Defined Types</a>
-<ul class="sectlevel3">
-<li><a href="#_java_sql_struct">7.2.1. java.sql.Struct</a></li>
-<li><a href="#_java_sql_sqldata">7.2.2. java.sql.SQLData</a></li>
-</ul>
-</li>
-<li><a href="#_arrays">7.3. Arrays</a></li>
-<li><a href="#_datestimes">7.4. Dates/Times</a>
-<ul class="sectlevel3">
-<li><a href="#_basic_usage">7.4.1. Basic Usage</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#extensions">8. Beyond JDBC</a>
+<li><a href="#jdbc">8. JDBC 4.2</a>
 <ul class="sectlevel2">
-<li><a href="#extensions-pgconnection">8.1. PGConnection</a>
+<li><a href="#jdbc-extended-types">8.1. Using Specific PostgreSQL Types</a>
 <ul class="sectlevel3">
-<li><a href="#extensions-pgconnection-access">8.1.1. Accessing via unwrap</a></li>
+<li><a href="#_pgtype">8.1.1. PGType</a></li>
+<li><a href="#_resolving_custom_types">8.1.2. Resolving Custom Types</a></li>
 </ul>
 </li>
-<li><a href="#extensions-notifications">8.2. Asynchronous Notifications</a>
+<li><a href="#jdbc-user-types">8.2. User Defined Types</a>
 <ul class="sectlevel3">
-<li><a href="#_filtering">8.2.1. Filtering</a></li>
+<li><a href="#_java_sql_struct">8.2.1. java.sql.Struct</a></li>
+<li><a href="#_java_sql_sqldata">8.2.2. java.sql.SQLData</a></li>
 </ul>
 </li>
-<li><a href="#extensions-copy">8.3. COPY FROM/TO</a>
+<li><a href="#_arrays">8.3. Arrays</a></li>
+<li><a href="#_datestimes">8.4. Dates/Times</a>
 <ul class="sectlevel3">
-<li><a href="#extensions-copy-std">8.3.1. Standard Input &amp; Output</a></li>
-<li><a href="#extensions-copy-ext">8.3.2. copyFrom / copyTo</a></li>
+<li><a href="#_basic_usage">8.4.1. Basic Usage</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#logging-tracing">9. Logging &amp; Tracing</a>
+<li><a href="#extensions">9. Beyond JDBC</a>
 <ul class="sectlevel2">
-<li><a href="#logging">9.1. Logging</a>
+<li><a href="#extensions-pgconnection">9.1. PGConnection</a>
 <ul class="sectlevel3">
-<li><a href="#_configuration">9.1.1. Configuration</a></li>
+<li><a href="#extensions-pgconnection-access">9.1.1. Accessing via unwrap</a></li>
 </ul>
 </li>
-<li><a href="#tracing">9.2. Tracing</a>
+<li><a href="#extensions-notifications">9.2. Asynchronous Notifications</a>
 <ul class="sectlevel3">
-<li><a href="#tracing-jdbc">9.2.1. JDBC API Level</a></li>
-<li><a href="#tracing-sql">9.2.2. SQL Level</a></li>
-<li><a href="#tracing-protocol">9.2.3. Protocol Level</a></li>
+<li><a href="#_filtering">9.2.1. Filtering</a></li>
+</ul>
+</li>
+<li><a href="#extensions-copy">9.3. COPY FROM/TO</a>
+<ul class="sectlevel3">
+<li><a href="#extensions-copy-std">9.3.1. Standard Input &amp; Output</a></li>
+<li><a href="#extensions-copy-ext">9.3.2. copyFrom / copyTo</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#udt-generator">10. UDT Generator</a>
+<li><a href="#logging-tracing">10. Logging &amp; Tracing</a>
 <ul class="sectlevel2">
-<li><a href="#_generation">10.1. Generation</a>
+<li><a href="#logging">10.1. Logging</a>
 <ul class="sectlevel3">
-<li><a href="#_referencingnested_types">10.1.1. Referencing/Nested Types</a></li>
+<li><a href="#_configuration">10.1.1. Configuration</a></li>
 </ul>
 </li>
-<li><a href="#_executing">10.2. Executing</a>
+<li><a href="#tracing">10.2. Tracing</a>
 <ul class="sectlevel3">
-<li><a href="#_cli">10.2.1. CLI</a></li>
-<li><a href="#_library">10.2.2. Library</a></li>
-<li><a href="#udt-generator-example">10.2.3. Example</a></li>
+<li><a href="#tracing-jdbc">10.2.1. JDBC API Level</a></li>
+<li><a href="#tracing-sql">10.2.2. SQL Level</a></li>
+<li><a href="#tracing-protocol">10.2.3. Protocol Level</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#spy">11. Spy JDBC Interceptor</a>
+<li><a href="#udt-generator">11. UDT Generator</a>
 <ul class="sectlevel2">
-<li><a href="#_connection_wrapping">11.1. Connection Wrapping</a>
+<li><a href="#_generation">11.1. Generation</a>
 <ul class="sectlevel3">
-<li><a href="#_manual_2">11.1.1. Manual</a></li>
-<li><a href="#_driver">11.1.2. Driver</a></li>
-<li><a href="#_automatic">11.1.3. Automatic</a></li>
+<li><a href="#_referencingnested_types">11.1.1. Referencing/Nested Types</a></li>
 </ul>
 </li>
-<li><a href="#_beyond_tracing">11.2. Beyond Tracing</a></li>
+<li><a href="#_executing">11.2. Executing</a>
+<ul class="sectlevel3">
+<li><a href="#_cli">11.2.1. CLI</a></li>
+<li><a href="#_library">11.2.2. Library</a></li>
+<li><a href="#udt-generator-example">11.2.3. Example</a></li>
 </ul>
 </li>
-<li><a href="#_release_notes">12. Release Notes</a></li>
+</ul>
+</li>
+<li><a href="#spy">12. Spy JDBC Interceptor</a>
+<ul class="sectlevel2">
+<li><a href="#_connection_wrapping">12.1. Connection Wrapping</a>
+<ul class="sectlevel3">
+<li><a href="#_manual_2">12.1.1. Manual</a></li>
+<li><a href="#_driver">12.1.2. Driver</a></li>
+<li><a href="#_automatic">12.1.3. Automatic</a></li>
+</ul>
+</li>
+<li><a href="#_beyond_tracing">12.2. Beyond Tracing</a></li>
+</ul>
+</li>
+<li><a href="#_release_notes">13. Release Notes</a></li>
 <li><a href="#appservers">Appendix A: Application Servers</a></li>
-<li><a href="#appservers-wildfly">13. WildFly</a>
+<li><a href="#appservers-wildfly">14. WildFly</a>
 <ul class="sectlevel2">
-<li><a href="#appservers-wildfly-cli-deploy">13.1. CLI Deployment</a></li>
-<li><a href="#appservers-wildfly-file-deploy">13.2. File Deployment</a>
+<li><a href="#appservers-wildfly-cli-deploy">14.1. CLI Deployment</a></li>
+<li><a href="#appservers-wildfly-file-deploy">14.2. File Deployment</a>
 <ul class="sectlevel3">
-<li><a href="#_driver_2">13.2.1. Driver</a></li>
-<li><a href="#_datasource">13.2.2. DataSource</a></li>
+<li><a href="#_driver_2">14.2.1. Driver</a></li>
+<li><a href="#_datasource">14.2.2. DataSource</a></li>
 </ul>
 </li>
-<li><a href="#appservers-wildfly-console-deploy">13.3. Console Deployment</a>
+<li><a href="#appservers-wildfly-console-deploy">14.3. Console Deployment</a>
 <ul class="sectlevel3">
-<li><a href="#appservers-wildfly-console-deploy-driver">13.3.1. Driver</a></li>
-<li><a href="#appservers-wildfly-console-deploy-config-ds">13.3.2. DataSource</a></li>
+<li><a href="#appservers-wildfly-console-deploy-driver">14.3.1. Driver</a></li>
+<li><a href="#appservers-wildfly-console-deploy-config-ds">14.3.2. DataSource</a></li>
 </ul>
 </li>
-<li><a href="#appservers-wildfly-trouble">13.4. Troubleshooting</a></li>
+<li><a href="#appservers-wildfly-trouble">14.4. Troubleshooting</a></li>
 </ul>
 </li>
 </ul>
@@ -1156,10 +1161,51 @@ JTA transaction manager.
 </div>
 </div>
 <div class="sect1">
-<h2 id="connection-ssl">5. SSL Connections</h2>
+<h2 id="auth-methods">5. Authentication Methods</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_mode">5.1. Mode</h3>
+<h3 id="_password">5.1. PASSWORD</h3>
+<div class="paragraph">
+<p>PGJDBC-NG supports the following password authentication methods offered by PostgreSQL.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>PASSWORD</code></p>
+</li>
+<li>
+<p><code>MD5</code></p>
+</li>
+<li>
+<p><code>SCRAM-SHA-256</code> / <code>SCRAM-SHA-256-PLUS</code></p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>SCRAM-SHA-256-PLUS</code> is supported and automatically preferred over <code>SCRAM-SHA-256</code> when offered by the
+server.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Information about PostgreSQL authentication methods can be found
+<a href="https://www.postgresql.org/docs/current/auth-methods.html">here</a>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="connection-ssl">6. SSL Connections</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_mode">6.1. Mode</h3>
 <div class="paragraph">
 <p>PGJDBC-NG provides a number of SSL modes controlling how and when SSL is attempted and/or required during
 connection to a PostgreSQL instance.</p>
@@ -1229,14 +1275,14 @@ expected.</p></td>
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_recommended">5.1.1. Recommended</h4>
+<h4 id="_recommended">6.1.1. Recommended</h4>
 <div class="paragraph">
 <p><code>verify-full</code> is the preferred mode as it provides the most stringent requirements and is the mode most
 associated with how SSL is designed to work.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_related_settings">5.1.2. Related Settings</h4>
+<h4 id="_related_settings">6.1.2. Related Settings</h4>
 <div class="paragraph">
 <p>Enabling one of the SSL modes above is as easy as providing it as the <a href="#ssl_mode">ssl.mode</a> connection setting.
 In addition there are a number of companion settings that provide required information depending on the chosen
@@ -1338,7 +1384,7 @@ mode that may need to be provided.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_client_certificate">5.2. Client Certificate</h3>
+<h3 id="_client_certificate">6.2. Client Certificate</h3>
 <div class="paragraph">
 <p>As shown above, in all modes <em>except</em> <code>disable</code>, when attempting an SSL connection a client certificate and
 private key are searched for using the <a href="#ssl_home-dir">ssl.homedir</a>, <a href="#ssl_key_file">ssl.key.file</a>,
@@ -1354,13 +1400,13 @@ attempted and the items are not provided to the server.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="connection-settings">6. Connection Settings</h2>
+<h2 id="connection-settings">7. Connection Settings</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>PGJDBC-NG provides a number of settings that control almost every aspect of the connection.</p>
 </div>
 <div class="sect2">
-<h3 id="_jdbc_settings">6.1. JDBC Settings</h3>
+<h3 id="_jdbc_settings">7.1. JDBC Settings</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 44.4444%;">
@@ -1782,7 +1828,7 @@ setApiTraceFile(<span class="predefined-type">String</span>)</code></pre>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_jdbc_datasource_settings">6.2. JDBC DataSource Settings</h3>
+<h3 id="_jdbc_datasource_settings">7.2. JDBC DataSource Settings</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 44.4444%;">
@@ -1954,7 +2000,7 @@ setLoginTimeout(<span class="predefined-type">Integer</span>)</code></pre>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_system_settings">6.3. System Settings</h3>
+<h3 id="_system_settings">7.3. System Settings</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 44.4444%;">
@@ -2550,7 +2596,7 @@ setSqlTraceFile(<span class="predefined-type">String</span>)</code></pre>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_protocol_settings">6.4. Protocol Settings</h3>
+<h3 id="_protocol_settings">7.4. Protocol Settings</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 44.4444%;">
@@ -2906,7 +2952,7 @@ setProtocolTraceFile(<span class="predefined-type">String</span>)</code></pre>
 </div>
 </div>
 <div class="sect1">
-<h2 id="jdbc">7. JDBC 4.2</h2>
+<h2 id="jdbc">8. JDBC 4.2</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>There are numerous JDBC books, tutorials, blogs, etc. available to learn the basics and even advanced aspects of
@@ -2914,7 +2960,7 @@ JDBC. As such, this section will provide details only specific to easy and effic
 implementation of the JDBC specification.</p>
 </div>
 <div class="sect2">
-<h3 id="jdbc-extended-types">7.1. Using Specific PostgreSQL Types</h3>
+<h3 id="jdbc-extended-types">8.1. Using Specific PostgreSQL Types</h3>
 <div class="paragraph">
 <p>JDBC maps many of the stand SQL types to JDBC types and further to Java classes. Prior to JDBC 4.2 this was
 done using an integer type code (available in <code>java.sql.Types</code>). This mapping proves lacking when it comes to
@@ -2926,7 +2972,7 @@ were extended to accept this new, extendable, type in place of the previous inte
 embraced this new method of using/specfiying PostgreSQL&#8217;s extended types via <code>PGType</code>.</p>
 </div>
 <div class="sect3">
-<h4 id="_pgtype">7.1.1. PGType</h4>
+<h4 id="_pgtype">8.1.1. PGType</h4>
 <div class="paragraph">
 <p>PGType is a PGJDBC-NG provided implementation of <code>java.sql.SQLType</code> and allows referencing the most common
 of the specific PostgreSQL extended types using a simple enum.</p>
@@ -2953,7 +2999,7 @@ pstmt.executeUpdate();</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_resolving_custom_types">7.1.2. Resolving Custom Types</h4>
+<h4 id="_resolving_custom_types">8.1.2. Resolving Custom Types</h4>
 <div class="paragraph">
 <p>As stated, PGType only handles the most common of PostgreSQL&#8217;s types. Any extended types not supported
 by PGType must be handled by resolving a type name to a <code>PGAnyType</code>.</p>
@@ -2984,21 +3030,21 @@ PGAnyType myType = pgConnection.resolveType(<span class="string"><span class="de
 </div>
 </div>
 <div class="sect2">
-<h3 id="jdbc-user-types">7.2. User Defined Types</h3>
+<h3 id="jdbc-user-types">8.2. User Defined Types</h3>
 <div class="paragraph">
 <p>PostgreSQL supports User Defined Types, what it refers to as composite types, created with the
 <code>CREATE TYPE &lt;name&gt; AS (&lt;attributes&gt;)</code> DDL. These are supported in JDBC using one of two mechanisms,
 the standard <code>java.sql.Struct</code> API or via custom mapped Java classes that implement <code>java.sql.SQLData</code>.</p>
 </div>
 <div class="sect3">
-<h4 id="_java_sql_struct">7.2.1. java.sql.Struct</h4>
+<h4 id="_java_sql_struct">8.2.1. java.sql.Struct</h4>
 <div class="paragraph">
 <p>PGJDBC-NG fully supports UDTs via the JDBC <code>java.sql.Struct</code> API for specifying UDT parameters
 and for retrieving UDT values in from <code>ResultSet</code>s.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_java_sql_sqldata">7.2.2. java.sql.SQLData</h4>
+<h4 id="_java_sql_sqldata">8.2.2. java.sql.SQLData</h4>
 <div class="paragraph">
 <p>Alternatively to using the standard Struct interface to access UDTs, custom Java classes can be created
 that implement the <code>java.sql.SQLData</code> interface.  PGJDBC-NG also fully supports the <code>java.sql.SQLData</code>
@@ -3103,7 +3149,7 @@ obvious and where using the <a href="#udt-generator">UDT Generator</a> can help 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_arrays">7.3. Arrays</h3>
+<h3 id="_arrays">8.3. Arrays</h3>
 <div class="paragraph">
 <p>While there are no special requirements beyond the standard JDBC API and <code>java.sql.Array</code> for accessing the
 array types provided by PostgreSQL, it is worth noting that PGJDBC-NG fully supports accessing arrays
@@ -3111,7 +3157,7 @@ of standard, extended and custom types.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_datestimes">7.4. Dates/Times</h3>
+<h3 id="_datestimes">8.4. Dates/Times</h3>
 <div class="paragraph">
 <p>Prior to JDBC 4.2, <code>java.sql.Time</code>, <code>java.sql.Date</code> &amp; <code>java.sql.Timestamp</code> were used to represent the associated
 SQL datatypes in Java. These types have proven almost unwieldy when used in situations spanning timezones and
@@ -3133,7 +3179,7 @@ Although, to learn the full capabilities and usage of the new integration we sug
 portions of the JDBC API or any of the widely available tutorials.</p>
 </div>
 <div class="sect3">
-<h4 id="_basic_usage">7.4.1. Basic Usage</h4>
+<h4 id="_basic_usage">8.4.1. Basic Usage</h4>
 <div class="paragraph">
 <p>To retrieve values using the new Date and Time API you must <em>not</em> use the convenience APIs named for their
 counterpart datatype, and instead use <code>getObject</code> providing the type of object you would like to receive.</p>
@@ -3205,14 +3251,14 @@ specification. <code>ZonedDateTime</code> must be converted to <code>OffsetDateT
 </div>
 </div>
 <div class="sect1">
-<h2 id="extensions">8. Beyond JDBC</h2>
+<h2 id="extensions">9. Beyond JDBC</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Some of the functionality provided by PostgreSQL cannot be utilized via JDBC. In some cases PGJDBC-NG
 has extended the JDBC API to provide access to this functionality.</p>
 </div>
 <div class="sect2">
-<h3 id="extensions-pgconnection">8.1. PGConnection</h3>
+<h3 id="extensions-pgconnection">9.1. PGConnection</h3>
 <div class="paragraph">
 <p><code>PGConnection</code> is an interface that extends <code>java.sql.Connection</code> and provides access to extended
 features and functionality.</p>
@@ -3222,7 +3268,7 @@ features and functionality.</p>
 <code>PGConnection</code> instead of the standard <code>java.sql.Connection</code>.</p>
 </div>
 <div class="sect3">
-<h4 id="extensions-pgconnection-access">8.1.1. Accessing via unwrap</h4>
+<h4 id="extensions-pgconnection-access">9.1.1. Accessing via unwrap</h4>
 <div class="paragraph">
 <p>Although many times the Driver or DataSource will hand you an actual implementation of <code>PGConnection</code>
 and simply casting to <code>PGConnection</code> would work, there are numerous cases where casting will <strong>not</strong>
@@ -3258,7 +3304,7 @@ PGConnection pgConnection = connection.unwrap(PGConnection.class); <i class="con
 </div>
 </div>
 <div class="sect2">
-<h3 id="extensions-notifications">8.2. Asynchronous Notifications</h3>
+<h3 id="extensions-notifications">9.2. Asynchronous Notifications</h3>
 <div class="paragraph">
 <p>PostgreSQL provides an asynchronous notification system via its
 <a href="https://www.postgresql.org/docs/current/sql-listen.html">LISTEN</a> &amp;
@@ -3348,7 +3394,7 @@ JVM, until a <code>LISTEN</code> command is issued to the server no notification
 </table>
 </div>
 <div class="sect3">
-<h4 id="_filtering">8.2.1. Filtering</h4>
+<h4 id="_filtering">9.2.1. Filtering</h4>
 <div class="paragraph">
 <p>Notification listeners can also be added with a filter on the channel name. This allows individual listeners to
 handle specific notification channels.</p>
@@ -3356,7 +3402,7 @@ handle specific notification channels.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="extensions-copy">8.3. COPY FROM/TO</h3>
+<h3 id="extensions-copy">9.3. COPY FROM/TO</h3>
 <div class="paragraph">
 <p>PostgreSQL provides the capability to bulk load data from an external file, using <code>COPY &lt;table/spec&gt; FROM STDIN</code> and
 to bulk save data to an external file, using <code>COPY &lt;table/spec&gt; TO STDOUT</code>.</p>
@@ -3366,7 +3412,7 @@ to bulk save data to an external file, using <code>COPY &lt;table/spec&gt; TO ST
 <a href="#extensions-copy-ext">copyFrom / copyTo</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="extensions-copy-std">8.3.1. Standard Input &amp; Output</h4>
+<h4 id="extensions-copy-std">9.3.1. Standard Input &amp; Output</h4>
 <div class="paragraph">
 <p>Issuing a relevant command via a <code>Statement</code> or <code>PreparedStatement</code> will read or write respectively from
 Java&#8217;s <code>System.in</code> or <code>System.out</code>.</p>
@@ -3432,7 +3478,7 @@ for a method that does not require global redirection.
 </div>
 </div>
 <div class="sect3">
-<h4 id="extensions-copy-ext">8.3.2. copyFrom / copyTo</h4>
+<h4 id="extensions-copy-ext">9.3.2. copyFrom / copyTo</h4>
 <div class="paragraph">
 <p>PGJDBC-NG&#8217;s <code>PGConnection</code> provides methods to issue <code>COPY</code> commands targeting provided input or output streams.
 Using these methods allows specifying stream without globally redirecting the standard streams like when using
@@ -3498,15 +3544,15 @@ thrown.
 </div>
 </div>
 <div class="sect1">
-<h2 id="logging-tracing">9. Logging &amp; Tracing</h2>
+<h2 id="logging-tracing">10. Logging &amp; Tracing</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="logging">9.1. Logging</h3>
+<h3 id="logging">10.1. Logging</h3>
 <div class="paragraph">
 <p>PGJDBC-NG uses the Java platform&#8217;s <code>java.util.logging</code> API for all of its logging.</p>
 </div>
 <div class="sect3">
-<h4 id="_configuration">9.1.1. Configuration</h4>
+<h4 id="_configuration">10.1.1. Configuration</h4>
 <div class="paragraph">
 <p>The logging configuration is done using the standard <code>java.util.logging</code> configuration method using a
 <code>logging.properties</code> file.</p>
@@ -3531,7 +3577,7 @@ messages. For more detailed inspection of the drivers activities and state, <a h
 </div>
 </div>
 <div class="sect2">
-<h3 id="tracing">9.2. Tracing</h3>
+<h3 id="tracing">10.2. Tracing</h3>
 <div class="paragraph">
 <p>PGJDBC-NG provides tracing to diagnose errors and performance problems that may arise while using connections
 provided by the Driver or one of the DataSources. Tracing is managed separately from logging to allow generation
@@ -3542,7 +3588,7 @@ of succinct trace logs that are easy to ready, unlike logging which can be extre
 of the Driver, DataSources and Connections.</p>
 </div>
 <div class="sect3">
-<h4 id="tracing-jdbc">9.2.1. JDBC API Level</h4>
+<h4 id="tracing-jdbc">10.2.1. JDBC API Level</h4>
 <div class="paragraph">
 <p>The JDBC API tracing provides a trace log of all user generated JDBC API calls; it specifically excludes
 any calls the driver itself may make to public JDBC API. This allows investigation of what, specifically, the
@@ -3560,7 +3606,7 @@ names and their provided values), as well as the return value of the method.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="tracing-sql">9.2.2. SQL Level</h4>
+<h4 id="tracing-sql">10.2.2. SQL Level</h4>
 <div class="paragraph">
 <p>SQL tracing provides a trace log of all SQL passed to the server. It is useful in determining what exactly
 is sent to the server and in what order.</p>
@@ -3581,7 +3627,7 @@ unprepared SQL.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="tracing-protocol">9.2.3. Protocol Level</h4>
+<h4 id="tracing-protocol">10.2.3. Protocol Level</h4>
 <div class="paragraph">
 <p>Protocol level tracing provides a WireShark <em>inspired</em> trace log of all PostgreSQL Frontend/Backend protocol
 messages passed betweeen PGJDBC-NG and the connected server.</p>
@@ -3612,7 +3658,7 @@ JDBC &amp; SQL level tracing.
 </div>
 </div>
 <div class="sect1">
-<h2 id="udt-generator">10. UDT Generator</h2>
+<h2 id="udt-generator">11. UDT Generator</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Supporting SQL <strong>U</strong>ser <strong>D</strong>efined <strong>T</strong>ypes in JDBC 4.2 requires creating a POJO that implements the <code>SQLData</code>
@@ -3624,13 +3670,13 @@ changing SQL schema. This generator provides a simple way to generate UDT classe
 the matching classes.</p>
 </div>
 <div class="sect2">
-<h3 id="_generation">10.1. Generation</h3>
+<h3 id="_generation">11.1. Generation</h3>
 <div class="paragraph">
 <p>The generator can generate <em>POJOs</em> for composite types and enum classes for enumeration types as well as mapping
 to standard Java types for all other supported types.</p>
 </div>
 <div class="sect3">
-<h4 id="_referencingnested_types">10.1.1. Referencing/Nested Types</h4>
+<h4 id="_referencingnested_types">11.1.1. Referencing/Nested Types</h4>
 <div class="paragraph">
 <p>The generator supports generating classes for SQL types that reference/contain other SQL types.</p>
 </div>
@@ -3644,12 +3690,12 @@ the generated type value instead of the standard mapping.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_executing">10.2. Executing</h3>
+<h3 id="_executing">11.2. Executing</h3>
 <div class="paragraph">
 <p>The generator can be executed multiple ways.</p>
 </div>
 <div class="sect3">
-<h4 id="_cli">10.2.1. CLI</h4>
+<h4 id="_cli">11.2.1. CLI</h4>
 <div class="paragraph">
 <p>To execute the generator on the command line you can use the <em>uber jar</em> as an executable JAR or by the standard
 method of referencing the main class.</p>
@@ -3764,7 +3810,7 @@ options can be left to their defaults.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_library">10.2.2. Library</h4>
+<h4 id="_library">11.2.2. Library</h4>
 <div class="paragraph">
 <p>To use the generator as a library and execute it programmatically.</p>
 </div>
@@ -3785,7 +3831,7 @@ options can be left to their defaults.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="udt-generator-example">10.2.3. Example</h4>
+<h4 id="udt-generator-example">11.2.3. Example</h4>
 <div class="listingblock">
 <div class="title">Simple VCard data types in SQL</div>
 <div class="content">
@@ -4026,7 +4072,7 @@ mapped to its Java counterpart.</td>
 </div>
 </div>
 <div class="sect1">
-<h2 id="spy">11. Spy JDBC Interceptor</h2>
+<h2 id="spy">12. Spy JDBC Interceptor</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Spy uses auto-generated relay &amp; listener classes for each JDBC API interface to provide an easy method to
@@ -4038,12 +4084,12 @@ intercept calls to the JDBC API. Currently it provides the JDBC API level tracin
 JDBC driver.</p>
 </div>
 <div class="sect2">
-<h3 id="_connection_wrapping">11.1. Connection Wrapping</h3>
+<h3 id="_connection_wrapping">12.1. Connection Wrapping</h3>
 <div class="paragraph">
 <p>To use the library as a API tracing system you have three options to wrap connections and enable tracing:</p>
 </div>
 <div class="sect3">
-<h4 id="_manual_2">11.1.1. Manual</h4>
+<h4 id="_manual_2">12.1.1. Manual</h4>
 <div class="paragraph">
 <p>Manually wrapping the a connection returned from a JDBC <code>Driver</code> or <code>DataSource</code> and using the wrapped connection
 as normal provides an easy way to programmatically decide when to add or disable tracing.</p>
@@ -4056,7 +4102,7 @@ as normal provides an easy way to programmatically decide when to add or disable
 </div>
 </div>
 <div class="sect3">
-<h4 id="_driver">11.1.2. Driver</h4>
+<h4 id="_driver">12.1.2. Driver</h4>
 <div class="paragraph">
 <p>If you are acquiring connections using the JDBC Driver API (as opposed to the DataSource API) a more declarative
 method can be used by altering the URL used to connect to your server.</p>
@@ -4073,14 +4119,14 @@ cause the library to automatically wrap all connections.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_automatic">11.1.3. Automatic</h4>
+<h4 id="_automatic">12.1.3. Automatic</h4>
 <div class="paragraph">
 <p>PGJDBC-NG has built in support for tracing using the library, see <a href="#tracing-jdbc">JDBC API Level</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_beyond_tracing">11.2. Beyond Tracing</h3>
+<h3 id="_beyond_tracing">12.2. Beyond Tracing</h3>
 <div class="paragraph">
 <p>Spy generates a Relay class and matching Listener interface for each interface in the JDBC API. To support detailed
 tracing an implementation of each Listener interface is generated that produces trace output.</p>
@@ -4093,7 +4139,7 @@ Listener interfaces and wrapping connections using one of the methods previously
 </div>
 </div>
 <div class="sect1">
-<h2 id="_release_notes">12. Release Notes</h2>
+<h2 id="_release_notes">13. Release Notes</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Detailed release notes for each version are available <a href="../release-notes/index.html">here</a>.</p>
@@ -4107,7 +4153,7 @@ Listener interfaces and wrapping connections using one of the methods previously
 </div>
 </div>
 <div class="sect1">
-<h2 id="appservers-wildfly">13. WildFly</h2>
+<h2 id="appservers-wildfly">14. WildFly</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><a href="http://www.wildfly.org">WildFly</a> is a Java EE application server that PGJDBC-NG is compatible with for
@@ -4133,7 +4179,7 @@ deployment remain similar.
 </table>
 </div>
 <div class="sect2">
-<h3 id="appservers-wildfly-cli-deploy">13.1. CLI Deployment</h3>
+<h3 id="appservers-wildfly-cli-deploy">14.1. CLI Deployment</h3>
 <div class="paragraph">
 <p>First, use the following command to add the Driver as a module.</p>
 </div>
@@ -4207,13 +4253,13 @@ in the <code>--xa-datasource-properties</code> argument.
 </div>
 </div>
 <div class="sect2">
-<h3 id="appservers-wildfly-file-deploy">13.2. File Deployment</h3>
+<h3 id="appservers-wildfly-file-deploy">14.2. File Deployment</h3>
 <div class="paragraph">
 <p>For people experienced in WildFly configuration, samples are provided of the configuration files needed
 to get started using PGJDBC-NG.</p>
 </div>
 <div class="sect3">
-<h4 id="_driver_2">13.2.1. Driver</h4>
+<h4 id="_driver_2">14.2.1. Driver</h4>
 <div class="paragraph">
 <p><a href="#overview-getting-started-download">Download</a> the driver JAR file and add it as a module using the
 following module definition.</p>
@@ -4246,7 +4292,7 @@ following module definition.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_datasource">13.2.2. DataSource</h4>
+<h4 id="_datasource">14.2.2. DataSource</h4>
 <div class="paragraph">
 <p>Add a DataSource starting with an example definition provided.</p>
 </div>
@@ -4390,12 +4436,12 @@ Any valid <a href="#connection-settings">Connection Settings</a> can be specifie
 </div>
 </div>
 <div class="sect2">
-<h3 id="appservers-wildfly-console-deploy">13.3. Console Deployment</h3>
+<h3 id="appservers-wildfly-console-deploy">14.3. Console Deployment</h3>
 <div class="paragraph">
 <p>To following is a walk-through to use the Standard PGJDBC-NG DataSource in WildFly using the Admin Console.</p>
 </div>
 <div class="sect3">
-<h4 id="appservers-wildfly-console-deploy-driver">13.3.1. Driver</h4>
+<h4 id="appservers-wildfly-console-deploy-driver">14.3.1. Driver</h4>
 <div class="paragraph">
 <p>In the WildFly Admin Console, navigate to the "Deployments" tab and choose "Upload Deployment".</p>
 </div>
@@ -4407,7 +4453,7 @@ Any valid <a href="#connection-settings">Connection Settings</a> can be specifie
 </div>
 </div>
 <div class="sect3">
-<h4 id="appservers-wildfly-console-deploy-config-ds">13.3.2. DataSource</h4>
+<h4 id="appservers-wildfly-console-deploy-config-ds">14.3.2. DataSource</h4>
 <div class="paragraph">
 <p>In the WildFly Admin Console, visit the "Datasources &amp; Drivers" section in the "Subsystems" category of the
 "Configuration" tab.</p>
@@ -4531,7 +4577,7 @@ values.
 </div>
 </div>
 <div class="sect2">
-<h3 id="appservers-wildfly-trouble">13.4. Troubleshooting</h3>
+<h3 id="appservers-wildfly-trouble">14.4. Troubleshooting</h3>
 <div class="paragraph">
 <p>The best advice is to view the logs in the WildFly installation folder. All exceptions will be logged here and
 should provide information as to the issue with your installation and/or configurations.</p>
@@ -4543,7 +4589,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2020-10-28 02:51:56 UTC
+Last updated 2020-10-28 04:49:10 UTC
 </div>
 </div>
 </body>
