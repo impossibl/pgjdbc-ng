@@ -53,6 +53,10 @@ abstract class ExecutionTimerTask implements Runnable {
 
   protected abstract void go();
 
+  boolean isCancelled() {
+    return state.get() != State.Running || thread.isInterrupted();
+  }
+
   @Override
   public void run() {
 
