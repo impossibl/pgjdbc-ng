@@ -46,6 +46,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.String.format;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -558,11 +560,12 @@ public class StatementTest {
     try {
       stmt.setQueryTimeout(1);
       stmt.execute("select pg_sleep(1.1)");
+      fail("Should have received cancel exception");
     }
     catch (SQLException sqle) {
       // state for cancel
       if (sqle.getSQLState() == null || sqle.getSQLState().compareTo("57014") != 0)
-        fail("Should have received cancel exception");
+        fail(format("Expected cancel exception: sqlstate=%s", sqle.getSQLState()));
     }
 
     try {
@@ -570,7 +573,7 @@ public class StatementTest {
       stmt.execute("select pg_sleep(3)");
     }
     catch (SQLException sqle) {
-      fail("Should not have received exception");
+      fail(format("Received unexpected exception: sqlstate=%s, message=%s", sqle.getSQLState(), sqle.getMessage()));
     }
     stmt.close();
   }
