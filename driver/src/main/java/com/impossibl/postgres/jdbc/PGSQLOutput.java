@@ -28,6 +28,7 @@
  */
 package com.impossibl.postgres.jdbc;
 
+import com.impossibl.postgres.api.jdbc.PGConnection;
 import com.impossibl.postgres.system.Context;
 import com.impossibl.postgres.types.Type;
 import com.impossibl.postgres.utils.guava.ByteStreams;
@@ -73,6 +74,10 @@ public class PGSQLOutput implements SQLOutput {
     this.context = context;
     this.attributeTypes = new ArrayList<>();
     this.attributeValues = new ArrayList<>();
+  }
+
+  public PGConnection getConnection() {
+    return (PGDirectConnection) context.unwrap();
   }
 
   public Type[] getAttributeTypes() {
