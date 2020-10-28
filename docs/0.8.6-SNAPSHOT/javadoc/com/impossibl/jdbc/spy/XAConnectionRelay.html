@@ -346,22 +346,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 </dl>
 </li>
 </ul>
-<a id="getConnection()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getConnection</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html?is-external=true" title="class or interface in java.sql" class="externalLink">Connection</a>&nbsp;getConnection()
-                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#getConnection()" title="class or interface in javax.sql" class="externalLink">getConnection</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
-</dl>
-</li>
-</ul>
 <a id="removeStatementEventListener(javax.sql.StatementEventListener)">
 <!--   -->
 </a>
@@ -372,22 +356,6 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#removeStatementEventListener(javax.sql.StatementEventListener)" title="class or interface in javax.sql" class="externalLink">removeStatementEventListener</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
-</dl>
-</li>
-</ul>
-<a id="getXAResource()">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>getXAResource</h4>
-<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/javax/transaction/xa/XAResource.html?is-external=true" title="class or interface in javax.transaction.xa" class="externalLink">XAResource</a>&nbsp;getXAResource()
-                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
-<dl>
-<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XAConnection.html?is-external=true#getXAResource()" title="class or interface in javax.sql" class="externalLink">getXAResource</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XAConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">XAConnection</a></code></dd>
-<dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
 </li>
 </ul>
@@ -415,6 +383,38 @@ implements <a href="Relay.html" title="interface in com.impossibl.jdbc.spy">Rela
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#close()" title="class or interface in javax.sql" class="externalLink">close</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getXAResource()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getXAResource</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/javax/transaction/xa/XAResource.html?is-external=true" title="class or interface in javax.transaction.xa" class="externalLink">XAResource</a>&nbsp;getXAResource()
+                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XAConnection.html?is-external=true#getXAResource()" title="class or interface in javax.sql" class="externalLink">getXAResource</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/XAConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">XAConnection</a></code></dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
+</dl>
+</li>
+</ul>
+<a id="getConnection()">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getConnection</h4>
+<pre class="methodSignature">public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html?is-external=true" title="class or interface in java.sql" class="externalLink">Connection</a>&nbsp;getConnection()
+                         throws <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
+<dd><code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true#getConnection()" title="class or interface in javax.sql" class="externalLink">getConnection</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/javase/8/docs/api/javax/sql/PooledConnection.html?is-external=true" title="class or interface in javax.sql" class="externalLink">PooledConnection</a></code></dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="https://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql" class="externalLink">SQLException</a></code></dd>
 </dl>
