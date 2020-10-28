@@ -153,7 +153,7 @@ fun checkServerKeyPermissions(): Boolean {
     if ((ownerUid != "70" && owner != System.getProperty("user.name")) || perms.intersect(invalidPerms).isNotEmpty()) {
       project.logger.warn(
          "DISABLING SSL, $serverKey has invalid owner or permissions to execute PostgreSQL with SSL. " +
-            "Make sure it's owned by the user executing Gradle and its permissions are set to 0600"
+            "Make sure it's owned by the user executing Gradle (if root) or set to UID=70, and its permissions are set to 0600"
       )
       return false
     }
