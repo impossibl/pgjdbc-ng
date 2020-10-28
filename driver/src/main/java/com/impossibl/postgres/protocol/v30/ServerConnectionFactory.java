@@ -140,10 +140,10 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
     SSLMode sslMode = config.getSetting(SSL_MODE);
 
-    return connect(config, sslMode, address, listener, 1);
+    return connect(config, sslMode, address, listener);
   }
 
-  private ServerConnection connect(Configuration config, SSLMode sslMode, SocketAddress address, ServerConnection.Listener listener, int attempt) throws IOException {
+  private ServerConnection connect(Configuration config, SSLMode sslMode, SocketAddress address, ServerConnection.Listener listener) throws IOException {
 
     try {
 
@@ -180,7 +180,7 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
             // Retry with no SSL
             if (sslMode == SSLMode.Prefer) {
-              return connect(config, SSLMode.Disable, address, listener, attempt);
+              return connect(config, SSLMode.Disable, address, listener);
             }
 
             throw e;
@@ -230,16 +230,12 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
         switch (sslMode) {
           case Allow:
-            return connect(config, SSLMode.Require, address, listener, attempt);
+            return connect(config, SSLMode.Require, address, listener);
 
           case Prefer:
-            return connect(config, SSLMode.Disable, address, listener, attempt);
+            return connect(config, SSLMode.Disable, address, listener);
 
           default:
-            // WORKAROUND: ISSUE#392: Retrying random startup disconnect mitigates failures.
-            if (e instanceof ClosedChannelException && attempt < 2) {
-              return connect(config, sslMode, address, listener, attempt + 1);
-            }
             throw e;
         }
 
