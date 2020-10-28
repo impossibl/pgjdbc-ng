@@ -32,23 +32,16 @@ title: PGJDBC-NG
   </div>
   <div class="col-md-4 col-sm-6">
     <ul id="doc-versions" class="list-group">
-      <div class="list-group-item"><h5>Development</h5></div>
-      <div class="list-group-item flex-column align-items-start">
-        <div class="d-flex w-100 justify-content-between">
-          <h6 class="mb-1">snapshot</h6>
-          <small></small>
-        </div>
-        <p class="mb-1"><a href="docs/snapshot/user-guide">User Guide</a>&nbsp;&nbsp;&nbsp;<a href="docs/snapshot/release-notes">Release Notes</a>&nbsp;&nbsp;&nbsp;<a href="docs/snapshot/javadoc">Javadoc</a></p>
-      </div>
-      <div class="list-group-item"><h5>Releases</h5></div>
+      <div class="dev list-group-item"><h5>Development</h5></div>
+      <div class="rel list-group-item"><h5>Releases</h5></div>
     </ul>
     <script type="text/javascript">
       $.getJSON("https://api.github.com/repos/impossibl/pgjdbc-ng/releases")
         .done(data => {      
           for(rel of data) {
-            if (rel.name.startsWith("v") && !rel.prerelease) {
+            if (rel.name.startsWith("v")) {
               let name = rel.name.substring(1);
-              $("#doc-versions").append(`
+              $("#doc-versions " + (rel.prerelease ? ".dev" : ".rel")).append(`
                 <div class="list-group-item flex-column align-items-start">
                   <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1">${name}</h6>
