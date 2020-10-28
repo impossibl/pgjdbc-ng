@@ -40,6 +40,7 @@ import com.impossibl.postgres.protocol.ServerConnection;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -67,6 +68,10 @@ public class CancelRequestTask extends ExecutionTimerTask {
 
   private void sendCancelRequest() {
 
+    if (isCancelled()) {
+      return;
+    }
+
     if (keyData.getProcessId() == 0 && keyData.getSecretKey() == 0) {
       logger.warning("Cannot send CancelRequest because of missing BackendKeyData.");
       return;
@@ -79,7 +84,21 @@ public class CancelRequestTask extends ExecutionTimerTask {
         InetSocketAddress target = (InetSocketAddress) serverAddress;
 
         try (Socket abortSocket = new Socket(target.getAddress(), target.getPort())) {
-          writeCancelRequest(new DataOutputStream(abortSocket.getOutputStream()));
+          OutputStream abortSocketStream = abortSocket.getOutputStream();
+
+          try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+
+            writeCancelRequest(new DataOutputStream(os));
+
+            byte[] request = os.toByteArray();
+
+            // last second bail out
+            if (isCancelled()) {
+              return;
+            }
+
+            abortSocketStream.write(request);
+          }
         }
 
       }
@@ -97,6 +116,11 @@ public class CancelRequestTask extends ExecutionTimerTask {
             ByteBuffer buffer = ByteBuffer.allocateDirect(request.length);
             buffer.put(request, 0, request.length);
             buffer.flip();
+
+            // last second bail out
+            if (isCancelled()) {
+              return;
+            }
 
             unixSocket.write(buffer, 0, buffer.limit());
           }
