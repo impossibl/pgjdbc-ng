@@ -1,0 +1,15 @@
+[[auth-methods]]
+== Authentication Methods
+
+=== PASSWORD
+{drivername} supports the following password authentication methods offered by {vendorname}.
+
+* `PASSWORD`
+* `MD5`
+* `SCRAM-SHA-256` / `SCRAM-SHA-256-PLUS`
+
+NOTE: `SCRAM-SHA-256-PLUS` is supported and automatically preferred over `SCRAM-SHA-256` when offered by the
+server.
+
+Information about {vendorname} authentication methods can be found
+https://www.postgresql.org/docs/current/auth-methods.html[here].

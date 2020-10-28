@@ -17,6 +17,8 @@ include::drivers.adoc[]
 
 include::datasources.adoc[]
 
+include::auth-methods.adoc[]
+
 include::ssl.adoc[]
 
 include::settings.adoc[]
