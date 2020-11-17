@@ -154,44 +154,39 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
-        // Execute SSL query command
+        // If we just prefer SSL connections, query to see if they are supported.
+        boolean sslSupported = false;
+        if (sslMode == SSLMode.Prefer) {
+          SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
+          channel.writeAndFlush(sslQueryRequest).syncUninterruptibly();
 
-        SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
-        channel.writeAndFlush(sslQueryRequest).syncUninterruptibly();
+          boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
 
-        boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
-
-        if (sslQueryCompleted && sslQueryRequest.isAllowed()) {
-
-          // Attach the actual handler
-
-          SSLEngine sslEngine = SSLEngineFactory.create(sslMode, config);
-
-          final SslHandler sslHandler = new SslHandler(sslEngine);
-
-          channel.pipeline().addFirst("ssl", sslHandler);
-
-          try {
-
-            sslHandler.handshakeFuture().syncUninterruptibly();
-
-          }
-          catch (Exception e) {
-
-            // Retry with no SSL
-            if (sslMode == SSLMode.Prefer) {
-              return connect(config, SSLMode.Disable, address, listener);
-            }
-
-            throw e;
-          }
-
-        }
-        else if (sslMode.isRequired()) {
-
-          throw new IOException("SSL not allowed by server");
+          sslSupported = sslQueryCompleted && sslQueryRequest.isAllowed();
         }
 
+        // Retry with no SSL if not supported
+        if (!sslSupported && sslMode == SSLMode.Prefer) {
+          return connect(config, SSLMode.Disable, address, listener);
+        }
+
+        // Otherwise setup the SSL engine
+        SSLEngine sslEngine = SSLEngineFactory.create(sslMode, config);
+
+        final SslHandler sslHandler = new SslHandler(sslEngine);
+
+        channel.pipeline().addFirst("ssl", sslHandler);
+
+        try {
+          sslHandler.handshakeFuture().syncUninterruptibly();
+        }
+        catch (Exception e) {
+          if (sslMode == SSLMode.Prefer) {
+            // Retry with no SSL if we aren't requiring SSL.
+            return connect(config, SSLMode.Disable, address, listener);
+          }
+          throw e;
+        }
       }
 
       try {
