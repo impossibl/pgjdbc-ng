@@ -68,11 +68,7 @@ public class TestUtil {
   }
 
   public static String getURL(Object... urlParams) {
-
-    String query = "";
-    if (urlParams != null && urlParams.length > 0) {
-      query = "?" + Joiner.on("&").withKeyValueSeparator("=").join(params(urlParams));
-    }
+    String query = getQuery(urlParams);
 
     if (!"5432".equals(getPort())) {
       return "jdbc:pgsql://" + getServer() + ":" + getPort() + "/" + getDatabase() + query;
@@ -80,6 +76,16 @@ public class TestUtil {
     else {
       return "jdbc:pgsql://" + getServer() + "/" + getDatabase() + query;
     }
+  }
+
+  public static String getQuery(Object... urlParams) {
+    String query = "";
+
+    if (urlParams != null && urlParams.length > 0) {
+      query = "?" + Joiner.on("&").withKeyValueSeparator("=").join(params(urlParams));
+    }
+
+    return query;
   }
 
   public static String getServer() {
