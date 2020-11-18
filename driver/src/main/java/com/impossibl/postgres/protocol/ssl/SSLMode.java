@@ -35,7 +35,9 @@ public enum SSLMode {
   Prefer      (false),
   Require     (true),
   VerifyCa    (true),
-  VerifyFull  (true);
+  VerifyFull  (true),
+  // Tunnel an SSL connection and bypass Postgres' native handshake mechanism.
+  Tunnel      (false);
 
   boolean required;
 

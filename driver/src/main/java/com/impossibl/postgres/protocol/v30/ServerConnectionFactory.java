@@ -154,17 +154,18 @@ public class ServerConnectionFactory implements com.impossibl.postgres.protocol.
 
       if (sslMode != SSLMode.Disable && sslMode != SSLMode.Allow) {
 
-        // Execute SSL query command
+        boolean sslAllowed = true;
+        // Execute SSL query command if we're not tunneling the SSL connection.
+        if (sslMode != SSLMode.Tunnel) {
+          SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
+          channel.writeAndFlush(sslQueryRequest).syncUninterruptibly();
 
-        SSLQueryRequest sslQueryRequest = new SSLQueryRequest();
-        channel.writeAndFlush(sslQueryRequest).syncUninterruptibly();
+          boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
+          sslAllowed = sslQueryCompleted && sslQueryRequest.isAllowed();
+        }
 
-        boolean sslQueryCompleted = awaitUninterruptibly(DEFAULT_SSL_TIMEOUT, SECONDS, sslQueryRequest::await);
-
-        if (sslQueryCompleted && sslQueryRequest.isAllowed()) {
-
+        if (sslAllowed) {
           // Attach the actual handler
-
           SSLEngine sslEngine = SSLEngineFactory.create(sslMode, config);
 
           final SslHandler sslHandler = new SslHandler(sslEngine);
