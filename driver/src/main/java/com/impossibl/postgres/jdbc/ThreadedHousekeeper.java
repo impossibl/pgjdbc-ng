@@ -181,7 +181,6 @@ public class ThreadedHousekeeper implements Housekeeper {
     public void run() {
 
       while (cleanupThreadEnabled.get()) {
-
         HousekeeperReference<?> ref;
         try {
           ref = (HousekeeperReference<?>) cleanupQueue.remove();
@@ -204,8 +203,8 @@ public class ThreadedHousekeeper implements Housekeeper {
         }
       }
 
+      emptyQueue();
     }
-
   };
 
   private ThreadedHousekeeper() {
@@ -225,7 +224,7 @@ public class ThreadedHousekeeper implements Housekeeper {
     HousekeeperReference<?> ref;
 
     while ((ref = (HousekeeperReference<?>) cleanupQueue.poll()) != null) {
-
+      ref.clear();
       try {
         ref.cleanup();
       }
@@ -260,7 +259,7 @@ public class ThreadedHousekeeper implements Housekeeper {
 
   }
 
-  private synchronized void close() {
+  private void close() {
 
     cleanupThreadEnabled.set(false);
     cleanupThread.interrupt();
