@@ -349,8 +349,8 @@ public abstract class Type implements TypeRef {
     delimeter = source.getDeliminator() != null ? source.getDeliminator().charAt(0) : null;
     arrayTypeId = source.getArrayTypeId();
     relationId = source.getRelationId();
-    textCodec = registry.getShared().loadTextCodec(source.getInputId(), source.getOutputId());
-    binaryCodec = registry.getShared().loadBinaryCodec(source.getReceiveId(), source.getSendId());
+    textCodec = registry.getShared().loadTextCodec(source.getNamespace(), source.getInputId(), source.getOutputId());
+    binaryCodec = registry.getShared().loadBinaryCodec(source.getNamespace(), source.getReceiveId(), source.getSendId());
     modifierParser = registry.getShared().loadModifierParser(source.getModInId());
     preferredParameterFormat = PARAM_FORMAT_PREF.getSystem();
     preferredResultFormat = FIELD_FORMAT_PREF.getSystem();

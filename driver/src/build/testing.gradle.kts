@@ -105,6 +105,7 @@ if ((project.properties["noDocker"] ?: false) == false) {
 
     tasks.named("postgres${pgVersion}ComposeUp") {
       doLast {
+        execPSQL(pgVersion, serviceName, composeProjectName, "CREATE DATABASE testnoexts OWNER test;", "test")
         execPSQL(pgVersion, serviceName, composeProjectName, "CREATE EXTENSION hstore; CREATE EXTENSION citext;", "test")
 
         execPSQL(pgVersion, serviceName, composeProjectName, "CREATE DATABASE hostdb OWNER test;", "test")

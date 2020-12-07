@@ -371,7 +371,10 @@ public class SharedRegistry {
    * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.TextCodec loadTextCodec(String encoderName, String decoderName) {
+  Type.TextCodec loadTextCodec(String namespace, String encoderName, String decoderName) {
+    String nsPrefix = namespace + ".";
+    encoderName = encoderName.startsWith(nsPrefix) ? encoderName.substring(nsPrefix.length()) : encoderName;
+    decoderName = decoderName.startsWith(nsPrefix) ? decoderName.substring(nsPrefix.length()) : decoderName;
     return new Type.TextCodec(
         loadDecoderProc(decoderName, DEFAULT_TEXT_DECODER, CharSequence.class),
         loadEncoderProc(encoderName, DEFAULT_TEXT_ENCODER, StringBuilder.class)
@@ -385,7 +388,10 @@ public class SharedRegistry {
    * @param decoderName proc-name of the decoder
    * @return A matching Codec instance
    */
-  Type.BinaryCodec loadBinaryCodec(String encoderName, String decoderName) {
+  Type.BinaryCodec loadBinaryCodec(String namespace, String encoderName, String decoderName) {
+    String nsPrefix = namespace + ".";
+    encoderName = encoderName.startsWith(nsPrefix) ? encoderName.substring(nsPrefix.length()) : encoderName;
+    decoderName = decoderName.startsWith(nsPrefix) ? decoderName.substring(nsPrefix.length()) : decoderName;
     return new Type.BinaryCodec(
         loadDecoderProc(decoderName, DEFAULT_BINARY_DECODER, ByteBuf.class),
         loadEncoderProc(encoderName, DEFAULT_BINARY_ENCODER, ByteBuf.class)

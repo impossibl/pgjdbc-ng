@@ -29,10 +29,13 @@
 package com.impossibl.postgres.jdbc;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -64,6 +67,54 @@ public class CiTextTest {
       TestUtil.dropTable(conn, "users");
     }
     TestUtil.closeDB(conn);
+  }
+
+  @Test
+  public void testCiTextInSchema() throws SQLException {
+
+    String url = "jdbc:pgsql://" + TestUtil.getServer() + ":" + TestUtil.getPort() + "/testnoexts";
+
+    Properties props = new Properties();
+    props.setProperty("user", TestUtil.getUser());
+    props.setProperty("password", TestUtil.getPassword());
+
+
+    try (Connection conn = DriverManager.getConnection(url, props)) {
+
+      try {
+
+        try (Statement stmt = conn.createStatement()) {
+          stmt.execute("CREATE SCHEMA citester");
+          stmt.execute("CREATE EXTENSION citext WITH SCHEMA citester");
+          stmt.execute("CREATE TABLE citester.test(names citester.citext[])");
+        }
+
+        try (Connection conn2 = DriverManager.getConnection(url, props)) {
+
+          try (PreparedStatement stmt = conn2.prepareStatement("INSERT INTO citester.test(names) VALUES (?::citester.citext[])")) {
+
+            stmt.setObject(1, new String[] {"test"}, JDBCType.ARRAY);
+
+            assertEquals(stmt.executeUpdate(), 1);
+          }
+
+          try (Statement stmt = conn2.createStatement()) {
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM citester.test")) {
+
+              assertTrue(rs.next());
+              assertEquals(rs.getObject("names", String[].class), new String[] {"test"});
+
+            }
+          }
+        }
+
+      }
+      finally {
+        TestUtil.dropSchema(conn, "citester");
+      }
+
+    }
+
   }
 
   @Test
