@@ -39,6 +39,7 @@ import java.sql.SQLException;
 import java.sql.SQLInput;
 import java.sql.SQLOutput;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -49,6 +50,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -334,6 +336,88 @@ public class StructTest {
     assertNull(ts2.num);
     rs.close();
     st.close();
+  }
+
+  @Test
+  public void testRetrievingAsStructWithCompositeType() throws SQLException {
+    TestStruct ts = new TestStruct();
+    ts.id = UUID.randomUUID();
+    ts.num = new Random().nextDouble();
+    ts.str = "!}({%*}{%}{(%&}{%^}{&";
+    ts.str2 = null;
+
+    try (PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_test VALUES (?)")) {
+      pst.setObject(1, ts);
+      pst.executeUpdate();
+    }
+
+    try (PreparedStatement pst = conn.prepareStatement("SELECT * FROM struct_test;")) {
+      try (ResultSet rs = pst.executeQuery()) {
+        assertTrue(rs.next());
+
+        Struct ts2 = rs.getObject(1, Struct.class);
+        assertNotNull(ts2);
+        assertArrayEquals(new Object[] {ts.str, ts.str2, ts.id, ts.num}, ts2.getAttributes());
+      }
+    }
+  }
+
+  @Test
+  public void testRetrievingAsStructWithCompositeTypeInTextMode() throws SQLException {
+    TestStruct ts = new TestStruct();
+    ts.id = UUID.randomUUID();
+    ts.num = 120.5;
+    ts.str = "!}({%*}{%}{(%&}{%^}{&";
+    ts.str2 = null;
+
+    try (PreparedStatement pst = conn.prepareStatement("INSERT INTO struct_test VALUES (?)")) {
+      pst.setObject(1, ts);
+      pst.executeUpdate();
+    }
+
+    try (Statement st = conn.createStatement()) {
+      try (ResultSet rs = st.executeQuery("SELECT * FROM struct_test;")) {
+        assertTrue(rs.next());
+
+        Struct ts2 = rs.getObject(1, Struct.class);
+        assertNotNull(ts2);
+
+        // Expect strings for non-PreparedStatements as the Postgres protocol in simple mode
+        // does not give the type information.
+        // Technically if the composite type definition is known (i.e. has an oid, which it does in this case),
+        // we could go to pg_attribute and find the individual types that constitute it
+        // This is not currently implemented.
+        assertArrayEquals(new Object[] {ts.str, ts.str2, ts.id.toString(), ts.num.toString()}, ts2.getAttributes());
+      }
+    }
+  }
+
+  @Test
+  public void testRetrievingAsStructWithAnonymousType() throws SQLException {
+    try (PreparedStatement pst = conn.prepareStatement("SELECT ('testing', NULL, 123)")) {
+      try (ResultSet rs = pst.executeQuery()) {
+        assertTrue(rs.next());
+        Struct struct = rs.getObject(1, Struct.class);
+        Object[] attributes = struct.getAttributes();
+
+        assertArrayEquals(new Object[] {"testing", null, 123}, attributes);
+      }
+    }
+  }
+
+  @Test
+  public void testRetrievingAsStructWithAnonymousTypeInTextMode() throws SQLException {
+    try (Statement st = conn.createStatement()) {
+      try (ResultSet rs = st.executeQuery("SELECT ('testing', NULL, 123)")) {
+        assertTrue(rs.next());
+        Struct struct = rs.getObject(1, Struct.class);
+        Object[] attributes = struct.getAttributes();
+
+        // Expect strings for non-PreparedStatements as the Postgres protocol in simple mode
+        // does not give the type information
+        assertArrayEquals(new Object[] {"testing", null, "123"}, attributes);
+      }
+    }
   }
 
 }

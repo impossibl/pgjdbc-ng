@@ -118,7 +118,13 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
     Object[] attributeValues = new Object[attributeBuffers.length];
 
     for (int attributeIdx = 0; attributeIdx < attributeValues.length; ++attributeIdx) {
-      attributeValues[attributeIdx] = getAttribute(context, attributeTypes[attributeIdx], attributeBuffers[attributeIdx]);
+      Buffer attributeBuffer = attributeBuffers[attributeIdx];
+      if (attributeBuffer == null) {
+        attributeValues[attributeIdx] = null;
+      }
+      else {
+        attributeValues[attributeIdx] = getAttribute(context, attributeTypes[attributeIdx], attributeBuffer);
+      }
     }
 
     return attributeValues;
