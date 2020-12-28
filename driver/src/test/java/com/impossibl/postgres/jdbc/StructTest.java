@@ -40,6 +40,9 @@ import java.sql.SQLInput;
 import java.sql.SQLOutput;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -417,6 +420,52 @@ public class StructTest {
         // does not give the type information
         assertArrayEquals(new Object[] {"testing", null, "123"}, attributes);
       }
+    }
+  }
+
+  @Test
+  public void testGetAttributesWithTypeMap() throws SQLException {
+    try (PreparedStatement st = conn.prepareStatement("SELECT ROW(now())")) {
+      final Map<String, Class<?>> typeMap = Collections.singletonMap("timestamptz", OffsetDateTime.class);
+
+      try (ResultSet rs = st.executeQuery()) {
+        assertTrue(rs.next());
+        Object[] resultWithTypeMap = rs.getObject(1, Struct.class).getAttributes(typeMap);
+        Object[] resultWithoutTypeMap = rs.getObject(1, Struct.class).getAttributes();
+
+        // Expect our custom type mapping to be used
+        assertEquals(1, resultWithTypeMap.length);
+        assertEquals(resultWithTypeMap[0].getClass(), OffsetDateTime.class);
+
+        // Expect the JDBC default type mapping to be used
+        assertEquals(1, resultWithoutTypeMap.length);
+        assertEquals(resultWithoutTypeMap[0].getClass(), Timestamp.class);
+      }
+    }
+  }
+
+  @Test
+  public void testGetAttributesWithConnectionTypeMap() throws SQLException {
+    try (PreparedStatement st = conn.prepareStatement("SELECT ROW(now())")) {
+      final Map<String, Class<?>> typeMap = Collections.singletonMap("timestamptz", OffsetDateTime.class);
+      conn.setTypeMap(typeMap);
+
+      try (ResultSet rs = st.executeQuery()) {
+        assertTrue(rs.next());
+        Object[] resultWithTypeMap = rs.getObject(1, Struct.class).getAttributes(Collections.emptyMap());
+        Object[] resultWithoutTypeMap = rs.getObject(1, Struct.class).getAttributes();
+
+        // Per spec, we should never use the connection's type map if we provide our own in the getAttributes call
+        assertEquals(1, resultWithTypeMap.length);
+        assertEquals(resultWithTypeMap[0].getClass(), Timestamp.class);
+
+        // ...but we should use the connection's type map if we didn't
+        assertEquals(1, resultWithoutTypeMap.length);
+        assertEquals(resultWithoutTypeMap[0].getClass(), OffsetDateTime.class);
+      }
+    }
+    finally {
+      conn.setTypeMap(Collections.emptyMap());
     }
   }
 

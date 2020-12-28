@@ -63,6 +63,10 @@ the standard `java.sql.Struct` API or via custom mapped Java classes that implem
 {drivername} fully supports UDTs via the JDBC `java.sql.Struct` API for specifying UDT parameters
 and for retrieving UDT values in from ``ResultSet``s.
 
+NOTE: Strong typing on the elements returned from `Struct.getAttributes()` will only be present if the
+query was run from a `PreparedStatement`. A regular `Statement` uses the text-based {vendorname} protocol,
+which will always return the values of the UDT represented as strings.
+
 ==== java.sql.SQLData
 
 Alternatively to using the standard Struct interface to access UDTs, custom Java classes can be created
