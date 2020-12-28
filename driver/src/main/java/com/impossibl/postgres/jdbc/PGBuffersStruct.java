@@ -29,6 +29,7 @@
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.system.Context;
+import com.impossibl.postgres.system.CustomTypes;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.Type;
 
@@ -84,7 +85,8 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
 
     @Override
     protected Object getAttribute(Context context, Type type, ByteBuf buffer) throws IOException {
-      return type.getBinaryCodec().getDecoder().decode(context, type, type.getLength(), null, buffer, null, null);
+      Class<?> targetClass = CustomTypes.lookupCustomType(type, context.getCustomTypeMap(), null);
+      return type.getBinaryCodec().getDecoder().decode(context, type, type.getLength(), null, buffer, targetClass, null);
     }
 
   }
@@ -97,7 +99,8 @@ public abstract class PGBuffersStruct<Buffer> extends PGStruct {
 
     @Override
     protected Object getAttribute(Context context, Type type, CharSequence buffer) throws IOException {
-      return type.getTextCodec().getDecoder().decode(context, type, type.getLength(), null, buffer, null, null);
+      Class<?> targetClass = CustomTypes.lookupCustomType(type, context.getCustomTypeMap(), null);
+      return type.getTextCodec().getDecoder().decode(context, type, type.getLength(), null, buffer, targetClass, null);
     }
 
   }
