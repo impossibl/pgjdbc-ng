@@ -3042,6 +3042,20 @@ the standard <code>java.sql.Struct</code> API or via custom mapped Java classes 
 <p>PGJDBC-NG fully supports UDTs via the JDBC <code>java.sql.Struct</code> API for specifying UDT parameters
 and for retrieving UDT values in from <code>ResultSet</code>s.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Strong typing on the elements returned from <code>Struct.getAttributes()</code> will only be present if the
+query was run from a <code>PreparedStatement</code>. A regular <code>Statement</code> uses the text-based PostgreSQL protocol,
+which will always return the values of the UDT represented as strings.
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_java_sql_sqldata">8.2.2. java.sql.SQLData</h4>
@@ -4589,7 +4603,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2020-12-28 22:41:11 UTC
+Last updated 2020-12-28 23:56:21 UTC
 </div>
 </div>
 </body>
