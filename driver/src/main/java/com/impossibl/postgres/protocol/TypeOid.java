@@ -39,7 +39,7 @@ public class TypeOid implements TypeRef {
 
   public static TypeOid valueOf(int oid) {
     // Craziness is to reduce garbage creation for frequently used types
-    if (oid < fastCachedOids.length()) {
+    if (oid < fastCachedOids.length() && oid >= 0) {
       if (fastCachedOids.compareAndSet(oid, null, INVALID)) {
         // Was null, is now INVALID, set to correct value
         TypeOid toid = new TypeOid(oid);
