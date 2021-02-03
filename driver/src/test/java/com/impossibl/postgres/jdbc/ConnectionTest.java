@@ -572,6 +572,11 @@ public class ConnectionTest {
     con.setSchema("public");
 
     assertEquals(con.getSchema(), "public");
+
+    con.prepareStatement("set search_path to ''").execute();
+
+    assertEquals(con.getSchema(), "");
+
   }
 
   @Test
