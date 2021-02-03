@@ -640,8 +640,9 @@ public class BasicContext extends AbstractContext {
   protected String queryString(String queryTxt, long timeout) throws IOException {
 
     try (ResultBatch resultBatch = queryBatch(queryTxt, timeout)) {
-      String val = resultBatch.borrowRows().borrow(0)
-          .getField(0, resultBatch.getFields()[0], this, String.class, null).toString();
+      Object field = resultBatch.borrowRows().borrow(0)
+          .getField(0, resultBatch.getFields()[0], this, String.class, null);
+      String val = field == null ? null : field.toString();
       return nullToEmpty(val);
     }
 
