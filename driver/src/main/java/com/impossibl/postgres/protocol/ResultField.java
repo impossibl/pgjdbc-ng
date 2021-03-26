@@ -30,6 +30,8 @@ package com.impossibl.postgres.protocol;
 
 import com.impossibl.postgres.types.Type;
 
+import java.util.Objects;
+
 public class ResultField implements FieldFormatRef {
 
   private String name;
@@ -94,6 +96,25 @@ public class ResultField implements FieldFormatRef {
 
   public FieldFormat getFormat() {
     return format;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ResultField that = (ResultField) o;
+    return relationId == that.relationId
+        && relationAttributeNumber == that.relationAttributeNumber
+        && typeLength == that.typeLength
+        && typeModifier == that.typeModifier
+        && Objects.equals(name, that.name)
+        && Objects.equals(typeRef, that.typeRef)
+        && format == that.format;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, relationId, relationAttributeNumber, typeRef, typeLength, typeModifier, format);
   }
 
   @Override
