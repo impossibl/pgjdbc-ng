@@ -42,6 +42,7 @@ import static com.impossibl.postgres.system.SystemSettings.DATABASE_NAME;
 import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,14 +53,22 @@ import static java.util.Collections.singletonList;
 class PGResultSetMetaData extends PGMetaData implements ResultSetMetaData {
 
   private ResultField[] resultFields;
+  private int resultFieldsHash;
   private Map<Integer, List<ColumnData>> relationsColumnsData;
   private Map<String, Class<?>> typeMap;
+  private int typeMapHash;
 
   PGResultSetMetaData(PGDirectConnection connection, ResultField[] resultFields, Map<String, Class<?>> typeMap) {
     super(connection);
     this.resultFields = resultFields;
+    this.resultFieldsHash = Arrays.hashCode(resultFields);
     this.relationsColumnsData = new HashMap<>();
     this.typeMap = typeMap;
+    this.typeMapHash = typeMap.hashCode();
+  }
+
+  boolean matches(ResultField[] resultFields, Map<String, Class<?>> typeMap) {
+    return this.resultFieldsHash == Arrays.hashCode(resultFields) && this.typeMapHash == typeMap.hashCode();
   }
 
   private ColumnData getRelationColumnData(ResultField field) throws SQLException {

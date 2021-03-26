@@ -167,6 +167,7 @@ class PGResultSet implements ResultSet {
   private final SettingsContext context;
   private final Housekeeper.Ref housekeeper;
   private final Object cleanupKey;
+  private PGResultSetMetaData metaData;
 
   private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
 
@@ -608,7 +609,13 @@ class PGResultSet implements ResultSet {
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
     checkClosed();
-    return new PGResultSetMetaData(statement.connection, scroller.getResultFields(), context.getCustomTypeMap());
+
+    // Cache meta-data, allowing for result fields and type map to change
+    if (metaData == null || !metaData.matches(scroller.getResultFields(), context.getCustomTypeMap())) {
+      metaData = new PGResultSetMetaData(statement.connection, scroller.getResultFields(), context.getCustomTypeMap());
+    }
+
+    return metaData;
   }
 
   @Override
