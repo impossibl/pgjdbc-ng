@@ -34,7 +34,7 @@ object Versions {
    */
   const val kotlinPlugin = kotlin
   const val shadowPlugin = "5.1.0"
-  const val dockerComposePlugin = "0.8.13"
+  const val dockerComposePlugin = "0.14.2"
   const val asciiDoctorPlugin = "1.5.9.2"
   const val gitPublishPlugin = "2.1.3"
   const val aptIdeaPlugin = "0.20"
