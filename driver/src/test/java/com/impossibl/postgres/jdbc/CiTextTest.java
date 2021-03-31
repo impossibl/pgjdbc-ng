@@ -41,6 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -71,6 +72,7 @@ public class CiTextTest {
 
   @Test
   public void testCiTextInSchema() throws SQLException {
+    assumeTrue("testnoexts database is created", TestUtil.isDatabaseCreated("testnoexts"));
 
     String url = "jdbc:pgsql://" + TestUtil.getServer() + ":" + TestUtil.getPort() + "/testnoexts";
 
@@ -102,7 +104,7 @@ public class CiTextTest {
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM citester.test")) {
 
               assertTrue(rs.next());
-              assertEquals(rs.getObject("names", String[].class), new String[] {"test"});
+              assertArrayEquals(rs.getObject("names", String[].class), new String[] {"test"});
 
             }
           }
