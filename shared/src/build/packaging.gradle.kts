@@ -50,7 +50,6 @@ val javadoc = tasks.named<Javadoc>("javadoc") {
       addBooleanOption("Xdoclint:none", true)
       if (JavaVersion.current().isJava9Compatible) {
         addBooleanOption("html5", true)
-        addBooleanOption("-no-module-directories", true)
       }
       source("8")
       links("https://docs.oracle.com/javase/8/docs/api/")

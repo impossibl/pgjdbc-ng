@@ -9,7 +9,7 @@ description = "PostgreSQL JDBC - NG - API Spy"
 
 
 dependencies {
-  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
 }
 
 

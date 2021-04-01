@@ -1,7 +1,5 @@
 
-apply(from = "build-cache.gradle.kts")
-
-rootProject.name = "pgjdb-ng-parent"
+rootProject.name = "pgjdbc-ng-parent"
 
 include(":settings-gen")
 

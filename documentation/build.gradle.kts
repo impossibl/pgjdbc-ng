@@ -1,5 +1,5 @@
 plugins {
-  id("org.asciidoctor.convert") version Versions.asciiDoctorPlugin
+  id("org.asciidoctor.jvm.convert") version Versions.asciiDoctorPlugin
   id("org.ajoberstar.git-publish") version Versions.gitPublishPlugin
 }
 
@@ -7,8 +7,8 @@ val isSnapshot: Boolean by project
 
 val docsRepoUri = project.properties.getOrDefault("docsRepoUri", "git@github.com:impossibl/pgjdbc-ng.git").toString()
 
-val javadocs = configurations.create("javadocs")
-val docs = configurations.create("docs")
+val javadocs: Configuration = configurations.create("javadocs")
+val docs: Configuration = configurations.create("docs")
 
 dependencies {
 
@@ -28,7 +28,6 @@ tasks {
         addBooleanOption("Xdoclint:none", true)
         if (JavaVersion.current().isJava9Compatible) {
           addBooleanOption("html5", true)
-          addBooleanOption("-no-module-directories", true)
         }
         source("8")
         links("https://docs.oracle.com/javase/8/docs/api/")
@@ -58,7 +57,7 @@ tasks {
   }
 
   asciidoctorj {
-    version = Versions.asciidoctorJ
+    setVersion(Versions.asciidoctorJ)
   }
 
   asciidoctor {
@@ -68,14 +67,17 @@ tasks {
     val includeDocsDir = "$buildDir/tmp/docs"
     val docinfosDir = "$docsDir/docinfos"
 
-    sourceDir = file(docsDir)
+    setSourceDir(file(docsDir))
     sources(delegateClosureOf<PatternSet> {
       include("**/index.adoc")
     })
 
-    outputDir = file("$buildDir/docs")
+    setOutputDir(file("$buildDir/docs"))
+    outputOptions {
+      backends("html5")
+    }
 
-    setBackends("html5")
+    baseDirFollowsSourceFile()
 
     inputs.dir(examplesDir)
     inputs.dir(includeDocsDir)
