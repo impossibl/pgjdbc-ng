@@ -1,7 +1,6 @@
 
 plugins {
   `java-library`
-  id("net.ltgt.apt-idea") version Versions.aptIdeaPlugin
   id("com.adarshr.test-logger") version Versions.testLoggerPlugin
 }
 
@@ -12,21 +11,21 @@ dependencies {
 
   annotationProcessor(project(":settings-gen"))
 
-  compile(project(":spy"))
-  compile("io.netty:netty-common:${Versions.netty}")
-  compile("io.netty:netty-buffer:${Versions.netty}")
-  compile("io.netty:netty-transport:${Versions.netty}")
-  compile("io.netty:netty-codec:${Versions.netty}")
-  compile("io.netty:netty-handler:${Versions.netty}")
-  compile("io.netty:netty-transport-native-unix-common:${Versions.netty}")
-  compile("io.netty:netty-transport-native-kqueue:${Versions.netty}")
-  compile("io.netty:netty-transport-native-epoll:${Versions.netty}")
+  implementation(project(":spy"))
+  implementation("io.netty:netty-common:${Versions.netty}")
+  implementation("io.netty:netty-buffer:${Versions.netty}")
+  implementation("io.netty:netty-transport:${Versions.netty}")
+  implementation("io.netty:netty-codec:${Versions.netty}")
+  implementation("io.netty:netty-handler:${Versions.netty}")
+  implementation("io.netty:netty-transport-native-unix-common:${Versions.netty}")
+  implementation("io.netty:netty-transport-native-kqueue:${Versions.netty}")
+  implementation("io.netty:netty-transport-native-epoll:${Versions.netty}")
 
-  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
-  testCompile("org.junit.jupiter:junit-jupiter-params:${Versions.junit}")
-  testCompile("org.junit.vintage:junit-vintage-engine:${Versions.junit}")
-  testCompile("junit:junit:${Versions.junitClassic}")
-  testCompile("com.google.guava:guava:${Versions.guava}")
+  testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junit}")
+  testImplementation("org.junit.vintage:junit-vintage-engine:${Versions.junit}")
+  testImplementation("junit:junit:${Versions.junitClassic}")
+  testImplementation("com.google.guava:guava:${Versions.guava}")
 
 }
 

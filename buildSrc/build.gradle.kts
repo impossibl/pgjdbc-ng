@@ -1,7 +1,7 @@
 
 plugins {
   id("java-library")
-  id("org.jetbrains.kotlin.jvm") version "1.3.61"
+  id("org.jetbrains.kotlin.jvm") version "1.4.20"
 }
 
 repositories {
@@ -18,12 +18,12 @@ val compilerTesting = "0.15"
 
 dependencies {
 
-  compile("com.squareup:javapoet:$javaPoetVersion")
-  compile("com.github.javaparser:javaparser-symbol-solver-core:$javaParserVersion")
-  compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  implementation("com.squareup:javapoet:$javaPoetVersion")
+  implementation("com.github.javaparser:javaparser-symbol-solver-core:$javaParserVersion")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-  testCompile("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-  testCompile("com.google.testing.compile:compile-testing:$compilerTesting")
+  testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+  testImplementation("com.google.testing.compile:compile-testing:$compilerTesting")
   
 }
 

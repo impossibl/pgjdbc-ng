@@ -11,10 +11,10 @@ description = "PostgreSQL JDBC - NG - Settings Processor"
 
 
 dependencies {
-  compile("com.squareup:javapoet:${Versions.javaPoet}")
-  compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
-  testCompile("com.google.testing.compile:compile-testing:${Versions.compilerTesting}")
+  implementation("com.squareup:javapoet:${Versions.javaPoet}")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testImplementation("com.google.testing.compile:compile-testing:${Versions.compilerTesting}")
 }
 
 

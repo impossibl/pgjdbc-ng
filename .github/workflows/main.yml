@@ -17,7 +17,10 @@ jobs:
         with:
           java-version: 11
       - name: Run Checks
-        run: ./gradlew checkstyleMain checkstyleTest
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk11-build-test
+          arguments: checkstyleMain checkstyleTest
 
   build:
     runs-on: ubuntu-latest
@@ -36,7 +39,10 @@ jobs:
           chmod 0400 ./driver/src/test/resources/certdir/server/server.key
           sudo chown 70:70 ./driver/src/test/resources/certdir/server/server.key
       - name: Build & Test
-        run: ./gradlew -PpostgresVersions=${{ matrix.pg }} test -x checkstyleMain -x checkstyleTest
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk${{ matrix.jdk }}-build-test
+          arguments: -PpostgresVersions=${{ matrix.pg }} test -x checkstyleMain -x checkstyleTest
 
   deploy:
     needs: [check, build]
@@ -48,9 +54,15 @@ jobs:
         with:
           java-version: 11
       - name: Publish Maven Artifacts
-        run: ./gradlew -PpostgresVersions=12 -PossrhUsername=${{ secrets.OSSRH_USERNAME }}  -PossrhPassword=${{ secrets.OSSRH_PASSWORD }} publish
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk11-build-test
+          arguments: -PpostgresVersions=12 -PossrhUsername=${{ secrets.OSSRH_USERNAME }}  -PossrhPassword=${{ secrets.OSSRH_PASSWORD }} publish
       - name: Publish Documentation
+        uses: burrunan/gradle-cache-action@v1
         env:
           GRGIT_USER: kdubb
           GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew -PpostgresVersions=12 -PdocsRepoUri='https://github.com/impossibl/pgjdbc-ng.git' documentation:gitPublishPush
+        with:
+          job-id: jdk11-build-test
+          arguments:  -PpostgresVersions=12 -PdocsRepoUri='https://github.com/impossibl/pgjdbc-ng.git' documentation:gitPublishPush

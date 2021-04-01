@@ -11,13 +11,13 @@ description = "PostgreSQL JDBC - NG - UDT Generator"
 
 dependencies {
 
-  compile(project(":pgjdbc-ng"))
-  compile("com.xenomachina:kotlin-argparser:${Versions.argParser}")
-  compile("com.squareup:javapoet:${Versions.javaPoet}")
-  compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  implementation(project(":pgjdbc-ng"))
+  implementation("com.xenomachina:kotlin-argparser:${Versions.argParser}")
+  implementation("com.squareup:javapoet:${Versions.javaPoet}")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-  testCompile("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
-  testCompile("com.google.testing.compile:compile-testing:${Versions.compilerTesting}")
+  testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+  testImplementation("com.google.testing.compile:compile-testing:${Versions.compilerTesting}")
   
 }
 
