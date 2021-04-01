@@ -10,6 +10,8 @@ val jar = tasks.named<Jar>("jar") {
   val organization: Map<String, Any> by project
   val url: String by project
 
+  archiveBaseName.set("pgjdbc-ng-${archiveBaseName.get()}")
+
   manifest {
     attributes(
        "Implementation-Title" to project.description,
