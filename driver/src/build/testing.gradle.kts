@@ -160,7 +160,7 @@ fun checkServerKeyPermissions(): Boolean {
     }
     return true
   }
-  catch(x: IOException) {
+  catch(x: Throwable) {
     project.logger.warn(
        "DISABLING SSL, unable to determine required owner/permissions for $serverKey"
     )
