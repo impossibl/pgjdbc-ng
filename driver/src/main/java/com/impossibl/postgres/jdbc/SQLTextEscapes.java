@@ -80,13 +80,15 @@ public class SQLTextEscapes {
 
   }
 
-  private static Node processEscape(EscapeNode escape, Context context) throws SQLException {
+  static String getEscapeType(EscapeNode escape) throws SQLException {
+    return getNodeNotOf(escape, 0, WhitespacePiece.class, PieceNode.class).getText().toLowerCase();
+  }
 
-    PieceNode type = getNodeNotOf(escape, 0, WhitespacePiece.class, PieceNode.class);
+  private static Node processEscape(EscapeNode escape, Context context) throws SQLException {
 
     Node result;
 
-    switch (type.toString().toLowerCase()) {
+    switch (getEscapeType(escape)) {
       case "fn":
         result = processFunctionEscape(escape);
         break;

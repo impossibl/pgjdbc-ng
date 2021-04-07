@@ -90,6 +90,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
 
   private String fullSqlText;
+  private boolean hasCall;
   private List<ParameterMode> allParameterModes;
   private Map<Integer, SQLType> outParameterSQLTypes;
   private ResultField[] outParameterFields;
@@ -103,9 +104,12 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
   private static final ThreadLocal<TypeMapContext> TYPE_MAP_CONTEXTS = ThreadLocal.withInitial(TypeMapContext::new);
 
-  PGCallableStatement(PGDirectConnection connection, int type, int concurrency, int holdability, String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
-    super(connection, type, concurrency, holdability, sqlText, 0, cursorName);
+  PGCallableStatement(PGDirectConnection connection, int type, int concurrency, int holdability, boolean hasCall,
+                      String sqlText, int parameterCount, String cursorName, boolean hasAssign) throws SQLException {
+    super(connection, type, concurrency, holdability, sqlText,  0, cursorName);
 
+
+    this.hasCall = hasCall;
     fullSqlText = sqlText;
     allParameterModes = new ArrayList<>(nCopies(parameterCount, null));
     parameterTypes = EMPTY_TYPES;
@@ -199,7 +203,7 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
       }
 
     }
-    else if (!hasAnyParameterModes()) {
+    else if (!hasCall) {
       // treat as normal PreparedStatement execute
       return res;
     }
@@ -217,13 +221,6 @@ public class PGCallableStatement extends PGPreparedStatement implements Callable
 
     ReferenceCountUtil.release(outParameterData);
     outParameterData = null;
-  }
-
-  private boolean hasAnyParameterModes() {
-    for (ParameterMode mode : allParameterModes) {
-      if (mode != null) return true;
-    }
-    return false;
   }
 
   private int mapToInParameterIndex(int parameterIdx) {

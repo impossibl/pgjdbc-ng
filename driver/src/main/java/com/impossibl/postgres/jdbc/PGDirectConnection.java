@@ -1140,19 +1140,22 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
   private PGCallableStatement prepareCall(SQLText sqlText, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 
     final int[] parameterCount = new int[1];
-    Processor counter = node -> {
+    final boolean[] hasCall = new boolean[] {false};
+    Processor queryProcessor = node -> {
       if (node instanceof ParameterPiece)
         parameterCount[0] += 1;
+      if (node instanceof SQLTextTree.EscapeNode)
+        hasCall[0] = SQLTextEscapes.getEscapeType((SQLTextTree.EscapeNode)node).equals("call");
       return node;
     };
 
-    sqlText.process(counter, true);
+    sqlText.process(queryProcessor, true);
     int preParameterCount = parameterCount[0];
 
     SQLTextEscapes.processEscapes(sqlText, this);
 
     parameterCount[0] = 0;
-    sqlText.process(counter, true);
+    sqlText.process(queryProcessor, true);
     int finalParameterCount = parameterCount[0];
 
     String cursorName = null;
@@ -1172,7 +1175,8 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
     boolean hasAssign = preParameterCount == (finalParameterCount + 1);
 
     PGCallableStatement statement =
-        new PGCallableStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, sqlText.toString(), parameterCount[0], cursorName, hasAssign);
+        new PGCallableStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, hasCall[0],
+            sqlText.toString(), parameterCount[0], cursorName, hasAssign);
 
     activeStatements.add(new WeakReference<>(statement));
 
