@@ -73,5 +73,5 @@ jobs:
           job-id: jdk11-build-test
           properties: |
             postgresVersions=12
-            docsRepoUri='https://github.com/impossibl/pgjdbc-ng.git'
+            docsRepoUri=https://github.com/impossibl/pgjdbc-ng.git
           arguments: documentation:gitPublishPush
