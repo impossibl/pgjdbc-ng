@@ -42,7 +42,9 @@ jobs:
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk${{ matrix.jdk }}-build-test
-          arguments: -PpostgresVersions=${{ matrix.pg }} test -x checkstyleMain -x checkstyleTest
+          properties: |
+            postgresVersions=${{ matrix.pg }}
+          arguments: test -x checkstyleMain -x checkstyleTest
 
   deploy:
     needs: [check, build]
@@ -57,7 +59,11 @@ jobs:
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk11-build-test
-          arguments: -PpostgresVersions=12 -PossrhUsername=${{ secrets.OSSRH_USERNAME }}  -PossrhPassword=${{ secrets.OSSRH_PASSWORD }} publish
+          properties: |
+            postgresVersions=12
+            ossrhUsername=${{ secrets.OSSRH_USERNAME }}
+            ossrhPassword=${{ secrets.OSSRH_PASSWORD }}
+          arguments: publish
       - name: Publish Documentation
         uses: burrunan/gradle-cache-action@v1
         env:
@@ -65,4 +71,7 @@ jobs:
           GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
         with:
           job-id: jdk11-build-test
-          arguments:  -PpostgresVersions=12 -PdocsRepoUri='https://github.com/impossibl/pgjdbc-ng.git' documentation:gitPublishPush
+          properties: |
+            postgresVersions=12
+            docsRepoUri='https://github.com/impossibl/pgjdbc-ng.git'
+          arguments: documentation:gitPublishPush
