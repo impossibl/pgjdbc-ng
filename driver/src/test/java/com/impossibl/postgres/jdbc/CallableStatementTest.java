@@ -201,6 +201,17 @@ public class CallableStatementTest {
     }
   }
 
+  @Test
+  public void testUseAsPreparedStatement2() throws Exception {
+    try (CallableStatement stmt = con.prepareCall("SELECT testspg__getString FROM testspg__getString(?)")) {
+      stmt.setString(1, "");
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(rs.getString(1), "bob");
+      }
+    }
+  }
+
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 
