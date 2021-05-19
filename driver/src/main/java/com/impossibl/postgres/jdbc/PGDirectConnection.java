@@ -129,6 +129,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -419,8 +420,9 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    *
    */
   private void closeStatements() {
-    closeStatements(activeStatements);
+    Collection<WeakReference<PGStatement>> _activeStatements = new LinkedList<>(activeStatements);
     activeStatements.clear();
+    closeStatements(_activeStatements);
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
