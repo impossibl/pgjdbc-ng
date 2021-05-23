@@ -40,7 +40,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @RunWith(JUnit4.class)
 public class SavepointTest {
@@ -51,6 +53,7 @@ public class SavepointTest {
   public void before() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "savepointtable", "id int primary key");
+    TestUtil.createTable(_conn, "savepointtable2", "id int primary key");
     _conn.setAutoCommit(false);
   }
 
@@ -58,6 +61,7 @@ public class SavepointTest {
   public void after() throws SQLException {
     _conn.setAutoCommit(true);
     TestUtil.dropTable(_conn, "savepointtable");
+    TestUtil.dropTable(_conn, "savepointtable2");
     TestUtil.closeDB(_conn);
   }
 
@@ -243,6 +247,78 @@ public class SavepointTest {
 
     _conn.releaseSavepoint(savepoint);
     assertEquals(1, countRows());
+  }
+
+  @Test
+  public void testRollbackToSavePointWithFetchCount() throws SQLException {
+    _conn.setAutoCommit(false);
+
+    try (Statement stmt = _conn.createStatement()) {
+      stmt.execute("insert into savepointtable values (1), (2), (3);");
+      stmt.execute("insert into savepointtable2 values (1), (2), (3);");
+    }
+
+    Savepoint savepoint = _conn.setSavepoint();
+
+    try (
+        PreparedStatement preparedStatement =
+            _conn.prepareStatement("SELECT * from savepointtable where id = (select id from savepointtable2);")
+    ) {
+      preparedStatement.setFetchSize(1000);
+
+      try (ResultSet ignored = preparedStatement.executeQuery()) {
+        fail("Query should have failed");
+      }
+
+      fail("Query should have failed");
+    }
+    catch (Exception e) {
+      // Error is expected...
+      _conn.rollback(savepoint);
+    }
+    finally {
+      try {
+        _conn.setAutoCommit(true);
+      }
+      catch (Throwable t) {
+        t.printStackTrace();
+      }
+    }
+  }
+
+  @Test
+  public void testRollbackWithFetchCount() throws Exception {
+    _conn.setAutoCommit(false);
+
+    try (Statement stmt = _conn.createStatement()) {
+      stmt.execute("insert into savepointtable values (1), (2), (3);");
+      stmt.execute("insert into savepointtable2 values (1), (2), (3);");
+    }
+
+    try (PreparedStatement preparedStatement =
+             _conn.prepareStatement("SELECT * from savepointtable where id = (select id from savepointtable2);")
+    ) {
+      preparedStatement.setFetchSize(1000);
+
+      try (ResultSet set = preparedStatement.executeQuery()) {
+        while (set.next()) {
+          set.getInt(1);
+        }
+      }
+
+    }
+    catch (Exception e) {
+      // Error is expected...
+      _conn.rollback();
+    }
+    finally {
+      try {
+        _conn.setAutoCommit(true);
+      }
+      catch (Throwable t) {
+        t.printStackTrace();
+      }
+    }
   }
 
 }

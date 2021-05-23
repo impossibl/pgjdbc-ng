@@ -116,14 +116,22 @@ public class PreparedQuery implements Query {
       portalName = null;
     }
 
-    ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
-      ExecuteResult handler = new ExecuteResult(!requiresPortal(), resultFields);
-      connection.getRequestExecutor().execute(portalName, statementName, parameterFormats, parameterBuffers, resultFields, maxRows, handler);
-      handler.await(timeout, MILLISECONDS);
-      return handler;
-    });
+    try {
 
-    return applyResult(connection, result);
+      ExecuteResult result = connection.executeTimed(this.timeout, (timeout) -> {
+        ExecuteResult handler = new ExecuteResult(!requiresPortal(), resultFields);
+        connection.getRequestExecutor().execute(portalName, statementName, parameterFormats, parameterBuffers, resultFields, maxRows, handler);
+        handler.await(timeout, MILLISECONDS);
+        return handler;
+      });
+
+      return applyResult(connection, result);
+
+    }
+    catch (Throwable x) {
+      dispose(connection);
+      throw x;
+    }
   }
 
   private SQLWarning resumeStatement(PGDirectConnection connection) throws SQLException {
