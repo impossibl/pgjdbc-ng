@@ -341,6 +341,83 @@ public class ConnectionTest {
   }
 
   /**
+   * Test close with failing prepared statement cleanup.
+   *
+   * This opens a statement (PG portal) and then kills the server to
+   * simulate https://github.com/impossibl/pgjdbc-ng/issues/539.
+   */
+  @Test
+  public void testCloseWithFailingPreparedStatementCleanup() throws Exception {
+    con = TestUtil.openDB();
+    con.setAutoCommit(false);
+
+    // Find connection pid (for killing later)
+    long pid;
+    try (PreparedStatement ps = con.prepareStatement("SELECT pg_backend_pid()")) {
+      try (ResultSet rs = ps.executeQuery()) {
+        rs.next();
+        pid = rs.getLong(1);
+      }
+    }
+    con.commit();
+
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("INSERT INTO test_c(source) VALUES('1')");
+      stmt.execute("INSERT INTO test_c(source) VALUES('2')");
+    }
+
+    PreparedStatement stmt = con.prepareStatement("SELECT source FROM test_c");
+    try {
+      stmt.setFetchSize(1);
+
+      ResultSet rs = stmt.executeQuery();
+      try {
+        rs.next();
+
+        // Kill the server via a separate connection
+        try (Connection con2 = TestUtil.openDB()) {
+          try (Statement closer = con2.createStatement()) {
+            closer.execute("SELECT pg_terminate_backend(" + pid + ")");
+          }
+        }
+
+        con.close();
+
+      }
+      catch (SQLException x) {
+
+        // Attempt to close the _failed_ result set, only
+        // allowing an SQLException to be thrown.
+
+        try {
+          rs.close();
+        }
+        catch (SQLException e) {
+          // Ignore
+        }
+        catch (Throwable e) {
+          fail("Unexpected exception: " + e.getMessage());
+        }
+      }
+    }
+    catch (SQLException x) {
+
+      // Attempt to close the _failed_ statement, only
+      // allowing an SQLException to be thrown.
+
+      try {
+        stmt.close();
+      }
+      catch (SQLException e) {
+        // Ignore
+      }
+      catch (Throwable e) {
+        fail("Unexpected exception: " + e.getMessage());
+      }
+    }
+  }
+
+  /**
    * Network timeout enforcement
    */
   @Test

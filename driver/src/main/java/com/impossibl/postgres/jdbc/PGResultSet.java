@@ -589,14 +589,17 @@ class PGResultSet implements ResultSet {
 
     //Release resources
 
-    if (scroller != null)
+    Scroller scroller = this.scroller;
+    this.scroller = null;
+    if (scroller != null) {
       scroller.close();
+    }
 
-    if (housekeeper != null)
+    if (housekeeper != null) {
       housekeeper.remove(cleanupKey);
+    }
 
     statement = null;
-    scroller = null;
   }
 
   @Override

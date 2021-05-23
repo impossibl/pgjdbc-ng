@@ -48,6 +48,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -225,6 +226,9 @@ public abstract class PGStatement implements Statement {
    *
    */
   void closeResultSets() {
+    Collection<WeakReference<PGResultSet>> activeResultSets = this.activeResultSets;
+    this.activeResultSets = new ArrayList<>();
+
     closeResultSets(activeResultSets);
 
     generatedKeysResultSet = null;
