@@ -125,6 +125,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Struct;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -419,8 +420,10 @@ public class PGDirectConnection extends BasicContext implements PGConnection {
    *
    */
   private void closeStatements() {
+    Collection<WeakReference<PGStatement>> activeStatements = this.activeStatements;
+    this.activeStatements = new ArrayList<>();
+
     closeStatements(activeStatements);
-    activeStatements.clear();
   }
 
   SQLText parseSQL(String sqlText) throws SQLException {
