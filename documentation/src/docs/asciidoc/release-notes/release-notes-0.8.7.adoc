@@ -1,7 +1,7 @@
 [[release-notes-0.8.7]]
 == 0.8.7
 
-*Date of Release:* 2020-03-31
+*Date of Release:* 2021-03-31
 
 *Scope:* Driver Bug Fixes
 
