@@ -1,0 +1,61 @@
+[[release-notes-0.8.8]]
+== 0.8.8
+
+*Date of Release:* 2020-05-24
+
+*Scope:* Bug Fixes
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/10?closed=1+[0.8.8] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.8-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Resolved **_driver hang_** when certain prepared queries are open during a hard database restart.
+* Resolved **_driver hang_** when rolling back to a savepoint when certain prepared queries are open.
+* Resolved **_null pointer exception_** during rollback when certain prepared queries are open.
+* Resolved regression when using `CallableStatement` as a simple `PreparedStatement`.
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
+[[release-notes-0.8.8-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
+
+[[release-notes-0.8.8-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
