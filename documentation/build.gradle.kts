@@ -72,7 +72,7 @@ tasks {
       include("**/index.adoc")
     })
 
-    setOutputDir(file("$buildDir/docs"))
+    setOutputDir(file("$buildDir/docs/html5"))
     outputOptions {
       backends("html5")
     }
