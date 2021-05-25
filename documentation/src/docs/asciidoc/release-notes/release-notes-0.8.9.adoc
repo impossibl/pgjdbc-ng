@@ -1,0 +1,62 @@
+[[release-notes-0.8.9]]
+== 0.8.9
+
+*Date of Release:* 2021-05-25
+
+*Scope:* Repackage of 0.8.8
+
+
+**_This is a re-relase of 0.8.8 with fixed "uber jars"._**
+
+
+For a complete list of all _closed_ issues and pull requests for this release, consult
+the link:{projectrepo}+/milestone/10?closed=1+[0.8.8] milestone page in the PGJDBC-NG repository
+on GitHub.
+
+
+[[release-notes-0.8.9-pgjdbc-ng-driver]]
+=== PGJDBC-NG Driver
+
+==== Bug Fixes
+
+* Fix packaging and publishing of "UberJar"
+
+==== Deprecations and Breaking Changes
+
+None
+
+==== New Features and Improvements
+
+None
+
+[[release-notes-0.8.9-pgjdbc-ng-udt]]
+=== PGJDBC-NG UDT Generator
+
+==== Bug Fixes
+
+* Fix packaging and publishing of "UberJar"
+
+==== Deprecations and Breaking Changes
+
+* Maven artifactId has changed to 'pgjdbc-ng-udt-gen`; prefix was added to disambiguate.
+
+==== New Features and Improvements
+
+None
+
+
+[[release-notes-0.8.9-pgjdbc-ng-spy]]
+=== PGJDBC-NG Spy
+
+==== Bug Fixes
+
+None
+
+==== Deprecations and Breaking Changes
+
+* Maven artifactId has changed to 'pgjdbc-ng-udt-gen`; prefix was added to disambiguate.
+
+==== New Features and Improvements
+
+None
+
