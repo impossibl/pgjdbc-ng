@@ -34,20 +34,16 @@ import com.impossibl.postgres.system.Version;
 import static com.impossibl.postgres.system.tables.PGTypeTable.INSTANCE;
 import static com.impossibl.postgres.system.tables.PGTypeTable.SQL;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 /**
  * Created by dstipp on 12/8/15.
  */
 public class PGTypeTableTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQLVersionEqual() {
@@ -67,8 +63,7 @@ public class PGTypeTableTest {
 
   @Test
   public void testGetSQLVersionInvalid() {
-    thrown.expect(UnsupportedServerVersion.class);
-    assertEquals(INSTANCE.getSQL(Version.parse("8.0.0")), SQL[1]);
+    assertThrows(UnsupportedServerVersion.class, () -> INSTANCE.getSQL(Version.parse("8.0.0")));
   }
 
   @Test

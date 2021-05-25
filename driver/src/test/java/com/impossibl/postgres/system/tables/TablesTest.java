@@ -31,9 +31,9 @@ package com.impossibl.postgres.system.tables;
 import com.impossibl.postgres.system.UnsupportedServerVersion;
 import com.impossibl.postgres.system.Version;
 
-import org.junit.Rule;
+import static com.impossibl.postgres.jdbc.util.Asserts.assertThrows;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -46,9 +46,6 @@ import static org.junit.Assert.fail;
  */
 @RunWith(JUnit4.class)
 public class TablesTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testGetSQL() {
@@ -72,8 +69,7 @@ public class TablesTest {
 
   @Test
   public void testUnsupportedServerVersion() {
-    thrown.expect(UnsupportedServerVersion.class);
-    assertEquals(Tables.getSQL(SQL, Version.parse("8.3.0")), SQL[1]);
+    assertThrows(UnsupportedServerVersion.class, () -> Tables.getSQL(SQL, Version.parse("8.3.0")));
   }
 
 

@@ -60,9 +60,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -192,7 +192,6 @@ public class DataSourceTest {
 
   @Test
   public void testSettingsAreValidProperties() throws Exception {
-    PGDataSource ds = new PGDataSource();
     BeanInfo beanInfo = Introspector.getBeanInfo(PGDataSource.class);
 
     for (Setting<?> setting : new Settings(JDBC, DS, SYS, PROTO).knownSet()) {
