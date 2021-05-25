@@ -10,7 +10,10 @@ val jar = tasks.named<Jar>("jar") {
   val organization: Map<String, Any> by project
   val url: String by project
 
-  archiveBaseName.set("pgjdbc-ng-${archiveBaseName.get()}")
+  // Prefix "sub" modules with project name
+  if (archiveBaseName.orNull != "pgjdbc-ng") {
+    archiveBaseName.set("pgjdbc-ng-${archiveBaseName.get()}")
+  }
 
   manifest {
     attributes(
