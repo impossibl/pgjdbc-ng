@@ -97,17 +97,15 @@ if (isSnapshot || isRelease) {
 
       }
 
-      tasks.findByPath("uberJar")?.let {
+      tasks.withType<ShadowJar>().findByName("uberJar")?.let { task ->
 
-        register<MavenPublication>("shadow") {
+        register<MavenPublication>("uber") {
 
-          artifactId = "${artifactId}-all"
+          artifactId = "${task.archiveBaseName.get()}-${task.archiveAppendix.get()}"
 
           pom(pomCfg)
 
-          artifact(tasks.named<ShadowJar>("uberJar").get()) {
-            classifier = ""
-          }
+          artifact(task)
 
           artifact(tasks.named<Jar>("sourcesJar").get())
           artifact(tasks.named<Jar>("javadocJar").get())
@@ -134,7 +132,7 @@ if (isSnapshot || isRelease) {
     configure<SigningExtension> {
       sign(the<PublishingExtension>().publications["std"])
       if (tasks.findByPath("uberJar") != null) {
-        sign(the<PublishingExtension>().publications["shadow"])
+        sign(the<PublishingExtension>().publications["uber"])
       }
     }
 
