@@ -146,11 +146,6 @@ public class CryptoUtil {
    * this operator.  The length of the output and each of the two
    * inputs will be the same for this use.
    * }
-   *
-   * @param value1
-   * @param value2
-   * @return
-   * @throws IllegalArgumentException
    */
   public static byte[] xor(byte[] value1, byte[] value2) throws IllegalArgumentException {
     checkNotNull(value1, "value1");

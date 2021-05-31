@@ -134,8 +134,8 @@ public class ScramSession {
 
   /**
    * Generates a client-final-message from the received server-first-message, channel-bind data (if any),
-   * and the user's password. A matching {@link ClientFinalProcessor} is stored internally for a later call to
-   * {@link #receiveServerFinalMessage(String)} to complete the authentication.
+   * and the user's password. A matching {@link ScramSession.ClientFinalProcessor} is stored internally for a
+   * later call to {@link #receiveServerFinalMessage(String)} to complete the authentication.
    *
    * @param serverFirstMessage The message
    * @param channelBindData Optional channel-bind data (my be null)
@@ -157,8 +157,8 @@ public class ScramSession {
   /**
    * Generates a client-final-message from the received server-first-message, channel-bind data (if any),
    * and the clientKey and storedKey which, if available, provide an optimized path versus providing the original
-   * user's passwordthe user's password. A matching {@link ClientFinalProcessor} is stored internally for a later call
-   * to {@link #receiveServerFinalMessage(String)} to complete the authentication.
+   * user's passwordthe user's password. A matching {@link ScramSession.ClientFinalProcessor} is stored internally
+   * for a later call to {@link #receiveServerFinalMessage(String)} to complete the authentication.
    *
    * @param serverFirstMessage The message
    * @param channelBindData Optional channel-bind data (my be null)
