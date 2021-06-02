@@ -6,7 +6,7 @@ import java.net.URI
 buildscript {
   repositories { gradlePluginPortal() }
   dependencies {
-    classpath("com.github.jengelman.gradle.plugins:shadow:${Versions.shadowPlugin}")
+    classpath("gradle.plugin.com.github.jengelman.gradle.plugins:shadow:${Versions.shadowPlugin}")
   }
 }
 

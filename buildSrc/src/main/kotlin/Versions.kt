@@ -33,7 +33,7 @@ object Versions {
    * Plugin dependencies
    */
   const val kotlinPlugin = kotlin
-  const val shadowPlugin = "6.1.0"
+  const val shadowPlugin = "7.0.0"
   const val dockerComposePlugin = "0.14.2"
   const val asciiDoctorPlugin = "3.2.0"
   const val gitPublishPlugin = "3.0.0"
