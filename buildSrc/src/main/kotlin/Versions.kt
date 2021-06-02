@@ -6,7 +6,7 @@ object Versions {
    * Source
    */
   val javaTarget = JavaVersion.VERSION_1_8
-  const val kotlin = "1.4.20"
+  const val kotlin = "1.4.31"
 
   /**
    * Required Libraries

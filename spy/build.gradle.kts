@@ -12,10 +12,11 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
 }
 
+val genDir = file("$buildDir/generated")
 
 sourceSets {
   main {
-    java.srcDirs("$buildDir/generated")
+    java.srcDirs(genDir)
   }
 }
 
@@ -24,7 +25,6 @@ tasks {
   val genTask = register("generator") {
     description = "Generate SPY relay, listener & trace classes"
 
-    val genDir = file("$buildDir/generated")
     outputs.dir(genDir)
 
     doLast {
@@ -36,6 +36,10 @@ tasks {
   compileJava {
     dependsOn(genTask)
     options.isDeprecation = true
+  }
+
+  javadoc {
+    dependsOn(genTask)
   }
 
 }

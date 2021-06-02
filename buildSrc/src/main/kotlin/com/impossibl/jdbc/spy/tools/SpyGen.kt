@@ -51,7 +51,7 @@ class SpyGen {
   )
   private val solver = CombinedTypeSolver(
      PathJavaParserTypeSolver(
-        SpyGen::class.java.getResource("/jdbc-api").toURI().let {
+        SpyGen::class.java.getResource("/jdbc-api")?.toURI()?.let {
           if (it.scheme.startsWith("jar")) {
             try { FileSystems.newFileSystem(it, mapOf<String, Any>()) } catch (x: FileSystemAlreadyExistsException) {}
           }
@@ -316,17 +316,16 @@ val ResolvedTypeParameterDeclaration.typeVariableName: TypeVariableName
      TypeVariableName.get(this.name, *this.bounds.map { it.type.typeName }.toTypedArray())
 
 val ResolvedType.typeName: TypeName get() =
-  when {
-    this is ResolvedPrimitiveType -> ClassName.bestGuess(this.boxTypeQName).unbox()
-    this is ResolvedArrayType -> ArrayTypeName.of(this.componentType.typeName)
-    this is ResolvedVoidType -> TypeName.VOID
-    this is ResolvedWildcard -> this.wildcardTypeName
-    this is ResolvedTypeVariable -> TypeVariableName.get(this.describe())
-    this is ResolvedReferenceType ->
-      if (this.typeParametersMap.isEmpty())
-        this.typeDeclaration.typeName
-      else
-        ParameterizedTypeName.get(this.typeDeclaration.typeName, *this.typeParametersValues().map { it.typeName }.toTypedArray())
+  when (this) {
+    is ResolvedPrimitiveType -> ClassName.bestGuess(this.boxTypeQName).unbox()
+    is ResolvedArrayType -> ArrayTypeName.of(this.componentType.typeName)
+    is ResolvedVoidType -> TypeName.VOID
+    is ResolvedWildcard -> this.wildcardTypeName
+    is ResolvedTypeVariable -> TypeVariableName.get(this.describe())
+    is ResolvedReferenceType -> if (this.typeParametersMap.isEmpty())
+      this.typeDeclaration.get().typeName
+    else
+      ParameterizedTypeName.get(this.typeDeclaration.get().typeName, *this.typeParametersValues().map { it.typeName }.toTypedArray())
     else -> throw IllegalArgumentException("Unsupported ResolvedType: ${this.javaClass}")
   }
 
