@@ -302,8 +302,8 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
                                         <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang" class="externalLink">String</a>&nbsp;password)
                                  throws <a href="../exception/ScramException.html" title="class in com.impossibl.postgres.protocol.sasl.scram.exception">ScramException</a></pre>
 <div class="block">Generates a client-final-message from the received server-first-message, channel-bind data (if any),
- and the user's password. A matching <code>ScramSession.ClientFinalProcessor</code> is stored internally for a later call to
- <a href="#receiveServerFinalMessage(java.lang.String)"><code>receiveServerFinalMessage(String)</code></a> to complete the authentication.</div>
+ and the user's password. A matching <code>ScramSession.ClientFinalProcessor</code> is stored internally for a
+ later call to <a href="#receiveServerFinalMessage(java.lang.String)"><code>receiveServerFinalMessage(String)</code></a> to complete the authentication.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>serverFirstMessage</code> - The message</dd>
@@ -330,8 +330,8 @@ extends <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html
                                  throws <a href="../exception/ScramException.html" title="class in com.impossibl.postgres.protocol.sasl.scram.exception">ScramException</a></pre>
 <div class="block">Generates a client-final-message from the received server-first-message, channel-bind data (if any),
  and the clientKey and storedKey which, if available, provide an optimized path versus providing the original
- user's passwordthe user's password. A matching <code>ScramSession.ClientFinalProcessor</code> is stored internally for a later call
- to <a href="#receiveServerFinalMessage(java.lang.String)"><code>receiveServerFinalMessage(String)</code></a> to complete the authentication.</div>
+ user's passwordthe user's password. A matching <code>ScramSession.ClientFinalProcessor</code> is stored internally
+ for a later call to <a href="#receiveServerFinalMessage(java.lang.String)"><code>receiveServerFinalMessage(String)</code></a> to complete the authentication.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>serverFirstMessage</code> - The message</dd>
