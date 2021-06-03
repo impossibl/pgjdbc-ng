@@ -52,7 +52,7 @@ public class Locales {
     // Strip encoding/codepage
     localeValue = localeValue.split("\\.", 2)[0];
     if (localeValue.startsWith("Norwegian Bokm")) {
-      localeValue = "Norwegian Bokmal";
+      localeValue = "Norwegian_Norway";
     }
 
     switch (localeValue.toUpperCase(Locale.ROOT)) {
