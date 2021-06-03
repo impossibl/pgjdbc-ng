@@ -51,6 +51,9 @@ public class Locales {
   public static Locale parseLocale(String localeValue) {
     // Strip encoding/codepage
     localeValue = localeValue.split("\\.", 2)[0];
+    if (localeValue.startsWith("Norwegian Bokm")) {
+      localeValue = "Norwegian_Norway";
+    }
 
     switch (localeValue.toUpperCase(Locale.ROOT)) {
       case "C":
