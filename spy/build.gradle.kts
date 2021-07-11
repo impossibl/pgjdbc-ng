@@ -13,11 +13,18 @@ dependencies {
 }
 
 val genDir = file("$buildDir/generated")
+val gen11Dir = file("$buildDir/generated-java11")
 
 sourceSets {
   main {
     java.srcDirs(genDir)
+    java.include("com/impossibl/**")
   }
+}
+sourceSets.create("java11") {
+  java.srcDir("src/main/java")
+  java.srcDir(genDir)
+  java.srcDir("src/main/java11")
 }
 
 tasks {
@@ -32,9 +39,23 @@ tasks {
       SpyGen().generateTo(genDir)
     }
   }
+  val gen11Task = register("generator11") {
+    outputs.dir(gen11Dir)
+
+    doLast {
+      gen11Dir.mkdirs()
+      SpyGen().generateTo(gen11Dir)
+    }
+  }
 
   compileJava {
     dependsOn(genTask)
+    options.isDeprecation = true
+  }
+
+  val compileJavaTask = named("compileJava")
+  named<JavaCompile>("compileJava11Java") {
+    dependsOn(compileJavaTask)
     options.isDeprecation = true
   }
 
@@ -43,6 +64,8 @@ tasks {
   }
 
 }
+
+project.extra["moduleDescriptor"] = true
 
 apply {
   from("$rootDir/shared/src/build/compile-java.gradle.kts")
