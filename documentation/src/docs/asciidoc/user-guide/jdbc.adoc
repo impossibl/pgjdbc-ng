@@ -145,7 +145,7 @@ counterpart datatype, and instead use `getObject` providing the type of object y
 ----
 ResultSet rs = statement.getResultSet();
 LocalDateTime incorrect = rs.getTimestamp(1).toLocalDateTime(); <1>
-LocalDateTime correct = rs.getObjecct(1, LocalDateTime.class); <2>
+LocalDateTime correct = rs.getObject(1, LocalDateTime.class); <2>
 ----
 <1> [red]#Incorrect method using convenience API and conversion#
 <2> Correct method using `getObject` and no conversion.
