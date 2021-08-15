@@ -3209,7 +3209,7 @@ counterpart datatype, and instead use <code>getObject</code> providing the type 
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="java"><span class="predefined-type">ResultSet</span> rs = statement.getResultSet();
 LocalDateTime incorrect = rs.getTimestamp(<span class="integer">1</span>).toLocalDateTime(); <i class="conum" data-value="1"></i><b>(1)</b>
-LocalDateTime correct = rs.getObjecct(<span class="integer">1</span>, LocalDateTime.class); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+LocalDateTime correct = rs.getObject(<span class="integer">1</span>, LocalDateTime.class); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -4609,7 +4609,7 @@ should provide information as to the issue with your installation and/or configu
 <div id="footer">
 <div id="footer-text">
 Version 0.9-SNAPSHOT<br>
-Last updated 2021-06-02 15:45:29 UTC
+Last updated 2021-08-15 02:00:02 UTC
 </div>
 </div>
 </body>
