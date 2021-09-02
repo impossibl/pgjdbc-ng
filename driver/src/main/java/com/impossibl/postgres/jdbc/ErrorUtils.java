@@ -205,6 +205,7 @@ public class ErrorUtils {
     e.setDatatype(notice.getDatatype());
     e.setConstraint(notice.getConstraint());
     e.setDetail(notice.getDetail());
+    e.setWhere(notice.getWhere());
 
     return (SQLException) e;
   }
