@@ -2444,7 +2444,7 @@ class CursorScroller extends Scroller {
     sb.append(" SET ");
 
     for (int pid = 0; pid < resultFields.length; ++pid) {
-      sb.append(resultFields[pid].getName());
+      sb.append('"').append(resultFields[pid].getName()).append('"');
       sb.append(" = $");
       sb.append(pid + 1);
       if (pid < resultFields.length - 1) {
