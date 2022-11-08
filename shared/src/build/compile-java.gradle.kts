@@ -6,10 +6,16 @@ configure<JavaPluginExtension> {
   }
 }
 
-val javaToolchains = extensions.getByName("javaToolchains") as JavaToolchainService
+tasks.named<JavaCompile>("compileJava") {
+  val targetVersion: Int = Integer.parseInt(Versions.javaTarget.majorVersion)
+  options.release.set(targetVersion)
+}
 
-tasks.withType<JavaCompile>().configureEach {
-  javaCompiler.set(javaToolchains.compilerFor {
-    languageVersion.set(JavaLanguageVersion.of(Versions.javaTarget.majorVersion))
-  })
+if (project.extra["moduleDescriptor"] as Boolean) {
+  tasks.named<JavaCompile>("compileJava11Java") {
+    options.release.set(11)
+    options.javaModuleVersion.set(project.version as String)
+  }
+
+  configurations["java11CompileClasspath"].extendsFrom(configurations["compileClasspath"])
 }

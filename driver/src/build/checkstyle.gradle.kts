@@ -15,3 +15,6 @@ configure<CheckstyleExtension> {
 
 tasks.named<Checkstyle>("checkstyleMain") { exclude("**/guava/**") }
 tasks.named<Checkstyle>("checkstyleTest") { exclude("**/jdbc/shared/**") }
+tasks.named<Checkstyle>("checkstyleJava11") {
+  onlyIf { false }
+}

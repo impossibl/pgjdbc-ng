@@ -25,6 +25,15 @@ val jar = tasks.named<Jar>("jar") {
        "Created-By" to "${System.getProperty("java.version")} (${System.getProperty("java.vendor")})"
     )
   }
+  if (project.extra["moduleDescriptor"] as Boolean) {
+    manifest {
+      attributes("Multi-Release" to "true")
+    }
+    into("META-INF/versions/11") {
+      from(project.the<SourceSetContainer>()["java11"].output)
+      include("module-info.class")
+    }
+  }
 }
 
 

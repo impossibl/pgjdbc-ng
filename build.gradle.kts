@@ -38,6 +38,7 @@ subprojects {
     mavenCentral()
   }
 
+  extra["moduleDescriptor"] = false
 }
 
 val isSnapshot: Boolean by project
