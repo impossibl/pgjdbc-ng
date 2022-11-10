@@ -31,9 +31,9 @@ package com.impossibl.postgres.api.jdbc;
 /**
  * Driver specific interface for exceptions that carry extended error
  * information reported by the server.
- * 
+ *
  * @author kdubb
- * 
+ *
  */
 public interface PGSQLExceptionInfo {
 
@@ -61,4 +61,7 @@ public interface PGSQLExceptionInfo {
 
   void setDetail(String details);
 
+  String getWhere();
+
+  void setWhere(String where);
 }
