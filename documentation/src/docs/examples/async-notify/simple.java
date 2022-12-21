@@ -1,12 +1,14 @@
 
 PGConnection connection = DriverManager.getConnection(url).unwrap(PGConnection.class); // <1>
-connection.addListener(new PGNotificationListener() { // <2>
+connection.addNotificationListener(new PGNotificationListener() { // <2>
 
-  void notification(int processId, String channelName, String payload) {
+  @Override
+  public void notification(int processId, String channelName, String payload) {
     System.out.println("Received Notification: " + processId + ", " + channelName + ", " + payload); // <3>
   }
 
-  void closed() { // <4>
+  @Override
+  public void closed() { // <4>
     // initiate reconnection & restart listening
   }
 
