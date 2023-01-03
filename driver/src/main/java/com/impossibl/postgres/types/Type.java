@@ -75,8 +75,8 @@ public abstract class Type implements TypeRef {
     Timespan('T'),
     User('U'),
     BitString('V'),
-    Unknown('X');
-
+    Unknown('X'),
+    Internal('Z');
     private char id;
 
     Category(char id) {

@@ -10,3 +10,4 @@ target/
 /bin
 **/out/
 .build-cache
+**/.DS_Store

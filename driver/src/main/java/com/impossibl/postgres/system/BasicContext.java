@@ -52,6 +52,7 @@ import com.impossibl.postgres.types.BaseType;
 import com.impossibl.postgres.types.CompositeType;
 import com.impossibl.postgres.types.DomainType;
 import com.impossibl.postgres.types.EnumerationType;
+import com.impossibl.postgres.types.MultiRangeType;
 import com.impossibl.postgres.types.PsuedoType;
 import com.impossibl.postgres.types.QualifiedName;
 import com.impossibl.postgres.types.RangeType;
@@ -558,6 +559,9 @@ public class BasicContext extends AbstractContext {
           break;
         case 'r':
           type = new RangeType();
+          break;
+        case 'm':
+          type = new MultiRangeType();
           break;
         default:
           logger.warning("unknown discriminator (aka 'typtype') found in pg_type table");

@@ -69,6 +69,7 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
     private boolean domainNotNull;
     private String domainDefault;
     private Integer rangeBaseTypeId;
+    private Integer multiRangeBaseTypeId;
 
     public Row() {
     }
@@ -78,6 +79,7 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
       switch (discriminator) {
         case "d": return domainBaseTypeId;
         case "r": return rangeBaseTypeId;
+        case "m": return multiRangeBaseTypeId;
       }
       return null;
     }
@@ -117,6 +119,7 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
       this.namespace = getFieldOfRow(resultBatch, rowIdx, NAMESPACE, context, String.class);
       this.domainDefault = getFieldOfRow(resultBatch, rowIdx, DOMAIN_DEFAULT, context, String.class);
       this.rangeBaseTypeId = getFieldOfRow(resultBatch, rowIdx, RANGE_BASE_TYPE_ID, context, Integer.class);
+      this.multiRangeBaseTypeId = getFieldOfRow(resultBatch, rowIdx, MULTI_RANGE_BASE_TYPE_ID, context, Integer.class);
     }
 
     public int getOid() {
@@ -211,6 +214,10 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
       return rangeBaseTypeId;
     }
 
+    public Integer getMultiRangeBaseTypeId() {
+      return multiRangeBaseTypeId;
+    }
+
     @Override
     public boolean equals(Object obj) {
       if (this == obj)
@@ -255,6 +262,7 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
   private static final int DOMAIN_NOT_NULL = 19;
   private static final int DOMAIN_DEFAULT = 20;
   private static final int RANGE_BASE_TYPE_ID = 21;
+  private static final int MULTI_RANGE_BASE_TYPE_ID = 22;
 
   public static final PGTypeTable INSTANCE = new PGTypeTable();
 
@@ -278,16 +286,17 @@ public class PGTypeTable implements Table<PGTypeTable.Row> {
     " SELECT" +
         " t.oid, typname, typlen, typtype, typcategory, typdelim, typrelid, typelem, typarray," +
         " typinput::text, typoutput::text, typreceive::text, typsend::text, typmodin::text, typmodout::text," +
-        " typalign, n.nspname, typbasetype, typtypmod, typnotnull, pg_catalog.pg_get_expr(typdefaultbin,0), rngsubtype" +
+        " typalign, n.nspname, typbasetype, typtypmod, typnotnull, pg_catalog.pg_get_expr(typdefaultbin,0), r.rngsubtype, m.rngsubtype" +
         " FROM" +
         "   pg_catalog.pg_type t" +
         " LEFT JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid)" +
-        " LEFT JOIN pg_catalog.pg_range r ON (t.oid = r.rngtypid)",
+        " LEFT JOIN pg_catalog.pg_range r ON (t.oid = r.rngtypid)" +
+        " LEFT JOIN pg_catalog.pg_range m ON (t.oid = m.rngmultitypid)",
     Version.get(9, 1, 0),
     " SELECT" +
         " t.oid, typname, typlen, typtype, typcategory, typdelim, typrelid, typelem, typarray," +
         " typinput::text, typoutput::text, typreceive::text, typsend::text, typmodin::text, typmodout::text," +
-        " typalign, n.nspname, typbasetype, typtypmod, typnotnull, pg_catalog.pg_get_expr(typdefaultbin,0), NULL" +
+        " typalign, n.nspname, typbasetype, typtypmod, typnotnull, pg_catalog.pg_get_expr(typdefaultbin,0), NULL, NULL" +
         " FROM" +
         "   pg_catalog.pg_type t" +
         " LEFT JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid)",

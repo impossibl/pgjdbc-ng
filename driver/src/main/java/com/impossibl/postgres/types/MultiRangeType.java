@@ -34,15 +34,14 @@ import com.impossibl.postgres.system.tables.PGTypeTable;
 import java.io.IOException;
 
 /**
- * A database range type.
+ * A database multi-range type.
  *
- * @author kdubb
+ * @author Dave Cramer
  *
  */
-public class RangeType extends Type {
+public class MultiRangeType extends Type {
 
-  private Type base;
-
+  Type base;
   public Type getBase() {
     return base;
   }
@@ -50,6 +49,7 @@ public class RangeType extends Type {
   public void setBase(Type base) {
     this.base = base;
   }
+
   @Override
   public boolean isParameterFormatSupported(FieldFormat format) {
     return base.isParameterFormatSupported(format);
@@ -68,7 +68,7 @@ public class RangeType extends Type {
   @Override
   public void load(PGTypeTable.Row source, Registry registry) throws IOException {
     super.load(source, registry);
-    base = registry.loadType(source.getRangeBaseTypeId());
-  }
+    base = registry.loadType(source.getMultiRangeBaseTypeId());
 
+  }
 }
