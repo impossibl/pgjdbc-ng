@@ -31,15 +31,18 @@ package com.impossibl.postgres.protocol.ssl;
 import com.impossibl.postgres.system.Configuration;
 import java.io.InputStream;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+
+
 
 
 public interface SSLFileReaderFactory {
 
-  InputStream create(String filename);
+  InputStream create(String filename) throws FileNotFoundException;
 
   public class Default implements SSLFileReaderFactory {
     @Override
-    public InputStream create(String filename) {
+    public InputStream create(String filename) throws FileNotFoundException {
         return new FileInputStream(filename);
     }
   }
