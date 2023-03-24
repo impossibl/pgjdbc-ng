@@ -220,7 +220,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
           byte[] buffer = new byte[1024];
           int length;
           while ((length = stream.read(buffer)) != -1) {
-            boas.write(buffer, 0, length);
+            baos.write(buffer, 0, length);
           }
           keydata = baos.toByteArray();
         }
