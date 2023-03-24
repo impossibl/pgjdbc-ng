@@ -30,6 +30,7 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.system.Configuration;
 import java.io.InputStream;
+import java.io.FileInputStream;
 
 
 public interface SSLFileReaderFactory {

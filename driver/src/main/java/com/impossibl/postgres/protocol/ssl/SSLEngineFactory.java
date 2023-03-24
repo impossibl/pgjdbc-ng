@@ -38,6 +38,7 @@ import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD_CALL
 import static com.impossibl.postgres.system.SystemSettings.SSL_FILE_READER_FACTORY;
 
 import java.io.InputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -109,7 +110,7 @@ public class SSLEngineFactory {
 
     SSLFileReaderFactory sslFileReaderFactory;
     try {
-      sslPasswordCallback = sslFileReaderFactoryClass.getConstructor().newInstance();
+      sslFileReaderFactory = sslFileReaderFactoryClass.getConstructor().newInstance();
     }
     catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
       throw new IOException("Cannot instantiate provided ssl file reader factory: " + sslFileReaderFactoryClass.getName());
@@ -150,7 +151,7 @@ public class SSLEngineFactory {
         sslRootCertFile = config.getSetting(SSL_HOME_DIR) + File.separator + sslRootCertFile;
       }
 
-      try (InputStream sslRootCertInputStream = sslFileReaderFactory.createStream(sslRootCertFile)) {
+      try (InputStream sslRootCertInputStream = sslFileReaderFactory.create(sslRootCertFile)) {
 
         try {
 

@@ -32,6 +32,7 @@ import com.impossibl.postgres.jdbc.PGSQLSimpleException;
 
 import java.io.InputStream;
 import java.io.FileNotFoundException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.AlgorithmParameters;
@@ -219,7 +220,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
           byte[] buffer = new byte[1024];
           int length;
           while ((length = stream.read(buffer)) != -1) {
-            result.write(buffer, 0, length);
+            boas.write(buffer, 0, length);
           }
           keydata = baos.toByteArray();
         }
