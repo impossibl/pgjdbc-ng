@@ -214,11 +214,11 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
 
         byte[] keydata;
 
-        try (InputStream fl = this.readerFactory.create(keyfileName)) {
+        try (InputStream stream = this.readerFactory.create(keyfileName)) {
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           byte[] buffer = new byte[1024];
           int length;
-          while ((length = fl.read(buffer)) != -1) {
+          while ((length = stream.read(buffer)) != -1) {
             result.write(buffer, 0, length);
           }
           keydata = baos.toByteArray();
