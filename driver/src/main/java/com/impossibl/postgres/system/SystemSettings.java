@@ -177,6 +177,15 @@ public class SystemSettings {
   public static final Setting<Class> SSL_KEY_PASSWORD_CALLBACK = Setting.declare();
 
   @Setting.Info(
+      desc = "Factory for creating input streams for reading SSL files",
+      def = "com.impossibl.postgres.protocol.ssl.SSLFileReaderFactory.Default",
+      name = "ssl.file-reader-factory",
+      group = "system",
+      alternateNames = {"sslFileReaderFactory"}
+  )
+  public static final Setting<Class> SSL_FILE_READER_FACTORY = Setting.declare();
+
+  @Setting.Info(
       desc =
           "Directory that SSL files are located in.\n\n" +
           "If the value begins with a path separator (e.g. `/`) it will be considered an absolute path. In all other \n" +

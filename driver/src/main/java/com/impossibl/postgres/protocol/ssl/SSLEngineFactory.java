@@ -35,9 +35,9 @@ import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD_CALLBACK;
+import static com.impossibl.postgres.system.SystemSettings.SSL_FILE_READER_FACTORY;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -103,7 +103,19 @@ public class SSLEngineFactory {
       ((ConfiguredCallbackHandler) sslPasswordCallback).init(config);
     }
 
-    KeyManager keyManager = new OnDemandKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileIsDefault);
+    @SuppressWarnings("unchecked")
+    Class<? extends SSLFileReaderFactory> sslFileReaderFactoryClass =
+        (Class<? extends SSLFileReaderFactory>) config.getSetting(SSL_FILE_READER_FACTORY);
+
+    SSLFileReaderFactory sslFileReaderFactory;
+    try {
+      sslPasswordCallback = sslFileReaderFactoryClass.getConstructor().newInstance();
+    }
+    catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+      throw new IOException("Cannot instantiate provided ssl file reader factory: " + sslFileReaderFactoryClass.getName());
+    }
+
+    KeyManager keyManager = new OnDemandKeyManager(sslCertFile, sslKeyFile, sslPasswordCallback, sslFileReaderFactory, sslFileIsDefault);
 
     /*
      * Initialize Trust Managers
@@ -138,7 +150,7 @@ public class SSLEngineFactory {
         sslRootCertFile = config.getSetting(SSL_HOME_DIR) + File.separator + sslRootCertFile;
       }
 
-      try (FileInputStream sslRootCertInputStream = new FileInputStream(sslRootCertFile)) {
+      try (InputStream sslRootCertInputStream = sslFileReaderFactory.createStream(sslRootCertFile)) {
 
         try {
 

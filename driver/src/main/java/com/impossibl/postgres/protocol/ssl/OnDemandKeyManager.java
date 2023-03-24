@@ -30,8 +30,7 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.jdbc.PGSQLSimpleException;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
@@ -78,6 +77,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
   private String certfile;
   private String keyfileName;
   private CallbackHandler cbh;
+  private SSLFileReaderFactory readerFactory;
   private boolean defaultfile;
   private PGSQLSimpleException error = null;
 
@@ -90,11 +90,12 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
    * @param cbh
    * @param defaultfile
    */
-  public OnDemandKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
+  public OnDemandKeyManager(String certfile, String keyfile, CallbackHandler cbh, SSLFileReaderFactory readerFactory, boolean defaultfile) {
     this.certfile = certfile;
     this.keyfileName = keyfile;
     this.cbh = cbh;
     this.defaultfile = defaultfile;
+    this.readerFactory = readerFactory;
   }
 
   /**
@@ -167,7 +168,7 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
 
       Collection<? extends Certificate> certs;
       try {
-        certs = cf.generateCertificates(new FileInputStream(certfile));
+        certs = cf.generateCertificates(this.readerFactory.create(certfile));
       }
       catch (FileNotFoundException ioex) {
         if (!defaultfile) {
@@ -213,12 +214,14 @@ public class OnDemandKeyManager extends X509ExtendedKeyManager {
 
         byte[] keydata;
 
-        File keyf = new File(keyfileName);
-        try (FileInputStream fl = new FileInputStream(keyfileName)) {
-
-          keydata = new byte[(int) keyf.length()];
-          fl.read(keydata, 0, (int) keyf.length());
-
+        try (InputStream fl = this.readerFactory.create(keyfileName)) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          byte[] buffer = new byte[1024];
+          int length;
+          while ((length = fl.read(buffer)) != -1) {
+            result.write(buffer, 0, length);
+          }
+          keydata = baos.toByteArray();
         }
         catch (FileNotFoundException ex) {
           if (!defaultfile) {
