@@ -36,10 +36,10 @@ public interface SSLFileReaderFactory {
 
   InputStream create(String filename) throws FileNotFoundException;
 
-  public class Default implements SSLFileReaderFactory {
+  class Default implements SSLFileReaderFactory {
     @Override
     public InputStream create(String filename) throws FileNotFoundException {
-        return new FileInputStream(filename);
+      return new FileInputStream(filename);
     }
   }
 
