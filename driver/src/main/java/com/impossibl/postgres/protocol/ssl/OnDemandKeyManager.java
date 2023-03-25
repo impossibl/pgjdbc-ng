@@ -30,10 +30,10 @@ package com.impossibl.postgres.protocol.ssl;
 
 import com.impossibl.postgres.jdbc.PGSQLSimpleException;
 
-import java.io.InputStream;
-import java.io.FileNotFoundException;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;

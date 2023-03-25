@@ -32,15 +32,15 @@ import com.impossibl.postgres.system.Configuration;
 
 import static com.impossibl.postgres.system.SystemSettings.SSL_CA_CRT_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_CRT_FILE;
+import static com.impossibl.postgres.system.SystemSettings.SSL_FILE_READER_FACTORY;
 import static com.impossibl.postgres.system.SystemSettings.SSL_HOME_DIR;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_FILE;
 import static com.impossibl.postgres.system.SystemSettings.SSL_KEY_PASSWORD_CALLBACK;
-import static com.impossibl.postgres.system.SystemSettings.SSL_FILE_READER_FACTORY;
 
-import java.io.InputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
