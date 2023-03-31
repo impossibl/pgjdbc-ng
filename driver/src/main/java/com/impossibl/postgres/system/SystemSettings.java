@@ -178,7 +178,7 @@ public class SystemSettings {
 
   @Setting.Info(
       desc = "Factory for creating input streams for reading SSL files",
-      def = "com.impossibl.postgres.protocol.ssl.SSLFileReaderFactory.Default",
+      def = "com.impossibl.postgres.protocol.ssl.SSLFileReaderFactory$Default",
       name = "ssl.file-reader-factory",
       group = "system",
       alternateNames = {"sslFileReaderFactory"}
