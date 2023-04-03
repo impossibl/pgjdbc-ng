@@ -1,6 +1,6 @@
 plugins {
-//  id("org.asciidoctor.jvm.convert") version Versions.asciiDoctorPlugin
-//  id("org.ajoberstar.git-publish") version Versions.gitPublishPlugin
+  id("org.asciidoctor.jvm.convert") version Versions.asciiDoctorPlugin
+  id("org.ajoberstar.git-publish") version Versions.gitPublishPlugin
 }
 
 val isSnapshot: Boolean by project
@@ -15,7 +15,7 @@ dependencies {
   docs(project(":pgjdbc-ng", "docs"))
   javadocs(project(":pgjdbc-ng"))
 }
-/*
+
 tasks {
 
 
@@ -69,7 +69,7 @@ tasks {
 
     setSourceDir(file(docsDir))
     sources(delegateClosureOf<PatternSet> {
-      include("**" + "/index.adoc")
+      include("**/index.adoc")
     })
 
     setOutputDir(file("$buildDir/docs/html5"))
@@ -135,7 +135,7 @@ tasks {
       }
     }
 
-    preserve { include("**" + "/*") }
+    preserve { include("**/*") }
   }
 
   build {
@@ -148,7 +148,7 @@ tasks {
   }
 
 }
-*/
+
 
 fun loadMaintainers(docsDir: String): List<String> =
    File("$docsDir/maintainers.txt").readLines()
