@@ -26,13 +26,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004-2011, PostgreSQL Global Development Group
- *
- *
- *-------------------------------------------------------------------------
- */
 package com.impossibl.postgres.jdbc;
 
 import com.impossibl.postgres.protocol.FieldFormatRef;
