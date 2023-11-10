@@ -25,3 +25,7 @@ tasks {
   }
 
 }
+
+kotlin {
+  jvmToolchain(Versions.javaTarget.majorVersion.toInt())
+}
