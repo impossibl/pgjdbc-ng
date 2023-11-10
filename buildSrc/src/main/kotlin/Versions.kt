@@ -5,7 +5,7 @@ object Versions {
   /**
    * Source
    */
-  val javaTarget = JavaVersion.VERSION_11
+  val javaTarget = JavaVersion.VERSION_1_8
   const val kotlin = "1.9.10"
 
   /**
