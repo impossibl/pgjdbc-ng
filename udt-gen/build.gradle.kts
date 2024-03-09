@@ -21,6 +21,10 @@ dependencies {
   
 }
 
+kotlin {
+  jvmToolchain(Versions.javaTarget.majorVersion.toInt())
+}
+
 apply {
   from("$rootDir/shared/src/build/compile-java.gradle.kts")
   from("src/build/testing.gradle.kts")
