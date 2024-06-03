@@ -36,9 +36,9 @@ tasks {
       }
     }
 
-    rootProject.subprojects.filter { project != it }.forEach { project ->
+    rootProject.subprojects.filter { project != it }.forEach { otherProject ->
 
-      project.tasks.withType(Javadoc::class.java).forEach { task ->
+      otherProject.tasks.withType(Javadoc::class.java).forEach { task ->
         dependsOn(task)
         source += task.source
         classpath += task.classpath
@@ -119,17 +119,17 @@ tasks {
     branch.set("gh-pages")
 
     contents {
-      from("$buildDir/docs/html5") {
+      from(asciidoctor) {
         into("docs/$version")
       }
-      from ("$buildDir/javadoc") {
+      from (aggregateJavadocs) {
         into("docs/$version/javadoc")
       }
       if (!isSnapshot) {
-        from("$buildDir/docs/html5") {
+        from(asciidoctor) {
           into("docs/current")
         }
-        from ("$buildDir/javadoc") {
+        from (aggregateJavadocs) {
           into("docs/current/javadoc")
         }
       }
