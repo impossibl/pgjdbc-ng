@@ -61,7 +61,7 @@ pgjdbc-ng is released under the 3 clause BSD license.
 #### Building
 The driver is built with Gradle. To build & test, execute:
 
-	./gradlew clean build.
+	./gradlew clean build
 
 This will produce, in the `driver/build/libs` directory, two JAR files. One with dependencies
 packaged inside (`pgjdbg-nc-all-<VERSION>`) and another without (`pgjdbc-ng-VERSION`).
@@ -74,6 +74,10 @@ execute the tests against a specific instance of PostgreSQL outside of Docker se
 Alternatively, to build the driver without testing you can execute:
 
     ./gradlew clean assemble  
+
+And to do the same and publish to your local maven repository you can execute:
+
+	./gradlew clean assemble publishToMavenLocal
 
 #### Testing
 

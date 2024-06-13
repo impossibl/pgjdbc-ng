@@ -6,19 +6,19 @@ object Versions {
    * Source
    */
   val javaTarget = JavaVersion.VERSION_1_8
-  const val kotlin = "1.9.10"
+  const val kotlin = "1.9.20"
 
   /**
    * Required Libraries
    */
-  const val netty = "4.1.100.Final"
+  const val netty = "4.1.109.Final"
 
   /**
    * Tooling Libraries
    */
   const val javaPoet = "1.13.0"
   const val argParser = "2.0.7"
-  const val asciidoctorJ = "2.5.10"
+  const val asciidoctorJ = "2.5.13"
 
   /**
    * Testing dependencies
