@@ -354,7 +354,10 @@ class UDTGenerator(
       writeSQLBldr.addCode(
          when {
            attrTypeName is ArrayTypeName ->
-             CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "ARRAY")
+             if (attrSqlType.name == "_text")
+               CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, PGType::class.java, "TEXT_ARRAY")
+             else
+               CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, JDBCType::class.java, "ARRAY")
 
            typesInfo[attr.typeName] == TypeCategory.Composite ->
              CodeBlock.of("out.writeObject(this.\$L, \$T.\$L);\n", attrPropName, attrTypeName, "TYPE")

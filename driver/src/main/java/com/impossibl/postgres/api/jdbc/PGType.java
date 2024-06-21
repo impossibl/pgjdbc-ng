@@ -67,6 +67,7 @@ public enum PGType implements PGAnyType {
   CHAR                    (  18,  "char",         String.class,         JDBCType.CHAR),
   NAME                    (  19,  "name",         String.class,         JDBCType.VARCHAR),
   TEXT                    (  25,  "text",         String.class,         JDBCType.VARCHAR),
+  TEXT_ARRAY              (1009,  "text[]",       String[].class,       JDBCType.OTHER),
   BPCHAR                  (1042,  "bpchar",       String.class,         JDBCType.VARCHAR),
   VARCHAR                 (1043,  "varchar",      String.class,         JDBCType.VARCHAR),
   CSTRING                 (2275,  "cstring",      String.class,         JDBCType.VARCHAR),
