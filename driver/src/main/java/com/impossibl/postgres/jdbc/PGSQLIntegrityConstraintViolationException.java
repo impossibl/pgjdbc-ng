@@ -42,6 +42,7 @@ public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityCons
   private String datatype;
   private String constraint;
   private String detail;
+  private String where;
 
   public PGSQLIntegrityConstraintViolationException() {
     super();
@@ -135,4 +136,13 @@ public class PGSQLIntegrityConstraintViolationException extends SQLIntegrityCons
     this.detail = details;
   }
 
+  @Override
+  public String getWhere() {
+    return where;
+  }
+
+  @Override
+  public void setWhere(String where) {
+    this.where = where;
+  }
 }

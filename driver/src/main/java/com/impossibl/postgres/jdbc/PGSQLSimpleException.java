@@ -44,6 +44,7 @@ public class PGSQLSimpleException extends SQLException implements PGSQLException
   private String datatype;
   private String constraint;
   private String detail;
+  private String where;
 
   public PGSQLSimpleException() {
     super();
@@ -137,4 +138,13 @@ public class PGSQLSimpleException extends SQLException implements PGSQLException
     this.detail = details;
   }
 
+  @Override
+  public String getWhere() {
+    return where;
+  }
+
+  @Override
+  public void setWhere(String where) {
+    this.where = where;
+  }
 }

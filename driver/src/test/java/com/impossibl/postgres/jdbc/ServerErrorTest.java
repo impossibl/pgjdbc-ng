@@ -72,6 +72,14 @@ public class ServerErrorTest {
     TestUtil.createTable(con, "testerr", "id int not null, val testdom not null");
 
     stmt.execute("ALTER TABLE testerr ADD CONSTRAINT testerr_pk PRIMARY KEY (id)");
+
+    stmt.execute("""
+      CREATE OR REPLACE FUNCTION testfun() RETURNS VOID AS $$
+      BEGIN
+        raise exception 'test exception';
+      END;
+      $$ LANGUAGE PLPGSQL;
+    """);
     stmt.close();
   }
 
@@ -82,6 +90,7 @@ public class ServerErrorTest {
 
     Statement stmt = con.createStatement();
     stmt.execute("DROP DOMAIN testdom");
+    stmt.execute("DROP FUNCTION testfun()");
     stmt.close();
 
     TestUtil.closeDB(con);
@@ -161,4 +170,22 @@ public class ServerErrorTest {
     stmt.close();
   }
 
+  @Test
+  public void testWhere() throws Exception {
+    if (!(con.unwrap(PGConnection.class)).isServerMinimumVersion(9, 3))
+      return;
+
+    Statement stmt = con.createStatement();
+
+    try {
+      stmt.executeUpdate("select testfun()");
+      fail("Should have thrown a constraint violation.");
+    }
+    catch (SQLException e) {
+      PGSQLExceptionInfo sqle = (PGSQLExceptionInfo) e;
+      assertEquals("PL/pgSQL function testfun() line 3 at RAISE", sqle.getWhere());
+    }
+
+    stmt.close();
+  }
 }
