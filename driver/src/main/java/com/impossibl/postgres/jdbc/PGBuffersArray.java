@@ -291,8 +291,10 @@ public class PGBuffersArray extends PGArray {
 
   @Override
   public void free() {
-    for (ByteBuf elementBuf : elementBuffers) {
-      ReferenceCountUtil.release(elementBuf);
+    if (elementBuffers != null) {
+      for (ByteBuf elementBuf : elementBuffers) {
+        ReferenceCountUtil.release(elementBuf);
+      }
     }
     this.context = null;
     this.type = null;
