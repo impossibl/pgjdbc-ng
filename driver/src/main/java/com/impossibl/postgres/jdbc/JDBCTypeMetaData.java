@@ -109,8 +109,11 @@ class JDBCTypeMetaData {
   }
 
   static int getPrecisionRadix(Type type) {
-
-    switch (type.unwrap().getCategory()) {
+   Type.Category c = type.unwrap().getCategory();
+   if (c==null) {
+            return 0;
+   }
+   switch (c) {
       case Numeric:
         return 10;
 
