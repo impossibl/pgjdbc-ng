@@ -313,6 +313,12 @@ public class SQLText {
   }
 
   private static int consumeDollar(final String sql, final int start, final CompositeNode parent) throws ParseException {
+
+    if (parent instanceof ParenGroupNode) {
+      parent.add(new GrammarPiece(sql.substring(start, start + 1), start));
+      return start + 1;
+    }
+
     int ndx = start;
     do {
       if (lookAhead(sql, ndx) == '$') {
