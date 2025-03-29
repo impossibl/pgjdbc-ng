@@ -12,6 +12,7 @@ For quick reference, here are some useful details
 #### Dependencies
 
 [![](https://img.shields.io/maven-central/v/com.impossibl.pgjdbc-ng/pgjdbc-ng.svg)](https://search.maven.org/search?q=g:com.impossibl.pgjdbc-ng%20AND%20a:pgjdbc-ng&core=gav)
+[![libs.tech recommends](https://libs.tech/project/8715861/badge.svg)](https://libs.tech/project/8715861/pgjdbc-ng)
 
 ##### Gradle
 
